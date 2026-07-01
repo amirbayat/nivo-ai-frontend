@@ -6,6 +6,7 @@ const navItems = [
   { to: '/settings/profile', label: fa.settings.profile },
   { to: '/settings/subscription', label: fa.settings.subscription },
   { to: '/settings/usage', label: fa.settings.usage },
+  { to: '/settings/tickets', label: fa.settings.tickets },
 ]
 
 export function SettingsLayout() {

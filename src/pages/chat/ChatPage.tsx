@@ -6,6 +6,8 @@ import { useChatStore } from '@/store/chat.store'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { BudgetWarningBox } from '@/components/chat/BudgetWarningBox'
+import { MessageLimitBanner } from '@/components/chat/MessageLimitBanner'
+import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
 import { fa } from '@/locales/fa'
 import { env } from '@/env'
 
@@ -81,12 +83,16 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
         <h2 className="truncate text-sm font-medium text-slate-200">
           {data.title ?? fa.chat.untitled}
         </h2>
-        <span className="mr-auto shrink-0 rounded-lg bg-slate-700/60 px-2.5 py-1 text-xs text-slate-400">
-          {data.model}
-        </span>
+        <div className="mr-auto flex items-center gap-2 shrink-0">
+          <span className="rounded-lg bg-slate-700/60 px-2.5 py-1 text-xs text-slate-400">
+            {data.model}
+          </span>
+          <FeedbackWidget />
+        </div>
       </div>
 
       <MessageList messages={data.messages} />
+      <MessageLimitBanner />
       <MessageInput onSend={sendMessage} disabled={isStreaming} />
     </div>
   )
@@ -112,6 +118,7 @@ function EmptyState({ onSend, isCreating }: { onSend: (content: string) => void;
           <p className="mt-1 text-sm text-slate-600">{fa.chat.emptySubtitle}</p>
         </div>
       </div>
+      <MessageLimitBanner />
       <MessageInput onSend={onSend} disabled={isCreating} />
     </div>
   )

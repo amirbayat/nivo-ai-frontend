@@ -10,7 +10,7 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages }: MessageListProps) {
-  const { streamingContent, isStreaming, chatError } = useChatStore()
+  const { streamingContent, isStreaming, chatError, limitPlanTier } = useChatStore()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -39,14 +39,14 @@ export function MessageList({ messages }: MessageListProps) {
         </div>
       )}
 
-      {chatError && !isStreaming && <LimitBox message={chatError} />}
+      {chatError && !isStreaming && <LimitBox message={chatError} planTier={limitPlanTier} />}
 
       <div ref={bottomRef} />
     </div>
   )
 }
 
-function LimitBox({ message }: { message: string }) {
+function LimitBox({ message, planTier }: { message: string; planTier: string | null }) {
   return (
     <div className="flex justify-center">
       <div className="max-w-sm w-full rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
@@ -55,9 +55,40 @@ function LimitBox({ message }: { message: string }) {
             <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
             <path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <span className="text-sm font-semibold text-red-300">دسترسی محدود شده</span>
+          <span className="text-sm font-semibold text-red-300">به محدودیت رسیدید</span>
         </div>
-        <p className="text-sm text-red-200/80 leading-relaxed">{message}</p>
+        <p className="text-sm text-red-200/80 leading-relaxed mb-3">{message}</p>
+
+        {planTier && (
+          <div className="flex gap-2 flex-wrap">
+            {(planTier === 'free' || planTier === 'pro') && (
+              <a
+                href="/pricing"
+                className="flex-1 min-w-0 rounded-xl bg-emerald-500 py-2 text-center text-xs font-medium text-white hover:bg-emerald-600 transition-colors"
+              >
+                {planTier === 'free' ? 'ارتقاء به پرو' : 'ارتقاء به ویژه'}
+              </a>
+            )}
+            {/* wallet CTA disabled
+            {(planTier === 'pro' || planTier === 'premium') && (
+              <a
+                href="/settings/profile"
+                className="flex-1 min-w-0 rounded-xl border border-slate-600 py-2 text-center text-xs text-slate-300 hover:bg-slate-700 transition-colors"
+              >
+                شارژ کیف پول
+              </a>
+            )}
+            */}
+            {planTier === 'free' && (
+              <a
+                href="/settings/profile"
+                className="flex-1 min-w-0 rounded-xl border border-slate-600 py-2 text-center text-xs text-slate-300 hover:bg-slate-700 transition-colors"
+              >
+                مشاهده پروفایل
+              </a>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

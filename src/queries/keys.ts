@@ -10,6 +10,7 @@ export const keys = {
     today: () => ['usage', 'today'] as const,
     history: (month: string) => ['usage', 'history', month] as const,
     budget: () => ['usage', 'budget'] as const,
+    messageQuota: () => ['usage', 'message-quota'] as const,
   },
   plans: {
     list: () => ['plans', 'list'] as const,
@@ -22,5 +23,9 @@ export const keys = {
   },
   profile: {
     update: () => ['profile', 'update'] as const,
+  },
+  tickets: {
+    list: () => ['tickets'] as const,
+    detail: (id: string) => ['tickets', id] as const,
   },
 } as const

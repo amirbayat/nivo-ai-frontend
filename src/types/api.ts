@@ -92,3 +92,37 @@ export interface BudgetStatus {
   upsellSuggestion: string | null
   usdtRial: number
 }
+
+export interface Ticket {
+  id: string
+  subject: string
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TicketReply {
+  id: string
+  fromAdmin: boolean
+  body: string
+  createdAt: string
+}
+
+export interface TicketDetail extends Ticket {
+  body: string
+  adminNote: string | null
+  replies: TicketReply[]
+}
+
+export interface MessageQuota {
+  todayCount: number
+  N: number | null
+  M: number
+  stage: 'normal' | 'throttled' | 'blocked'
+  remainingNormal: number | null
+  remainingThrottled: number | null
+  throttledInputTokens: number | null
+  throttledOutputTokens: number | null
+  resetAt: string
+}

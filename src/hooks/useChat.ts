@@ -8,7 +8,7 @@ import type { ConversationDetail, Message } from '@/types/api'
 export function useChat(conversationId: string) {
   const qc = useQueryClient()
   const abortRef = useRef<AbortController | null>(null)
-  const { appendStreamingContent, setIsStreaming, resetStreaming, setChatError } = useChatStore()
+  const { appendStreamingContent, setIsStreaming, resetStreaming, setChatError, setMessageStage } = useChatStore()
 
   const sendMessage = useCallback(
     async (content: string, model?: string) => {
@@ -53,11 +53,16 @@ export function useChat(conversationId: string) {
 
         if (!res.ok) {
           let msg = `خطا (${res.status})`
+          let planTier: string | null = null
+          let stage: 'blocked' | undefined
           try {
-            const body = await res.json() as { message?: string }
+            const body = await res.json() as { message?: string; planTier?: string; stage?: string }
             if (body.message) msg = body.message
+            if (body.planTier) planTier = body.planTier
+            if (body.stage === 'blocked') stage = 'blocked'
           } catch { /* ignore */ }
-          setChatError(msg)
+          setChatError(msg, planTier, stage)
+          if (stage === 'blocked') setMessageStage('blocked', 0, 0)
           setIsStreaming(false)
           return
         }
@@ -76,8 +81,23 @@ export function useChat(conversationId: string) {
             const raw = line.slice(6).trim()
             if (raw === '[DONE]') break
             try {
-              const parsed = JSON.parse(raw) as { chunk?: string; error?: string }
+              const parsed = JSON.parse(raw) as {
+                chunk?: string
+                error?: string
+                info?: string
+                stage?: 'normal' | 'throttled'
+                remainingNormal?: number
+                remainingThrottled?: number
+              }
               if (parsed.chunk) appendStreamingContent(parsed.chunk)
+              if (parsed.error) setChatError(parsed.error)
+              if (parsed.info === 'stage' && parsed.stage) {
+                setMessageStage(
+                  parsed.stage,
+                  parsed.remainingNormal ?? null,
+                  parsed.remainingThrottled ?? null,
+                )
+              }
             } catch {
               // ignore malformed lines
             }
