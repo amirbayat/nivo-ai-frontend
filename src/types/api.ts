@@ -42,6 +42,7 @@ export interface Message {
   conversationId: string
   role: 'USER' | 'ASSISTANT' | 'SYSTEM'
   content: string
+  images?: string[] | null
   tokensInput: number
   tokensOutput: number
   model: string | null

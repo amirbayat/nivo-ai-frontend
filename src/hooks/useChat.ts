@@ -8,10 +8,11 @@ import type { ConversationDetail, Message } from '@/types/api'
 export function useChat(conversationId: string) {
   const qc = useQueryClient()
   const abortRef = useRef<AbortController | null>(null)
-  const { appendStreamingContent, setIsStreaming, resetStreaming, setChatError, setMessageStage } = useChatStore()
+  const { appendStreamingContent, setIsStreaming, resetStreaming, setChatError, setMessageStage, selectedModel } = useChatStore()
 
   const sendMessage = useCallback(
-    async (content: string, model?: string) => {
+    async (content: string, images?: string[], model?: string) => {
+      const effectiveModel = model ?? selectedModel ?? undefined
       abortRef.current?.abort()
       const ctrl = new AbortController()
       abortRef.current = ctrl
@@ -28,6 +29,7 @@ export function useChat(conversationId: string) {
           conversationId,
           role: 'USER',
           content,
+          images: images ?? null,
           tokensInput: 0,
           tokensOutput: 0,
           model: null,
@@ -47,7 +49,11 @@ export function useChat(conversationId: string) {
               'Content-Type': 'application/json',
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
-            body: JSON.stringify({ content, ...(model ? { model } : {}) }),
+            body: JSON.stringify({
+              content,
+              ...(effectiveModel ? { model: effectiveModel } : {}),
+              ...(images?.length ? { images } : {}),
+            }),
           },
         )
 
@@ -114,7 +120,7 @@ export function useChat(conversationId: string) {
         void qc.invalidateQueries({ queryKey: keys.usage.today() })
       }
     },
-    [conversationId, qc, appendStreamingContent, setIsStreaming, resetStreaming],
+    [conversationId, qc, selectedModel, appendStreamingContent, setIsStreaming, resetStreaming],
   )
 
   const abort = useCallback(() => {

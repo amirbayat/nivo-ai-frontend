@@ -3,7 +3,6 @@ import { clsx } from 'clsx'
 import { useConversations, useArchiveConversation } from '@/queries/conversation.queries'
 import { useMe, useLogout } from '@/queries/auth.queries'
 import { useChatStore } from '@/store/chat.store'
-import { TokenUsageBar } from '@/components/chat/TokenUsageBar'
 import { fa } from '@/locales/fa'
 
 export function Sidebar() {
@@ -93,7 +92,6 @@ export function Sidebar() {
 
       {/* footer */}
       <div className="border-t border-slate-700/50">
-        <TokenUsageBar />
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => navigate('/settings/profile')}

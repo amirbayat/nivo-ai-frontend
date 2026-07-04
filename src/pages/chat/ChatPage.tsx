@@ -8,6 +8,7 @@ import { MessageInput } from '@/components/chat/MessageInput'
 import { BudgetWarningBox } from '@/components/chat/BudgetWarningBox'
 import { MessageLimitBanner } from '@/components/chat/MessageLimitBanner'
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
+import { ModelSelector } from '@/components/chat/ModelSelector'
 import { fa } from '@/locales/fa'
 import { env } from '@/env'
 
@@ -17,7 +18,7 @@ export function ChatPage() {
   const navigate = useNavigate()
   const createConv = useCreateConversation()
 
-  const handleFirstMessage = async (content: string) => {
+  const handleFirstMessage = async (content: string, _images?: string[]) => {
     try {
       const conv = await createConv.mutateAsync(env.VITE_DEFAULT_MODEL)
       navigate(`/chat/${conv.id}`, { state: { initialMessage: content }, replace: true })
@@ -84,9 +85,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
           {data.title ?? fa.chat.untitled}
         </h2>
         <div className="mr-auto flex items-center gap-2 shrink-0">
-          <span className="rounded-lg bg-slate-700/60 px-2.5 py-1 text-xs text-slate-400">
-            {data.model}
-          </span>
+          <ModelSelector currentModel={data.model} />
           <FeedbackWidget />
         </div>
       </div>
@@ -98,7 +97,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
   )
 }
 
-function EmptyState({ onSend, isCreating }: { onSend: (content: string) => void; isCreating: boolean }) {
+function EmptyState({ onSend, isCreating }: { onSend: (content: string, images?: string[]) => void; isCreating: boolean }) {
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">

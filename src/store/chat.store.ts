@@ -11,6 +11,7 @@ interface ChatState {
   messageStage: MessageStage
   remainingNormal: number | null
   remainingThrottled: number | null
+  selectedModel: string | null
   setSelectedConvId: (id: string | null) => void
   setStreamingContent: (text: string) => void
   appendStreamingContent: (chunk: string) => void
@@ -18,6 +19,7 @@ interface ChatState {
   resetStreaming: () => void
   setChatError: (msg: string | null, planTier?: string | null, stage?: MessageStage) => void
   setMessageStage: (stage: MessageStage, remainingNormal: number | null, remainingThrottled: number | null) => void
+  setSelectedModel: (model: string) => void
 }
 
 export const useChatStore = create<ChatState>(set => ({
@@ -29,6 +31,7 @@ export const useChatStore = create<ChatState>(set => ({
   messageStage: 'normal',
   remainingNormal: null,
   remainingThrottled: null,
+  selectedModel: typeof window !== 'undefined' ? (localStorage.getItem('nivo:selectedModel') ?? null) : null,
 
   setSelectedConvId: id => set({ selectedConvId: id }),
   setStreamingContent: text => set({ streamingContent: text }),
@@ -39,4 +42,5 @@ export const useChatStore = create<ChatState>(set => ({
     set({ chatError: msg, limitPlanTier: planTier ?? null, ...(stage ? { messageStage: stage } : {}) }),
   setMessageStage: (stage, remainingNormal, remainingThrottled) =>
     set({ messageStage: stage, remainingNormal, remainingThrottled }),
+  setSelectedModel: model => set({ selectedModel: model }),
 }))
