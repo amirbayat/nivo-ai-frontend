@@ -18,6 +18,12 @@ function generateSessionId(): string {
   return `sales-${Math.random().toString(36).slice(2)}-${Date.now()}`
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  free: 'رایگان',
+  silver: 'نقره‌ای',
+  gold: 'طلایی',
+}
+
 export function SalesChatbot({ source = 'pricing_page' }: Props) {
   const navigate = useNavigate()
   const { data: me } = useMe()
@@ -151,21 +157,28 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
 
         {/* CTA after done */}
         {isDone && (
-          <div className="mb-4 flex gap-2 flex-wrap">
-            <button
-              onClick={handleCTA}
-              className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 active:scale-95 transition-all"
-            >
-              {me ? 'شروع مکالمه ←' : 'ثبت‌نام رایگان ←'}
-            </button>
-            {!me && (
-              <button
-                onClick={() => navigate('/pricing')}
-                className="rounded-xl border border-slate-600 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-500 transition-colors"
-              >
-                مشاهده پلن‌ها
-              </button>
+          <div className="mb-4">
+            {recommendedPlan && (
+              <p className="mb-2 text-xs text-emerald-400">
+                پلن پیشنهادی برای تو: <strong>{PLAN_LABELS[recommendedPlan] ?? recommendedPlan}</strong>
+              </p>
             )}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={handleCTA}
+                className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 active:scale-95 transition-all"
+              >
+                {me ? 'شروع مکالمه ←' : 'ثبت‌نام رایگان ←'}
+              </button>
+              {!me && (
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="rounded-xl border border-slate-600 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-500 transition-colors"
+                >
+                  مشاهده پلن‌ها
+                </button>
+              )}
+            </div>
           </div>
         )}
 
