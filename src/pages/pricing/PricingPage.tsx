@@ -1,18 +1,35 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
-import { usePlans, useInitiatePayment } from '@/queries/plans.queries'
+import { usePlans, useInitiatePayment, useEnabledGateways, type PaymentGatewayName } from '@/queries/plans.queries'
 import { useMe } from '@/queries/auth.queries'
 import { SalesChatbot } from '@/components/sales/SalesChatbot'
 import { ExitIntentModal } from '@/components/sales/ExitIntentModal'
+import { GatewayPickerModal } from '@/components/payment/GatewayPickerModal'
 import { fa } from '@/locales/fa'
 
 export function PricingPage() {
   const { data: plans, isLoading } = usePlans()
   const { data: me } = useMe()
+  const { data: gateways } = useEnabledGateways()
   const initPayment = useInitiatePayment()
   const navigate = useNavigate()
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
 
   const currentPlanId = me?.subscription?.planId
+
+  function handleBuy(planId: string) {
+    if ((gateways?.length ?? 0) > 1) {
+      setPendingPlanId(planId)
+      return
+    }
+    initPayment.mutate({ planId, gateway: gateways?.[0] })
+  }
+
+  function handleGatewaySelect(gateway: PaymentGatewayName) {
+    if (!pendingPlanId) return
+    initPayment.mutate({ planId: pendingPlanId, gateway })
+  }
 
   if (isLoading) {
     return (
@@ -100,7 +117,7 @@ export function PricingPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => initPayment.mutate(plan.id)}
+                    onClick={() => handleBuy(plan.id)}
                     disabled={initPayment.isPending}
                     className="rounded-xl bg-emerald-500 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 active:scale-95 disabled:opacity-50 transition-all"
                   >
@@ -124,6 +141,15 @@ export function PricingPage() {
       </div>
 
       <ExitIntentModal />
+
+      {pendingPlanId && gateways && (
+        <GatewayPickerModal
+          gateways={gateways}
+          loading={initPayment.isPending}
+          onSelect={handleGatewaySelect}
+          onClose={() => setPendingPlanId(null)}
+        />
+      )}
     </div>
   )
 }

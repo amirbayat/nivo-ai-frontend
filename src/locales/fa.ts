@@ -76,6 +76,11 @@ export const fa = {
     failed: 'پرداخت ناموفق بود.',
     goToChat: 'رفتن به چت',
     tryAgain: 'تلاش مجدد',
+    chooseGateway: 'انتخاب درگاه پرداخت',
+    gateways: {
+      zarinpal: 'زرین‌پال',
+      vandar: 'وندار',
+    },
   },
   messageFeedback: {
     commentPlaceholder: 'می‌خوای بگی چرا؟ (اختیاری)',

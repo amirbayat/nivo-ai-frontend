@@ -20,6 +20,7 @@ export const keys = {
   },
   pay: {
     history: () => ['payments', 'history'] as const,
+    gateways: () => ['payments', 'gateways'] as const,
   },
   profile: {
     update: () => ['profile', 'update'] as const,

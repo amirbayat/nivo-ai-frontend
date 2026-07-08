@@ -11,10 +11,21 @@ export function usePlans() {
   })
 }
 
+export type PaymentGatewayName = 'zarinpal' | 'vandar'
+
+export function useEnabledGateways() {
+  return useQuery({
+    queryKey: keys.pay.gateways(),
+    queryFn: () =>
+      api.get<{ gateways: PaymentGatewayName[] }>('/payments/gateways').then(r => r.data.gateways),
+    staleTime: 10 * 60_000,
+  })
+}
+
 export function useInitiatePayment() {
   return useMutation({
-    mutationFn: (planId: string) =>
-      api.post<{ paymentUrl: string }>('/payments/initiate', { planId }).then(r => r.data),
+    mutationFn: ({ planId, gateway }: { planId: string; gateway?: PaymentGatewayName }) =>
+      api.post<{ paymentUrl: string }>('/payments/initiate', { planId, gateway }).then(r => r.data),
     onSuccess: data => {
       window.location.href = data.paymentUrl
     },
