@@ -200,7 +200,7 @@ export function PricingPage() {
                 از دستیار هوشمند نیوو بپرس
               </p>
             </div>
-            <div className="mx-auto max-w-lg">
+            <div className="mx-auto max-w-2xl">
               <SalesChatbot source="pricing_page" />
             </div>
           </div>

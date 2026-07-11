@@ -58,6 +58,9 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const chatId = useId()
 
+  // «حالت theater» — به محض اولین پیام کاربر، کل باکس بزرگ‌تر می‌شود (مثل تئاتر یوتیوب)
+  const hasStarted = messages.length > 1
+
   useEffect(() => {
     localStorage.setItem('nivo:sales-session', sessionId.current)
   }, [])
@@ -151,7 +154,12 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
   }
 
   return (
-    <div className="sales-chatbot-wrap" aria-label="دستیار فروش نیوو" role="region">
+    <div
+      className="sales-chatbot-wrap"
+      aria-label="دستیار فروش نیوو"
+      role="region"
+      style={{ width: '100%', maxWidth: hasStarted ? 680 : 420, margin: '0 auto', transition: 'max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1)' }}
+    >
       <div className="sales-chatbot-inner">
         {/* Header */}
         <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-slate-700/60">
@@ -172,7 +180,7 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
           id={chatId}
           ref={messagesRef}
           className="flex flex-col gap-3 overflow-y-auto mb-4"
-          style={{ maxHeight: '340px', minHeight: '120px' }}
+          style={{ maxHeight: hasStarted ? 520 : 340, minHeight: 120, transition: 'max-height 0.45s cubic-bezier(0.16, 1, 0.3, 1)' }}
           role="log"
           aria-live="polite"
         >
@@ -183,7 +191,8 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
               style={{ animation: `salesFadeIn 0.25s ease both` }}
             >
               <div
-                className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed max-w-[82%]
+                dir="auto"
+                className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed max-w-[82%] text-start
                   ${msg.role === 'assistant'
                     ? 'bg-slate-700/70 text-slate-200 rounded-tr-sm ai-content'
                     : 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/20 rounded-tl-sm'
@@ -264,25 +273,28 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
           </div>
         )}
 
-        {/* CTA after done */}
+        {/* CTA after done — عمداً بزرگ و پررنگ برای تمرکز بیشتر، دکمه‌ها زیر هم (نه کنار هم) تا در موبایل هم تمیز و کامل رندر شوند */}
         {isDone && (
-          <div className="mb-4">
+          <div
+            className="mb-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 text-center sm:p-5"
+            style={{ animation: 'salesFadeIn 0.3s ease both' }}
+          >
             {recommendedPlan && (
-              <p className="mb-2 text-xs text-emerald-400">
-                پلن پیشنهادی برای تو: <strong>{PLAN_LABELS[recommendedPlan] ?? recommendedPlan}</strong>
+              <p className="mb-3 text-sm text-emerald-300">
+                پلن پیشنهادی برای تو: <strong className="text-emerald-200">{PLAN_LABELS[recommendedPlan] ?? recommendedPlan}</strong>
               </p>
             )}
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-col gap-2.5">
               <button
                 onClick={handleCTA}
-                className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 active:scale-95 transition-all"
+                className="w-full rounded-xl bg-emerald-500 py-3.5 text-base font-bold text-white hover:bg-emerald-400 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
               >
-                {me ? 'شروع مکالمه ←' : 'ثبت‌نام رایگان ←'}
+                {me ? 'شروع مکالمه ←' : 'شروع رایگان ←'}
               </button>
               {!me && (
                 <button
                   onClick={() => navigate('/pricing')}
-                  className="rounded-xl border border-slate-600 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-500 transition-colors"
+                  className="w-full rounded-xl border border-slate-600 py-3 text-sm font-medium text-slate-300 hover:border-slate-500 hover:text-slate-200 transition-colors"
                 >
                   مشاهده پلن‌ها
                 </button>
@@ -320,6 +332,28 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+          </div>
+        )}
+
+        {/* CTA همیشگی زیر باکس پیام — از همون پیام اول، تا کاربر مجبور نباشه صبر کنه تا مکالمه تمام شود */}
+        {!isDone && hasStarted && (
+          <div className="mt-3 flex gap-2" style={{ animation: 'salesFadeIn 0.3s ease both' }}>
+            <button
+              onClick={handleCTA}
+              className="flex-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-2 text-xs font-semibold
+                text-emerald-300 hover:bg-emerald-500/20 active:scale-95 transition-all"
+            >
+              {me ? 'شروع مکالمه ←' : 'شروع رایگان ←'}
+            </button>
+            {!me && (
+              <button
+                onClick={() => navigate('/pricing')}
+                className="flex-1 rounded-lg border border-slate-700 py-2 text-xs text-slate-400
+                  hover:border-slate-600 hover:text-slate-300 transition-colors"
+              >
+                مشاهده پلن‌ها
+              </button>
+            )}
           </div>
         )}
       </div>

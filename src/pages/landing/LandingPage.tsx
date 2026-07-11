@@ -828,7 +828,7 @@ function ChatbotSection() {
   return (
     <section className="relative overflow-hidden px-6 py-24">
       <SectionGlow c1="#0EA5E9" c2="#10B981" seed={4} />
-      <div className="mx-auto max-w-2xl text-center relative">
+      <div className="mx-auto max-w-3xl text-center relative">
         <div data-anim="true">
           <p className="mb-2 text-sm font-medium text-cyan-400 uppercase tracking-widest">دستیار فروش</p>
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
