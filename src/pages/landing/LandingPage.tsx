@@ -569,8 +569,9 @@ function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
             شروع می‌شه
           </h1>
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-400">
-            نیوو مثل یه همکار باهوش کنارته — می‌پرسی، می‌فهمه، جواب می‌ده.
-            از نوشتن ایمیل تا تحلیل داده، وقتت رو آزاد کن.
+            دیگه لازم نیست برای هر هوش مصنوعی جدا حساب بسازی و پول بدی.
+            نیوو دسترسی آسون و یک‌جا به بهترین و به‌روزترین هوش مصنوعی‌های دنیا رو بهت می‌ده —
+            ChatGPT، Claude، Gemini، Grok و مدل‌های دیگه، بدون دردسر VPN یا کارت بانکی خارجی.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to={isLoggedIn ? '/chat' : '/login'}
@@ -624,8 +625,8 @@ function FeaturesSection() {
   const features = [
     {
       Icon: IconZap,
-      title: 'پاسخ‌های فوری',
-      desc: 'مدل‌های GPT-4o و GPT-4o mini — سریع‌ترین و دقیق‌ترین پاسخ به سوالاتت.',
+      title: 'بهترین مدل‌های دنیا',
+      desc: 'ChatGPT، Claude، Gemini، Grok و مدل‌های دیگه — همیشه به‌روزترین نسخه‌ها، یک‌جا و آماده.',
       bg: 'from-emerald-500/10 to-transparent',
       border: 'border-emerald-500/15 hover:border-emerald-500/40',
     },
@@ -645,8 +646,8 @@ function FeaturesSection() {
     },
     {
       Icon: IconLayers,
-      title: 'انتخاب آزاد مدل',
-      desc: 'از رایگان تا پلاس — هر پلنی متناسب با نیاز و بودجه‌ات.',
+      title: 'بدون VPN، بدون دردسر',
+      desc: 'دسترسی مستقیم به هوش مصنوعی‌های دنیا از داخل ایران — بدون فیلترشکن و بدون کارت بانکی خارجی.',
       bg: 'from-emerald-500/10 to-transparent',
       border: 'border-emerald-500/15 hover:border-emerald-500/40',
     },
@@ -1061,6 +1062,7 @@ function Footer() {
         </span>
         <div className="flex items-center gap-6">
           <a href="#pricing" className="hover:text-slate-400 transition-colors">قیمت‌ها</a>
+          <a href="/blog" className="hover:text-slate-400 transition-colors">وبلاگ</a>
           <Link to="/login" className="hover:text-slate-400 transition-colors">ورود</Link>
           <Link
             to="/contact"
