@@ -5,6 +5,7 @@ import {
   usePlans,
   useInitiatePayment,
   useEnabledGateways,
+  useValidateDiscountCode,
   type PaymentGatewayName,
 } from "@/queries/plans.queries";
 import { useMe } from "@/queries/auth.queries";
@@ -29,9 +30,28 @@ export function PricingPage() {
   const currentPlanId = me?.subscription?.planId;
   const [discountCode, setDiscountCode] = useState("");
   const [showDiscountInput, setShowDiscountInput] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; percent: number } | null>(null);
+  const validateDiscount = useValidateDiscountCode();
+
+  // اعمال‌شده فقط تا وقتی معتبره که کد تغییر نکرده باشه — با هر ادیت باید دوباره اعمال بشه
+  function onDiscountInputChange(value: string) {
+    setDiscountCode(value);
+    if (appliedDiscount && value.trim() !== appliedDiscount.code) setAppliedDiscount(null);
+    validateDiscount.reset();
+  }
+
+  function handleApplyDiscount() {
+    const code = discountCode.trim();
+    if (!code) return;
+    validateDiscount.mutate(code, {
+      onSuccess: ({ discountPercent }) => setAppliedDiscount({ code, percent: discountPercent }),
+    });
+  }
+
+  const activeDiscountPercent = appliedDiscount?.code === discountCode.trim() ? appliedDiscount.percent : 0;
 
   function handleBuy(planId: string) {
-    const code = discountCode.trim() || undefined;
+    const code = activeDiscountPercent > 0 ? discountCode.trim() : undefined;
     if ((gateways?.length ?? 0) > 1) {
       setPendingPlanId(planId);
       return;
@@ -41,7 +61,8 @@ export function PricingPage() {
 
   function handleGatewaySelect(gateway: PaymentGatewayName) {
     if (!pendingPlanId) return;
-    initPayment.mutate({ planId: pendingPlanId, gateway, discountCode: discountCode.trim() || undefined });
+    const code = activeDiscountPercent > 0 ? discountCode.trim() : undefined;
+    initPayment.mutate({ planId: pendingPlanId, gateway, discountCode: code });
   }
 
   if (isLoading) {
@@ -62,17 +83,24 @@ export function PricingPage() {
           <p className="mt-2 text-slate-500">{fa.plans.subtitle}</p>
         </div>
 
-        <div className="mb-6 flex justify-center">
+        <div className="mb-6 flex flex-col items-center gap-2">
           {showDiscountInput ? (
             <div className="flex w-full max-w-xs items-center gap-2">
               <input
                 type="text"
                 value={discountCode}
-                onChange={(e) => setDiscountCode(e.target.value)}
+                onChange={(e) => onDiscountInputChange(e.target.value)}
                 placeholder="کد تخفیف"
                 dir="ltr"
                 className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50"
               />
+              <button
+                onClick={handleApplyDiscount}
+                disabled={!discountCode.trim() || validateDiscount.isPending || activeDiscountPercent > 0}
+                className="shrink-0 rounded-xl bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-400 hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
+              >
+                {validateDiscount.isPending ? "..." : activeDiscountPercent > 0 ? "اعمال شد ✓" : "اعمال"}
+              </button>
             </div>
           ) : (
             <button
@@ -81,6 +109,12 @@ export function PricingPage() {
             >
               کد تخفیف داری؟
             </button>
+          )}
+          {activeDiscountPercent > 0 && (
+            <p className="text-xs text-emerald-400">{activeDiscountPercent}٪ تخفیف روی همه‌ی پلن‌ها اعمال شد</p>
+          )}
+          {validateDiscount.isError && (
+            <p className="text-xs text-red-400">کد تخفیف نامعتبر یا منقضی‌شده است</p>
           )}
         </div>
 
@@ -128,6 +162,18 @@ export function PricingPage() {
                       <span className="text-3xl font-extrabold text-emerald-400">
                         {fa.plans.free}
                       </span>
+                    ) : activeDiscountPercent > 0 ? (
+                      <>
+                        <span className="text-3xl font-extrabold text-emerald-400">
+                          {Math.round(plan.priceMonthly * (1 - activeDiscountPercent / 100)).toLocaleString("fa-IR")}
+                        </span>
+                        <span className="text-sm text-slate-500">
+                          {fa.plans.perMonth}
+                        </span>
+                        <span className="mr-1 text-sm text-slate-500 line-through">
+                          {plan.priceMonthly.toLocaleString("fa-IR")}
+                        </span>
+                      </>
                     ) : (
                       <>
                         <span className="text-3xl font-extrabold text-slate-100">

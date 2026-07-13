@@ -39,6 +39,13 @@ export function useEnabledGateways() {
   })
 }
 
+export function useValidateDiscountCode() {
+  return useMutation({
+    mutationFn: (code: string) =>
+      api.get<{ discountPercent: number }>('/payments/validate-discount', { params: { code } }).then(r => r.data),
+  })
+}
+
 export function useInitiatePayment() {
   return useMutation({
     mutationFn: ({ planId, gateway, discountCode }: { planId: string; gateway?: PaymentGatewayName; discountCode?: string }) =>
