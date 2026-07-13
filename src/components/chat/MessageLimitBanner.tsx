@@ -1,29 +1,9 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useChatStore } from '@/store/chat.store'
 import { useMessageQuota } from '@/queries/usage.queries'
+import { useCountdown } from '@/hooks/useCountdown'
 import { fa } from '@/locales/fa'
-
-// شمارش معکوس زنده تا لحظه‌ی ریست (HH:MM:SS) — برای هر سه نوع محدودیت (روزانه/پنجره‌ی لغزان/بودجه) یکسان است
-function useCountdown(resetAt: string | null): string | null {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    if (!resetAt) return
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [resetAt])
-
-  if (!resetAt) return null
-  const diffMs = Math.max(0, new Date(resetAt).getTime() - now)
-  const totalSec = Math.floor(diffMs / 1000)
-  const h = Math.floor(totalSec / 3600)
-  const m = Math.floor((totalSec % 3600) / 60)
-  const s = totalSec % 60
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(h)}:${pad(m)}:${pad(s)}`
-}
 
 // باکس «به محدودیت رسیدید» — همیشه نمایش داده می‌شود تا زمانی که واقعاً ریست شود
 // (بدون دکمه‌ی بستن؛ چون نباید بعد از یک بار بستن دیگر برنگردد)

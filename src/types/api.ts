@@ -10,12 +10,22 @@ export interface User {
 
 export interface OnboardingGiftStatus {
   eligible: boolean
+  phase: 'trial' | 'grace' | null
+  graceDeadline: string | null
   gift: { title: string; description: string; audioUrl: string | null } | null
 }
 
 export interface ClaimGiftResult {
   code: string
   discountPercent: number
+  expiresAt: string | null
+}
+
+export interface MyDiscountCode {
+  id: string
+  code: string
+  discountPercent: number
+  source: 'WELCOME_GIFT' | 'EXPIRY_REMINDER' | 'REFERRAL' | 'MANUAL'
   expiresAt: string | null
 }
 

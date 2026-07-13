@@ -5,9 +5,18 @@ import { useMe, useLogout } from '@/queries/auth.queries'
 import { useUpdateProfile } from '@/queries/settings.queries'
 import { useBudgetStatus } from '@/queries/usage.queries'
 import { useFeatureFlags } from '@/queries/config.queries'
+import { useMyDiscountCodes } from '@/queries/growth.queries'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { fa } from '@/locales/fa'
+import type { MyDiscountCode } from '@/types/api'
+
+const DISCOUNT_SOURCE_LABEL: Record<MyDiscountCode['source'], string> = {
+  WELCOME_GIFT: 'هدیه‌ی خوش‌آمد',
+  REFERRAL: 'پاداش معرفی دوستان',
+  EXPIRY_REMINDER: 'یادآوری تمدید',
+  MANUAL: 'کمپین ویژه',
+}
 
 function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
@@ -34,9 +43,11 @@ export function ProfilePage() {
   const { data: budget } = useBudgetStatus()
   const { data: flags } = useFeatureFlags()
   const logoutMut = useLogout()
+  const { data: myCodes } = useMyDiscountCodes()
   const [name, setName] = useState(me?.name ?? '')
   const [saved, setSaved] = useState(false)
   const [referralCopied, setReferralCopied] = useState(false)
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
 
   const referralUrl = me?.referralCode ? `${window.location.origin}/?ref=${me.referralCode}` : ''
 
@@ -45,6 +56,12 @@ export function ProfilePage() {
     void navigator.clipboard.writeText(referralUrl)
     setReferralCopied(true)
     setTimeout(() => setReferralCopied(false), 2000)
+  }
+
+  function copyDiscountCode(id: string, code: string) {
+    void navigator.clipboard.writeText(code)
+    setCopiedCodeId(id)
+    setTimeout(() => setCopiedCodeId(null), 2000)
   }
 
   useEffect(() => {
@@ -127,7 +144,9 @@ export function ProfilePage() {
         <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
           <h3 className="text-sm font-semibold text-slate-200 mb-2">🤝 معرفی دوستان</h3>
           <p className="mb-4 text-sm text-slate-400">
-            لینکت رو برای دوستات بفرست — وقتی اولین خریدشون رو انجام بدن، هم تو هم دوستت کد تخفیف می‌گیرید.
+            لینکت رو برای دوستات بفرست — وقتی اولین خریدشون رو انجام بدن، هم تو هم دوستت یک کد تخفیف تازه
+            می‌گیرید. فرقی نمی‌کنه الان رایگان، اکو یا پلاس باشی: هر دوست جدیدی که معرفی کنی، یک کد تخفیف
+            تازه برای ارتقا یا تمدید حساب می‌گیری — بدون محدودیت در تعداد دفعات.
           </p>
           <button
             onClick={copyReferralUrl}
@@ -136,6 +155,29 @@ export function ProfilePage() {
           >
             {referralCopied ? 'کپی شد ✓' : referralUrl}
           </button>
+
+          {myCodes && myCodes.length > 0 && (
+            <div className="mt-4 space-y-2 border-t border-slate-700/40 pt-4">
+              <p className="text-xs text-slate-500">کدهای تخفیف فعال شما:</p>
+              {myCodes.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => copyDiscountCode(c.id, c.code)}
+                  className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 text-start hover:border-emerald-500/50 transition-colors"
+                >
+                  <span className="flex flex-col items-start">
+                    <span dir="ltr" className="font-mono text-sm text-emerald-400">
+                      {copiedCodeId === c.id ? 'کپی شد ✓' : c.code}
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      {DISCOUNT_SOURCE_LABEL[c.source]} · {c.discountPercent}٪ تخفیف
+                      {c.expiresAt && ` · تا ${new Date(c.expiresAt).toLocaleDateString('fa-IR')}`}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

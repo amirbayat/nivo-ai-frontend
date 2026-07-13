@@ -1,46 +1,71 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { useGiftStatus, useClaimGift } from '@/queries/growth.queries'
+import { useCountdown } from '@/hooks/useCountdown'
+import type { OnboardingGiftStatus } from '@/types/api'
 
-// docs/PRD-growth-traction-features.md بخش ۴.۳ — فقط برای کاربر رایگانِ داخل دوره‌ی
-// آزمایشی نشون داده می‌شه (چک واجدشرایط‌بودن سمت سرور، نه اینجا)
+// docs/PRD-growth-traction-features.md بخش ۳.۵ — دو فاز: «trial» (کاربر هنوز زیر آستانه‌ی
+// پیام‌های آزمایشی است) و «grace» (trial تازه تمام شده، ولی هنوز postTrialGraceHours ساعت
+// فرصت claim/استفاده از کد هدیه دارد). واجدشرایط‌بودن کامل سمت سرور چک می‌شود، نه اینجا.
 export function GiftBanner() {
   const { data: status } = useGiftStatus()
   const [open, setOpen] = useState(false)
 
   if (!status?.eligible || !status.gift) return null
+  const isGrace = status.phase === 'grace'
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="mx-4 mb-2 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-right hover:bg-emerald-500/15 transition-colors"
+        className={clsx(
+          'mx-4 mb-2 flex w-[calc(100%-2rem)] items-center justify-between rounded-xl border px-4 py-3 text-right transition-colors',
+          isGrace
+            ? 'border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15'
+            : 'border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15',
+        )}
       >
-        <span className="flex items-center gap-2 text-sm font-medium text-emerald-300">
-          <span>🎁</span>
-          هدیه ویژه نیوو به کاربران تازه
+        <span className={clsx('flex items-center gap-2 text-sm font-medium', isGrace ? 'text-amber-300' : 'text-emerald-300')}>
+          <span>{isGrace ? '⏳' : '🎁'}</span>
+          {isGrace
+            ? 'فرصت محدود: کد تخفیف هدیه رو از دست نده'
+            : 'هدیه ویژه نیوو به کاربران تازه (پادکست صوتی آموزش هوش مصنوعی رایگان + کد تخفیف ارتقا حساب)'}
         </span>
-        <svg viewBox="0 0 16 16" fill="none" className="size-4 text-emerald-400 rotate-180">
+        <svg viewBox="0 0 16 16" fill="none" className={clsx('size-4 rotate-180', isGrace ? 'text-amber-400' : 'text-emerald-400')}>
           <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
-      {open && <GiftModal title={status.gift.title} description={status.gift.description} audioUrl={status.gift.audioUrl} onClose={() => setOpen(false)} />}
+      {open && (
+        <GiftModal
+          title={status.gift.title}
+          description={status.gift.description}
+          audioUrl={status.gift.audioUrl}
+          phase={status.phase}
+          graceDeadline={status.graceDeadline}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   )
 }
 
 function GiftModal({
-  title, description, audioUrl, onClose,
+  title, description, audioUrl, phase, graceDeadline, onClose,
 }: {
   title: string
   description: string
   audioUrl: string | null
+  phase: OnboardingGiftStatus['phase']
+  graceDeadline: string | null
   onClose: () => void
 }) {
   const claimGift = useClaimGift()
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
+  const countdown = useCountdown(phase === 'grace' ? graceDeadline : null)
+  const isGrace = phase === 'grace'
 
   function copyCode() {
     if (!claimGift.data) return
@@ -72,9 +97,26 @@ function GiftModal({
         </button>
 
         <div className="text-center">
-          <div className="mx-auto mb-3 text-3xl">🎁</div>
-          <h3 className="text-base font-bold text-slate-100">{title}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
+          <div className="mx-auto mb-3 text-3xl">{isGrace ? '⏳' : '🎁'}</div>
+          {isGrace ? (
+            <>
+              <h3 className="text-base font-bold text-slate-100">دوره‌ی آزمایشی شما تمام شد</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                می‌توانید همچنان به‌صورت رایگان از نیوو استفاده کنید — اما اگر می‌خواهید ارتقا بدهید،
+                هنوز فرصت دارید از کد تخفیف هدیه استفاده کنید.
+              </p>
+              {countdown && (
+                <p dir="ltr" className="mt-2 text-xs text-amber-400" style={{ direction: 'rtl' }}>
+                  زمان باقی‌مانده: <span dir="ltr" className="font-mono text-amber-300">{countdown}</span>
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <h3 className="text-base font-bold text-slate-100">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
+            </>
+          )}
         </div>
 
         {audioUrl && (

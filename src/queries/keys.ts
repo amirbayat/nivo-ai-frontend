@@ -45,5 +45,6 @@ export const keys = {
   },
   growth: {
     giftStatus: () => ['growth', 'gift-status'] as const,
+    myDiscountCodes: () => ['growth', 'my-discount-codes'] as const,
   },
 } as const
