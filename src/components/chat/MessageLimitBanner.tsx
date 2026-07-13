@@ -96,6 +96,17 @@ export function MessageLimitBanner() {
     )
   }
 
+  if (quota.tokenQuota.blocked) {
+    return (
+      <HardLimitBox
+        heading="به محدودیت رسیدید"
+        message={fa.chat.limitQuotaExceeded}
+        resetAt={quota.tokenQuota.resetAt}
+        planTier={planTier}
+      />
+    )
+  }
+
   // determine effective soft-stage (prefer store — به‌روزشده از SSE حین استریم — وگرنه از پول کوئری)
   const stage = messageStage !== 'normal' ? messageStage : quota.stage
   const remNormal = remainingNormal ?? quota.remainingNormal

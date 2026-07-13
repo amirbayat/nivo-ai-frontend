@@ -64,15 +64,21 @@ export function useChat(conversationId: string) {
             if (body.message) msg = body.message
             stage = body.stage
           } catch { /* ignore */ }
-          // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن) توسط بنر پایدار بالای اینپوت
-          // (که با پول کردن /usage/message-quota همیشه به‌روز است) نمایش داده می‌شوند — اینجا دوباره
-          // نشونشون ندیم که یک پیام تکراری وسط چت ظاهر نشه.
+          // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن/سهمیه‌ی توکن) توسط بنر پایدار
+          // بالای اینپوت نمایش داده می‌شوند — اینجا دوباره نشونشون ندیم که یک پیام تکراری وسط چت
+          // ظاهر نشه. بنر معمولاً هر ۳۰ ثانیه پول می‌شود؛ همین‌جا هم فوری invalidate می‌کنیم که
+          // بلافاصله (نه با تا ۳۰ ثانیه تاخیر) نمایش داده شود.
           const isLimitStage =
             stage === 'blocked' ||
             stage === 'rolling_window_blocked' ||
             stage === 'budget_exceeded' ||
-            stage === 'budget_session_limit'
-          if (!isLimitStage) setChatError(msg)
+            stage === 'budget_session_limit' ||
+            stage === 'quota_exceeded'
+          if (isLimitStage) {
+            void qc.invalidateQueries({ queryKey: keys.usage.messageQuota() })
+          } else {
+            setChatError(msg)
+          }
           setIsStreaming(false)
           return
         }

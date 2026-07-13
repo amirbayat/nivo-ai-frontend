@@ -169,4 +169,5 @@ export interface MessageQuota {
   planTier: string
   rollingWindow: { blocked: boolean; resetAt: string | null } | null
   budget: { blocked: boolean; reason: 'exceeded' | 'session_limit' | null; resetAt: string }
+  tokenQuota: { blocked: boolean; resetAt: string | null }
 }
