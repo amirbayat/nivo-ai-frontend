@@ -119,6 +119,7 @@ export interface BudgetStatus {
   usagePct: number
   upsellSuggestion: string | null
   usdtToman: number
+  resetAt: string
 }
 
 export interface Ticket {
@@ -153,4 +154,7 @@ export interface MessageQuota {
   throttledInputTokens: number | null
   throttledOutputTokens: number | null
   resetAt: string
+  planTier: string
+  rollingWindow: { blocked: boolean; resetAt: string | null } | null
+  budget: { blocked: boolean; reason: 'exceeded' | 'session_limit' | null; resetAt: string }
 }

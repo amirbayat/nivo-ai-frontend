@@ -8,7 +8,7 @@ import { ExitIntentModal } from '@/components/sales/ExitIntentModal'
 import { ModelShowcase } from '@/components/models/ModelShowcase'
 import { PromoBanner } from '@/components/articles/PromoBanner'
 import { env } from '@/env'
-import { PLAN_TIER_MODEL_DESCRIPTIONS, hourlyLimitText, supportText } from '@/lib/plan-copy'
+import { PLAN_TIER_MODEL_DESCRIPTIONS, dailyLimitText, supportText } from '@/lib/plan-copy'
 
 // ── InView observer (MutationObserver برای عناصر async مثل plan cards) ───────
 function useInViewObserver() {
@@ -599,6 +599,8 @@ function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
 }
 
 function StatsBar() {
+  if (!env.VITE_LANDING_STATS_ENABLED) return null
+
   const stats = [
     { label: 'کاربر فعال', value: 10000, suffix: '+' },
     { label: 'پیام پردازش‌شده', value: 500000, suffix: '+' },
@@ -633,7 +635,7 @@ function FeaturesSection() {
     {
       Icon: IconShield,
       title: 'حریم خصوصی کامل',
-      desc: 'مکالمات روی سرورهای داخل ایران، رمزنگاری‌شده و کاملاً خصوصی.',
+      desc: 'مکالمات روی سرورهای داخل ایران، کاملاً خصوصی و فقط در دسترس خودته.',
       bg: 'from-violet-600/10 to-transparent',
       border: 'border-violet-500/15 hover:border-violet-500/40',
     },
@@ -913,7 +915,7 @@ function PricingSection() {
                   </div>
                   <ul className="mb-6 space-y-3">
                     {[
-                      hourlyLimitText(plan),
+                      dailyLimitText(plan),
                       !isFree ? supportText(plan) : null,
                     ].filter((feat): feat is string => Boolean(feat)).map(feat => (
                       <li key={feat} className="flex items-center gap-2.5 text-sm text-slate-300">
@@ -954,9 +956,9 @@ function FaqSection() {
   const [open, setOpen] = useState<number | null>(null)
   const faqs = [
     { q: 'پلن رایگان محدودیت زمانی داره؟', a: 'نه، پلن رایگان همیشگیه. روزانه توکن رایگان دریافت می‌کنی — تا ابد.' },
-    { q: 'پرداخت چطور انجام می‌شه؟', a: 'از طریق درگاه زرین‌پال با کارت‌های بانکی ایرانی — امن و آنی.' },
+    { q: 'پرداخت چطور انجام می‌شه؟', a: 'از طریق درگاه پرداخت و با استفاده از کارت بانکی — امن و آنی.' },
     { q: 'می‌تونم پلنمو عوض کنم؟', a: 'بله. هر زمان می‌تونی پلنت رو ارتقا بدی، بلافاصله اعمال می‌شه.' },
-    { q: 'داده‌هام کجا ذخیره می‌شن؟', a: 'روی سرورهای داخل ایران، رمزنگاری‌شده. مکالمات فقط مال توئه.' },
+    { q: 'داده‌هام کجا ذخیره می‌شن؟', a: 'روی سرورهای داخل ایران. مکالمات فقط مال توئه و به کسی نشون داده نمی‌شه.' },
   ]
   return (
     <section className="relative overflow-hidden px-6 py-24">

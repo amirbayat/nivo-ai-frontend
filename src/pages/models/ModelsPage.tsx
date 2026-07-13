@@ -44,13 +44,20 @@ export function ModelsPage() {
     const isAllowed = allowedModels.includes(model.name)
     const isActive = selectedModel === model.name
 
+    // مدل قفل‌شده هم باید کلیک‌پذیر بماند (کل کارت برود به /pricing) — به همین دلیل
+    // دیگه button-در-button نداریم (که HTML نامعتبر بود و باعث می‌شد فقط دکمه‌ی
+    // داخلی کوچیک کلیک‌پذیر باشه، نه کل کارت)
     return (
-      <button
-        onClick={() => isAllowed && select(model.name)}
-        disabled={!isAllowed}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => (isAllowed ? select(model.name) : navigate('/pricing'))}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') (isAllowed ? select(model.name) : navigate('/pricing'))
+        }}
         className={clsx(
-          'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-          !isAllowed && 'cursor-not-allowed opacity-50',
+          'flex w-full cursor-pointer items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+          !isAllowed && 'opacity-50',
           isActive
             ? 'border-emerald-500/60 bg-emerald-500/5'
             : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
@@ -63,16 +70,13 @@ export function ModelsPage() {
           <h3 className="font-bold text-slate-100">{model.displayName}</h3>
           <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{tierDescription(model.tier)}</p>
           {!isAllowed && (
-            <button
-              onClick={e => { e.stopPropagation(); navigate('/pricing') }}
-              className="mt-2.5 text-xs font-medium text-emerald-400 hover:underline"
-            >
+            <span className="mt-2.5 block text-xs font-medium text-emerald-400">
               نیاز به ارتقا پلن ←
-            </button>
+            </span>
           )}
         </div>
         {isActive && <Check />}
-      </button>
+      </div>
     )
   }
 

@@ -21,7 +21,7 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages }: MessageListProps) {
-  const { streamingContent, isStreaming, chatError, chatErrorCode, limitPlanTier } = useChatStore()
+  const { streamingContent, isStreaming, chatError, chatErrorCode } = useChatStore()
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -58,22 +58,18 @@ export function MessageList({ messages }: MessageListProps) {
       )}
 
       {chatError && !isStreaming && (
-        <ChatErrorBox message={chatError} planTier={limitPlanTier} code={chatErrorCode} />
+        <ChatErrorBox message={chatError} code={chatErrorCode} />
       )}
 
     </div>
   )
 }
 
-function ChatErrorBox({ message, planTier, code }: { message: string; planTier: string | null; code: string | null }) {
-  // فقط وقتی واقعاً یک خطای سهمیه/بودجه است (planTier ست شده) عنوان «محدودیت» نشون بده —
-  // خطاهای دیگر (مثلاً مدل در دسترس نیست) نباید با همین قاب گمراه‌کننده نمایش داده شوند
-  const isLimitError = Boolean(planTier)
-  const heading = isLimitError
-    ? 'به محدودیت رسیدید'
-    : code === 'model_unavailable'
-      ? 'مدل در دسترس نیست'
-      : 'خطایی رخ داد'
+// این باکس فقط برای خطاهای عمومی/غیرمنتظره است (مدل در دسترس نیست، قطعی شبکه و ...) —
+// خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن) توسط بنر پایدار بالای اینپوت
+// (MessageLimitBanner) پوشش داده می‌شوند، نه اینجا.
+function ChatErrorBox({ message, code }: { message: string; code: string | null }) {
+  const heading = code === 'model_unavailable' ? 'مدل در دسترس نیست' : 'خطایی رخ داد'
 
   return (
     <div className="flex justify-center">
@@ -85,38 +81,7 @@ function ChatErrorBox({ message, planTier, code }: { message: string; planTier: 
           </svg>
           <span className="text-sm font-semibold text-red-300">{heading}</span>
         </div>
-        <p className="text-sm text-red-200/80 leading-relaxed mb-3">{message}</p>
-
-        {planTier && (
-          <div className="flex gap-2 flex-wrap">
-            {(planTier === 'free' || planTier === 'pro') && (
-              <a
-                href="/pricing"
-                className="flex-1 min-w-0 rounded-xl bg-emerald-500 py-2 text-center text-xs font-medium text-white hover:bg-emerald-600 transition-colors"
-              >
-                {planTier === 'free' ? 'ارتقاء به پرو' : 'ارتقاء به ویژه'}
-              </a>
-            )}
-            {/* wallet CTA disabled
-            {(planTier === 'pro' || planTier === 'premium') && (
-              <a
-                href="/settings/profile"
-                className="flex-1 min-w-0 rounded-xl border border-slate-600 py-2 text-center text-xs text-slate-300 hover:bg-slate-700 transition-colors"
-              >
-                شارژ کیف پول
-              </a>
-            )}
-            */}
-            {planTier === 'free' && (
-              <a
-                href="/settings/profile"
-                className="flex-1 min-w-0 rounded-xl border border-slate-600 py-2 text-center text-xs text-slate-300 hover:bg-slate-700 transition-colors"
-              >
-                مشاهده پروفایل
-              </a>
-            )}
-          </div>
-        )}
+        <p className="text-sm text-red-200/80 leading-relaxed">{message}</p>
       </div>
     </div>
   )

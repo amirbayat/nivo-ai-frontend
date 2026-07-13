@@ -8,11 +8,10 @@ export const PLAN_TIER_MODEL_DESCRIPTIONS = [
   'آخرین و به‌روزترین و قوی‌ترین مدل‌های هوش مصنوعی دنیا از خانواده‌ی GPT، Claude، Gemini، Grok و ...',
 ]
 
-// محدودیت پیام به‌صورت ساعتی، مستقیم از دیتابیس (Plan.rollingWindowLimit/rollingWindowHours) —
-// همان عددی که واقعاً در chat.service.ts اعمال می‌شود، نه یک متن بازاریابی جدا.
-export function hourlyLimitText(plan: Plan): string | null {
-  if (plan.rollingWindowLimit === null) return null
-  return `${plan.rollingWindowLimit.toLocaleString('fa-IR')} پیام هر ${plan.rollingWindowHours.toLocaleString('fa-IR')} ساعت`
+// محدودیت پیام روزانه، مستقیم از دیتابیس (Plan.dailyMessageLimit) — null یعنی نامحدود (چیزی نمایش داده نمی‌شود).
+export function dailyLimitText(plan: Plan): string | null {
+  if (plan.dailyMessageLimit === null) return null
+  return `${plan.dailyMessageLimit.toLocaleString('fa-IR')} پیام در روز`
 }
 
 const SUPPORT_LABELS: Record<string, string> = {

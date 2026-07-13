@@ -6,6 +6,16 @@ import { useChatStore } from '@/store/chat.store'
 import { PlanUpgradeBadge } from './PlanUpgradeBadge'
 import { fa } from '@/locales/fa'
 
+// اسم کاربر فقط یک فیلد ترکیبی است (نه firstName/lastName جدا) — با split روی فاصله
+// حرف اول کلمه‌ی اول و حرف اول کلمه‌ی آخر را می‌گیریم؛ بدون نام، دایره خالی می‌ماند
+function avatarInitials(name?: string | null): string {
+  if (!name) return ''
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return ''
+  if (parts.length === 1) return parts[0].charAt(0)
+  return parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+}
+
 export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const navigate = useNavigate()
   const { selectedConvId, setSelectedConvId } = useChatStore()
@@ -106,7 +116,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 transition-colors text-right"
         >
           <div className="size-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-300 shrink-0">
-            {me?.phone?.slice(-4) ?? '?'}
+            {avatarInitials(me?.name)}
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-xs font-medium text-slate-200">{me?.name ?? me?.phone}</span>

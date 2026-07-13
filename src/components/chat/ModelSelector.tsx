@@ -101,8 +101,14 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
         </svg>
       </button>
 
+      {/*
+        این دراپ‌داون داخل هدر چت با mr-auto به سمت چپ صفحه هل داده می‌شود (docs: چیدمان header چت) —
+        اگر با right-0 انکر شود، از همون سمت چپ که به آن نزدیک است باز می‌شود و از صفحه بیرون می‌زند.
+        با left-0 انکر می‌کنیم تا به سمت راست (جایی که فضای خالی هست) باز شود؛ عرض هم به viewport کلمپ می‌شود
+        تا در موبایل هم بیرون نزند.
+      */}
       {open && (
-        <div dir="rtl" className="absolute top-full right-0 mt-1.5 z-50 min-w-[260px] rounded-xl border border-slate-700 bg-slate-800 shadow-xl overflow-hidden">
+        <div dir="rtl" className="absolute top-full left-0 mt-1.5 z-50 w-[min(260px,calc(100vw-2rem))] rounded-xl border border-slate-700 bg-slate-800 shadow-xl overflow-hidden">
           {options.map(model => (
             <button
               key={model}

@@ -15,7 +15,7 @@ import { GatewayPickerModal } from "@/components/payment/GatewayPickerModal";
 import { ModelShowcase } from "@/components/models/ModelShowcase";
 import { PlanLimitsTable } from "@/components/plans/PlanLimitsTable";
 import { fa } from "@/locales/fa";
-import { PLAN_TIER_MODEL_DESCRIPTIONS, hourlyLimitText, supportText } from "@/lib/plan-copy";
+import { PLAN_TIER_MODEL_DESCRIPTIONS, dailyLimitText, supportText } from "@/lib/plan-copy";
 import type { Plan } from "@/types/api";
 
 export function PricingPage() {
@@ -68,7 +68,7 @@ export function PricingPage() {
             const isCurrent = plan.id === currentPlanId;
             const isFree = plan.priceMonthly === 0;
             const isPopular = !isCurrent && plan.isPopular;
-            const limitText = hourlyLimitText(plan);
+            const limitText = dailyLimitText(plan);
             const support = !isFree ? supportText(plan) : null;
 
             return (

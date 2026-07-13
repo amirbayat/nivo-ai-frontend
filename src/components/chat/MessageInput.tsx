@@ -31,9 +31,12 @@ function resizeImage(file: File): Promise<string> {
 interface MessageInputProps {
   onSend: (content: string, images?: string[]) => void
   disabled?: boolean
+  // برخلاف disabled، فقط دکمه‌ی ارسال (و Enter) را غیرفعال می‌کند — کاربر همچنان می‌تواند
+  // در حین تولید پاسخ هوش مصنوعی تایپ کند و پیام بعدی‌اش را آماده کند
+  sending?: boolean
 }
 
-export function MessageInput({ onSend, disabled }: MessageInputProps) {
+export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -41,7 +44,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
 
   const submit = () => {
     const trimmed = value.trim()
-    if ((!trimmed && !images.length) || disabled) return
+    if ((!trimmed && !images.length) || disabled || sending) return
     onSend(trimmed, images.length ? images : undefined)
     setValue('')
     setImages([])
@@ -89,7 +92,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
     setImages(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const canSend = (value.trim() || images.length > 0) && !disabled
+  const canSend = (value.trim() || images.length > 0) && !disabled && !sending
 
   return (
     <div className="border-t border-slate-700/50 p-4">

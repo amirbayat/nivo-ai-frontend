@@ -58,16 +58,21 @@ export function useChat(conversationId: string) {
 
         if (!res.ok) {
           let msg = `خطا (${res.status})`
-          let planTier: string | null = null
-          let stage: 'blocked' | undefined
+          let stage: string | undefined
           try {
-            const body = await res.json() as { message?: string; planTier?: string; stage?: string }
+            const body = await res.json() as { message?: string; stage?: string }
             if (body.message) msg = body.message
-            if (body.planTier) planTier = body.planTier
-            if (body.stage === 'blocked') stage = 'blocked'
+            stage = body.stage
           } catch { /* ignore */ }
-          setChatError(msg, planTier, stage)
-          if (stage === 'blocked') setMessageStage('blocked', 0, 0)
+          // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن) توسط بنر پایدار بالای اینپوت
+          // (که با پول کردن /usage/message-quota همیشه به‌روز است) نمایش داده می‌شوند — اینجا دوباره
+          // نشونشون ندیم که یک پیام تکراری وسط چت ظاهر نشه.
+          const isLimitStage =
+            stage === 'blocked' ||
+            stage === 'rolling_window_blocked' ||
+            stage === 'budget_exceeded' ||
+            stage === 'budget_session_limit'
+          if (!isLimitStage) setChatError(msg)
           setIsStreaming(false)
           return
         }
@@ -96,7 +101,7 @@ export function useChat(conversationId: string) {
                 remainingThrottled?: number
               }
               if (parsed.chunk) appendStreamingContent(parsed.chunk)
-              if (parsed.error) setChatError(parsed.error, null, undefined, parsed.code ?? null)
+              if (parsed.error) setChatError(parsed.error, parsed.code ?? null)
               if (parsed.info === 'stage' && parsed.stage) {
                 setMessageStage(
                   parsed.stage,
@@ -112,12 +117,16 @@ export function useChat(conversationId: string) {
       } catch (err) {
         if (err instanceof Error && err.name !== 'AbortError') {
           console.error('[useChat]', err)
+          setChatError('خطا در ارتباط با سرور. دوباره تلاش کنید.')
         }
       } finally {
         setIsStreaming(false)
         void qc.invalidateQueries({ queryKey: keys.conv.detail(conversationId) })
         void qc.invalidateQueries({ queryKey: keys.conv.list() })
         void qc.invalidateQueries({ queryKey: keys.usage.today() })
+        // بنر پایدار محدودیت (بالای اینپوت) بلافاصله بعد از هر تلاش ارسال — موفق یا ناموفق —
+        // با آخرین وضعیت واقعی به‌روز شود، نه اینکه تا poll بعدی (تا ۳۰ ثانیه) منتظر بماند.
+        void qc.invalidateQueries({ queryKey: keys.usage.messageQuota() })
       }
     },
     [conversationId, qc, selectedModel, appendStreamingContent, setIsStreaming, resetStreaming],
