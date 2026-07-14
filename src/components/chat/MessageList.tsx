@@ -21,12 +21,12 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages }: MessageListProps) {
-  const { streamingContent, isStreaming, isReasoning, chatError, chatErrorCode } = useChatStore()
+  const { streamingContent, isStreaming, isReasoning, reasoningText, chatError, chatErrorCode } = useChatStore()
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const el = containerRef.current; if (el) el.scrollTop = el.scrollHeight
-  }, [messages, streamingContent, chatError])
+  }, [messages, streamingContent, reasoningText, chatError])
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
@@ -41,18 +41,22 @@ export function MessageList({ messages }: MessageListProps) {
         />
       ))}
 
+      {isStreaming && !streamingContent && reasoningText && (
+        <ReasoningBox text={reasoningText} />
+      )}
+
       {isStreaming && streamingContent && (
         <MessageBubble role="ASSISTANT" content={streamingContent} streaming />
       )}
 
-      {isStreaming && !streamingContent && isReasoning && (
+      {isStreaming && !streamingContent && !reasoningText && isReasoning && (
         <div className="flex items-center gap-2 px-2 text-sm text-slate-400">
           <span className="animate-pulse">🤔</span>
           در حال فکر کردن...
         </div>
       )}
 
-      {isStreaming && !streamingContent && !isReasoning && (
+      {isStreaming && !streamingContent && !reasoningText && !isReasoning && (
         <div className="flex gap-1 items-center px-2">
           {[0, 1, 2].map(i => (
             <span
@@ -68,6 +72,24 @@ export function MessageList({ messages }: MessageListProps) {
         <ChatErrorBox message={chatError} code={chatErrorCode} />
       )}
 
+    </div>
+  )
+}
+
+// متن زنده‌ی استدلال مدل (اگر Liara/مدل reasoning_content برگرداند) — کم‌رنگ و جدا از حباب
+// پاسخ اصلی، دقیقاً مثل الگوی «Thinking» در ChatGPT/Claude؛ فقط تا قبل از شروع متن واقعی نشان
+// داده می‌شود (بخش بالاتر در MessageList با isStreaming && !streamingContent گیت شده)
+function ReasoningBox({ text }: { text: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="size-8 shrink-0" />
+      <div className="max-w-[75%] rounded-2xl rounded-tr-sm border border-slate-700/50 bg-slate-800/30 px-4 py-3 opacity-60">
+        <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+          <span className="animate-pulse">🤔</span>
+          در حال فکر کردن...
+        </div>
+        <p className="whitespace-pre-wrap text-xs italic leading-relaxed text-slate-400">{text}</p>
+      </div>
     </div>
   )
 }

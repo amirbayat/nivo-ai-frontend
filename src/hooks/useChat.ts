@@ -8,7 +8,10 @@ import type { ConversationDetail, ConversationsPage, Message } from '@/types/api
 export function useChat(conversationId: string) {
   const qc = useQueryClient()
   const abortRef = useRef<AbortController | null>(null)
-  const { appendStreamingContent, setIsStreaming, setIsReasoning, resetStreaming, setChatError, setMessageStage, selectedModel } = useChatStore()
+  const {
+    appendStreamingContent, setIsStreaming, setIsReasoning, appendReasoningText,
+    resetStreaming, setChatError, setMessageStage, selectedModel,
+  } = useChatStore()
 
   const sendMessage = useCallback(
     async (content: string, images?: string[], model?: string) => {
@@ -107,6 +110,7 @@ export function useChat(conversationId: string) {
                 remainingThrottled?: number
                 title?: string
                 reasoning?: boolean
+                reasoningChunk?: string
               }
               if (parsed.chunk) appendStreamingContent(parsed.chunk)
               if (parsed.error) setChatError(parsed.error, parsed.code ?? null)
@@ -121,6 +125,10 @@ export function useChat(conversationId: string) {
               // این نشانگر همون فاز رو نشون می‌ده تا کاربر روی صفحه‌ی خالی گیج نماند
               if (parsed.info === 'reasoning' && typeof parsed.reasoning === 'boolean') {
                 setIsReasoning(parsed.reasoning)
+              }
+              // متن واقعی استدلال (اگر مدل/Liara آن را برگرداند) — کم‌رنگ بالای پاسخ نشان داده می‌شود
+              if (parsed.info === 'reasoning-chunk' && parsed.reasoningChunk) {
+                appendReasoningText(parsed.reasoningChunk)
               }
               // عنوان تازه‌ی مکالمه (فقط اولین پیام) — مستقیم توی کش می‌نشونیم تا همون لحظه توی
               // سایدبار و هدر دیده شود، بدون نیاز به refetch/reload
