@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { clsx } from 'clsx'
@@ -267,7 +268,13 @@ function GeneratingImageBox({ preview }: { preview: string | null }) {
 // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن) توسط بنر پایدار بالای اینپوت
 // (MessageLimitBanner) پوشش داده می‌شوند، نه اینجا.
 function ChatErrorBox({ message, code }: { message: string; code: string | null }) {
-  const heading = code === 'model_unavailable' ? 'مدل در دسترس نیست' : 'خطایی رخ داد'
+  const navigate = useNavigate()
+  const isImageGenNotSupported = code === 'IMAGE_GEN_NOT_SUPPORTED'
+  const heading = isImageGenNotSupported
+    ? 'پلن شما این قابلیت را ندارد'
+    : code === 'model_unavailable'
+      ? 'مدل در دسترس نیست'
+      : 'خطایی رخ داد'
 
   return (
     <div className="flex justify-center">
@@ -280,6 +287,14 @@ function ChatErrorBox({ message, code }: { message: string; code: string | null 
           <span className="text-sm font-semibold text-red-300">{heading}</span>
         </div>
         <p className="text-sm text-red-200/80 leading-relaxed">{message}</p>
+        {isImageGenNotSupported && (
+          <button
+            onClick={() => navigate('/pricing')}
+            className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition-colors"
+          >
+            {fa.chat.limitUpgrade}
+          </button>
+        )}
       </div>
     </div>
   )

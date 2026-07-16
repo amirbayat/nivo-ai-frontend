@@ -60,6 +60,10 @@ export interface Plan {
   payAsYouGoMinActivationToman: number | null
   payAsYouGoMinTopupToman: number | null
   payAsYouGoTopupPresets: number[] | null
+  defaultImageGenModel: string | null
+  maxImageGenPerDay: number | null
+  maxImageGenPerWindow: number | null
+  imageGenWindowHours: number | null
 }
 
 export interface WalletTransaction {

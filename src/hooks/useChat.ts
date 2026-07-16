@@ -75,10 +75,12 @@ export function useChat(conversationId: string) {
         if (!res.ok) {
           let msg = `خطا (${res.status})`
           let stage: string | undefined
+          let code: string | undefined
           try {
-            const body = await res.json() as { message?: string; stage?: string }
+            const body = await res.json() as { message?: string; stage?: string; code?: string }
             if (body.message) msg = body.message
             stage = body.stage
+            code = body.code
           } catch { /* ignore */ }
           // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن/سهمیه‌ی توکن) توسط بنر پایدار
           // بالای اینپوت نمایش داده می‌شوند — اینجا دوباره نشونشون ندیم که یک پیام تکراری وسط چت
@@ -93,7 +95,7 @@ export function useChat(conversationId: string) {
           if (isLimitStage) {
             void qc.invalidateQueries({ queryKey: keys.usage.messageQuota() })
           } else {
-            setChatError(msg)
+            setChatError(msg, code ?? null)
           }
           setIsStreaming(false)
           return

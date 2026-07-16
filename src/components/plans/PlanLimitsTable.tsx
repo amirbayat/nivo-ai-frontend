@@ -1,4 +1,6 @@
 import type { Plan } from '@/types/api'
+import type { ModelCatalogEntry } from '@/queries/plans.queries'
+import { imageGenSupport } from '@/lib/plan-copy'
 
 function fmt(n: number): string {
   return n.toLocaleString('fa-IR')
@@ -6,7 +8,7 @@ function fmt(n: number): string {
 
 interface Row {
   label: string
-  render: (plan: Plan) => string
+  render: (plan: Plan, modelCatalog: ModelCatalogEntry[] | undefined) => string
 }
 
 const ROWS: Row[] = [
@@ -36,9 +38,17 @@ const ROWS: Row[] = [
       ? `محدودیت هر ${fmt(p.rollingWindowHours)} ساعت ${fmt(p.rollingWindowLimit)} پیام`
       : 'غیرفعال'),
   },
+  {
+    label: 'تولید عکس روزانه',
+    render: (p, modelCatalog) => {
+      const support = imageGenSupport(p, modelCatalog)
+      if (!support.supported) return '—'
+      return support.maxPerDay != null ? `${fmt(support.maxPerDay)} عکس` : 'نامحدود'
+    },
+  },
 ]
 
-export function PlanLimitsTable({ plans }: { plans: Plan[] }) {
+export function PlanLimitsTable({ plans, modelCatalog }: { plans: Plan[]; modelCatalog: ModelCatalogEntry[] | undefined }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-800" dir="rtl">
       <table className="w-full min-w-[560px] text-sm">
@@ -55,7 +65,7 @@ export function PlanLimitsTable({ plans }: { plans: Plan[] }) {
             <tr key={row.label} className={i % 2 === 0 ? 'bg-slate-900/40' : 'bg-transparent'}>
               <td className="p-4 text-right text-slate-400">{row.label}</td>
               {plans.map(p => (
-                <td key={p.id} className="p-4 text-right text-slate-200">{row.render(p)}</td>
+                <td key={p.id} className="p-4 text-right text-slate-200">{row.render(p, modelCatalog)}</td>
               ))}
             </tr>
           ))}

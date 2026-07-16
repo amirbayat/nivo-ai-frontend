@@ -19,7 +19,14 @@ import { ModelShowcase } from "@/components/models/ModelShowcase";
 import { ProviderIcon } from "@/components/models/ProviderIcon";
 import { PlanLimitsTable } from "@/components/plans/PlanLimitsTable";
 import { fa } from "@/locales/fa";
-import { PLAN_TIER_MODEL_DESCRIPTIONS, dailyLimitText, supportText } from "@/lib/plan-copy";
+import {
+  PLAN_TIER_MODEL_DESCRIPTIONS,
+  dailyLimitText,
+  supportText,
+  imageGenSupport,
+  imageGenCardText,
+  upgradePreviewAmount,
+} from "@/lib/plan-copy";
 import type { Plan } from "@/types/api";
 
 const DEFAULT_PAYG_PRESETS = [1_000_000, 2_000_000, 5_000_000];
@@ -37,6 +44,17 @@ export function PricingPage() {
   const regularPlans = plans?.filter((p) => !p.isPayAsYouGo);
   const paygPlan = plans?.find((p) => p.isPayAsYouGo);
   const isCurrentPayg = paygPlan && paygPlan.id === me?.subscription?.planId;
+
+  // docs/PRD-plan-image-capability-and-upgrade.md بخش ۶.۱ — وقتی کاربر یک سابسکریپشن معمولی
+  // (نه PAYG) فعال دارد، فقط پلن گران‌تر قابل‌خرید است؛ همین قانون سمت سرور (initiate) هم اعمال
+  // می‌شود — این‌جا فقط برای غیرفعال‌کردن دکمه‌ها/پیش‌نمایش قیمت است.
+  const currentSub = me?.subscription;
+  const hasActiveRegularPlan = Boolean(
+    currentSub &&
+      currentSub.status === "ACTIVE" &&
+      new Date(currentSub.periodEnd) > new Date() &&
+      !currentSub.plan.isPayAsYouGo,
+  );
 
   const currentPlanId = me?.subscription?.planId;
   const [discountCode, setDiscountCode] = useState("");
@@ -140,6 +158,25 @@ export function PricingPage() {
             const isPopular = !isCurrent && plan.isPopular;
             const limitText = dailyLimitText(plan);
             const support = !isFree ? supportText(plan) : null;
+            const imageGen = imageGenCardText(imageGenSupport(plan, modelCatalog));
+
+            // پلن‌های پایین‌تر/مساوی پلن فعال فعلی، طبق قانون «فقط خرید رو به بالا»، قابل‌خرید نیستند.
+            const isLowerOrSamePaid =
+              !isCurrent && !isFree && hasActiveRegularPlan && currentSub
+                ? plan.priceMonthly <= currentSub.plan.priceMonthly
+                : false;
+            const isUpgradeable =
+              !isCurrent && !isFree && hasActiveRegularPlan && currentSub
+                ? plan.priceMonthly > currentSub.plan.priceMonthly
+                : false;
+            const upgradeAmount =
+              isUpgradeable && currentSub
+                ? upgradePreviewAmount(plan, currentSub.plan, currentSub.periodEnd)
+                : null;
+            const upgradeAmountWithDiscount =
+              upgradeAmount !== null && activeDiscountPercent > 0
+                ? Math.round(upgradeAmount * (1 - activeDiscountPercent / 100))
+                : upgradeAmount;
 
             return (
               <div
@@ -211,6 +248,12 @@ export function PricingPage() {
                       {support}
                     </div>
                   )}
+                  {imageGen && (
+                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                      <ImageGenIcon />
+                      {imageGen}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-8 flex-1">
@@ -235,6 +278,14 @@ export function PricingPage() {
                   >
                     {fa.plans.startFree}
                   </button>
+                ) : isLowerOrSamePaid ? (
+                  <button
+                    disabled
+                    title="شما پلن بالاتری فعال دارید — برای تعویض پلن صبر کنید دوره‌ی فعلی تمام شود"
+                    className="rounded-xl border border-slate-700 py-2.5 text-sm text-slate-500 cursor-not-allowed opacity-60"
+                  >
+                    غیرفعال
+                  </button>
                 ) : (
                   <button
                     onClick={() => handleBuy(plan.id)}
@@ -248,7 +299,9 @@ export function PricingPage() {
                   >
                     {initPayment.isPending
                       ? fa.payment.redirecting
-                      : fa.plans.buy}
+                      : isUpgradeable && upgradeAmountWithDiscount !== null
+                        ? `ارتقا — ${upgradeAmountWithDiscount.toLocaleString("fa-IR")} تومان`
+                        : fa.plans.buy}
                   </button>
                 )}
               </div>
@@ -326,7 +379,7 @@ export function PricingPage() {
                 همه‌ی محدودیت‌ها، شفاف و بدون سورپرایز
               </p>
             </div>
-            <PlanLimitsTable plans={regularPlans as Plan[]} />
+            <PlanLimitsTable plans={regularPlans as Plan[]} modelCatalog={modelCatalog} />
           </div>
         )}
 
@@ -382,6 +435,20 @@ function SupportIcon() {
         d="M8 1.5a5 5 0 00-5 5v3a1.5 1.5 0 001.5 1.5H5v-4H4.5v-.5a3.5 3.5 0 017 0v.5H11v4h.5A1.5 1.5 0 0013 9.5v-3a5 5 0 00-5-5z"
         fill="currentColor"
       />
+    </svg>
+  );
+}
+
+function ImageGenIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      className="size-4 shrink-0 text-emerald-500"
+    >
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="5.5" cy="6" r="1.25" fill="currentColor" />
+      <path d="M2.5 11.5l3.5-3.5 2 2 3-3 2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
