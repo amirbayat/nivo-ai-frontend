@@ -5,6 +5,8 @@ import { clsx } from 'clsx'
 import { useChatStore } from '@/store/chat.store'
 import { CodeBlock, PrePassthrough } from '@/components/chat/CodeBlock'
 import { useSubmitMessageFeedback } from '@/queries/message-feedback.queries'
+import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
+import { api } from '@/lib/api'
 import { fa } from '@/locales/fa'
 import type { Message } from '@/types/api'
 
@@ -16,12 +18,15 @@ function LinkNewTab({ href, children }: { href?: string; children?: React.ReactN
   )
 }
 
-// دانلود واقعی فایل (نه فقط باز شدن URL خام) — attribute «download» ساده روی لینک برای URLهای
-// cross-origin (مثل presigned URL مینیو) توسط خیلی مرورگرها نادیده گرفته می‌شود؛ گرفتن blob
-// و دانلود از همون blob قابل‌اعتمادتر است، صرف‌نظر از origin تصویر
+// دانلود واقعی فایل (نه فقط باز شدن URL خام) — attribute «download» ساده روی لینک نامعتبر
+// می‌شود. src یا یک data: URL خام قدیمی است (نیاز به auth ندارد) یا مسیر نسبی بک‌اند خودمان
+// (GET /conversations/:id/images/:filename) که باید با هدر Authorization واقعی خوانده شود —
+// یک fetch خام بدون auth برای حالت دوم ۴۰۱ می‌گیرد
 async function downloadImage(src: string, filename: string) {
   try {
-    const blob = await (await fetch(src)).blob()
+    const blob = src.startsWith('data:')
+      ? await (await fetch(src)).blob()
+      : (await api.get(src, { responseType: 'blob' })).data
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -36,7 +41,22 @@ async function downloadImage(src: string, filename: string) {
   }
 }
 
+// wrapper مشترک روی <img> برای عکس‌های پیام — چون src ممکن است مسیر نسبی auth-dار بک‌اند
+// باشد (نه یک URL مستقیم قابل‌نمایش)، تا وقتی useAuthedImageUrl آن را resolve کند یک
+// اسکلت خاکستری نشان می‌دهیم به‌جای <img> شکسته
+function ChatImage({ src, className, alt, onClick }: {
+  src: string
+  className?: string
+  alt: string
+  onClick?: () => void
+}) {
+  const url = useAuthedImageUrl(src)
+  if (!url) return <div className={clsx(className, 'animate-pulse bg-slate-700/50')} />
+  return <img src={url} className={className} onClick={onClick} alt={alt} />
+}
+
 function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  const url = useAuthedImageUrl(src)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -68,12 +88,14 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
           </svg>
         </button>
       </div>
-      <img
-        src={src}
-        alt="نمایش بزرگ‌شده‌ی تصویر"
-        onClick={e => e.stopPropagation()}
-        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
-      />
+      {url && (
+        <img
+          src={url}
+          alt="نمایش بزرگ‌شده‌ی تصویر"
+          onClick={e => e.stopPropagation()}
+          className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+        />
+      )}
     </div>
   )
 }
@@ -305,7 +327,7 @@ function MessageBubble({
             {images && images.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {images.map((src, i) => (
-                  <img
+                  <ChatImage
                     key={i}
                     src={src}
                     className="max-h-48 max-w-[200px] rounded-lg object-cover cursor-pointer"
@@ -330,7 +352,7 @@ function MessageBubble({
               <div className="flex flex-col gap-2 mb-2">
                 {images.map((src, i) => (
                   <div key={i} className="image-gen-reveal relative group w-fit">
-                    <img
+                    <ChatImage
                       src={src}
                       className="max-h-72 max-w-[280px] rounded-lg object-cover cursor-pointer ring-1 ring-fuchsia-500/25 shadow-lg shadow-fuchsia-950/30"
                       onClick={() => onImageClick?.(src)}
