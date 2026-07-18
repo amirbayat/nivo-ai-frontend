@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toEnglishDigits } from "@/lib/digits";
 import { fa } from "@/locales/fa";
+import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
 export function LoginPage() {
   const [phone, setPhone] = useState("");
@@ -43,7 +44,7 @@ export function LoginPage() {
         {/* logo */}
         <div className="mb-8 text-center">
           <img
-            src="/brand/nivo-icon.svg"
+            src={logoUrl}
             alt="نیوو"
             className="mx-auto mb-4 w-48"
           />

@@ -9,6 +9,7 @@ import { useWallet } from "@/queries/usage.queries";
 import { useChatStore } from "@/store/chat.store";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
 import { fa } from "@/locales/fa";
+import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
 // اسم کاربر فقط یک فیلد ترکیبی است (نه firstName/lastName جدا) — با split روی فاصله
 // حرف اول کلمه‌ی اول و حرف اول کلمه‌ی آخر را می‌گیریم؛ بدون نام، دایره خالی می‌ماند
@@ -49,9 +50,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
       <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700/50">
         <div className="flex items-center gap-2">
           <img
-            src="/brand/nivo-icon.svg"
+            src={logoUrl}
             alt="نیوو"
-            className="w-20 height-auto rounded-md"
+            className="w-28 h-auto"
           />
         </div>
         <button

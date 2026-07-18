@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { Sidebar } from "./Sidebar";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
 import { useVisualViewportHeight } from "@/hooks/useVisualViewportHeight";
+import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
 interface ChatLayoutProps {
   children: ReactNode;
@@ -51,9 +52,9 @@ export function ChatLayout({ children }: ChatLayoutProps) {
             </svg>
           </button>
           <img
-            src="/brand/nivo-icon.svg"
+            src={logoUrl}
             alt="نیوو"
-            className="w-20 h-auto rounded-md"
+            className="w-28 h-auto"
           />
           <div className="ms-auto">
             <PlanUpgradeBadge />
