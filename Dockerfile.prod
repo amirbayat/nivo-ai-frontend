@@ -8,17 +8,19 @@ RUN npm install
 
 COPY . .
 
-# متغیرهای Vite در زمان build خونده می‌شن — اگر توی پنل دارکوب
-# مقدار دیگه‌ای ست کردی، همون جایگزین این default‌ها می‌شه
+# متغیرهای Vite فقط در زمان build خونده می‌شن (import.meta.env، نه process.env runtime).
+# دارکوب مقدار پنل «Environment Variables» رو به این build-arg ها نمی‌رسونه (تست شده،
+# مقدار واقعی پنل هیچ‌وقت جایگزین این default ها نشد) — پس این‌جا مقدار واقعی پروداکشن
+# مستقیم هاردکد شده، نه یک default قابل override. برای عوض‌کردن مقدار، همین‌جا ویرایش کن.
 ARG VITE_API_URL=https://api.nivoai.ir/api/v1
 ARG VITE_DEFAULT_MODEL=gpt-4o-mini
 ARG VITE_ENAMAD_ID=754112
 ARG VITE_ENAMAD_CODE=MT002yEUVg7doisGMOlOBj3tH7ilN1St
 ARG VITE_SALES_BOT_ENABLED=true
 ARG VITE_LANDING_STATS_ENABLED=false
-ARG VITE_CLARITY_PROJECT_ID=
-ARG VITE_EVENTS_API_URL=
-ARG VITE_EVENTS_WRITE_KEY=
+ARG VITE_CLARITY_PROJECT_ID=xou800w32d
+ARG VITE_EVENTS_API_URL=https://event.nivoai.ir
+ARG VITE_EVENTS_WRITE_KEY=REPLACE_WITH_EVENTS_INGEST_WRITE_KEY
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_DEFAULT_MODEL=$VITE_DEFAULT_MODEL
 ENV VITE_ENAMAD_ID=$VITE_ENAMAD_ID
