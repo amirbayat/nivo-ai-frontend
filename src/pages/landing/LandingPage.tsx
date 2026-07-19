@@ -2,13 +2,21 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useMe } from '@/queries/auth.queries'
-import { usePlans } from '@/queries/plans.queries'
+import { usePlans, useModelCatalog } from '@/queries/plans.queries'
 import { SalesChatbot } from '@/components/sales/SalesChatbot'
 import { ExitIntentModal } from '@/components/sales/ExitIntentModal'
 import { ModelShowcase } from '@/components/models/ModelShowcase'
+import { PlanLimitsTable } from '@/components/plans/PlanLimitsTable'
 import { PromoBanner } from '@/components/articles/PromoBanner'
 import { env } from '@/env'
-import { PLAN_TIER_MODEL_DESCRIPTIONS, dailyLimitText, supportText } from '@/lib/plan-copy'
+import {
+  PLAN_TIER_MODEL_DESCRIPTIONS,
+  dailyLimitText,
+  supportText,
+  imageGenSupport,
+  imageGenCardText,
+} from '@/lib/plan-copy'
+import type { Plan } from '@/types/api'
 import { isInAndroidApp } from '@/lib/android-bridge'
 import { MobileAppLandingPage } from './MobileAppLandingPage'
 
@@ -860,6 +868,8 @@ function ChatbotSection() {
 
 function PricingSection() {
   const { data: plans, isLoading, isError } = usePlans()
+  const { data: modelCatalog } = useModelCatalog()
+  const regularPlans = plans?.filter(p => !p.isPayAsYouGo)
   return (
     <section id="pricing" className="relative overflow-hidden px-6 py-24 bg-white/[0.01]">
       <SectionGlow c1="#7C3AED" c2="#10B981" seed={5} flip />
@@ -921,6 +931,7 @@ function PricingSection() {
                   <ul className="mb-6 space-y-3">
                     {[
                       dailyLimitText(plan),
+                      imageGenCardText(imageGenSupport(plan, modelCatalog)),
                       !isFree ? supportText(plan) : null,
                     ].filter((feat): feat is string => Boolean(feat)).map(feat => (
                       <li key={feat} className="flex items-center gap-2.5 text-sm text-slate-300">
@@ -952,6 +963,16 @@ function PricingSection() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {regularPlans && regularPlans.length > 0 && (
+          <div className="mt-14" data-anim="true">
+            <div className="mb-6 text-center">
+              <h3 className="text-lg font-bold text-white">جزییات کامل پلن‌ها</h3>
+              <p className="mt-1 text-sm text-slate-500">همه‌ی محدودیت‌ها، شفاف و بدون سورپرایز</p>
+            </div>
+            <PlanLimitsTable plans={regularPlans as Plan[]} modelCatalog={modelCatalog} />
           </div>
         )}
       </div>

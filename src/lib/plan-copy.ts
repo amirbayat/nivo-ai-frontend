@@ -9,9 +9,10 @@ export const PLAN_TIER_MODEL_DESCRIPTIONS = [
   'آخرین و به‌روزترین و قوی‌ترین مدل‌های هوش مصنوعی دنیا از خانواده‌ی GPT، Claude، Gemini، Grok و ...',
 ]
 
-// محدودیت پیام روزانه، مستقیم از دیتابیس (Plan.dailyMessageLimit) — null یعنی نامحدود (چیزی نمایش داده نمی‌شود).
+// محدودیت پیام روزانه، مستقیم از دیتابیس (Plan.dailyMessageLimit) — null یعنی نامحدود، که به‌عنوان
+// یک مزیت فروش («پیام نامحدود») نمایش داده می‌شود، نه اینکه بولت اصلاً حذف شود.
 export function dailyLimitText(plan: Plan): string | null {
-  if (plan.dailyMessageLimit === null) return null
+  if (plan.dailyMessageLimit === null) return 'پیام نامحدود در روز'
   return `${plan.dailyMessageLimit.toLocaleString('fa-IR')} پیام در روز`
 }
 
@@ -52,7 +53,7 @@ export function imageGenCardText(support: ImageGenSupport): string | null {
   if (!support.supported) return null
   return support.maxPerDay != null
     ? `تولید عکس (تا ${support.maxPerDay.toLocaleString('fa-IR')} عکس در روز)`
-    : 'تولید عکس (بدون محدودیت روزانه)'
+    : 'تولید عکس (نامحدود)'
 }
 
 const SUBSCRIPTION_DAYS_MS = 30 * 24 * 60 * 60 * 1000
