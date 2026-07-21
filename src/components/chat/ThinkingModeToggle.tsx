@@ -83,8 +83,13 @@ export function ThinkingModeToggle({ disabled }: { disabled?: boolean }) {
         </svg>
       </button>
 
+      {/*
+        این دکمه نزدیک سمت چپ نوار ورودی است (کنار دکمه‌ی ارسال) — اگر با right-0 انکر شود
+        عرض ثابت به سمت چپ گسترش می‌یابد و از صفحه بیرون می‌زند. با left-0 انکر می‌کنیم و عرض
+        را به viewport کلمپ می‌کنیم (مشابه ModelSelector.tsx).
+      */}
       {open && (
-        <div className="absolute bottom-full right-0 mb-1.5 z-50 w-52 rounded-xl border border-slate-700 bg-slate-800 shadow-xl overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-1.5 z-50 w-[min(13rem,calc(100vw-2rem))] rounded-xl border border-slate-700 bg-slate-800 shadow-xl overflow-hidden">
           {OPTIONS.map(opt => (
             <button
               key={opt.value}

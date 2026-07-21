@@ -2,9 +2,7 @@ import { useState, type ReactNode } from "react";
 import { clsx } from "clsx";
 import { Sidebar } from "./Sidebar";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
-import { UsageGuideModal } from "@/components/chat/UsageGuideModal";
 import { useVisualViewportHeight } from "@/hooks/useVisualViewportHeight";
-import { fa } from "@/locales/fa";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
 interface ChatLayoutProps {
@@ -13,7 +11,6 @@ interface ChatLayoutProps {
 
 export function ChatLayout({ children }: ChatLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
   const viewportHeight = useVisualViewportHeight();
 
   return (
@@ -60,18 +57,11 @@ export function ChatLayout({ children }: ChatLayoutProps) {
             className="w-28 h-auto"
           />
           <div className="ms-auto flex items-center gap-2">
-            <button
-              onClick={() => setGuideOpen(true)}
-              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:bg-slate-700/60 hover:text-emerald-400 transition-colors"
-            >
-              {fa.anonChat.usageGuide}
-            </button>
             <PlanUpgradeBadge />
           </div>
         </div>
         {children}
       </main>
-      <UsageGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 }
