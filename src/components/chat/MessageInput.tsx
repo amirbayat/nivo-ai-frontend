@@ -6,6 +6,7 @@ import { useMe } from '@/queries/auth.queries'
 import { useChatStore } from '@/store/chat.store'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
+import { ThinkingModeToggle } from './ThinkingModeToggle'
 
 function resizeImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -257,6 +258,9 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
           )}
           style={{ minHeight: '24px' }}
         />
+
+        {/* در حالت تولید عکس، reasoning effort اثری ندارد — مسیر تولید عکس کاملاً جدا از streamText چت است */}
+        {!imageMode && <ThinkingModeToggle disabled={disabled} />}
 
         <button
           onClick={submit}

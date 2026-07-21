@@ -15,7 +15,7 @@ export function useChat(conversationId: string) {
   const {
     appendStreamingContent, setIsStreaming, setIsReasoning, appendReasoningText,
     resetStreaming, setChatError, setMessageStage, selectedModel, setIsGeneratingImage,
-    setGeneratingImagePreview,
+    setGeneratingImagePreview, thinkingMode,
   } = useChatStore()
 
   const sendMessage = useCallback(
@@ -34,6 +34,7 @@ export function useChat(conversationId: string) {
       track('message_sent', {
         conversationId,
         model: effectiveModel,
+        thinkingMode,
         contentLength: content.length,
         imageCount: images?.length ?? 0,
         generateImage: !!generateImage,
@@ -71,6 +72,7 @@ export function useChat(conversationId: string) {
               ...(effectiveModel ? { model: effectiveModel } : {}),
               ...(images?.length ? { images } : {}),
               ...(generateImage ? { generateImage: true } : {}),
+              thinkingMode,
             }),
           },
         )

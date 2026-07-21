@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 export type MessageStage = 'normal' | 'throttled' | 'blocked'
+export type ThinkingMode = 'fast' | 'smart'
 
 interface ChatState {
   selectedConvId: string | null
@@ -22,6 +23,8 @@ interface ChatState {
   // هرگز نباید به‌جای مدل چت معمولی به سرور فرستاده شوند؛ null یعنی «خودکار» (پیش‌فرض،
   // بر اساس پیچیدگی prompt و کیف‌پول انتخاب می‌شود)
   selectedImageGenModel: string | null
+  // دراپ‌دون «سریع/هوشمند» کنار دکمه‌ی ارسال — فقط روی reasoning effort اثر دارد، نه انتخاب مدل
+  thinkingMode: ThinkingMode
   setSelectedConvId: (id: string | null) => void
   setStreamingContent: (text: string) => void
   appendStreamingContent: (chunk: string) => void
@@ -35,6 +38,7 @@ interface ChatState {
   setMessageStage: (stage: MessageStage, remainingNormal: number | null, remainingThrottled: number | null) => void
   setSelectedModel: (model: string) => void
   setSelectedImageGenModel: (model: string | null) => void
+  setThinkingMode: (mode: ThinkingMode) => void
 }
 
 export const useChatStore = create<ChatState>(set => ({
@@ -53,6 +57,8 @@ export const useChatStore = create<ChatState>(set => ({
   // «حالت بهینه» پیش‌فرض جدید — مسیریاب مدل بر اساس سختی پیام، مدل واقعی را انتخاب می‌کند
   selectedModel: typeof window !== 'undefined' ? (localStorage.getItem('nivo:selectedModel') ?? 'optimal') : 'optimal',
   selectedImageGenModel: typeof window !== 'undefined' ? localStorage.getItem('nivo:selectedImageGenModel') : null,
+  thinkingMode:
+    (typeof window !== 'undefined' ? (localStorage.getItem('nivo:thinkingMode') as ThinkingMode | null) : null) ?? 'smart',
 
   setSelectedConvId: id => set({ selectedConvId: id }),
   setStreamingContent: text => set({ streamingContent: text }),
@@ -71,4 +77,8 @@ export const useChatStore = create<ChatState>(set => ({
     set({ messageStage: stage, remainingNormal, remainingThrottled }),
   setSelectedModel: model => set({ selectedModel: model }),
   setSelectedImageGenModel: model => set({ selectedImageGenModel: model }),
+  setThinkingMode: mode => {
+    localStorage.setItem('nivo:thinkingMode', mode)
+    set({ thinkingMode: mode })
+  },
 }))
