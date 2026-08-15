@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { clsx } from "clsx";
 import { Sidebar } from "./Sidebar";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
+import { WelcomeCreditsModal } from "./WelcomeCreditsModal";
 import { useVisualViewportHeight } from "@/hooks/useVisualViewportHeight";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
@@ -62,6 +63,7 @@ export function ChatLayout({ children }: ChatLayoutProps) {
         </div>
         {children}
       </main>
+      <WelcomeCreditsModal />
     </div>
   );
 }

@@ -238,6 +238,9 @@ export function useChat(conversationId: string) {
         // کارت هدیه هم همین‌جا invalidate می‌شود — trial ممکنه دقیقاً همین پیام به پایان رسیده
         // باشه و باید بدون reload صفحه، فوراً از حالت trial به grace عوض شه (staleTime قبلاً ۵ دقیقه بود)
         void qc.invalidateQueries({ queryKey: keys.growth.giftStatus() })
+        // موجودی نیوو باید real-time بعد از هر پیام آپدیت شه (docs/PRD-discovery-and-credits.md
+        // بخش ۵.۲) — کسر واقعی سمت بک‌اند از قبل هر پیام انجام می‌شه، این‌جا فقط نمایش رو تازه می‌کنیم
+        void qc.invalidateQueries({ queryKey: keys.credits.balance() })
       }
     },
     [conversationId, qc, selectedModel, appendStreamingContent, setIsStreaming, resetStreaming],

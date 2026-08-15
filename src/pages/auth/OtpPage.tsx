@@ -58,6 +58,11 @@ export function OtpPage() {
         track('waitlisted', { queuePosition: result.waitlisted.queuePosition })
         return // منتظر تأیید کاربر می‌مانیم، بخش ۱۸.۱۱
       }
+      // مدال خوش‌آمد (شارژ اولیه‌ی رایگان) توی ChatLayout نمایش داده می‌شه — این‌جا فقط
+      // مقدار رو (اگه پر بود، یعنی همین الان ثبت‌نام کرده) توی sessionStorage می‌ذاریم
+      if (result.signupBonusCredits) {
+        sessionStorage.setItem('nivo:signupBonusCredits', String(result.signupBonusCredits))
+      }
       navigate('/chat', { replace: true })
     } catch {
       track('otp_verify_failed', { reason: 'invalid_code' })

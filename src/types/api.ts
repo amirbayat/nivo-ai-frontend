@@ -74,6 +74,80 @@ export interface WalletTransaction {
   createdAt: string
 }
 
+// docs/PRD-discovery-and-credits.md — «نیوو» واحد نمایشی روی همان Wallet.balanceToman
+export interface CreditsBalance {
+  credits: number
+  balanceToman: number
+  tomanPerCredit: number
+}
+
+export interface CreditPackage {
+  id: string
+  credits: number
+  discountPercent: number
+  isPopular: boolean
+  isBestValue: boolean
+  isCustomAmount: boolean
+  isActive: boolean
+  sortOrder: number
+  priceToman: number
+}
+
+export interface Project {
+  id: string
+  name: string
+  platform: 'GENERAL' | 'INSTAGRAM' | 'YOUTUBE' | 'BUSINESS'
+  niche: string | null
+  contextMd: string
+  brandColor: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreativeCategory {
+  id: string
+  name: string
+  parentId: string | null
+  sortOrder: number
+}
+
+export interface CreativePromptCatalogItem {
+  id: string
+  title: string
+  outputType: 'IMAGE' | 'TEXT'
+  segment: 'GENERAL' | 'INSTAGRAM' | 'YOUTUBE' | 'BUSINESS'
+  description: string | null
+  exampleImageUrl: string | null
+  aspectRatio: string | null
+  categoryId: string | null
+  requiresUserImage: boolean
+  creditCost: number
+  isTrending: boolean
+  tags: string[]
+  sortOrder: number
+}
+
+export interface CreativeGalleryItem {
+  id: string
+  outputType: 'IMAGE' | 'TEXT'
+  outputImageKey: string | null
+  outputText: string | null
+  creditCost: number
+  createdAt: string
+  prompt: { title: string; outputType: 'IMAGE' | 'TEXT' }
+  project: { name: string } | null
+}
+
+export interface CreativeGenerationResult {
+  id: string
+  outputType: 'IMAGE' | 'TEXT'
+  outputImageKey: string | null
+  outputText: string | null
+  creditCost: number
+  status: 'SUCCEEDED' | 'FAILED'
+}
+
 export interface Subscription {
   id: string
   planId: string

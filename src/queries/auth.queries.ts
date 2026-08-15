@@ -17,6 +17,8 @@ interface AuthTokens {
   refreshToken: string
   user: User
   waitlisted: WaitlistedInfo | null
+  // فقط دقیقاً یک‌بار پر می‌شود — لحظه‌ی اولین ثبت‌نام واقعی (docs/PRD-discovery-and-credits.md بخش ۲.۲)
+  signupBonusCredits: number | null
 }
 
 export function useMe() {

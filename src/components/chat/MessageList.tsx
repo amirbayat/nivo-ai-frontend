@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -108,9 +108,13 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
 
 interface MessageListProps {
   messages: Message[]
+  // محتوای اضافه (مثل کارت‌های نتیجه‌ی تولید دیسکاوری) که بعد از پیام‌های واقعی، همون توی
+  // اسکرول این لیست نشون داده می‌شود — فقط state محلی فرانت است، ردیف Message واقعی نیست
+  // (ChatPage.tsx: creativeResults)
+  extraContent?: ReactNode
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, extraContent }: MessageListProps) {
   const {
     streamingContent, isStreaming, isReasoning, reasoningText, chatError, chatErrorCode, isGeneratingImage,
     generatingImagePreview,
@@ -136,6 +140,8 @@ export function MessageList({ messages }: MessageListProps) {
           onImageClick={setLightboxSrc}
         />
       ))}
+
+      {extraContent}
 
       {isGeneratingImage && <GeneratingImageBox preview={generatingImagePreview} />}
 

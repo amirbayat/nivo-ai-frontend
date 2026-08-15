@@ -1,26 +1,27 @@
 import { useNavigate } from 'react-router-dom'
-import { useMe } from '@/queries/auth.queries'
+import { useCreditsBalance } from '@/queries/credits.queries'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 
+// دیگر پلن ماهانه‌ی خرید‌شدنی نداریم — این نشان حالا میزان اعتبار (نیوو) فعلی کاربر را
+// نشان می‌دهد و به شارژ اعتبار لینک می‌دهد (به‌جای «ارتقا پلن» قدیمی)
 export function PlanUpgradeBadge() {
   const navigate = useNavigate()
-  const { data: me } = useMe()
+  const { data: balance } = useCreditsBalance()
 
-  const planName = me?.subscription?.plan?.name ?? fa.plans.free
-  const isFree = !me?.subscription || me.subscription.plan.priceMonthly === 0
+  const isLow = (balance?.credits ?? 0) < 20
 
   function goToPricing() {
-    track('plan_upgrade_badge_clicked', { isFree })
+    track('credit_topup_badge_clicked', { credits: balance?.credits })
     navigate('/pricing')
   }
 
-  if (isFree) {
+  if (isLow) {
     return (
       <>
         <button onClick={goToPricing} className="nivo-shiny-upgrade">
           <span className="nivo-shiny-upgrade__inner">
-            <span className="text-slate-300">{fa.plans.currentPlanLabel(planName)}</span>
+            <span className="text-slate-300">{fa.credits.creditsUnit}: {balance?.credits.toLocaleString('fa-IR') ?? '—'}</span>
             <span className="font-semibold text-emerald-300">{fa.plans.upgradeCta}</span>
           </span>
         </button>
@@ -57,7 +58,7 @@ export function PlanUpgradeBadge() {
       onClick={goToPricing}
       className="rounded-full border border-slate-700 px-3 py-1.5 text-[11px] text-slate-500 hover:border-slate-600 hover:text-slate-300 transition-colors whitespace-nowrap"
     >
-      {fa.plans.currentPlanLabel(planName)}
+      {fa.credits.creditsUnit}: {balance?.credits.toLocaleString('fa-IR') ?? '—'}
     </button>
   )
 }

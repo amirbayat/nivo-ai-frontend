@@ -6,6 +6,18 @@ export const keys = {
     list: () => ['conversations', 'list'] as const,
     detail: (id: string) => ['conversations', 'detail', id] as const,
   },
+  credits: {
+    balance: () => ['credits', 'balance'] as const,
+    packages: () => ['credits', 'packages'] as const,
+    quote: (credits: number) => ['credits', 'quote', credits] as const,
+  },
+  projects: { list: () => ['projects', 'list'] as const },
+  discovery: {
+    catalog: (outputType?: string, categoryId?: string, sort?: string) =>
+      ['discovery', 'catalog', outputType ?? 'all', categoryId ?? 'all', sort ?? 'default'] as const,
+    categories: () => ['discovery', 'categories'] as const,
+    gallery: (projectId?: string) => ['discovery', 'gallery', projectId ?? 'all'] as const,
+  },
   usage: {
     today: () => ['usage', 'today'] as const,
     history: (month: string) => ['usage', 'history', month] as const,

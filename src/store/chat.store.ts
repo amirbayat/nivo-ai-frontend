@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { CreativePromptCatalogItem } from '@/types/api'
 
 export type MessageStage = 'normal' | 'throttled' | 'blocked'
 export type ThinkingMode = 'fast' | 'smart'
@@ -25,6 +26,9 @@ interface ChatState {
   selectedImageGenModel: string | null
   // دراپ‌دون «سریع/هوشمند» کنار دکمه‌ی ارسال — فقط روی reasoning effort اثر دارد، نه انتخاب مدل
   thinkingMode: ThinkingMode
+  // سبک انتخاب‌شده از استودیوی محتوا (DiscoverPage) — تا برگشت به چت حفظ می‌شود؛ MessageInput
+  // با وجود این مقدار به‌جای ارسال پیام معمولی، generate آن سبک را صدا می‌زند (docs/PRD-discovery-and-credits.md)
+  selectedCreativePrompt: CreativePromptCatalogItem | null
   setSelectedConvId: (id: string | null) => void
   setStreamingContent: (text: string) => void
   appendStreamingContent: (chunk: string) => void
@@ -39,6 +43,7 @@ interface ChatState {
   setSelectedModel: (model: string) => void
   setSelectedImageGenModel: (model: string | null) => void
   setThinkingMode: (mode: ThinkingMode) => void
+  setSelectedCreativePrompt: (prompt: CreativePromptCatalogItem | null) => void
 }
 
 export const useChatStore = create<ChatState>(set => ({
@@ -55,10 +60,18 @@ export const useChatStore = create<ChatState>(set => ({
   remainingNormal: null,
   remainingThrottled: null,
   // «حالت بهینه» پیش‌فرض جدید — مسیریاب مدل بر اساس سختی پیام، مدل واقعی را انتخاب می‌کند
-  selectedModel: typeof window !== 'undefined' ? (localStorage.getItem('nivo:selectedModel') ?? 'optimal') : 'optimal',
+  // 'optimal' مقدار قدیمی سنتینل «خودکار» است (قبل از معرفی دو حالت مصرف‌بهینه/بهترین‌پاسخ) —
+  // معادل 'best_answer' فعلی در نظر گرفته می‌شود تا کاربرهای قدیمی رفتار قبلی رو حفظ کنن
+  selectedModel: typeof window !== 'undefined'
+    ? (() => {
+        const stored = localStorage.getItem('nivo:selectedModel')
+        return stored === 'optimal' ? 'best_answer' : (stored ?? 'best_answer')
+      })()
+    : 'best_answer',
   selectedImageGenModel: typeof window !== 'undefined' ? localStorage.getItem('nivo:selectedImageGenModel') : null,
   thinkingMode:
     (typeof window !== 'undefined' ? (localStorage.getItem('nivo:thinkingMode') as ThinkingMode | null) : null) ?? 'smart',
+  selectedCreativePrompt: null,
 
   setSelectedConvId: id => set({ selectedConvId: id }),
   setStreamingContent: text => set({ streamingContent: text }),
@@ -81,4 +94,5 @@ export const useChatStore = create<ChatState>(set => ({
     localStorage.setItem('nivo:thinkingMode', mode)
     set({ thinkingMode: mode })
   },
+  setSelectedCreativePrompt: prompt => set({ selectedCreativePrompt: prompt }),
 }))

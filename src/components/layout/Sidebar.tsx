@@ -78,6 +78,43 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         <PlanUpgradeBadge />
       </div>
 
+      <div className="px-4 py-3 border-b border-slate-700/50">
+        <button
+          onClick={() => {
+            track("discover_button_clicked");
+            navigate("/discover");
+            onNavigate?.();
+          }}
+          className="flex w-full items-center gap-2.5 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/[0.06] px-3 py-2.5 text-right transition-colors hover:bg-fuchsia-500/10"
+        >
+          <div className="size-8 rounded-full bg-fuchsia-500/15 flex items-center justify-center text-fuchsia-300 shrink-0">
+            <svg viewBox="0 0 20 20" fill="none" className="size-4">
+              <path
+                d="M10 2.5l1.4 4.2 4.2 1.4-4.2 1.4L10 13.7l-1.4-4.2-4.2-1.4 4.2-1.4L10 2.5z"
+                fill="currentColor"
+              />
+              <path d="M15.5 12.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2z" fill="currentColor" />
+            </svg>
+          </div>
+          <span className="text-sm font-medium text-fuchsia-200">{fa.chat.discover}</span>
+        </button>
+
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={() => { track("projects_nav_clicked"); navigate("/projects"); onNavigate?.(); }}
+            className="flex-1 rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
+          >
+            {fa.projects.title}
+          </button>
+          <button
+            onClick={() => { track("gallery_nav_clicked"); navigate("/gallery"); onNavigate?.(); }}
+            className="flex-1 rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
+          >
+            {fa.gallery.title}
+          </button>
+        </div>
+      </div>
+
       {/* conversations */}
       <div className="flex-1 overflow-y-auto py-2">
         {conversations.length === 0 && (
@@ -162,9 +199,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             fill="currentColor"
             className="size-4 shrink-0 text-slate-500"
           >
+            {/* chevron-left — این یک لینک روبه‌جلو (رفتن به صفحه‌ی پروفایل) است، نه بازگشت */}
             <path
               fillRule="evenodd"
-              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
               clipRule="evenodd"
             />
           </svg>

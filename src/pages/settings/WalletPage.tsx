@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { clsx } from 'clsx'
 import { useWallet } from '@/queries/usage.queries'
 import { usePlans } from '@/queries/plans.queries'
+import { useCreditsBalance } from '@/queries/credits.queries'
 import { WalletTopupModal } from '@/components/payment/WalletTopupModal'
 import { track } from '@/lib/events'
 import { fa } from '@/locales/fa'
@@ -10,8 +11,13 @@ const DEFAULT_PRESETS = [1_000_000, 2_000_000, 5_000_000]
 
 export function WalletPage() {
   const { data: wallet, isLoading } = useWallet()
+  const { data: creditsBalance } = useCreditsBalance()
   const { data: plans } = usePlans()
   const [topupOpen, setTopupOpen] = useState(false)
+
+  // برای نمایش نیوو معادلِ هر تراکنش (تومان → نیوو) — همون tomanPerCredit که سرور برای
+  // موجودی هم استفاده می‌کند؛ اگر هنوز نیامده، فقط تومان نشان داده می‌شود (بدون خط دوم)
+  const tomanPerCredit = creditsBalance?.tomanPerCredit
 
   const paygPlan = plans?.find((p) => p.isPayAsYouGo)
   const presets = paygPlan?.payAsYouGoTopupPresets ?? DEFAULT_PRESETS
@@ -23,13 +29,18 @@ export function WalletPage() {
       <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-medium text-slate-300">{fa.settings.walletBalance}</h2>
+            <h2 className="text-sm font-medium text-slate-300">{fa.settings.creditsBalance}</h2>
             {isLoading ? (
               <div className="mt-2 h-8 w-32 animate-pulse rounded-lg bg-slate-700/50" />
             ) : (
-              <p className="mt-1 text-2xl font-bold text-emerald-400">
-                {(wallet?.balanceToman ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500">تومان</span>
-              </p>
+              <>
+                <p className="mt-1 text-2xl font-bold text-emerald-400">
+                  {(creditsBalance?.credits ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500">نیوو</span>
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {(wallet?.balanceToman ?? 0).toLocaleString('fa-IR')} تومان
+                </p>
+              </>
             )}
           </div>
           <button
@@ -61,9 +72,16 @@ export function WalletPage() {
                   <p className="text-sm text-slate-200">{tx.description ?? (tx.type === 'CREDIT' ? 'واریز' : 'برداشت')}</p>
                   <p className="mt-0.5 text-xs text-slate-500">{new Date(tx.createdAt).toLocaleString('fa-IR')}</p>
                 </div>
-                <span className={clsx('text-sm font-medium', tx.type === 'CREDIT' ? 'text-emerald-400' : 'text-slate-400')}>
-                  {tx.type === 'CREDIT' ? '+' : '−'}{tx.amountToman.toLocaleString('fa-IR')} تومان
-                </span>
+                <div className="text-left">
+                  <span className={clsx('text-sm font-medium', tx.type === 'CREDIT' ? 'text-emerald-400' : 'text-slate-400')}>
+                    {tx.type === 'CREDIT' ? '+' : '−'}{tx.amountToman.toLocaleString('fa-IR')} تومان
+                  </span>
+                  {tomanPerCredit ? (
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {fa.settings.creditsEquivalent(Math.round(tx.amountToman / tomanPerCredit))}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

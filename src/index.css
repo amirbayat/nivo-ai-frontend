@@ -33,6 +33,15 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9px; }
 
+/* رفع زوم خودکار سافاری iOS موقع focus روی input/textarea/select — باگ معروف سافاری وقتی
+   فونت فیلد فوکوس‌شده زیر ۱۶px باشد (اینجا اکثر فیلدها با text-sm یعنی ۱۴px هستند)؛ فقط در
+   موبایل اعمال می‌شود تا سایز فیلدها در دسکتاپ (که این باگ اصلاً وجود ندارد) عوض نشود. */
+@media (max-width: 767px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 /* تولید عکس — پس‌زمینه‌ی «فضایی» (نبولا) + شبکه‌ی مربعی از نقاط که موج‌دار روشن/خاموش
    می‌شوند، شبیه افکت loading تولید عکس ChatGPT — به‌جای shimmer ساده‌ی قبلی */
 @keyframes nivo-sparkle-spin {

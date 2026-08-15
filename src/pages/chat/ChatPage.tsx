@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
+import { useGenerateCreative } from '@/queries/discovery.queries'
 import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
+import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { MessageLimitBanner } from '@/components/chat/MessageLimitBanner'
@@ -11,6 +13,7 @@ import { OutageBanner } from '@/components/chat/OutageBanner'
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
 import { ModelSelector } from '@/components/chat/ModelSelector'
 import { fa } from '@/locales/fa'
+import type { CreativePromptCatalogItem, CreativeGenerationResult } from '@/types/api'
 
 interface PendingMessage {
   content: string
@@ -46,13 +49,25 @@ export function ChatPage() {
     return <EmptyState onSend={handleFirstMessage} isCreating={createConv.isPending} />
   }
 
-  return <ActiveChat conversationId={id} isStreaming={isStreaming} />
+  // key={id} یعنی با عوض شدن مکالمه، state محلی creativeResults/... کاملاً ری‌مانت می‌شود —
+  // نتایج دیسکاوری فقط state محلی این کامپوننت‌اند (نه Message واقعی)، پس نباید بین مکالمات نشت کنند
+  return <ActiveChat key={id} conversationId={id} isStreaming={isStreaming} />
+}
+
+interface CreativeResultEntry {
+  id: string
+  prompt: CreativePromptCatalogItem
+  result: CreativeGenerationResult
 }
 
 function ActiveChat({ conversationId, isStreaming }: { conversationId: string; isStreaming: boolean }) {
   const { data, isLoading } = useConversation(conversationId)
   const { sendMessage } = useChat(conversationId)
   const location = useLocation()
+  const { selectedCreativePrompt } = useChatStore()
+  const generateCreative = useGenerateCreative()
+  const [creativeResults, setCreativeResults] = useState<CreativeResultEntry[]>([])
+  const [creativeError, setCreativeError] = useState<string | null>(null)
 
   const pendingRef = useRef<PendingMessage | null>(
     (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage ?? null,
@@ -66,6 +81,22 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       void sendMessage(msg.content, msg.images, msg.model, msg.generateImage)
     }
   }, [isLoading, data, sendMessage])
+
+  // نتیجه‌ی تولید دیسکاوری همین‌جا (توی خود چت، بالای اینپوت) نشان داده می‌شود — نه یک ردیف
+  // Message واقعی در بک‌اند؛ به همین دلیل با رفرش صفحه یا عوض کردن مکالمه از دست می‌رود
+  // (نتیجه‌ی نهایی همچنان توی گالری دیسکاوری برای همیشه باقی می‌ماند)
+  function handleGenerateCreative(promptId: string, userInput: string, inputImageKeys?: string[]) {
+    if (!selectedCreativePrompt) return
+    setCreativeError(null)
+    const prompt = selectedCreativePrompt
+    generateCreative.mutate(
+      { promptId, userInput: userInput || undefined, inputImageKeys },
+      {
+        onSuccess: result => setCreativeResults(prev => [...prev, { id: result.id, prompt, result }]),
+        onError: () => setCreativeError(fa.discover.generateFailed),
+      },
+    )
+  }
 
   if (isLoading) {
     return (
@@ -95,11 +126,55 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
         </div>
       </div>
 
-      <MessageList messages={data.messages} />
+      <MessageList
+        messages={data.messages}
+        extraContent={
+          creativeResults.length > 0 || creativeError ? (
+            <div className="space-y-3">
+              {creativeResults.map(entry => (
+                <CreativeResultCard key={entry.id} prompt={entry.prompt} result={entry.result} />
+              ))}
+              {creativeError && <p className="text-xs text-red-400">{creativeError}</p>}
+            </div>
+          ) : undefined
+        }
+      />
       <OutageBanner />
       <GiftBanner />
       <MessageLimitBanner />
-      <MessageInput onSend={sendMessage} sending={isStreaming} />
+      <MessageInput
+        onSend={sendMessage}
+        sending={isStreaming}
+        onGenerateCreative={handleGenerateCreative}
+        generatingCreative={generateCreative.isPending}
+      />
+    </div>
+  )
+}
+
+// کارت نمایش نتیجه‌ی تولید دیسکاوری — دقیقاً هم‌الگوی نمایش نتیجه‌ی GenerateModal قدیمی
+// (DiscoverPage.tsx)، فقط این‌جا بالای اینپوت خود چت رندر می‌شود
+function CreativeResultCard({ prompt, result }: { prompt: CreativePromptCatalogItem; result: CreativeGenerationResult }) {
+  const resultImageUrl = useAuthedImageUrl(
+    result.outputImageKey ? `/v2/discovery/images/${result.outputImageKey}` : '',
+  )
+
+  return (
+    <div className="mr-auto max-w-[85%] rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3">
+      <p className="mb-2 text-[11px] font-medium text-emerald-400/80">{prompt.title}</p>
+      {result.status === 'FAILED' ? (
+        <p className="text-xs text-red-400">{fa.discover.generateFailed}</p>
+      ) : result.outputType === 'TEXT' && result.outputText ? (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">{result.outputText}</p>
+      ) : result.outputType === 'IMAGE' ? (
+        resultImageUrl ? (
+          <img src={resultImageUrl} alt={prompt.title} className="max-w-full rounded-xl" />
+        ) : (
+          <div className="flex justify-center py-6">
+            <div className="size-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+          </div>
+        )
+      ) : null}
     </div>
   )
 }

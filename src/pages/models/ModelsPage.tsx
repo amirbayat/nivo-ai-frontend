@@ -5,7 +5,8 @@ import { useModelCatalog, type ModelCatalogEntry } from '@/queries/plans.queries
 import { useChatStore } from '@/store/chat.store'
 import { env } from '@/env'
 import {
-  OPTIMAL_MODE, OPTIMAL_DESCRIPTION, tierDescription, tierLabel, imageQualityLabel, type ModelTier,
+  COST_OPTIMIZED_MODE, COST_OPTIMIZED_DESCRIPTION, BEST_ANSWER_MODE, BEST_ANSWER_DESCRIPTION,
+  tierDescription, tierLabel, imageQualityLabel, type ModelTier,
 } from '@/lib/model-catalog'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
 import { track } from '@/lib/events'
@@ -18,6 +19,15 @@ function OptimalIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0">
       <path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2z" fill="currentColor" />
+    </svg>
+  )
+}
+
+function CoinIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 7.5v9M9.5 9.5c0-1 1-1.5 2.5-1.5s2.5.6 2.5 1.4c0 1.9-5 .9-5 2.9 0 .9 1 1.6 2.5 1.6s2.5-.6 2.5-1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   )
 }
@@ -172,12 +182,31 @@ export function ModelsPage() {
         </div>
 
         <div className="space-y-4">
-          {/* بهینه — همیشه اول و در دسترس */}
+          {/* دو حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md) */}
           <button
-            onClick={() => select(OPTIMAL_MODE)}
+            onClick={() => select(COST_OPTIMIZED_MODE)}
             className={clsx(
               'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-              selectedModel === OPTIMAL_MODE
+              selectedModel === COST_OPTIMIZED_MODE
+                ? 'border-amber-500/60 bg-amber-500/5'
+                : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+            )}
+          >
+            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+              <CoinIcon />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-slate-100">مصرف بهینه</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{COST_OPTIMIZED_DESCRIPTION}</p>
+            </div>
+            {selectedModel === COST_OPTIMIZED_MODE && <Check />}
+          </button>
+
+          <button
+            onClick={() => select(BEST_ANSWER_MODE)}
+            className={clsx(
+              'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+              selectedModel === BEST_ANSWER_MODE
                 ? 'border-emerald-500/60 bg-emerald-500/5'
                 : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
             )}
@@ -187,12 +216,12 @@ export function ModelsPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-100">مدل بهینه</h3>
+                <h3 className="font-bold text-slate-100">بهترین پاسخ</h3>
                 <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-400">پیشنهادی</span>
               </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{OPTIMAL_DESCRIPTION}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{BEST_ANSWER_DESCRIPTION}</p>
             </div>
-            {selectedModel === OPTIMAL_MODE && <Check />}
+            {selectedModel === BEST_ANSWER_MODE && <Check />}
           </button>
 
           <div className="flex items-center gap-3 pt-2 pb-1">

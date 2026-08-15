@@ -6,6 +6,9 @@ import { LoginPage } from '@/pages/auth/LoginPage'
 import { OtpPage } from '@/pages/auth/OtpPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
+import { DiscoverPage } from '@/pages/discover/DiscoverPage'
+import { ProjectsPage } from '@/pages/projects/ProjectsPage'
+import { GalleryPage } from '@/pages/gallery/GalleryPage'
 import { ModelsPage } from '@/pages/models/ModelsPage'
 import { CallbackPage } from '@/pages/payment/CallbackPage'
 import { ProfilePage } from '@/pages/settings/ProfilePage'
@@ -70,6 +73,18 @@ export function AppRouter() {
       <Route
         path="/pricing"
         element={<ProtectedRoute><PricingPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/discover"
+        element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/projects"
+        element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/gallery"
+        element={<ProtectedRoute><GalleryPage /></ProtectedRoute>}
       />
       <Route
         path="/models"

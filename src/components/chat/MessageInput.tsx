@@ -1,10 +1,12 @@
-import { useState, useRef, useMemo, type KeyboardEvent } from 'react'
+import { useEffect, useState, useRef, useMemo, type KeyboardEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
 import { useMe } from '@/queries/auth.queries'
 import { useChatStore } from '@/store/chat.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
+import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import { ThinkingModeToggle } from './ThinkingModeToggle'
@@ -38,16 +40,22 @@ interface MessageInputProps {
   // برخلاف disabled، فقط دکمه‌ی ارسال (و Enter) را غیرفعال می‌کند — کاربر همچنان می‌تواند
   // در حین تولید پاسخ هوش مصنوعی تایپ کند و پیام بعدی‌اش را آماده کند
   sending?: boolean
+  // وقتی selectedCreativePrompt (store) ست باشد، submit به‌جای onSend این را صدا می‌زند —
+  // مسیر تولید دیسکاوری کاملاً جدا از استریم چت است (ChatPage.tsx: handleGenerateCreative)
+  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[]) => void
+  generatingCreative?: boolean
 }
 
-export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
+export function MessageInput({ onSend, disabled, sending, onGenerateCreative, generatingCreative }: MessageInputProps) {
   const { data: flags } = useFeatureFlags()
   const MAX_IMAGES = flags?.maxImagesPerMessage ?? 4
   const MAX_SIZE_BYTES = (flags?.maxImageSizeMb ?? 8) * 1024 * 1024
 
   const { data: catalog } = useModelCatalog()
   const { data: me } = useMe()
-  const { selectedImageGenModel } = useChatStore()
+  const { selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt } = useChatStore()
+  const navigate = useNavigate()
+  const uploadDiscoveryImage = useUploadDiscoveryImage()
   // docs/PRD-chat-images.md بخش ۵.۵/۶.۲ — فقط مدل‌هایی که هم supportsImageGen دارند هم
   // در allowedModels پلن کاربرند؛ اگر هیچ‌کدام نبود، دکمه‌ی حالت تولید عکس اصلاً نشان داده نمی‌شود.
   // پیش‌فرض: کیفیت/اندازه بر اساس متن پیام و (برای Pay-as-you-go) موجودی کیف‌پول خودکار
@@ -65,7 +73,38 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
   const [imageMode, setImageMode] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const creativeFileRef = useRef<HTMLInputElement>(null)
   const isTouchDevice = useIsTouchDevice()
+
+  // عکس ورودی سبک‌های requiresUserImage=true — مستقل از images بالا (که مخصوص حالت تولید عکس
+  // چت معمولی/ویرایش است)؛ با هر سبک تازه‌انتخاب‌شده پاک می‌شود
+  const [creativeImagePreview, setCreativeImagePreview] = useState<string | null>(null)
+  const [creativeImageKey, setCreativeImageKey] = useState<string | null>(null)
+  const [creativeImageError, setCreativeImageError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setCreativeImagePreview(null)
+    setCreativeImageKey(null)
+    setCreativeImageError(null)
+  }, [selectedCreativePrompt?.id])
+
+  function handleCreativeFileSelected(file: File) {
+    setCreativeImageError(null)
+    setCreativeImageKey(null)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      setCreativeImagePreview(dataUrl)
+      uploadDiscoveryImage.mutate(dataUrl, {
+        onSuccess: data => setCreativeImageKey(data.key),
+        onError: () => {
+          setCreativeImageError(fa.discover.uploadImageFailed)
+          setCreativeImagePreview(null)
+        },
+      })
+    }
+    reader.readAsDataURL(file)
+  }
 
   function toggleImageMode() {
     if (!hasImageGenModels) return
@@ -81,6 +120,24 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
   const submit = () => {
     const trimmed = value.trim()
     if (disabled || sending) return
+    if (selectedCreativePrompt) {
+      if (generatingCreative || uploadDiscoveryImage.isPending) return
+      if (selectedCreativePrompt.requiresUserImage && !creativeImageKey) {
+        setCreativeImageError(fa.discover.imageRequiredError)
+        return
+      }
+      if (!onGenerateCreative) return
+      onGenerateCreative(
+        selectedCreativePrompt.id,
+        trimmed,
+        creativeImageKey ? [creativeImageKey] : undefined,
+      )
+      setValue('')
+      setCreativeImagePreview(null)
+      setCreativeImageKey(null)
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
+      return
+    }
     if (imageMode) {
       if (!trimmed) return
       track('image_gen_requested', { model: pinnedImageGenModel?.name, hasSourceImages: images.length > 0 })
@@ -135,13 +192,96 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
     setImages(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const canSend = imageMode
-    ? Boolean(value.trim()) && !disabled && !sending
-    : (value.trim() || images.length > 0) && !disabled && !sending
+  const canSend = selectedCreativePrompt
+    ? !disabled && !sending && !generatingCreative && !uploadDiscoveryImage.isPending &&
+      (!selectedCreativePrompt.requiresUserImage || Boolean(creativeImageKey))
+    : imageMode
+      ? Boolean(value.trim()) && !disabled && !sending
+      : (value.trim() || images.length > 0) && !disabled && !sending
 
   return (
     <div className="border-t border-slate-700/50 p-4">
-      {imageMode && (
+      {selectedCreativePrompt && (
+        <div className="mb-3 flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
+          {selectedCreativePrompt.outputType === 'IMAGE' && selectedCreativePrompt.exampleImageUrl && (
+            <img
+              src={selectedCreativePrompt.exampleImageUrl}
+              alt=""
+              className="size-14 shrink-0 rounded-xl object-cover"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-emerald-400/80">{fa.discover.selectedStyleLabel}</p>
+            <p className="truncate text-sm font-semibold text-slate-100">{selectedCreativePrompt.title}</p>
+            <p className="mt-0.5 text-xs text-emerald-400">{fa.discover.creditCost(selectedCreativePrompt.creditCost)}</p>
+
+            {selectedCreativePrompt.requiresUserImage && (
+              <div className="mt-2">
+                <input
+                  ref={creativeFileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (file) handleCreativeFileSelected(file)
+                    e.target.value = ''
+                  }}
+                />
+                {creativeImagePreview ? (
+                  <div className="relative inline-block overflow-hidden rounded-lg border border-slate-700">
+                    <img src={creativeImagePreview} alt="" className="h-16 w-16 object-cover" />
+                    {uploadDiscoveryImage.isPending && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60">
+                        <div className="size-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+                      </div>
+                    )}
+                    {creativeImageKey && !uploadDiscoveryImage.isPending && (
+                      <button
+                        onClick={() => { setCreativeImagePreview(null); setCreativeImageKey(null) }}
+                        className="absolute inset-x-0 bottom-0 bg-slate-950/80 py-0.5 text-[10px] text-slate-300 hover:text-red-400 transition-colors"
+                      >
+                        {fa.discover.removeImage}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => creativeFileRef.current?.click()}
+                    className="rounded-lg border border-dashed border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
+                  >
+                    {fa.discover.uploadImageLabel}
+                  </button>
+                )}
+                {creativeImageError && <p className="mt-1 text-[11px] text-red-400">{creativeImageError}</p>}
+              </div>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => navigate('/discover')}
+              className="rounded-lg border border-slate-600 px-2.5 py-1 text-xs text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
+            >
+              {fa.discover.changeStyle}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCreativePrompt(null)}
+              aria-label={fa.discover.exitStyleMode}
+              className="flex size-6 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
+                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!selectedCreativePrompt && imageMode && (
         <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-fuchsia-300/80">
           <svg viewBox="0 0 24 24" fill="none" className="size-3.5 shrink-0">
             <path
@@ -159,7 +299,7 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
         </div>
       )}
 
-      {images.length > 0 && (
+      {!selectedCreativePrompt && images.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {images.map((src, idx) => (
             <div key={idx} className="relative group">
@@ -195,28 +335,30 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
           onChange={e => void handleFiles(e.target.files)}
         />
 
-        <button
-          type="button"
-          disabled={disabled || images.length >= MAX_IMAGES}
-          onClick={() => fileRef.current?.click()}
-          className={clsx(
-            'shrink-0 size-7 rounded-lg flex items-center justify-center transition-colors',
-            images.length >= MAX_IMAGES || disabled
-              ? 'text-slate-600 cursor-not-allowed'
-              : imageMode
-                ? 'text-fuchsia-300/70 hover:text-fuchsia-300 hover:bg-slate-700'
-                : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-700',
-          )}
-          aria-label={imageMode ? 'پیوست عکس برای ویرایش/ترکیب' : 'پیوست تصویر'}
-        >
-          <svg viewBox="0 0 24 24" fill="none" className="size-5">
-            <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" />
-            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
-            <path d="m3 15 5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        {!selectedCreativePrompt && (
+          <button
+            type="button"
+            disabled={disabled || images.length >= MAX_IMAGES}
+            onClick={() => fileRef.current?.click()}
+            className={clsx(
+              'shrink-0 size-7 rounded-lg flex items-center justify-center transition-colors',
+              images.length >= MAX_IMAGES || disabled
+                ? 'text-slate-600 cursor-not-allowed'
+                : imageMode
+                  ? 'text-fuchsia-300/70 hover:text-fuchsia-300 hover:bg-slate-700'
+                  : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-700',
+            )}
+            aria-label={imageMode ? 'پیوست عکس برای ویرایش/ترکیب' : 'پیوست تصویر'}
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="size-5">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+              <path d="m3 15 5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
 
-        {hasImageGenModels && (
+        {!selectedCreativePrompt && hasImageGenModels && (
           <button
             type="button"
             disabled={disabled}
@@ -249,9 +391,11 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
           onFocus={onFocus}
           disabled={disabled}
           placeholder={
-            imageMode
-              ? images.length > 0 ? 'چی می‌خوای با این عکس(ها) درست کنم؟' : 'چی می‌خوای برات بسازم؟'
-              : fa.chat.placeholder
+            selectedCreativePrompt
+              ? fa.discover.inputPlaceholder
+              : imageMode
+                ? images.length > 0 ? 'چی می‌خوای با این عکس(ها) درست کنم؟' : 'چی می‌خوای برات بسازم؟'
+                : fa.chat.placeholder
           }
           rows={1}
           className={clsx(
@@ -261,8 +405,8 @@ export function MessageInput({ onSend, disabled, sending }: MessageInputProps) {
           style={{ minHeight: '24px' }}
         />
 
-        {/* در حالت تولید عکس، reasoning effort اثری ندارد — مسیر تولید عکس کاملاً جدا از streamText چت است */}
-        {!imageMode && <ThinkingModeToggle disabled={disabled} />}
+        {/* در حالت تولید عکس/سبک دیسکاوری، reasoning effort اثری ندارد — هردو کاملاً جدا از streamText چت‌اند */}
+        {!imageMode && !selectedCreativePrompt && <ThinkingModeToggle disabled={disabled} />}
 
         <button
           onClick={submit}
