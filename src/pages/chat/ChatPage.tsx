@@ -1,19 +1,19 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useGenerateCreative } from '@/queries/discovery.queries'
 import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
-import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
-import { MessageList } from '@/components/chat/MessageList'
+import { MessageList, MessageBubble } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { MessageLimitBanner } from '@/components/chat/MessageLimitBanner'
 import { GiftBanner } from '@/components/chat/GiftBanner'
 import { OutageBanner } from '@/components/chat/OutageBanner'
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
 import { ModelSelector } from '@/components/chat/ModelSelector'
+import { TrendingPromptGrid } from '@/components/chat/TrendingPromptGrid'
 import { fa } from '@/locales/fa'
-import type { CreativePromptCatalogItem, CreativeGenerationResult } from '@/types/api'
+import type { CreativePromptCatalogItem } from '@/types/api'
 
 interface PendingMessage {
   content: string
@@ -25,6 +25,7 @@ interface PendingMessage {
 export function ChatPage() {
   const { id } = useParams<{ id?: string }>()
   const { isStreaming } = useChatStore()
+  const setSelectedCreativePrompt = useChatStore(s => s.setSelectedCreativePrompt)
   const navigate = useNavigate()
   const createConv = useCreateConversation()
 
@@ -45,8 +46,27 @@ export function ChatPage() {
     }
   }
 
+  // انتخاب یک پرامپت آماده‌ی عکسی از صفحه‌ی خالی — دقیقاً هم‌الگوی DiscoverPage.handleSelectPrompt:
+  // سبک را در استور مشترک می‌گذاریم و مکالمه‌ی تازه می‌سازیم؛ MessageInput خودِ ActiveChat
+  // (که selectedCreativePrompt را از استور می‌خواند) بعد از mount شدن، UI تولید عکس را نشان می‌دهد
+  const handleSelectCreativePrompt = async (item: CreativePromptCatalogItem) => {
+    setSelectedCreativePrompt(item)
+    try {
+      const conv = await createConv.mutateAsync('optimal')
+      navigate(`/chat/${conv.id}`)
+    } catch {
+      // ignore — سبک انتخاب‌شده در استور می‌ماند، کاربر می‌تواند دوباره تلاش کند
+    }
+  }
+
   if (!id) {
-    return <EmptyState onSend={handleFirstMessage} isCreating={createConv.isPending} />
+    return (
+      <EmptyState
+        onSend={handleFirstMessage}
+        onSelectCreativePrompt={handleSelectCreativePrompt}
+        isCreating={createConv.isPending}
+      />
+    )
   }
 
   // key={id} یعنی با عوض شدن مکالمه، state محلی creativeResults/... کاملاً ری‌مانت می‌شود —
@@ -54,10 +74,27 @@ export function ChatPage() {
   return <ActiveChat key={id} conversationId={id} isStreaming={isStreaming} />
 }
 
-interface CreativeResultEntry {
+// یک پیام محلی/مصنوعی داخل جریان مکالمه‌ی سبک دیسکاوری — هیچ‌کدام Message واقعی بک‌اند
+// نیستند (با رفرش صفحه یا عوض کردن مکالمه از بین می‌روند)، اما دقیقاً با همان کامپوننت
+// MessageBubble پیام‌های واقعی رندر می‌شوند تا از نگاه کاربر «توی خودِ چت» و به‌شکل واقعی
+// پیش برود: یک پیام دستیار که سبک را معرفی و درخواست عکس/توضیح می‌کند، پیام کاربر با عکس
+// آپلودی‌اش، و در آخر پیام دستیار با عکس تولیدشده
+interface VirtualMessage {
   id: string
-  prompt: CreativePromptCatalogItem
-  result: CreativeGenerationResult
+  role: 'ASSISTANT' | 'USER'
+  content: string
+  images?: string[]
+}
+
+function creativeIntroMessage(prompt: CreativePromptCatalogItem): VirtualMessage {
+  const ask = prompt.requiresUserImage
+    ? `عکستو برام بفرست تا با سبک «${prompt.title}» عوضش کنم.`
+    : `بگو با سبک «${prompt.title}» چی می‌خوای برات بسازم.`
+  return {
+    id: `virtual-intro-${prompt.id}`,
+    role: 'ASSISTANT',
+    content: prompt.description ? `${ask}\n\n${prompt.description}` : ask,
+  }
 }
 
 function ActiveChat({ conversationId, isStreaming }: { conversationId: string; isStreaming: boolean }) {
@@ -66,7 +103,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
   const location = useLocation()
   const { selectedCreativePrompt } = useChatStore()
   const generateCreative = useGenerateCreative()
-  const [creativeResults, setCreativeResults] = useState<CreativeResultEntry[]>([])
+  const [virtualMessages, setVirtualMessages] = useState<VirtualMessage[]>([])
   const [creativeError, setCreativeError] = useState<string | null>(null)
 
   const pendingRef = useRef<PendingMessage | null>(
@@ -82,17 +119,39 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
     }
   }, [isLoading, data, sendMessage])
 
-  // نتیجه‌ی تولید دیسکاوری همین‌جا (توی خود چت، بالای اینپوت) نشان داده می‌شود — نه یک ردیف
-  // Message واقعی در بک‌اند؛ به همین دلیل با رفرش صفحه یا عوض کردن مکالمه از دست می‌رود
-  // (نتیجه‌ی نهایی همچنان توی گالری دیسکاوری برای همیشه باقی می‌ماند)
-  function handleGenerateCreative(promptId: string, userInput: string, inputImageKeys?: string[]) {
+  // با انتخاب سبک (یا عوض‌شدنش)، پیام معرفی سبک به‌عنوان اولین پیام مصنوعی گفت‌وگو اضافه می‌شود
+  useEffect(() => {
+    if (selectedCreativePrompt) setVirtualMessages([creativeIntroMessage(selectedCreativePrompt)])
+  }, [selectedCreativePrompt])
+
+  function handleGenerateCreative(
+    promptId: string,
+    userInput: string,
+    inputImageKeys?: string[],
+    imagePreviews?: string[],
+  ) {
     if (!selectedCreativePrompt) return
     setCreativeError(null)
-    const prompt = selectedCreativePrompt
+    setVirtualMessages(prev => [
+      ...prev,
+      { id: `virtual-user-${prev.length}`, role: 'USER', content: userInput, images: imagePreviews },
+    ])
     generateCreative.mutate(
       { promptId, userInput: userInput || undefined, inputImageKeys },
       {
-        onSuccess: result => setCreativeResults(prev => [...prev, { id: result.id, prompt, result }]),
+        onSuccess: result =>
+          setVirtualMessages(prev => [
+            ...prev,
+            {
+              id: `virtual-result-${result.id}`,
+              role: 'ASSISTANT',
+              content: result.status === 'FAILED' ? fa.discover.generateFailed : (result.outputText ?? ''),
+              images:
+                result.status === 'SUCCEEDED' && result.outputType === 'IMAGE' && result.outputImageKey
+                  ? [`/v2/discovery/images/${result.outputImageKey}`]
+                  : undefined,
+            },
+          ]),
         onError: () => setCreativeError(fa.discover.generateFailed),
       },
     )
@@ -129,13 +188,14 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       <MessageList
         messages={data.messages}
         extraContent={
-          creativeResults.length > 0 || creativeError ? (
-            <div className="space-y-3">
-              {creativeResults.map(entry => (
-                <CreativeResultCard key={entry.id} prompt={entry.prompt} result={entry.result} />
+          virtualMessages.length > 0 || creativeError ? (
+            <>
+              {virtualMessages.map(m => (
+                <MessageBubble key={m.id} role={m.role} content={m.content} images={m.images} disableFeedback />
               ))}
-              {creativeError && <p className="text-xs text-red-400">{creativeError}</p>}
-            </div>
+              {generateCreative.isPending && <GeneratingCreativeBubble />}
+              {creativeError && <p className="px-2 text-xs text-red-400">{creativeError}</p>}
+            </>
           ) : undefined
         }
       />
@@ -152,108 +212,25 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
   )
 }
 
-// کارت نمایش نتیجه‌ی تولید دیسکاوری — دقیقاً هم‌الگوی نمایش نتیجه‌ی GenerateModal قدیمی
-// (DiscoverPage.tsx)، فقط این‌جا بالای اینپوت خود چت رندر می‌شود
-function CreativeResultCard({ prompt, result }: { prompt: CreativePromptCatalogItem; result: CreativeGenerationResult }) {
-  const resultImageUrl = useAuthedImageUrl(
-    result.outputImageKey ? `/v2/discovery/images/${result.outputImageKey}` : '',
-  )
-
+// نشانگر «در حال ساخت عکس» برای پیام‌های مصنوعی سبک دیسکاوری — هم‌سبک بسته‌ی «AI»ی که
+// MessageList برای تولید عکس چت معمولی نشان می‌دهد (رنگ فوشیا مخصوص تولید عکس)
+function GeneratingCreativeBubble() {
   return (
-    <div className="mr-auto max-w-[85%] rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3">
-      <p className="mb-2 text-[11px] font-medium text-emerald-400/80">{prompt.title}</p>
-      {result.status === 'FAILED' ? (
-        <p className="text-xs text-red-400">{fa.discover.generateFailed}</p>
-      ) : result.outputType === 'TEXT' && result.outputText ? (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">{result.outputText}</p>
-      ) : result.outputType === 'IMAGE' ? (
-        resultImageUrl ? (
-          <img src={resultImageUrl} alt={prompt.title} className="max-w-full rounded-xl" />
-        ) : (
-          <div className="flex justify-center py-6">
-            <div className="size-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-          </div>
-        )
-      ) : null}
+    <div className="flex gap-3">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-purple-600 text-xs font-bold text-white">
+        AI
+      </div>
+      <div className="flex items-center gap-2 rounded-2xl rounded-tr-sm bg-slate-800 px-4 py-3 text-sm text-fuchsia-300">
+        <div className="size-3.5 rounded-full border-2 border-fuchsia-400 border-t-transparent animate-spin" />
+        در حال ساخت عکس...
+      </div>
     </div>
   )
 }
 
-// پرامپت‌های آماده‌ی صفحه‌ی خالی چت — جایگزین آیکون/متن راهنمای قبلی؛ کلیک روی هرکدام
-// دقیقاً مثل تایپ همان متن و زدن ارسال است (همان مسیر onSend صفحه‌ی خالی)
-const SUGGESTED_PROMPTS: { Icon: (props: { className?: string }) => ReactElement; label: string; prompt: string }[] = [
-  {
-    label: 'کپشن اینستاگرام',
-    prompt: 'یه کپشن جذاب و خلاقانه برای پست اینستاگرام کسب‌وکارم بنویس، همراه با چندتا هشتگ مناسب.',
-    Icon: ({ className }) => (
-      <svg viewBox="0 0 24 24" fill="none" className={className}>
-        <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="17.2" cy="6.8" r="1" fill="currentColor" />
-      </svg>
-    ),
-  },
-  {
-    label: 'ایمیل رسمی',
-    prompt: 'یه ایمیل رسمی و کوتاه بنویس برای پیگیری یک همکاری با یک شرکت دیگه.',
-    Icon: ({ className }) => (
-      <svg viewBox="0 0 24 24" fill="none" className={className}>
-        <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M4 6.5l8 6 8-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    label: 'خلاصه‌ی متن',
-    prompt: 'این متن رو براش خلاصه‌ی روان و کوتاه بنویس:\n\n',
-    Icon: ({ className }) => (
-      <svg viewBox="0 0 24 24" fill="none" className={className}>
-        <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    label: 'کمک برای کد',
-    prompt: 'یه تابع جاوااسکریپت بنویس که یه آرایه از اعداد رو می‌گیره و میانگینشون رو برمی‌گردونه.',
-    Icon: ({ className }) => (
-      <svg viewBox="0 0 24 24" fill="none" className={className}>
-        <path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    label: 'ایده و برنامه‌ریزی',
-    prompt: 'یه برنامه‌ی محتوایی یک‌هفته‌ای برای پیج اینستاگرام کسب‌وکارم پیشنهاد بده.',
-    Icon: ({ className }) => (
-      <svg viewBox="0 0 24 24" fill="none" className={className}>
-        <path
-          d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: 'تمرین زبان',
-    prompt: 'بیا انگلیسی تمرین کنیم — یه مکالمه‌ی روزمره شروع کن و اشتباهات گرامری من رو تصحیح کن.',
-    Icon: ({ className }) => (
-      <svg viewBox="0 0 24 24" fill="none" className={className}>
-        <path
-          d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-]
-
-function EmptyState({ onSend, isCreating }: {
+function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
   onSend: (content: string, images?: string[], model?: string, generateImage?: boolean) => void
+  onSelectCreativePrompt: (item: CreativePromptCatalogItem) => void
   isCreating: boolean
 }) {
   return (
@@ -272,22 +249,7 @@ function EmptyState({ onSend, isCreating }: {
           <p className="mt-1 text-sm text-slate-600">{fa.chat.emptySubtitle}</p>
         </div>
 
-        <div className="grid w-full max-w-2xl grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
-          {SUGGESTED_PROMPTS.map(({ Icon, label, prompt }) => (
-            <button
-              key={label}
-              type="button"
-              disabled={isCreating}
-              onClick={() => onSend(prompt)}
-              className="group flex flex-col items-start gap-2.5 rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3.5 text-right transition-all hover:border-emerald-500/40 hover:bg-slate-800/70 disabled:cursor-not-allowed disabled:opacity-50 sm:p-4"
-            >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400/80 transition-colors group-hover:bg-emerald-500/15 group-hover:text-emerald-400">
-                <Icon className="size-4" />
-              </div>
-              <span className="text-xs font-medium leading-snug text-slate-300 sm:text-sm">{label}</span>
-            </button>
-          ))}
-        </div>
+        <TrendingPromptGrid onSelect={onSelectCreativePrompt} disabled={isCreating} />
       </div>
       <OutageBanner />
       <GiftBanner />

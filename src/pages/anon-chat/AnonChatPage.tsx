@@ -5,6 +5,7 @@ import { useAnonChat } from '@/hooks/useAnonChat'
 import { getAnonConversationId, setAnonConversationId } from '@/lib/anonSession'
 import { AnonSignupBanner } from '@/components/chat/AnonSignupBanner'
 import { AnonDiscoveryTrial } from '@/pages/anon-chat/AnonDiscoveryTrial'
+import { TrendingPromptGrid } from '@/components/chat/TrendingPromptGrid'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { useChatStore } from '@/store/chat.store'
 import { fa } from '@/locales/fa'
@@ -95,23 +96,18 @@ export function AnonChatPage() {
           )}
         </div>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-          <div className="size-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" className="size-10 text-emerald-500/60">
-              <path
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 sm:p-8">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-center">
+              <p className="text-lg font-medium text-slate-300">{status?.hintTitle ?? fa.chat.emptyTitle}</p>
+              <p className="mt-1 text-sm text-slate-600">{status?.hintSubtitle ?? fa.chat.emptySubtitle}</p>
+            </div>
+            <AnonSamplePrompts prompts={status?.samplePrompts} onPick={handleSend} />
           </div>
-          <div className="text-center">
-            <p className="text-lg font-medium text-slate-300">{status?.hintTitle ?? fa.chat.emptyTitle}</p>
-            <p className="mt-1 text-sm text-slate-600">{status?.hintSubtitle ?? fa.chat.emptySubtitle}</p>
-          </div>
-          <AnonSamplePrompts prompts={status?.samplePrompts} onPick={handleSend} />
+          {/* انتخاب یک کارت مستقیم selectedCreativePrompt را در استور مشترک می‌گذارد — با
+              بازرندر همین کامپوننت (بالای فایل)، به‌جای UI چت معمولی پنل AnonDiscoveryTrial
+              نمایش داده می‌شود؛ برخلاف کاربر لاگین‌کرده، اینجا نیازی به ساخت Conversation نیست */}
+          <TrendingPromptGrid onSelect={setSelectedCreativePrompt} />
         </div>
       )}
 

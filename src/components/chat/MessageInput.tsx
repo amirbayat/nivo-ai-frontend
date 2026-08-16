@@ -41,8 +41,10 @@ interface MessageInputProps {
   // در حین تولید پاسخ هوش مصنوعی تایپ کند و پیام بعدی‌اش را آماده کند
   sending?: boolean
   // وقتی selectedCreativePrompt (store) ست باشد، submit به‌جای onSend این را صدا می‌زند —
-  // مسیر تولید دیسکاوری کاملاً جدا از استریم چت است (ChatPage.tsx: handleGenerateCreative)
-  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[]) => void
+  // مسیر تولید دیسکاوری کاملاً جدا از استریم چت است (ChatPage.tsx: handleGenerateCreative).
+  // imagePreviews (data URL) صرفاً برای نمایش فوری عکس کاربر به‌عنوان پیام واقعی توی خود
+  // مکالمه است — چیزی که سرور برمی‌گرداند فقط inputImageKeys (کلید MinIO) است
+  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[]) => void
   generatingCreative?: boolean
 }
 
@@ -131,6 +133,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         selectedCreativePrompt.id,
         trimmed,
         creativeImageKey ? [creativeImageKey] : undefined,
+        creativeImagePreview ? [creativeImagePreview] : undefined,
       )
       setValue('')
       setCreativeImagePreview(null)

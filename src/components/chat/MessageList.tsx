@@ -317,13 +317,17 @@ function ChatErrorBox({ message, code }: { message: string; code: string | null 
   )
 }
 
-function MessageBubble({
+// disableFeedback: برای پیام‌های مصنوعی/محلی (مثل پیام‌های سبک‌های دیسکاوری داخل چت —
+// ChatPage.tsx) که id واقعی Message ندارند؛ حتی اگر id ساختگی پاس داده شود، نباید ردیف
+// پسندیدن/نپسندیدن نشان داده شود چون messageId واقعی برای ثبت فیدبک وجود ندارد
+export function MessageBubble({
   id,
   role,
   content,
   images,
   feedback,
   streaming,
+  disableFeedback,
   onImageClick,
 }: {
   id?: string
@@ -332,6 +336,7 @@ function MessageBubble({
   images?: string[] | null
   feedback?: Message['feedback']
   streaming?: boolean
+  disableFeedback?: boolean
   onImageClick?: (src: string) => void
 }) {
   const isUser = role === 'USER'
@@ -413,7 +418,7 @@ function MessageBubble({
         )}
       </div>
 
-      {!isUser && !streaming && id && <MessageFeedbackRow messageId={id} initial={feedback} />}
+      {!isUser && !streaming && !disableFeedback && id && <MessageFeedbackRow messageId={id} initial={feedback} />}
     </div>
   )
 }

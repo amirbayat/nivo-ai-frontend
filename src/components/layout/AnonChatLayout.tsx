@@ -1,7 +1,9 @@
 import { useRef, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { UsageGuideModal } from '@/components/chat/UsageGuideModal'
 import { SiteFooter } from '@/components/layout/SiteFooter'
+import { AnonSidebar } from '@/components/layout/AnonSidebar'
 import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
 import { fa } from '@/locales/fa'
 import logoUrl from '@/assets/brand/horizontal-dark.svg'
@@ -10,14 +12,18 @@ interface AnonChatLayoutProps {
   children: ReactNode
 }
 
-// لایوت سبک برای کاربر مهمان (بدون ثبت‌نام) — بدون سایدبار، چون کاربر مهمان همیشه دقیقاً
-// یک مکالمه‌ی در حال انجام دارد و نیازی به لیست/جابه‌جایی بین مکالمات نیست.
+// لایوت سبک برای کاربر مهمان (بدون ثبت‌نام) — بدون سایدبار لیست مکالمات (چون کاربر مهمان
+// همیشه دقیقاً یک مکالمه‌ی در حال انجام دارد)، اما با یک منوی کشویی سمت راست مشابه Sidebar.tsx
+// کاربر لاگین‌کرده تا بشود بدون ثبت‌نام هم استودیوی محتوا/قیمت‌گذاری را اکسپلور کرد
+// (AnonSidebar.tsx — بدون هیچ داده‌ی نیازمند لاگین)
 //
 // فوتر (شامل لینک /blog) همیشه در DOM زیر صفحه‌ی چت قرار دارد — برای ربات‌های گوگل
 // قابل ایندکس است — اما چون کانتینر بیرونی overflow-y-hidden است، کاربر با اسکرول
 // عادی (ویل/تاچ) به آن نمی‌رسد؛ فقط با کلیک روی دکمه‌ی شورون پایین scrollTo برنامه‌ای اجرا می‌شود.
 export function AnonChatLayout({ children }: AnonChatLayoutProps) {
+  const navigate = useNavigate()
   const [guideOpen, setGuideOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { height, offsetTop } = useVisualViewportHeight()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [footerRevealed, setFooterRevealed] = useState(false)
@@ -46,11 +52,43 @@ export function AnonChatLayout({ children }: AnonChatLayoutProps) {
       className="fixed inset-x-0 overflow-y-hidden bg-slate-900"
       style={{ top: offsetTop, height }}
     >
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/50"
+          aria-hidden="true"
+        />
+      )}
+
+      <div
+        className={clsx(
+          'fixed inset-y-0 right-0 z-40 transition-transform duration-300',
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full',
+        )}
+      >
+        <AnonSidebar onNavigate={() => setSidebarOpen(false)} />
+      </div>
+
       <div className="flex flex-col overflow-hidden" style={{ height }}>
         <header className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:px-6">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700/60 hover:text-emerald-400"
+            aria-label="باز کردن منو"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="size-5">
+              <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
           <img src={logoUrl} alt="نیوو" className="w-28 h-auto" />
 
           <div className="ms-auto flex items-center gap-2">
+            <button
+              onClick={() => navigate('/discover')}
+              className="hidden rounded-lg px-3 py-1.5 text-xs font-medium text-fuchsia-300 hover:bg-fuchsia-500/10 transition-colors sm:block"
+            >
+              {fa.chat.discover}
+            </button>
             <button
               onClick={() => setGuideOpen(true)}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700/60 hover:text-emerald-400 transition-colors"
