@@ -22,11 +22,20 @@ html, body, #root {
   margin: 0;
 }
 
+/* غیرفعال کردن زوم لمسی (پینچ/دابل‌تپ) روی موبایل — علاوه بر user-scalable=no در
+   viewport meta (index.html)، چون بعضی نسخه‌های اندروید کروم فقط به touch-action گوش
+   می‌دن، نه به خودِ متای ویوپورت؛ زوم با کیبورد (Ctrl +/-) دسکتاپ ربطی به این ندارد و
+   اصلاً از سمت صفحه قابل مسدود کردن نیست (تصمیم مرورگر/کاربر است) */
+html {
+  touch-action: manipulation;
+}
+
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   background-color: #0f172a;
   color: #f1f5f9;
+  touch-action: manipulation;
 }
 
 ::-webkit-scrollbar { width: 5px; }
