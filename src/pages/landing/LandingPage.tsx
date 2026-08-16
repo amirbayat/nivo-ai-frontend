@@ -3,12 +3,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useMe } from '@/queries/auth.queries'
 import { usePlans, useModelCatalog } from '@/queries/plans.queries'
+import { useCreateConversation } from '@/queries/conversation.queries'
+import { useChatStore } from '@/store/chat.store'
+import { useTrendingImagePrompts } from '@/hooks/useTrendingImagePrompts'
 import { SalesChatbot } from '@/components/sales/SalesChatbot'
 import { ExitIntentModal } from '@/components/sales/ExitIntentModal'
 import { ModelShowcase } from '@/components/models/ModelShowcase'
 import { PlanLimitsTable } from '@/components/plans/PlanLimitsTable'
 import { PromoBanner } from '@/components/articles/PromoBanner'
 import { SiteFooter } from '@/components/layout/SiteFooter'
+import { PromptMasonryGrid } from '@/components/discover/PromptMasonryGrid'
 import { env } from '@/env'
 import {
   PLAN_TIER_MODEL_DESCRIPTIONS,
@@ -17,7 +21,7 @@ import {
   imageGenSupport,
   imageGenCardText,
 } from '@/lib/plan-copy'
-import type { Plan } from '@/types/api'
+import type { Plan, CreativePromptCatalogItem } from '@/types/api'
 import { isInAndroidApp } from '@/lib/android-bridge'
 import { MobileAppLandingPage } from './MobileAppLandingPage'
 
@@ -767,6 +771,63 @@ function IdeasSection() {
   )
 }
 
+// گالری واترفال استودیوی محتوا روی خودِ لندینگ — همون کامپوننت مشترک PromptMasonryGrid که
+// در DiscoverPage.tsx و صفحه‌ی خالی چت استفاده می‌شود، اینجا هم با سبک‌های واقعی کاتالوگ
+// (نه mockup) نمایش داده می‌شود؛ کلیک روی هرکدام دقیقاً هم‌الگوی DiscoverPage.handleSelectPrompt:
+// کاربر لاگین‌کرده مستقیم مکالمه‌ی تازه می‌سازد، مهمان به تجربه‌ی چت مهمان («/») برمی‌گردد
+function StudioShowcaseSection() {
+  const navigate = useNavigate()
+  const { items, isLoading } = useTrendingImagePrompts(8)
+  const setSelectedCreativePrompt = useChatStore(s => s.setSelectedCreativePrompt)
+  const createConversation = useCreateConversation()
+
+  function handleSelect(item: CreativePromptCatalogItem) {
+    setSelectedCreativePrompt(item)
+    const hasToken = !!localStorage.getItem('access_token')
+    if (!hasToken) {
+      navigate('/')
+      return
+    }
+    createConversation.mutate('optimal', { onSuccess: conv => navigate(`/chat/${conv.id}`) })
+  }
+
+  if (!isLoading && items.length === 0) return null
+
+  return (
+    <section className="px-6 py-24 relative overflow-hidden">
+      <SectionGlow c1="#10B981" c2="#D946EF" seed={3} />
+      <div className="mx-auto max-w-6xl relative z-10">
+        <div className="mb-14 text-center" data-anim="true">
+          <p className="mb-2 text-sm font-medium text-emerald-400 uppercase tracking-widest">استودیوی محتوا</p>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">سبک‌های آماده، نتیجه‌ی واقعی</h2>
+          <p className="mt-3 text-slate-400">عکستو بده، سبک رو انتخاب کن — همین‌ها نمونه‌ی واقعی خروجی نیوو هستن</p>
+        </div>
+
+        <div data-anim="true">
+          {isLoading ? (
+            <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="mb-3 aspect-square animate-pulse rounded-2xl bg-slate-800/60" />
+              ))}
+            </div>
+          ) : (
+            <PromptMasonryGrid items={items} onSelect={handleSelect} disabled={createConversation.isPending} />
+          )}
+        </div>
+
+        <div className="mt-10 text-center">
+          <button
+            onClick={() => navigate('/discover')}
+            className="rounded-full border border-emerald-500/30 bg-emerald-500/[0.06] px-6 py-2.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/10"
+          >
+            دیدن همه‌ی استودیوی محتوا
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function HowItWorks() {
   const ref = useRef<HTMLDivElement>(null)
   const [inView, setInView] = useState(false)
@@ -1169,6 +1230,8 @@ export function LandingPage() {
       <WaveDivider flip />
       <IdeasSection />
       <WaveDivider />
+      <StudioShowcaseSection />
+      <WaveDivider flip />
       <HowItWorks />
       <WaveDivider />
       {env.VITE_SALES_BOT_ENABLED && <ChatbotSection />}

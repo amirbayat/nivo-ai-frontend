@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { useDiscoveryCatalog, useDiscoveryCategories, type DiscoverySort } from "@/queries/discovery.queries";
 import { useCreateConversation } from "@/queries/conversation.queries";
 import { useChatStore } from "@/store/chat.store";
+import { PromptMasonryGrid } from "@/components/discover/PromptMasonryGrid";
 import { fa } from "@/locales/fa";
 import type { CreativePromptCatalogItem, CreativeCategory } from "@/types/api";
 
@@ -103,7 +104,7 @@ export function DiscoverPage() {
           {/* محتوای اصلی */}
           <div className="min-w-0 flex-1">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 rounded-full border border-slate-800 bg-slate-900/60 p-1">
                 {(["ALL", "IMAGE", "TEXT"] as FilterValue[]).map((f) => (
                   <button
                     key={f}
@@ -112,7 +113,7 @@ export function DiscoverPage() {
                       "rounded-full px-4 py-1.5 text-sm transition-colors",
                       filter === f
                         ? "bg-emerald-500 text-white"
-                        : "border border-slate-700 text-slate-400 hover:border-slate-500",
+                        : "text-slate-400 hover:text-slate-200",
                     )}
                   >
                     {f === "ALL" ? fa.discover.filterAll : f === "IMAGE" ? fa.discover.filterImage : fa.discover.filterText}
@@ -120,18 +121,26 @@ export function DiscoverPage() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">{fa.discover.sortLabel}</span>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as DiscoverySort)}
-                  className="rounded-lg border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500/50"
-                >
-                  <option value="sortOrder">{fa.discover.sortDefault}</option>
-                  <option value="newest">{fa.discover.sortNewest}</option>
-                  <option value="cheapest">{fa.discover.sortCheapest}</option>
-                  <option value="priciest">{fa.discover.sortPriciest}</option>
-                </select>
+              <div className="flex gap-1 rounded-full border border-slate-800 bg-slate-900/60 p-1 text-xs">
+                {([
+                  ["sortOrder", fa.discover.sortDefault],
+                  ["newest", fa.discover.sortNewest],
+                  ["cheapest", fa.discover.sortCheapest],
+                  ["priciest", fa.discover.sortPriciest],
+                ] as [DiscoverySort, string][]).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => setSort(value)}
+                    className={clsx(
+                      "rounded-full px-3 py-1.5 transition-colors",
+                      sort === value
+                        ? "bg-slate-700 text-slate-100 shadow-sm"
+                        : "text-slate-500 hover:text-slate-300",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -142,34 +151,7 @@ export function DiscoverPage() {
             ) : !catalog?.length ? (
               <p className="py-16 text-center text-sm text-slate-600">{fa.discover.empty}</p>
             ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {catalog.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelectPrompt(item)}
-                    disabled={createConversation.isPending}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-800/40 text-right transition-colors hover:border-slate-600 disabled:opacity-60"
-                  >
-                    {item.outputType === "IMAGE" && item.exampleImageUrl && (
-                      <img src={item.exampleImageUrl} alt={item.title} className="h-40 w-full object-cover" />
-                    )}
-                    <div className="flex flex-1 flex-col gap-1.5 p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-bold text-slate-100">{item.title}</h3>
-                        {item.isTrending && (
-                          <span className="shrink-0 rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-medium text-orange-400">
-                            {fa.discover.trending}
-                          </span>
-                        )}
-                      </div>
-                      {item.description && (
-                        <p className="line-clamp-2 text-xs text-slate-500">{item.description}</p>
-                      )}
-                      <span className="mt-auto pt-2 text-xs text-emerald-400">{fa.discover.creditCost(item.creditCost)}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <PromptMasonryGrid items={catalog} onSelect={handleSelectPrompt} disabled={createConversation.isPending} />
             )}
           </div>
         </div>
