@@ -18,7 +18,7 @@ interface AnonChatLayoutProps {
 // عادی (ویل/تاچ) به آن نمی‌رسد؛ فقط با کلیک روی دکمه‌ی شورون پایین scrollTo برنامه‌ای اجرا می‌شود.
 export function AnonChatLayout({ children }: AnonChatLayoutProps) {
   const [guideOpen, setGuideOpen] = useState(false)
-  const viewportHeight = useVisualViewportHeight()
+  const { height, offsetTop } = useVisualViewportHeight()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [footerRevealed, setFooterRevealed] = useState(false)
 
@@ -37,8 +37,16 @@ export function AnonChatLayout({ children }: AnonChatLayoutProps) {
   }
 
   return (
-    <div ref={scrollRef} className="overflow-y-hidden bg-slate-900" style={{ height: viewportHeight }}>
-      <div className="flex flex-col overflow-hidden" style={{ height: viewportHeight }}>
+    // fixed (نه در جریان عادی سند) تا سافاری آیفون با فوکوس روی input چیزی برای اسکرول‌کردن
+    // خود سند نداشته باشد — وگرنه آن اسکرول native با تغییر height بر اساس visualViewport
+    // تداخل می‌کند و کل لایوت به‌هم می‌ریزد؛ اسکرول واقعی (نمایش فوتر) همچنان با scrollTo
+    // برنامه‌ای روی همین عنصر انجام می‌شود
+    <div
+      ref={scrollRef}
+      className="fixed inset-x-0 overflow-y-hidden bg-slate-900"
+      style={{ top: offsetTop, height }}
+    >
+      <div className="flex flex-col overflow-hidden" style={{ height }}>
         <header className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:px-6">
           <img src={logoUrl} alt="نیوو" className="w-28 h-auto" />
 

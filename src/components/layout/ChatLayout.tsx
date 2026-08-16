@@ -12,12 +12,16 @@ interface ChatLayoutProps {
 
 export function ChatLayout({ children }: ChatLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const viewportHeight = useVisualViewportHeight();
+  const { height, offsetTop } = useVisualViewportHeight();
 
   return (
     <div
-      className="flex overflow-hidden bg-slate-900"
-      style={{ height: viewportHeight }}
+      // fixed (نه در جریان عادی سند) تا وقتی سافاری آیفون با باز شدن کیبورد سعی می‌کند
+      // خود صفحه را اسکرول کند تا فیلد فوکوس‌شده بالای کیبورد دیده شود، سند چیزی برای
+      // اسکرول‌کردن نداشته باشد — در غیر این صورت این اسکرول native با تغییر height
+      // بر اساس visualViewport تداخل می‌کند و کل لایوت به‌هم می‌ریزد
+      className="fixed inset-x-0 flex overflow-hidden bg-slate-900"
+      style={{ top: offsetTop, height }}
     >
       {sidebarOpen && (
         <div

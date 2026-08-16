@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useGenerateCreative } from '@/queries/discovery.queries'
@@ -179,6 +179,79 @@ function CreativeResultCard({ prompt, result }: { prompt: CreativePromptCatalogI
   )
 }
 
+// پرامپت‌های آماده‌ی صفحه‌ی خالی چت — جایگزین آیکون/متن راهنمای قبلی؛ کلیک روی هرکدام
+// دقیقاً مثل تایپ همان متن و زدن ارسال است (همان مسیر onSend صفحه‌ی خالی)
+const SUGGESTED_PROMPTS: { Icon: (props: { className?: string }) => ReactElement; label: string; prompt: string }[] = [
+  {
+    label: 'کپشن اینستاگرام',
+    prompt: 'یه کپشن جذاب و خلاقانه برای پست اینستاگرام کسب‌وکارم بنویس، همراه با چندتا هشتگ مناسب.',
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" fill="none" className={className}>
+        <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="17.2" cy="6.8" r="1" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    label: 'ایمیل رسمی',
+    prompt: 'یه ایمیل رسمی و کوتاه بنویس برای پیگیری یک همکاری با یک شرکت دیگه.',
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" fill="none" className={className}>
+        <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M4 6.5l8 6 8-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    label: 'خلاصه‌ی متن',
+    prompt: 'این متن رو براش خلاصه‌ی روان و کوتاه بنویس:\n\n',
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    label: 'کمک برای کد',
+    prompt: 'یه تابع جاوااسکریپت بنویس که یه آرایه از اعداد رو می‌گیره و میانگینشون رو برمی‌گردونه.',
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" fill="none" className={className}>
+        <path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    label: 'ایده و برنامه‌ریزی',
+    prompt: 'یه برنامه‌ی محتوایی یک‌هفته‌ای برای پیج اینستاگرام کسب‌وکارم پیشنهاد بده.',
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" fill="none" className={className}>
+        <path
+          d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: 'تمرین زبان',
+    prompt: 'بیا انگلیسی تمرین کنیم — یه مکالمه‌ی روزمره شروع کن و اشتباهات گرامری من رو تصحیح کن.',
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" fill="none" className={className}>
+        <path
+          d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+]
+
 function EmptyState({ onSend, isCreating }: {
   onSend: (content: string, images?: string[], model?: string, generateImage?: boolean) => void
   isCreating: boolean
@@ -193,21 +266,27 @@ function EmptyState({ onSend, isCreating }: {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-        <div className="size-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center">
-          <svg viewBox="0 0 24 24" fill="none" className="size-10 text-emerald-500/60">
-            <path
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 sm:p-8">
         <div className="text-center">
           <p className="text-lg font-medium text-slate-300">{fa.chat.emptyTitle}</p>
           <p className="mt-1 text-sm text-slate-600">{fa.chat.emptySubtitle}</p>
+        </div>
+
+        <div className="grid w-full max-w-2xl grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+          {SUGGESTED_PROMPTS.map(({ Icon, label, prompt }) => (
+            <button
+              key={label}
+              type="button"
+              disabled={isCreating}
+              onClick={() => onSend(prompt)}
+              className="group flex flex-col items-start gap-2.5 rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3.5 text-right transition-all hover:border-emerald-500/40 hover:bg-slate-800/70 disabled:cursor-not-allowed disabled:opacity-50 sm:p-4"
+            >
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400/80 transition-colors group-hover:bg-emerald-500/15 group-hover:text-emerald-400">
+                <Icon className="size-4" />
+              </div>
+              <span className="text-xs font-medium leading-snug text-slate-300 sm:text-sm">{label}</span>
+            </button>
+          ))}
         </div>
       </div>
       <OutageBanner />
