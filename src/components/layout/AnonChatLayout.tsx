@@ -5,6 +5,7 @@ import { UsageGuideModal } from '@/components/chat/UsageGuideModal'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { AnonSidebar } from '@/components/layout/AnonSidebar'
 import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
+import { useIsInputFocused } from '@/hooks/useIsInputFocused'
 import { fa } from '@/locales/fa'
 import logoUrl from '@/assets/brand/horizontal-dark.svg'
 
@@ -27,6 +28,7 @@ export function AnonChatLayout({ children }: AnonChatLayoutProps) {
   const { height, offsetTop } = useVisualViewportHeight()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [footerRevealed, setFooterRevealed] = useState(false)
+  const inputFocused = useIsInputFocused()
 
   const revealFooter = () => {
     const el = scrollRef.current
@@ -107,8 +109,10 @@ export function AnonChatLayout({ children }: AnonChatLayoutProps) {
         <main className="flex flex-1 flex-col overflow-hidden">{children}</main>
 
         {/* آیتم عادی فلکس (نه absolute) — با گرفتن جای خودش، main (و input داخلش)
-            را کمی بالاتر جمع می‌کند تا هیچ‌وقت روی input overlap نشود */}
-        {!footerRevealed && (
+            را کمی بالاتر جمع می‌کند تا هیچ‌وقت روی input overlap نشود.
+            وقتی input فوکوس دارد (کیبورد موبایل باز است) مخفی می‌شود — فضای کم‌ارزشی که
+            درست بالای کیبورد اشغال می‌کرد؛ به‌محض blur شدن input دوباره برمی‌گردد */}
+        {!footerRevealed && !inputFocused && (
           <button
             onClick={revealFooter}
             aria-label="نمایش وبلاگ و اطلاعات بیشتر"
