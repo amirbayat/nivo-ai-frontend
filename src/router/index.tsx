@@ -38,10 +38,17 @@ function GuestRoute({ children }: { children: ReactNode }) {
 }
 
 // کاربر لاگین‌کرده که سر می‌زند به "/" باید همچنان به تجربه‌ی /chat فعلی (دست‌نخورده) برود؛
-// کاربر مهمان همان‌جا در "/" با تجربه‌ی چت بدون ثبت‌نام (تبلیغات/لندینگ جدید) روبه‌رو می‌شود
+// کاربر مهمان همان‌جا در "/" با تجربه‌ی چت بدون ثبت‌نام (تبلیغات/لندینگ جدید) روبه‌رو می‌شود.
+// صرفاً وجود access_token در localStorage کافی نیست — ممکن است منقضی/نامعتبر باشد (مثلاً
+// از یک session قدیمی)، که قبلاً باعث می‌شد کاربر مهمان یک لحظه به /chat برود، آنجا درخواست
+// ۴۰۱ بخورد، و توسط اینترسپتور (api.ts) به‌جای دیدن تجربه‌ی مهمان به /login پرتاب شود. اینجا
+// با useMe() واقعاً اعتبار توکن چک می‌شود؛ تا وقتی مشخص نشده، یک صفحه‌ی خالی موقت (مثل الگوی
+// مشابه در LandingPage.tsx) نشان داده می‌شود تا از فلش نامناسب جلوگیری شود
 function HomeRoute() {
   const hasToken = !!localStorage.getItem('access_token')
-  if (hasToken) return <Navigate to="/chat" replace />
+  const { data: me, isLoading } = useMe()
+  if (hasToken && isLoading) return <div className="min-h-screen bg-slate-900" />
+  if (me) return <Navigate to="/chat" replace />
   return (
     <AnonChatLayout>
       <AnonChatPage />

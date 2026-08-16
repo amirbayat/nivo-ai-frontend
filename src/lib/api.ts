@@ -5,6 +5,11 @@ import { fa } from '@/locales/fa'
 
 export const DEFAULT_RATE_LIMIT_RETRY_SECONDS = 60
 
+// صفحاتی که کاربر مهمان (بدون لاگین) هم واقعاً باید ببیندشان — اگر یک توکن قدیمی/نامعتبر
+// همین‌جا باعث شکست refresh شود، نباید کاربر را از این صفحات به‌زور به /login پرت کرد؛
+// خودِ router (HomeRoute/DiscoverPage) با نبود me data به‌درستی تجربه‌ی مهمان را نشان می‌دهد
+const GUEST_ACCESSIBLE_PATHS = ['/', '/discover', '/landing', '/contact', '/login', '/otp']
+
 export const api = axios.create({
   baseURL: env.VITE_API_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -41,7 +46,9 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
-        window.location.href = '/login'
+        if (!GUEST_ACCESSIBLE_PATHS.includes(window.location.pathname)) {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(err)
