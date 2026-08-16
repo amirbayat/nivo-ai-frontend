@@ -979,32 +979,36 @@ function PricingSection() {
                         : 'border-white/8 bg-white/[0.02] hover:border-white/15',
                   )}>
                   {pkg.isPopular && (
-                    <div className="absolute -top-3 right-1/2 translate-x-1/2 rounded-full bg-emerald-500 px-4 py-1 text-xs font-bold text-white">
+                    <div className="absolute -top-3 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500 px-4 py-1 text-xs font-bold text-white">
                       {fa.credits.popular}
                     </div>
                   )}
                   {pkg.isBestValue && !pkg.isPopular && (
-                    <div className="absolute -top-3 right-1/2 translate-x-1/2 rounded-full bg-amber-500 px-4 py-1 text-xs font-bold text-white">
+                    <div className="absolute -top-3 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-amber-500 px-4 py-1 text-xs font-bold text-white">
                       {fa.credits.bestValue}
                     </div>
                   )}
                   <div className="mb-6">
-                    <h3 className="text-lg font-bold text-white">
-                      {pkg.credits.toLocaleString('fa-IR')} {fa.credits.creditsUnit}
-                    </h3>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-4xl font-extrabold text-white">
-                        {pkg.priceToman.toLocaleString('fa-IR')}
-                      </span>
-                      <span className="text-slate-500 text-sm">تومان</span>
-                      {originalPrice !== null && (
-                        <span className="text-sm text-slate-600 line-through">
-                          {originalPrice.toLocaleString('fa-IR')}
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-lg font-bold text-white">
+                        {pkg.credits.toLocaleString('fa-IR')} {fa.credits.creditsUnit}
+                      </h3>
+                      {hasDiscount && (
+                        <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-400">
+                          {pkg.discountPercent}٪ تخفیف
                         </span>
                       )}
                     </div>
-                    {hasDiscount && (
-                      <p className="mt-1 text-xs font-medium text-amber-400">{pkg.discountPercent}٪ تخفیف</p>
+                    <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-3xl font-extrabold text-white sm:text-4xl">
+                        {pkg.priceToman.toLocaleString('fa-IR')}
+                      </span>
+                      <span className="text-slate-500 text-sm">تومان</span>
+                    </div>
+                    {originalPrice !== null && (
+                      <p className="mt-1 text-xs text-slate-600 line-through">
+                        {originalPrice.toLocaleString('fa-IR')} تومان
+                      </p>
                     )}
                   </div>
                   <ul className="mb-8 flex-1 space-y-3">

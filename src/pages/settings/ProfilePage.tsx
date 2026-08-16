@@ -6,6 +6,7 @@ import { useUpdateProfile } from '@/queries/settings.queries'
 import { useBudgetStatus } from '@/queries/usage.queries'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useMyDiscountCodes } from '@/queries/growth.queries'
+import { useCreditsBalance } from '@/queries/credits.queries'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { track } from '@/lib/events'
@@ -45,6 +46,7 @@ export function ProfilePage() {
   const { data: flags } = useFeatureFlags()
   const logoutMut = useLogout()
   const { data: myCodes } = useMyDiscountCodes()
+  const { data: creditsBalance } = useCreditsBalance()
   const [name, setName] = useState(me?.name ?? '')
   const [saved, setSaved] = useState(false)
   const [referralCopied, setReferralCopied] = useState(false)
@@ -81,11 +83,6 @@ export function ProfilePage() {
     })
   }
 
-  const planName = me?.subscription?.plan.name ?? 'رایگان'
-  const planPrice = me?.subscription?.plan.priceMonthly
-    ? me.subscription.plan.priceMonthly.toLocaleString('fa-IR') + ' تومان/ماه'
-    : 'رایگان'
-
   return (
     <div className="space-y-5">
       {/* profile form */}
@@ -111,25 +108,20 @@ export function ProfilePage() {
         </form>
       </div>
 
-      {/* plan + upgrade */}
+      {/* اعتبار — دیگه اشتراک/پلن ماهانه نیست، فقط موجودی نیوو + خرید اعتبار */}
       <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-slate-200">{fa.settings.currentPlan}</h3>
+          <h3 className="text-sm font-semibold text-slate-200">{fa.settings.creditsBalance}</h3>
           <Link
             to="/pricing"
             className="rounded-xl bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/25 transition-colors"
           >
-            {fa.settings.upgradePlan}
+            {fa.settings.buyCredits}
           </Link>
         </div>
-        <InfoRow label="نوع پلن" value={planName} highlight />
-        <InfoRow label="قیمت" value={planPrice} />
-        {me?.subscription?.periodEnd && (
-          <InfoRow
-            label={fa.settings.periodEnd}
-            value={new Date(me.subscription.periodEnd).toLocaleDateString('fa-IR')}
-          />
-        )}
+        <p className="text-2xl font-bold text-emerald-400">
+          {(creditsBalance?.credits ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500">نیوو</span>
+        </p>
         <Link
           to="/settings/invoices"
           className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 py-2.5 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 transition-colors"
@@ -148,8 +140,8 @@ export function ProfilePage() {
           <h3 className="text-sm font-semibold text-slate-200 mb-2">🤝 معرفی دوستان</h3>
           <p className="mb-4 text-sm text-slate-400">
             لینکت رو برای دوستات بفرست — وقتی اولین خریدشون رو انجام بدن، هم تو هم دوستت یک کد تخفیف تازه
-            می‌گیرید. فرقی نمی‌کنه الان رایگان، اکو یا پلاس باشی: هر دوست جدیدی که معرفی کنی، یک کد تخفیف
-            تازه برای ارتقا یا تمدید حساب می‌گیری — بدون محدودیت در تعداد دفعات.
+            می‌گیرید. هر دوست جدیدی که معرفی کنی، یک کد تخفیف تازه برای خرید اعتبار می‌گیری —
+            بدون محدودیت در تعداد دفعات.
           </p>
           <button
             onClick={copyReferralUrl}

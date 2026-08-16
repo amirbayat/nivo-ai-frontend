@@ -84,9 +84,6 @@ export function PricingPage() {
               {fa.credits.currentBalance}: {balance.credits.toLocaleString("fa-IR")} {fa.credits.creditsUnit}
             </p>
           )}
-          {balance && (
-            <p className="mt-1 text-xs text-slate-600">{fa.credits.perCreditNote(balance.tomanPerCredit)}</p>
-          )}
         </div>
 
         {error && (
@@ -155,33 +152,37 @@ function PackageCard({
       )}
     >
       {pkg.isPopular && (
-        <span className="absolute -top-3 right-1/2 translate-x-1/2 rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-bold text-white">
+        <span className="absolute -top-3 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-bold text-white">
           {fa.credits.popular}
         </span>
       )}
       {pkg.isBestValue && !pkg.isPopular && (
-        <span className="absolute -top-3 right-1/2 translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-white">
+        <span className="absolute -top-3 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-white">
           {fa.credits.bestValue}
         </span>
       )}
 
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-slate-100">
-          {pkg.credits.toLocaleString("fa-IR")} {fa.credits.creditsUnit}
-        </h3>
-        <div className="mt-3 flex items-baseline gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-lg font-bold text-slate-100">
+            {pkg.credits.toLocaleString("fa-IR")} {fa.credits.creditsUnit}
+          </h3>
+          {hasDiscount && (
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-400">
+              {pkg.discountPercent}٪ تخفیف
+            </span>
+          )}
+        </div>
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
           <span className="text-3xl font-extrabold text-slate-100">
             {pkg.priceToman.toLocaleString("fa-IR")}
           </span>
           <span className="text-sm text-slate-500">تومان</span>
-          {originalPrice !== null && (
-            <span className="text-sm text-slate-600 line-through">
-              {originalPrice.toLocaleString("fa-IR")}
-            </span>
-          )}
         </div>
-        {hasDiscount && (
-          <p className="mt-1 text-xs font-medium text-amber-400">{pkg.discountPercent}٪ تخفیف</p>
+        {originalPrice !== null && (
+          <p className="mt-1 text-xs text-slate-600 line-through">
+            {originalPrice.toLocaleString("fa-IR")} تومان
+          </p>
         )}
         <p className="mt-2 text-xs text-slate-500">{fa.credits.approxUsage(approxImages, approxMessages)}</p>
       </div>

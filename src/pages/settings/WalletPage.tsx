@@ -15,10 +15,6 @@ export function WalletPage() {
   const { data: plans } = usePlans()
   const [topupOpen, setTopupOpen] = useState(false)
 
-  // برای نمایش نیوو معادلِ هر تراکنش (تومان → نیوو) — همون tomanPerCredit که سرور برای
-  // موجودی هم استفاده می‌کند؛ اگر هنوز نیامده، فقط تومان نشان داده می‌شود (بدون خط دوم)
-  const tomanPerCredit = creditsBalance?.tomanPerCredit
-
   const paygPlan = plans?.find((p) => p.isPayAsYouGo)
   const presets = paygPlan?.payAsYouGoTopupPresets ?? DEFAULT_PRESETS
   const minActivation = paygPlan?.payAsYouGoMinActivationToman ?? 1_000_000
@@ -36,9 +32,6 @@ export function WalletPage() {
               <>
                 <p className="mt-1 text-2xl font-bold text-emerald-400">
                   {(creditsBalance?.credits ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500">نیوو</span>
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {(wallet?.balanceToman ?? 0).toLocaleString('fa-IR')} تومان
                 </p>
               </>
             )}
@@ -76,11 +69,6 @@ export function WalletPage() {
                   <span className={clsx('text-sm font-medium', tx.type === 'CREDIT' ? 'text-emerald-400' : 'text-slate-400')}>
                     {tx.type === 'CREDIT' ? '+' : '−'}{tx.amountToman.toLocaleString('fa-IR')} تومان
                   </span>
-                  {tomanPerCredit ? (
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {fa.settings.creditsEquivalent(Math.round(tx.amountToman / tomanPerCredit))}
-                    </p>
-                  ) : null}
                 </div>
               </div>
             ))}

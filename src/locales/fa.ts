@@ -55,7 +55,6 @@ export const fa = {
   credits: {
     title: 'شارژ اعتبار نیوو',
     subtitle: 'با نیوو، چت متنی، تولید عکس و سبک‌های دیسکاوری رو استفاده کن — هر چقدر لازم داری شارژ کن',
-    perCreditNote: (toman: number) => `هر ۱ نیوو ≈ ${toman.toLocaleString('fa-IR')} تومان`,
     popular: 'محبوب',
     bestValue: 'به‌صرفه‌ترین',
     customAmount: 'مبلغ دلخواه',
@@ -249,7 +248,7 @@ export const fa = {
     wallet: 'کیف پول',
     walletBalance: 'موجودی کیف پول',
     creditsBalance: 'موجودی اعتبار (نیوو)',
-    creditsEquivalent: (credits: number) => `≈ ${credits.toLocaleString('fa-IR')} نیوو`,
+    buyCredits: 'خرید اعتبار',
     dailyBudget: 'بودجه روزانه',
     spentToday: 'مصرف امروز',
     remaining: 'باقی‌مانده',
