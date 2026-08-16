@@ -2,26 +2,18 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useMe } from '@/queries/auth.queries'
-import { usePlans, useModelCatalog } from '@/queries/plans.queries'
+import { useCreditPackages } from '@/queries/credits.queries'
 import { useCreateConversation } from '@/queries/conversation.queries'
 import { useChatStore } from '@/store/chat.store'
 import { useTrendingImagePrompts } from '@/hooks/useTrendingImagePrompts'
 import { SalesChatbot } from '@/components/sales/SalesChatbot'
 import { ExitIntentModal } from '@/components/sales/ExitIntentModal'
-import { ModelShowcase } from '@/components/models/ModelShowcase'
-import { PlanLimitsTable } from '@/components/plans/PlanLimitsTable'
 import { PromoBanner } from '@/components/articles/PromoBanner'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { PromptMasonryGrid } from '@/components/discover/PromptMasonryGrid'
+import { fa } from '@/locales/fa'
 import { env } from '@/env'
-import {
-  PLAN_TIER_MODEL_DESCRIPTIONS,
-  dailyLimitText,
-  supportText,
-  imageGenSupport,
-  imageGenCardText,
-} from '@/lib/plan-copy'
-import type { Plan, CreativePromptCatalogItem } from '@/types/api'
+import type { CreativePromptCatalogItem } from '@/types/api'
 import { isInAndroidApp } from '@/lib/android-bridge'
 import { MobileAppLandingPage } from './MobileAppLandingPage'
 
@@ -932,99 +924,113 @@ function ChatbotSection() {
   )
 }
 
+// ~۷ نیوو میانگین هزینه‌ی سبک‌های عکس، ~۱ نیوو میانگین هر پیام معمولی — همون تخمین دوستانه‌ی
+// PricingPage.tsx (نه فرمول دقیق)، فقط اینجا هم تکرار شده تا لندینگ import مستقیم از یک صفحه‌ی
+// پشت‌ ProtectedRoute نداشته باشد
+const CREDITS_PER_IMAGE_ESTIMATE = 7
+const CREDITS_PER_MESSAGE_ESTIMATE = 1
+
+// جایگزین بخش قدیمی «پلن‌های ماهانه» (اکو/پلاس) — دیگر اشتراک ماهانه نداریم، مدل فروش الان
+// خرید اعتبار (نیوو) است؛ /v2/credits/packages مسیر عمومی است (credits-public.controller.ts
+// سمت بک‌اند) پس همین‌جا هم بدون لاگین قابل نمایش است — دقیقاً هم‌داده‌ی PricingPage.tsx
+// (بعد از ثبت‌نام) اما با CTA «شروع رایگان» به‌جای خرید مستقیم (خرید واقعی نیاز به حساب دارد)
 function PricingSection() {
-  const { data: plans, isLoading, isError } = usePlans()
-  const { data: modelCatalog } = useModelCatalog()
-  const regularPlans = plans?.filter(p => !p.isPayAsYouGo)
+  const { data: packages, isLoading, isError } = useCreditPackages()
+  const fixedPackages = packages?.filter(p => !p.isCustomAmount) ?? []
+
   return (
     <section id="pricing" className="relative overflow-hidden px-6 py-24 bg-white/[0.01]">
       <SectionGlow c1="#7C3AED" c2="#10B981" seed={5} flip />
       <div className="mx-auto max-w-5xl relative">
         <div className="mb-14 text-center" data-anim="true">
           <p className="mb-2 text-sm font-medium text-emerald-400 uppercase tracking-widest">قیمت‌گذاری</p>
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">پلنی که مناسبته</h2>
-          <p className="mt-3 text-slate-400">از رایگان شروع کن، هر وقت خواستی ارتقا بده</p>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">شارژ اعتبار، هرچقدر لازم داری</h2>
+          <p className="mt-3 text-slate-400">ثبت‌نام و چت متنی رایگانه — برای تولید عکس و سبک‌های استودیو، نیوو شارژ کن</p>
         </div>
 
         {isLoading ? (
           <div className="flex justify-center py-16">
             <div className="size-9 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
           </div>
-        ) : isError ? (
+        ) : isError || !fixedPackages.length ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <svg viewBox="0 0 24 24" fill="none" className="size-10 text-slate-600">
               <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
                 stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <p className="text-slate-500 text-sm">بارگذاری پلن‌ها ناموفق بود</p>
+            <p className="text-slate-500 text-sm">بارگذاری بسته‌ها ناموفق بود</p>
             <a href="#pricing" className="text-xs text-emerald-500 hover:underline">تلاش مجدد</a>
           </div>
-        ) : !plans?.length ? (
-          <p className="py-16 text-center text-slate-600 text-sm">پلنی تعریف نشده</p>
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
-            {plans?.map((plan, i) => {
-              const isFree = plan.priceMonthly === 0
-              const isPopular = plan.isPopular
+            {fixedPackages.map((pkg, i) => {
+              const hasDiscount = pkg.discountPercent > 0
+              const originalPrice = hasDiscount ? Math.round(pkg.priceToman / (1 - pkg.discountPercent / 100)) : null
+              const approxImages = Math.max(1, Math.round(pkg.credits / CREDITS_PER_IMAGE_ESTIMATE))
+              const approxMessages = Math.max(1, Math.round(pkg.credits / CREDITS_PER_MESSAGE_ESTIMATE))
               return (
-                <div key={plan.id} data-anim="true" data-d={String(i + 1)}
+                <div key={pkg.id} data-anim="true" data-d={String(i + 1)}
                   className={clsx(
                     'relative flex flex-col rounded-2xl border p-7 transition-all duration-300',
-                    isPopular
+                    pkg.isPopular
                       ? 'border-emerald-500/50 bg-emerald-500/5 shadow-[0_0_40px_rgba(16,185,129,0.1)]'
-                      : 'border-white/8 bg-white/[0.02] hover:border-white/15',
+                      : pkg.isBestValue
+                        ? 'border-amber-500/40 bg-amber-500/[0.04] hover:border-amber-500/60'
+                        : 'border-white/8 bg-white/[0.02] hover:border-white/15',
                   )}>
-                  {isPopular && (
+                  {pkg.isPopular && (
                     <div className="absolute -top-3 right-1/2 translate-x-1/2 rounded-full bg-emerald-500 px-4 py-1 text-xs font-bold text-white">
-                      محبوب‌ترین
+                      {fa.credits.popular}
+                    </div>
+                  )}
+                  {pkg.isBestValue && !pkg.isPopular && (
+                    <div className="absolute -top-3 right-1/2 translate-x-1/2 rounded-full bg-amber-500 px-4 py-1 text-xs font-bold text-white">
+                      {fa.credits.bestValue}
                     </div>
                   )}
                   <div className="mb-6">
-                    <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                    <div className="mt-3 flex items-baseline gap-1">
-                      {isFree ? (
-                        <span className="text-4xl font-extrabold text-emerald-400">رایگان</span>
-                      ) : (
-                        <>
-                          <span className="text-4xl font-extrabold text-white">
-                            {plan.priceMonthly.toLocaleString('fa-IR')}
-                          </span>
-                          <span className="text-slate-500 text-sm">تومان/ماه</span>
-                        </>
+                    <h3 className="text-lg font-bold text-white">
+                      {pkg.credits.toLocaleString('fa-IR')} {fa.credits.creditsUnit}
+                    </h3>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-4xl font-extrabold text-white">
+                        {pkg.priceToman.toLocaleString('fa-IR')}
+                      </span>
+                      <span className="text-slate-500 text-sm">تومان</span>
+                      {originalPrice !== null && (
+                        <span className="text-sm text-slate-600 line-through">
+                          {originalPrice.toLocaleString('fa-IR')}
+                        </span>
                       )}
                     </div>
+                    {hasDiscount && (
+                      <p className="mt-1 text-xs font-medium text-amber-400">{pkg.discountPercent}٪ تخفیف</p>
+                    )}
                   </div>
-                  <ul className="mb-6 space-y-3">
-                    {[
-                      dailyLimitText(plan),
-                      imageGenCardText(imageGenSupport(plan, modelCatalog)),
-                      !isFree ? supportText(plan) : null,
-                    ].filter((feat): feat is string => Boolean(feat)).map(feat => (
-                      <li key={feat} className="flex items-center gap-2.5 text-sm text-slate-300">
-                        <svg viewBox="0 0 16 16" fill="none" className="size-4 shrink-0 text-emerald-500">
-                          <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        {feat}
-                      </li>
-                    ))}
+                  <ul className="mb-8 flex-1 space-y-3">
+                    <li className="flex items-center gap-2.5 text-sm text-slate-300">
+                      <svg viewBox="0 0 16 16" fill="none" className="size-4 shrink-0 text-emerald-500">
+                        <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {fa.credits.approxUsage(approxImages, approxMessages)}
+                    </li>
+                    <li className="flex items-center gap-2.5 text-sm text-slate-300">
+                      <svg viewBox="0 0 16 16" fill="none" className="size-4 shrink-0 text-emerald-500">
+                        <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      قابل استفاده در چت، تولید عکس و استودیوی محتوا
+                    </li>
                   </ul>
-                  <div className="mb-8 flex-1">
-                    <ModelShowcase
-                      allowedModels={plan.allowedModels}
-                      description={PLAN_TIER_MODEL_DESCRIPTIONS[i] ?? ''}
-                      isFree={isFree}
-                    />
-                  </div>
                   <Link to="/login"
                     data-track="landing_pricing_cta_click"
-                    data-track-plan={plan.name}
+                    data-track-package={pkg.credits}
                     className={clsx(
                       'block rounded-xl py-3 text-center text-sm font-semibold transition-all active:scale-95',
-                      isPopular
+                      pkg.isPopular
                         ? 'bg-emerald-500 text-white hover:bg-emerald-400'
                         : 'border border-white/15 text-slate-300 hover:border-white/30 hover:text-white',
                     )}>
-                    {isFree ? 'شروع رایگان' : 'خرید پلن'}
+                    شروع رایگان
                   </Link>
                 </div>
               )
@@ -1032,15 +1038,9 @@ function PricingSection() {
           </div>
         )}
 
-        {regularPlans && regularPlans.length > 0 && (
-          <div className="mt-14" data-anim="true">
-            <div className="mb-6 text-center">
-              <h3 className="text-lg font-bold text-white">جزییات کامل پلن‌ها</h3>
-              <p className="mt-1 text-sm text-slate-500">همه‌ی محدودیت‌ها، شفاف و بدون سورپرایز</p>
-            </div>
-            <PlanLimitsTable plans={regularPlans as Plan[]} modelCatalog={modelCatalog} />
-          </div>
-        )}
+        <p className="mt-8 text-center text-sm text-slate-500">
+          می‌تونی هر مبلغ دلخواهی هم شارژ کنی — همین که ثبت‌نام کردی از توی حسابت در دسترسه
+        </p>
       </div>
     </section>
   )
@@ -1049,9 +1049,9 @@ function PricingSection() {
 function FaqSection() {
   const [open, setOpen] = useState<number | null>(null)
   const faqs = [
-    { q: 'پلن رایگان محدودیت زمانی داره؟', a: 'نه، پلن رایگان همیشگیه. روزانه توکن رایگان دریافت می‌کنی — تا ابد.' },
+    { q: 'ثبت‌نام و چت کردن رایگانه؟', a: 'بله، همیشگی. روزانه توکن رایگان برای چت متنی داری — فقط برای تولید عکس و سبک‌های استودیو لازمه نیوو شارژ کنی.' },
     { q: 'پرداخت چطور انجام می‌شه؟', a: 'از طریق درگاه پرداخت و با استفاده از کارت بانکی — امن و آنی.' },
-    { q: 'می‌تونم پلنمو عوض کنم؟', a: 'بله. هر زمان می‌تونی پلنت رو ارتقا بدی، بلافاصله اعمال می‌شه.' },
+    { q: 'اعتباری که می‌خرم چقدر طول می‌کشه؟', a: 'هر وقت لازم داشتی مصرفش کن — هر مقدار می‌خوای شارژ کن، هر وقت خواستی بازم اضافه کن.' },
     { q: 'داده‌هام کجا ذخیره می‌شن؟', a: 'روی سرورهای داخل ایران. مکالمات فقط مال توئه و به کسی نشون داده نمی‌شه.' },
   ]
   return (
