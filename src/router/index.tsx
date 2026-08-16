@@ -74,10 +74,10 @@ export function AppRouter() {
         path="/pricing"
         element={<ProtectedRoute><PricingPage /></ProtectedRoute>}
       />
-      <Route
-        path="/discover"
-        element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>}
-      />
+      {/* بدون ProtectedRoute — کاربر مهمان هم باید بتواند استودیو محتوا را اکسپلور کند؛
+          DiscoverPage خودش بر اساس access_token شاخه می‌زند (ساخت Conversation واقعی
+          فقط برای کاربر لاگین‌شده) */}
+      <Route path="/discover" element={<DiscoverPage />} />
       <Route
         path="/projects"
         element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>}

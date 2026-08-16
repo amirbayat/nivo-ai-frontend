@@ -4,7 +4,9 @@ import { useAnonStatus, useAnonConversation, useCreateAnonConversation } from '@
 import { useAnonChat } from '@/hooks/useAnonChat'
 import { getAnonConversationId, setAnonConversationId } from '@/lib/anonSession'
 import { AnonSignupBanner } from '@/components/chat/AnonSignupBanner'
+import { AnonDiscoveryTrial } from '@/pages/anon-chat/AnonDiscoveryTrial'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
+import { useChatStore } from '@/store/chat.store'
 import { fa } from '@/locales/fa'
 import type { AnonMessage } from '@/types/api'
 
@@ -18,6 +20,8 @@ export function AnonChatPage() {
   const createConv = useCreateAnonConversation()
   const { sendMessage, isStreaming, streamingContent, error } = useAnonChat(conversationId)
   const pendingRef = useRef<string | null>(null)
+  const selectedCreativePrompt = useChatStore(s => s.selectedCreativePrompt)
+  const setSelectedCreativePrompt = useChatStore(s => s.setSelectedCreativePrompt)
 
   // پیام اول: تا مکالمه ساخته و لود نشود، پیام را نگه می‌داریم (دقیقاً مثل الگوی
   // pendingRef در ChatPage.tsx/ActiveChat، فقط بدون ناوبری چون همه چیز در همین صفحه است)
@@ -50,6 +54,13 @@ export function AnonChatPage() {
   const messages: AnonMessage[] = conversation?.messages ?? []
   const hasThread = messages.length > 0 || isStreaming
   const userMessageCount = messages.filter(m => m.role === 'USER').length
+
+  // کاربر از DiscoverPage یک سبک انتخاب کرده — به‌جای UI چت معمولی، پنل امتحان رایگان
+  // یک‌باره‌ی استودیو محتوا را نشان بده (docs/PRD-discovery-and-credits.md). بعد از همه‌ی
+  // hookها چک می‌شود تا ترتیب فراخوانی hook بین رندرها ثابت بماند (Rules of Hooks)
+  if (selectedCreativePrompt) {
+    return <AnonDiscoveryTrial prompt={selectedCreativePrompt} onExit={() => setSelectedCreativePrompt(null)} />
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

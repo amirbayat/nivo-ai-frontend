@@ -148,6 +148,18 @@ export interface CreativeGenerationResult {
   status: 'SUCCEEDED' | 'FAILED'
 }
 
+// امتحان رایگان یک‌باره‌ی استودیو محتوا برای کاربر مهمان — کاملاً ephemeral (بدون id/persist)
+export interface AnonDiscoveryStatus {
+  available: boolean
+  usedAt: string | null
+}
+
+export interface AnonCreativeGenerationResult {
+  outputType: 'IMAGE' | 'TEXT'
+  outputText?: string
+  outputImageDataUrl?: string
+}
+
 export interface Subscription {
   id: string
   planId: string

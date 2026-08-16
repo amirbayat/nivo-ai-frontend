@@ -108,6 +108,11 @@ export const fa = {
     changeStyle: 'تغییر',
     exitStyleMode: 'خروج از حالت سبک',
     imageRequiredBeforeSend: 'برای این سبک، اول باید یک عکس آپلود کنی',
+    anonFreeLabel: 'رایگان — فقط یک بار برای مهمان',
+    anonTrialUsedTitle: 'امتحان رایگانت رو استفاده کردی',
+    anonTrialUsedMessage: 'برای ادامه‌ی تولید با این سبک‌ها، ثبت‌نام کن و اعتبار هدیه بگیر',
+    anonTrialSignupCta: 'ثبت‌نام و دریافت اعتبار هدیه',
+    anonTrialBackToStudio: 'بازگشت به استودیو',
   },
   gallery: {
     title: 'گالری من',

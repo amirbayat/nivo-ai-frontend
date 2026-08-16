@@ -64,4 +64,7 @@ export const keys = {
     status: () => ['anon-chat', 'status'] as const,
     conversation: (id: string) => ['anon-chat', 'conversation', id] as const,
   },
+  anonDiscovery: {
+    status: () => ['anon-discovery', 'status'] as const,
+  },
 } as const

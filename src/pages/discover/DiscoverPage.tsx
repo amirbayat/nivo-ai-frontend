@@ -48,8 +48,16 @@ export function DiscoverPage() {
   // (GenerateModal قدیمی) وسط راه نمی‌آید — «وقتی یک کارت رو انتخاب میکنه برگرده به چت،
   // اما اون context انتخاب شده باشه» (پیام کاربر). یک مکالمه‌ی تازه می‌سازیم تا کارت‌های نتیجه
   // بالای اینپوت همون چت (MessageInput/MessageList) نمایش داده شوند.
+  // کاربر مهمان (بدون access_token) پروژه/مکالمه‌ی واقعی ندارد — به‌جای POST /conversations
+  // (که ۴۰۱ می‌گیرد)، فقط سبک انتخابی را در همون استور مشترک می‌گذاریم و به تجربه‌ی چت مهمان
+  // در "/" برمی‌گردیم؛ AnonChatPage با دیدن selectedCreativePrompt پنل امتحان رایگان را نشان می‌دهد.
   function handleSelectPrompt(item: CreativePromptCatalogItem) {
     setSelectedCreativePrompt(item);
+    const hasToken = !!localStorage.getItem("access_token");
+    if (!hasToken) {
+      navigate("/");
+      return;
+    }
     createConversation.mutate("optimal", {
       onSuccess: (conv) => navigate(`/chat/${conv.id}`),
     });
