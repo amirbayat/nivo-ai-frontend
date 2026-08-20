@@ -5,6 +5,7 @@ import { useDiscoveryCatalog, useDiscoveryCategories, type DiscoverySort } from 
 import { useCreateConversation } from "@/queries/conversation.queries";
 import { useChatStore } from "@/store/chat.store";
 import { PromptMasonryGrid } from "@/components/discover/PromptMasonryGrid";
+import { PromptExtractionCard } from "@/components/discover/PromptExtractionCard";
 import { fa } from "@/locales/fa";
 import type { CreativePromptCatalogItem, CreativeCategory } from "@/types/api";
 
@@ -84,6 +85,8 @@ export function DiscoverPage() {
           </div>
         </div>
 
+        <PromptExtractionCard onUsePrompt={handleSelectPrompt} />
+
         <div className="flex flex-col gap-6 md:flex-row">
           {/* سایدبار دسته‌بندی — سمت راست (اولین فرزند در RTL) */}
           <aside className="shrink-0 md:w-56">
@@ -151,7 +154,12 @@ export function DiscoverPage() {
             ) : !catalog?.length ? (
               <p className="py-16 text-center text-sm text-slate-600">{fa.discover.empty}</p>
             ) : (
-              <PromptMasonryGrid items={catalog} onSelect={handleSelectPrompt} disabled={createConversation.isPending} />
+              <PromptMasonryGrid
+                items={catalog}
+                onSelect={handleSelectPrompt}
+                disabled={createConversation.isPending}
+                columns="columns-2 sm:columns-2 lg:columns-3"
+              />
             )}
           </div>
         </div>

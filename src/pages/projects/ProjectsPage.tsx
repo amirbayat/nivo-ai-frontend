@@ -1,20 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "@/queries/projects.queries";
+import { useProjects, useCreateProject } from "@/queries/projects.queries";
+import { ProjectModal, type PlatformKey } from "@/components/projects/ProjectModal";
 import { fa } from "@/locales/fa";
-import type { Project } from "@/types/api";
-
-type PlatformKey = keyof typeof fa.projects.platforms;
 
 export function ProjectsPage() {
   const navigate = useNavigate();
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
-  const updateProject = useUpdateProject();
-  const deleteProject = useDeleteProject();
 
+  // این مودال دیگر فقط برای «ساخت پروژه‌ی جدید» استفاده می‌شه — ویرایش/حذف پروژه‌ی موجود
+  // به workspace اختصاصی‌اش (/projects/:id → ProjectDetailPage → دکمه‌ی تنظیمات) منتقل شده
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Project | null>(null);
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-8" dir="rtl">
@@ -35,7 +32,7 @@ export function ProjectsPage() {
             <p className="mt-0.5 text-sm text-slate-500">{fa.projects.subtitle}</p>
           </div>
           <button
-            onClick={() => { setEditing(null); setOpen(true); }}
+            onClick={() => setOpen(true)}
             className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400 transition-colors"
           >
             {fa.projects.addProject}
@@ -53,7 +50,7 @@ export function ProjectsPage() {
             {projects.map((p) => (
               <div
                 key={p.id}
-                onClick={() => { setEditing(p); setOpen(true); }}
+                onClick={() => navigate(`/projects/${p.id}`)}
                 className="cursor-pointer rounded-2xl border border-slate-700/60 bg-slate-800/40 p-5 transition-colors hover:border-slate-600"
               >
                 <div className="flex items-center gap-2">
@@ -64,6 +61,14 @@ export function ProjectsPage() {
                 </div>
                 <p className="mt-1 text-xs text-emerald-400">{fa.projects.platforms[p.platform as PlatformKey]}</p>
                 {p.niche && <p className="mt-2 text-xs text-slate-500">{p.niche}</p>}
+                {p.pinnedPrompt && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+                    {p.pinnedPrompt.exampleImageUrl && (
+                      <img src={p.pinnedPrompt.exampleImageUrl} alt="" className="size-8 shrink-0 rounded-md object-cover" />
+                    )}
+                    <p className="truncate text-xs text-slate-400">{p.pinnedPrompt.title}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -72,143 +77,17 @@ export function ProjectsPage() {
 
       {open && (
         <ProjectModal
-          project={editing}
+          project={null}
           onClose={() => setOpen(false)}
           onSave={(data) => {
-            if (editing) {
-              updateProject.mutate({ id: editing.id, data }, { onSuccess: () => setOpen(false) });
-            } else {
-              createProject.mutate(data as { name: string; platform: string; contextMd: string }, { onSuccess: () => setOpen(false) });
-            }
+            createProject.mutate(
+              { name: data.name, platform: data.platform, niche: data.niche, contextMd: data.contextMd, brandColor: data.brandColor, pinnedPromptId: data.pinnedPromptId },
+              { onSuccess: () => setOpen(false) },
+            );
           }}
-          onDelete={editing ? () => deleteProject.mutate(editing.id, { onSuccess: () => setOpen(false) }) : undefined}
-          saving={createProject.isPending || updateProject.isPending}
+          saving={createProject.isPending}
         />
       )}
-    </div>
-  );
-}
-
-function ProjectModal({
-  project,
-  onClose,
-  onSave,
-  onDelete,
-  saving,
-}: {
-  project: Project | null;
-  onClose: () => void;
-  onSave: (data: { name: string; platform: string; niche?: string; contextMd: string; brandColor?: string }) => void;
-  onDelete?: () => void;
-  saving: boolean;
-}) {
-  const [name, setName] = useState(project?.name ?? "");
-  const [platform, setPlatform] = useState<PlatformKey>((project?.platform as PlatformKey) ?? "INSTAGRAM");
-  const [niche, setNiche] = useState(project?.niche ?? "");
-  const [contextMd, setContextMd] = useState(project?.contextMd ?? "");
-  const [brandColor, setBrandColor] = useState(project?.brandColor ?? "");
-
-  function handleSave() {
-    if (!name.trim() || !contextMd.trim()) return;
-    onSave({ name: name.trim(), platform, niche: niche.trim() || undefined, contextMd: contextMd.trim(), brandColor: brandColor.trim() || undefined });
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        dir="rtl"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 text-slate-600 hover:text-slate-400 transition-colors"
-          aria-label={fa.common.close}
-        >
-          <svg viewBox="0 0 16 16" fill="none" className="size-4">
-            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
-
-        <h3 className="mb-4 text-base font-bold text-slate-100">
-          {project ? fa.projects.editProject : fa.projects.addProject}
-        </h3>
-
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className="mb-1 block text-xs text-slate-500">{fa.projects.name}</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-500">{fa.projects.platform}</label>
-            <select
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value as PlatformKey)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50"
-            >
-              {Object.entries(fa.projects.platforms).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-500">{fa.projects.niche}</label>
-            <input
-              value={niche}
-              onChange={(e) => setNiche(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-500">{fa.projects.contextMd}</label>
-            <textarea
-              value={contextMd}
-              onChange={(e) => setContextMd(e.target.value)}
-              rows={4}
-              placeholder={fa.projects.contextMdHint}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-500">{fa.projects.brandColor}</label>
-            <input
-              value={brandColor}
-              onChange={(e) => setBrandColor(e.target.value)}
-              placeholder="#10b981"
-              dir="ltr"
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50"
-            />
-          </div>
-        </div>
-
-        <div className="mt-5 flex gap-2">
-          {onDelete && (
-            <button
-              onClick={onDelete}
-              className="rounded-xl border border-red-500/30 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-            >
-              {fa.common.delete}
-            </button>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 transition-colors disabled:opacity-50"
-          >
-            {fa.projects.save}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { ChatPage } from '@/pages/chat/ChatPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
 import { ProjectsPage } from '@/pages/projects/ProjectsPage'
+import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage'
 import { GalleryPage } from '@/pages/gallery/GalleryPage'
 import { ModelsPage } from '@/pages/models/ModelsPage'
 import { CallbackPage } from '@/pages/payment/CallbackPage'
@@ -88,6 +89,10 @@ export function AppRouter() {
       <Route
         path="/projects"
         element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/projects/:id"
+        element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>}
       />
       <Route
         path="/gallery"

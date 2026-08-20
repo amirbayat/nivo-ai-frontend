@@ -11,12 +11,17 @@ export const keys = {
     packages: () => ['credits', 'packages'] as const,
     quote: (credits: number) => ['credits', 'quote', credits] as const,
   },
-  projects: { list: () => ['projects', 'list'] as const },
+  projects: {
+    list: () => ['projects', 'list'] as const,
+    detail: (id: string) => ['projects', 'detail', id] as const,
+  },
   discovery: {
     catalog: (outputType?: string, categoryId?: string, sort?: string) =>
       ['discovery', 'catalog', outputType ?? 'all', categoryId ?? 'all', sort ?? 'default'] as const,
     categories: () => ['discovery', 'categories'] as const,
     gallery: (projectId?: string) => ['discovery', 'gallery', projectId ?? 'all'] as const,
+    customizations: (projectId: string) => ['discovery', 'customizations', projectId] as const,
+    extractionCost: () => ['discovery', 'extraction-cost'] as const,
   },
   usage: {
     today: () => ['usage', 'today'] as const,

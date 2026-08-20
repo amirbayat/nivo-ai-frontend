@@ -12,10 +12,20 @@ export function useProjects() {
   })
 }
 
+// فچ تکی برای صفحه‌ی workspace پروژه (/projects/:id) — تازه‌تر از لیست، مخصوصاً بعد از
+// پین‌کردن/تغییر سبک که pinnedPrompt تودرتو باید سریع رفرش بشه
+export function useProject(id: string) {
+  return useQuery({
+    queryKey: keys.projects.detail(id),
+    queryFn: () => api.get<Project>(`/v2/projects/${id}`).then(r => r.data),
+    enabled: !!id,
+  })
+}
+
 export function useCreateProject() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { name: string; platform: string; niche?: string; contextMd: string; brandColor?: string }) =>
+    mutationFn: (data: { name: string; platform: string; niche?: string; contextMd: string; brandColor?: string; pinnedPromptId?: string }) =>
       api.post<Project>('/v2/projects', data).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.projects.list() }),
   })
@@ -24,9 +34,12 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<{ name: string; platform: string; niche: string; contextMd: string; brandColor: string; isActive: boolean }> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<{ name: string; platform: string; niche: string; contextMd: string; brandColor: string; isActive: boolean; pinnedPromptId: string }> }) =>
       api.patch<Project>(`/v2/projects/${id}`, data).then(r => r.data),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.projects.list() }),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: keys.projects.list() })
+      void qc.invalidateQueries({ queryKey: keys.projects.detail(vars.id) })
+    },
   })
 }
 

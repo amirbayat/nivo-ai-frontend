@@ -103,6 +103,23 @@ export interface Project {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  pinnedPromptId: string | null
+  // فقط همین ۵ فیلد — نه template/context زیرین پرامپت (همون‌طور که CreativePromptCatalogItem
+  // هم همیشه اون فیلدهای proprietary رو مخفی نگه می‌داره)
+  pinnedPrompt: {
+    id: string
+    title: string
+    exampleImageUrl: string | null
+    creditCost: number
+    outputType: 'IMAGE' | 'TEXT'
+  } | null
+}
+
+// خروجی GET /v2/discovery/projects/:projectId/customizations — متن‌های سفارشی‌سازی قبلی
+// کاربر توی این پروژه (جدیدترین اول، dedupe شده، سقف ۲۰ تا) — برای چیپ‌های «استفاده‌ی قبلی»
+export interface ProjectCustomization {
+  text: string
+  createdAt: string
 }
 
 export interface CreativeCategory {

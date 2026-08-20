@@ -12,25 +12,30 @@ export function PromptMasonryGrid({
   onSelect,
   disabled,
   columns = 'columns-2 sm:columns-3 lg:columns-4',
+  selectLabel,
 }: {
   items: CreativePromptCatalogItem[]
   onSelect: (item: CreativePromptCatalogItem) => void
   disabled?: boolean
   columns?: string
+  // متن دکمه‌ی CTA روی هر کارت — پیش‌فرض «استفاده از این سبک» (استودیوی محتوا)، اما جای پین‌کردن
+  // سبک روی یک پروژه (ProjectModal/ProjectDetailPage) با «پین کردن این سبک» جایگزین می‌شه
+  selectLabel?: string
 }) {
   return (
     <div className={clsx(columns, 'gap-3 [column-fill:balance]')}>
       {items.map(item => (
-        <PromptMasonryCard key={item.id} item={item} onSelect={onSelect} disabled={disabled} />
+        <PromptMasonryCard key={item.id} item={item} onSelect={onSelect} disabled={disabled} selectLabel={selectLabel} />
       ))}
     </div>
   )
 }
 
-function PromptMasonryCard({ item, onSelect, disabled }: {
+function PromptMasonryCard({ item, onSelect, disabled, selectLabel }: {
   item: CreativePromptCatalogItem
   onSelect: (item: CreativePromptCatalogItem) => void
   disabled?: boolean
+  selectLabel?: string
 }) {
   const ratio = parseAspectRatio(item.aspectRatio, item.outputType === 'TEXT' ? 4 / 3 : 1)
 
@@ -70,7 +75,7 @@ function PromptMasonryCard({ item, onSelect, disabled }: {
             onClick={() => onSelect(item)}
             className="w-full truncate rounded-lg bg-white/10 px-2 py-1.5 text-[11px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 sm:text-xs"
           >
-            استفاده از این سبک
+            {selectLabel ?? 'استفاده از این سبک'}
           </button>
         </div>
       </div>

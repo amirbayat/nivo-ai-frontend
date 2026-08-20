@@ -1,7 +1,7 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
-import type { CreativePromptCatalogItem, CreativeGenerationResult, CreativeCategory, CreativeGalleryItem } from '@/types/api'
+import type { CreativePromptCatalogItem, CreativeGenerationResult, CreativeCategory, CreativeGalleryItem, ProjectCustomization } from '@/types/api'
 
 // docs/PRD-discovery-and-credits.md بخش ۵.۳/۵.۴ — کاتالوگ سبک‌های آماده + تولید + درخت دسته‌بندی
 
@@ -39,10 +39,29 @@ export function useDiscoveryGallery(projectId?: string) {
   })
 }
 
+// متن‌های سفارشی‌سازی قبلی کاربر توی یک پروژه‌ی خاص — برای چیپ‌های «استفاده‌ی قبلی» در
+// workspace پروژه (ProjectDetailPage) — از سرور: جدیدترین اول، dedupe شده، سقف ۲۰ تا
+export function useProjectCustomizations(projectId: string) {
+  return useQuery({
+    queryKey: keys.discovery.customizations(projectId),
+    queryFn: () =>
+      api.get<ProjectCustomization[]>(`/v2/discovery/projects/${projectId}/customizations`).then(r => r.data),
+    enabled: !!projectId,
+  })
+}
+
 export function useGenerateCreative() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (dto: { promptId: string; userInput?: string; projectId?: string; inputImageKeys?: string[] }) =>
       api.post<CreativeGenerationResult>('/v2/discovery/generate', dto).then(r => r.data),
+    // وقتی داخل یک پروژه تولید می‌شه (workspace پروژه‌ی پین‌شده) — گالری و لیست
+    // «استفاده‌های قبلی» همون پروژه باید بلافاصله نتیجه‌ی تازه رو نشون بدن
+    onSuccess: (_data, vars) => {
+      if (!vars.projectId) return
+      void qc.invalidateQueries({ queryKey: keys.discovery.gallery(vars.projectId) })
+      void qc.invalidateQueries({ queryKey: keys.discovery.customizations(vars.projectId) })
+    },
   })
 }
 
@@ -52,5 +71,24 @@ export function useUploadDiscoveryImage() {
   return useMutation({
     mutationFn: (dataUrl: string) =>
       api.post<{ key: string }>('/v2/discovery/upload-image', { image: dataUrl }).then(r => r.data),
+  })
+}
+
+// تبدیل عکس به پرامپت — هزینه‌ی ثابت این اکشن، قبل از آپلود/استخراج به کاربر نشون داده می‌شه
+export function useExtractionCost() {
+  return useQuery({
+    queryKey: keys.discovery.extractionCost(),
+    queryFn: () => api.get<{ creditCost: number }>('/v2/discovery/prompt-extractions/cost').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
+}
+
+// نتیجه دقیقاً شکل CreativePromptCatalogItem + یک فیلد اضافه‌ی extractedPrompt (متن استخراج‌شده)
+export function useExtractPrompt() {
+  return useMutation({
+    mutationFn: (dto: { imageKey: string }) =>
+      api
+        .post<CreativePromptCatalogItem & { extractedPrompt: string }>('/v2/discovery/prompt-extractions', dto)
+        .then(r => r.data),
   })
 }
