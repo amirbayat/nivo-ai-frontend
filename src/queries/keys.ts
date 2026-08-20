@@ -3,7 +3,11 @@ export const keys = {
     me: () => ['auth', 'me'] as const,
   },
   conv: {
-    list: () => ['conversations', 'list'] as const,
+    // بدون projectId یعنی «همه‌ی چت‌ها» — کلید کوتاه‌تر که هم خودش هم نسخه‌های project-scoped را
+    // (با invalidateQueries پیش‌فرض exact:false) پوشش می‌دهد؛ برعکسش صادق نیست، پس هر جا فقط
+    // لیست یک پروژه‌ی خاص باید invalidate شود همان projectId را صریح پاس بده.
+    list: (projectId?: string) =>
+      projectId ? (['conversations', 'list', projectId] as const) : (['conversations', 'list'] as const),
     detail: (id: string) => ['conversations', 'detail', id] as const,
   },
   credits: {

@@ -780,7 +780,7 @@ function StudioShowcaseSection() {
       navigate('/')
       return
     }
-    createConversation.mutate('optimal', { onSuccess: conv => navigate(`/chat/${conv.id}`) })
+    createConversation.mutate({ model: 'optimal' }, { onSuccess: conv => navigate(`/chat/${conv.id}`) })
   }
 
   if (!isLoading && items.length === 0) return null

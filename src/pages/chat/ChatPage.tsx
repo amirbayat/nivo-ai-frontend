@@ -27,7 +27,12 @@ export function ChatPage() {
   const { isStreaming } = useChatStore()
   const setSelectedCreativePrompt = useChatStore(s => s.setSelectedCreativePrompt)
   const navigate = useNavigate()
+  const location = useLocation()
   const createConv = useCreateConversation()
+
+  // اگر از ProjectDetailPage با «چت جدید در این پروژه» به اینجا اومده باشیم، این چت تازه
+  // باید از همون ابتدا به همون پروژه وصل بشه (context تجمیعی پروژه رو از همون پیام اول بخونه)
+  const projectId = (location.state as { projectId?: string } | null)?.projectId
 
   const handleFirstMessage = async (
     content: string,
@@ -36,7 +41,7 @@ export function ChatPage() {
     generateImage?: boolean,
   ) => {
     try {
-      const conv = await createConv.mutateAsync('optimal')
+      const conv = await createConv.mutateAsync({ model: 'optimal', projectId })
       navigate(`/chat/${conv.id}`, {
         state: { initialMessage: { content, images, model, generateImage } },
         replace: true,
@@ -52,7 +57,7 @@ export function ChatPage() {
   const handleSelectCreativePrompt = async (item: CreativePromptCatalogItem) => {
     setSelectedCreativePrompt(item)
     try {
-      const conv = await createConv.mutateAsync('optimal')
+      const conv = await createConv.mutateAsync({ model: 'optimal', projectId })
       navigate(`/chat/${conv.id}`)
     } catch {
       // ignore — سبک انتخاب‌شده در استور می‌ماند، کاربر می‌تواند دوباره تلاش کند

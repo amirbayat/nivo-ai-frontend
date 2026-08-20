@@ -4,12 +4,12 @@ import { keys } from '@/queries/keys'
 import { track } from '@/lib/events'
 import type { Conversation, ConversationDetail, ConversationsPage } from '@/types/api'
 
-export function useConversations() {
+export function useConversations(projectId?: string) {
   return useInfiniteQuery({
-    queryKey: keys.conv.list(),
+    queryKey: keys.conv.list(projectId),
     queryFn: ({ pageParam }) =>
       api.get<ConversationsPage>('/conversations', {
-        params: { cursor: pageParam, limit: 20 },
+        params: { cursor: pageParam, limit: 20, ...(projectId ? { projectId } : {}) },
       }).then(r => r.data),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: last => last.nextCursor ?? undefined,
@@ -27,11 +27,12 @@ export function useConversation(id: string) {
 export function useCreateConversation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (model: string) =>
-      api.post<Conversation>('/conversations', { model }).then(r => r.data),
-    onSuccess: (_data, model) => {
-      track('conversation_created', { model })
+    mutationFn: ({ model, projectId }: { model: string; projectId?: string }) =>
+      api.post<Conversation>('/conversations', { model, ...(projectId ? { projectId } : {}) }).then(r => r.data),
+    onSuccess: (_data, { model, projectId }) => {
+      track('conversation_created', { model, projectId })
       void qc.invalidateQueries({ queryKey: keys.conv.list() })
+      if (projectId) void qc.invalidateQueries({ queryKey: keys.conv.list(projectId) })
     },
   })
 }

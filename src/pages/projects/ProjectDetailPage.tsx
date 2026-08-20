@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useProject, useUpdateProject, useDeleteProject } from "@/queries/projects.queries";
 import { useDiscoveryGallery, useGenerateCreative, useProjectCustomizations } from "@/queries/discovery.queries";
+import { useConversations } from "@/queries/conversation.queries";
 import { useAuthedImageUrl } from "@/hooks/useAuthedImageUrl";
 import { ProjectModal } from "@/components/projects/ProjectModal";
 import { StylePickerPanel } from "@/components/projects/StylePickerPanel";
 import { fa } from "@/locales/fa";
-import type { CreativeGalleryItem, CreativePromptCatalogItem } from "@/types/api";
+import type { CreativeGalleryItem, CreativePromptCatalogItem, Conversation } from "@/types/api";
 
 // ورک‌اسپیس یک پروژه — سبک پین‌شده رو یک بار انتخاب می‌کنی، بعد هر بار فقط یک متن
 // شخصی‌سازی (اختیاری) می‌نویسی و «تولید عکس جدید» می‌زنی؛ پرامپت پایه‌ی زیرین هیچ‌وقت به
@@ -20,6 +21,8 @@ export function ProjectDetailPage() {
   const generate = useGenerateCreative();
   const { data: gallery, isLoading: galleryLoading } = useDiscoveryGallery(id);
   const { data: customizations } = useProjectCustomizations(id ?? "");
+  const { data: conversationsData } = useConversations(id);
+  const conversations = conversationsData?.pages.flatMap((p) => p.items) ?? [];
 
   const [customization, setCustomization] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -178,6 +181,28 @@ export function ProjectDetailPage() {
             </div>
           )}
         </div>
+
+        {/* چت‌های این پروژه — همه از context تجمیعی همین پروژه استفاده می‌کنن */}
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-100">{fa.projects.chatsTitle}</h2>
+            <button
+              onClick={() => navigate("/chat", { state: { projectId: project.id } })}
+              className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-1.5 text-xs text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+            >
+              {fa.projects.newChatCta}
+            </button>
+          </div>
+          {conversations.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-600">{fa.projects.chatsEmpty}</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {conversations.map((conv) => (
+                <ProjectChatRow key={conv.id} conversation={conv} onOpen={() => navigate(`/chat/${conv.id}`)} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {settingsOpen && (
@@ -197,6 +222,20 @@ export function ProjectDetailPage() {
         />
       )}
     </div>
+  );
+}
+
+function ProjectChatRow({ conversation, onOpen }: { conversation: Conversation; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="flex items-center justify-between rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-right hover:border-slate-600 transition-colors"
+    >
+      <span className="truncate text-sm text-slate-200">{conversation.title ?? fa.chat.untitled}</span>
+      <span className="shrink-0 text-xs text-slate-600">
+        {new Date(conversation.lastMessageAt).toLocaleDateString("fa-IR")}
+      </span>
+    </button>
   );
 }
 

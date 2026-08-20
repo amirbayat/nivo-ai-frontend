@@ -60,7 +60,7 @@ export function DiscoverPage() {
       navigate("/");
       return;
     }
-    createConversation.mutate("optimal", {
+    createConversation.mutate({ model: "optimal" }, {
       onSuccess: (conv) => navigate(`/chat/${conv.id}`),
     });
   }
