@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import axios from "axios";
 import clsx from "clsx";
-import { useExtractionModels, useExtractPrompt, useUploadDiscoveryImage } from "@/queries/discovery.queries";
+import { useExtractionModels, useExtractPrompt, useRenameExtraction, useUploadDiscoveryImage } from "@/queries/discovery.queries";
 import { fa } from "@/locales/fa";
 import type { CreativePromptCatalogItem } from "@/types/api";
 
@@ -26,6 +26,8 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExtractionResult | null>(null);
   const [used, setUsed] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [mode, setMode] = useState<"auto" | "manual">("auto");
   const [autoSelectionMode, setAutoSelectionMode] = useState<SelectionMode>("best_answer");
   const [manualModelId, setManualModelId] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
   const { data: modelOptions } = useExtractionModels();
   const uploadImage = useUploadDiscoveryImage();
   const extractPrompt = useExtractPrompt();
+  const renameExtraction = useRenameExtraction();
 
   const effectiveManualModelId = manualModelId ?? modelOptions?.models[0]?.name ?? null;
 
@@ -69,7 +72,10 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
               ? { imageKey: data.key, modelId: effectiveManualModelId }
               : { imageKey: data.key, selectionMode: autoSelectionMode },
             {
-              onSuccess: (res) => setResult(res),
+              onSuccess: (res) => {
+                setResult(res);
+                setNameInput(res.title);
+              },
               onError: (err) => setError(extractErrorMessage(err)),
             },
           );
@@ -86,6 +92,22 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
     setResult(null);
     setError(null);
     setUsed(false);
+    setNameInput("");
+    setNameError(null);
+  }
+
+  function handleSaveName() {
+    if (!result) return;
+    const title = nameInput.trim();
+    if (!title) return;
+    setNameError(null);
+    renameExtraction.mutate(
+      { id: result.id, title },
+      {
+        onSuccess: (updated) => setResult((prev) => (prev ? { ...prev, title: updated.title } : prev)),
+        onError: () => setNameError(fa.discover.extractPrompt.renameFailed),
+      },
+    );
   }
 
   function handleUsePrompt() {
@@ -247,6 +269,29 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
                   {result.extractedPrompt}
                 </div>
               </div>
+
+              <div>
+                <label className="mb-1 block text-xs text-slate-400">{fa.discover.extractPrompt.nameLabel}</label>
+                <div className="flex gap-2">
+                  <input
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder={fa.discover.extractPrompt.namePlaceholder}
+                    maxLength={60}
+                    className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    disabled={renameExtraction.isPending || !nameInput.trim() || nameInput.trim() === result.title}
+                    className="shrink-0 rounded-xl border border-emerald-500/30 px-3 py-2 text-xs text-emerald-300 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-600"
+                  >
+                    {fa.discover.extractPrompt.saveNameCta}
+                  </button>
+                </div>
+                {nameError && <p className="mt-1 text-[11px] text-red-400">{nameError}</p>}
+              </div>
+
               <button
                 onClick={handleUsePrompt}
                 className="w-full rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-400 transition-colors md:w-auto"

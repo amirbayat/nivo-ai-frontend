@@ -45,7 +45,7 @@ interface MessageInputProps {
   // مسیر تولید دیسکاوری کاملاً جدا از استریم چت است (ChatPage.tsx: handleGenerateCreative).
   // imagePreviews (data URL) صرفاً برای نمایش فوری عکس کاربر به‌عنوان پیام واقعی توی خود
   // مکالمه است — چیزی که سرور برمی‌گرداند فقط inputImageKeys (کلید MinIO) است
-  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[]) => void
+  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[], preserveFace?: boolean) => void
   generatingCreative?: boolean
 }
 
@@ -87,11 +87,15 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const [creativeImagePreview, setCreativeImagePreview] = useState<string | null>(null)
   const [creativeImageKey, setCreativeImageKey] = useState<string | null>(null)
   const [creativeImageError, setCreativeImageError] = useState<string | null>(null)
+  // سوییچ «تغییر ندادن چهره» — پیش‌فرض روشن؛ فقط وقتی عکس ورودی داریم اثر واقعی دارد
+  // (توی بک‌اند هم همین‌طور: بدون عکس نادیده گرفته می‌شود)
+  const [preserveFace, setPreserveFace] = useState(true)
 
   useEffect(() => {
     setCreativeImagePreview(null)
     setCreativeImageKey(null)
     setCreativeImageError(null)
+    setPreserveFace(true)
   }, [selectedCreativePrompt?.id])
 
   function handleCreativeFileSelected(file: File) {
@@ -138,6 +142,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         trimmed,
         creativeImageKey ? [creativeImageKey] : undefined,
         creativeImagePreview ? [creativeImagePreview] : undefined,
+        preserveFace,
       )
       setValue('')
       setCreativeImagePreview(null)
@@ -264,6 +269,28 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
                   </button>
                 )}
                 {creativeImageError && <p className="mt-1 text-[11px] text-red-400">{creativeImageError}</p>}
+
+                <label className="mt-2.5 flex items-center gap-2 text-xs text-slate-300">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={preserveFace}
+                    aria-label={fa.discover.preserveFaceLabel}
+                    onClick={() => setPreserveFace(v => !v)}
+                    className={clsx(
+                      'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
+                      preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
+                    )}
+                  >
+                    <span
+                      className={clsx(
+                        'inline-block size-3.5 rounded-full bg-white transition-transform',
+                        preserveFace ? 'translate-x-[18px]' : 'translate-x-[3px]',
+                      )}
+                    />
+                  </button>
+                  <span>{fa.discover.preserveFaceLabel}</span>
+                </label>
               </div>
             )}
           </div>

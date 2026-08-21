@@ -53,10 +53,14 @@ export function useProjectCustomizations(projectId: string) {
 export function useGenerateCreative() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (dto: { promptId: string; userInput?: string; projectId?: string; inputImageKeys?: string[]; model?: string }) =>
+    mutationFn: (dto: { promptId: string; userInput?: string; projectId?: string; conversationId?: string; inputImageKeys?: string[]; model?: string; preserveFace?: boolean }) =>
       api.post<CreativeGenerationResult>('/v2/discovery/generate', dto).then(r => r.data),
     // وقتی داخل یک پروژه تولید می‌شه (workspace پروژه‌ی پین‌شده) — گالری و لیست
-    // «استفاده‌های قبلی» همون پروژه باید بلافاصله نتیجه‌ی تازه رو نشون بدن
+    // «استفاده‌های قبلی» همون پروژه باید بلافاصله نتیجه‌ی تازه رو نشون بدن.
+    // نکته: تاریخچه‌ی مکالمه (keys.conv.detail) عمداً اینجا invalidate نمی‌شود — نتیجه همین‌الان
+    // با virtualMessages محلی (ChatPage) نشان داده می‌شود؛ اگر همینجا هم refetch کنیم، همون
+    // تولید یک بار از virtualMessages و یک بار از نسخه‌ی merge‌شده‌ی سرور تکراری نشان داده
+    // می‌شود. با رفرش/بازگشت بعدی به این مکالمه (remount)، سرور خودش آن را در تاریخچه می‌آورد.
     onSuccess: (_data, vars) => {
       if (!vars.projectId) return
       void qc.invalidateQueries({ queryKey: keys.discovery.gallery(vars.projectId) })
@@ -123,5 +127,15 @@ export function useExtractionHistory() {
     queryKey: keys.discovery.extractionHistory(),
     queryFn: () =>
       api.get<ExtractionHistoryItem[]>('/v2/discovery/prompt-extractions/history').then(r => r.data),
+  })
+}
+
+// اسم‌گذاری/تغییر اسم یک پرامپت استخراج‌شده‌ی خودِ کاربر
+export function useRenameExtraction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: { id: string; title: string }) =>
+      api.patch<{ id: string; title: string }>(`/v2/discovery/prompt-extractions/${dto.id}`, { title: dto.title }).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.discovery.extractionHistory() }),
   })
 }

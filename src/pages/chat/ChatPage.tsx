@@ -134,6 +134,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
     userInput: string,
     inputImageKeys?: string[],
     imagePreviews?: string[],
+    preserveFace?: boolean,
   ) {
     if (!selectedCreativePrompt) return
     setCreativeError(null)
@@ -142,7 +143,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       { id: `virtual-user-${prev.length}`, role: 'USER', content: userInput, images: imagePreviews },
     ])
     generateCreative.mutate(
-      { promptId, userInput: userInput || undefined, inputImageKeys, model: selectedModel ?? undefined },
+      { promptId, userInput: userInput || undefined, inputImageKeys, model: selectedModel ?? undefined, preserveFace, conversationId },
       {
         onSuccess: result =>
           setVirtualMessages(prev => [
@@ -192,11 +193,18 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
 
       <MessageList
         messages={data.messages}
-        extraContent={
+        extraContent={onImageClick =>
           virtualMessages.length > 0 || creativeError ? (
             <>
               {virtualMessages.map(m => (
-                <MessageBubble key={m.id} role={m.role} content={m.content} images={m.images} disableFeedback />
+                <MessageBubble
+                  key={m.id}
+                  role={m.role}
+                  content={m.content}
+                  images={m.images}
+                  disableFeedback
+                  onImageClick={onImageClick}
+                />
               ))}
               {generateCreative.isPending && <GeneratingCreativeBubble />}
               {creativeError && <p className="px-2 text-xs text-red-400">{creativeError}</p>}

@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDiscoveryGallery } from "@/queries/discovery.queries";
 import { useAuthedImageUrl } from "@/hooks/useAuthedImageUrl";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { fa } from "@/locales/fa";
 import type { CreativeGalleryItem } from "@/types/api";
 
 export function GalleryPage() {
   const navigate = useNavigate();
   const { data: items, isLoading } = useDiscoveryGallery();
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-8" dir="rtl">
@@ -37,23 +40,32 @@ export function GalleryPage() {
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
-              <GalleryCard key={item.id} item={item} />
+              <GalleryCard key={item.id} item={item} onImageClick={setLightboxSrc} />
             ))}
           </div>
         )}
       </div>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} analyticsSource="gallery" />
+      )}
     </div>
   );
 }
 
-function GalleryCard({ item }: { item: CreativeGalleryItem }) {
-  const imageUrl = useAuthedImageUrl(item.outputImageKey ? `/v2/discovery/images/${item.outputImageKey}` : "");
+function GalleryCard({ item, onImageClick }: { item: CreativeGalleryItem; onImageClick: (src: string) => void }) {
+  const imageKey = item.outputImageKey ? `/v2/discovery/images/${item.outputImageKey}` : "";
+  const imageUrl = useAuthedImageUrl(imageKey);
 
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-800/40">
       {item.outputType === "IMAGE" ? (
         imageUrl ? (
-          <img src={imageUrl} alt={item.prompt.title} className="h-48 w-full object-cover" />
+          <img
+            src={imageUrl}
+            alt={item.prompt.title}
+            onClick={() => onImageClick(imageKey)}
+            className="h-48 w-full cursor-pointer object-cover"
+          />
         ) : (
           <div className="flex h-48 items-center justify-center bg-slate-800/60">
             <div className="size-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
