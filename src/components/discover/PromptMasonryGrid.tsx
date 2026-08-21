@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { clsx } from 'clsx'
 import { parseAspectRatio } from '@/lib/aspectRatio'
 import { fa } from '@/locales/fa'
@@ -43,6 +44,28 @@ function PromptMasonryCard({ item, onSelect, disabled, selectLabel }: {
   selectLabel?: string
 }) {
   const ratio = parseAspectRatio(item.aspectRatio, item.outputType === 'TEXT' ? 4 / 3 : 1) * CARD_HEIGHT_BOOST
+  const [copied, setCopied] = useState(false)
+
+  // لینک دیپ‌لینک عمومی این سبک (StudioLinkPage) — Web Share API روی موبایل (شیت اشتراک‌گذاری
+  // بومی)، وگرنه فقط لینک را در کلیپ‌بورد کپی می‌کند
+  async function handleShare() {
+    const url = `${window.location.origin}/studio?id=${item.id}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: item.title, url })
+      } catch {
+        // کاربر شیت اشتراک‌گذاری را بسته — چیزی برای انجام نیست
+      }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // کلیپ‌بورد در دسترس نبود (مثلاً context غیر-https) — بی‌صدا نادیده می‌گیریم
+    }
+  }
 
   return (
     <div className="group relative mb-3 break-inside-avoid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 transition-colors hover:border-emerald-500/40">
@@ -66,6 +89,31 @@ function PromptMasonryCard({ item, onSelect, disabled, selectLabel }: {
         {item.isTrending && (
           <span className="absolute top-2 right-2 rounded-full bg-orange-500/90 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
             {fa.discover.trending}
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={handleShare}
+          aria-label={fa.discover.shareStyle}
+          title={fa.discover.shareStyle}
+          className="absolute top-2 left-2 flex size-7 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-emerald-500"
+        >
+          {copied ? (
+            <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5">
+              <path d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.44-9.766a.75.75 0 011.09-.144z" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5">
+              <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
+              <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+            </svg>
+          )}
+        </button>
+
+        {copied && (
+          <span className="absolute top-10 left-2 rounded-full bg-slate-950/90 px-2 py-0.5 text-[10px] text-emerald-400 backdrop-blur-sm">
+            {fa.discover.linkCopied}
           </span>
         )}
 
