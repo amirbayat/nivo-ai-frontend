@@ -143,6 +143,7 @@ export interface CreativePromptCatalogItem {
   isTrending: boolean
   tags: string[]
   sortOrder: number
+  hasSourceImage: boolean
 }
 
 // یک ردیف تاریخچه‌ی «تبدیل عکس به پرامپت» — همون CreativePromptCatalogItem + وضعیت بررسی ادمین،

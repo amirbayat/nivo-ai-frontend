@@ -53,7 +53,7 @@ export function useProjectCustomizations(projectId: string) {
 export function useGenerateCreative() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (dto: { promptId: string; userInput?: string; projectId?: string; conversationId?: string; inputImageKeys?: string[]; model?: string; preserveFace?: boolean }) =>
+    mutationFn: (dto: { promptId: string; userInput?: string; projectId?: string; conversationId?: string; inputImageKeys?: string[]; model?: string; preserveFace?: boolean; useSourceImage?: boolean }) =>
       api.post<CreativeGenerationResult>('/v2/discovery/generate', dto).then(r => r.data),
     // وقتی داخل یک پروژه تولید می‌شه (workspace پروژه‌ی پین‌شده) — گالری و لیست
     // «استفاده‌های قبلی» همون پروژه باید بلافاصله نتیجه‌ی تازه رو نشون بدن.

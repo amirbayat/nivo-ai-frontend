@@ -44,7 +44,7 @@ interface MessageInputProps {
   // مسیر تولید دیسکاوری کاملاً جدا از استریم چت است (ChatPage.tsx: handleGenerateCreative).
   // imagePreviews (data URL) صرفاً برای نمایش فوری عکس کاربر به‌عنوان پیام واقعی توی خود
   // مکالمه است — چیزی که سرور برمی‌گرداند فقط inputImageKeys (کلید MinIO) است
-  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[], preserveFace?: boolean) => void
+  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[], preserveFace?: boolean, useSourceImage?: boolean) => void
   generatingCreative?: boolean
 }
 
@@ -84,12 +84,16 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   // سوییچ «تغییر ندادن چهره» — پیش‌فرض روشن؛ فقط وقتی عکس ورودی داریم اثر واقعی دارد
   // (توی بک‌اند هم همین‌طور: بدون عکس نادیده گرفته می‌شود)
   const [preserveFace, setPreserveFace] = useState(true)
+  // سوییچ «استفاده از عکس اصلی» — فقط برای سبک‌های استخراج‌شده (hasSourceImage) نشون داده
+  // می‌شود؛ پیش‌فرض خاموش چون نیوو اضافه کسر می‌کند (creditConfig.sourceImageAccuracyCreditCost)
+  const [useSourceImage, setUseSourceImage] = useState(false)
 
   useEffect(() => {
     setCreativeImagePreview(null)
     setCreativeImageKey(null)
     setCreativeImageError(null)
     setPreserveFace(true)
+    setUseSourceImage(false)
   }, [selectedCreativePrompt?.id])
 
   // همین سوییچ برای پیوست عکس در چت معمولی (بدون سبک استودیو) هم استفاده می‌شود — با خالی‌شدن
@@ -132,6 +136,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         creativeImageKey ? [creativeImageKey] : undefined,
         creativeImagePreview ? [creativeImagePreview] : undefined,
         preserveFace,
+        useSourceImage,
       )
       setValue('')
       setCreativeImagePreview(null)
@@ -213,6 +218,32 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
             <p className="text-[11px] text-emerald-400/80">{fa.discover.selectedStyleLabel}</p>
             <p className="truncate text-sm font-semibold text-slate-100">{selectedCreativePrompt.title}</p>
             <p className="mt-0.5 text-xs text-emerald-400">{fa.discover.creditCost(selectedCreativePrompt.creditCost)}</p>
+
+            {/* style direction:ltr لازم است — توضیح کامل بالای سوییچ preserveFace */}
+            {selectedCreativePrompt.hasSourceImage && (
+              <label className="mt-2 flex items-center gap-2 text-xs text-slate-300">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={useSourceImage}
+                  aria-label={fa.discover.useSourceImageLabel}
+                  onClick={() => setUseSourceImage(v => !v)}
+                  className={clsx(
+                    'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
+                    useSourceImage ? 'bg-emerald-500' : 'bg-slate-600',
+                  )}
+                  style={{ direction: 'ltr' }}
+                >
+                  <span
+                    className={clsx(
+                      'inline-block size-3.5 rounded-full bg-white transition-transform',
+                      useSourceImage ? 'translate-x-[18px]' : 'translate-x-[3px]',
+                    )}
+                  />
+                </button>
+                <span>{fa.discover.useSourceImageLabel}</span>
+              </label>
+            )}
 
             {selectedCreativePrompt.outputType === 'IMAGE' && (
               <div className="mt-2">

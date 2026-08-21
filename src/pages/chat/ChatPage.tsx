@@ -135,6 +135,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
     inputImageKeys?: string[],
     imagePreviews?: string[],
     preserveFace?: boolean,
+    useSourceImage?: boolean,
   ) {
     if (!selectedCreativePrompt) return
     setCreativeError(null)
@@ -143,7 +144,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       { id: `virtual-user-${prev.length}`, role: 'USER', content: userInput, images: imagePreviews },
     ])
     generateCreative.mutate(
-      { promptId, userInput: userInput || undefined, inputImageKeys, model: selectedModel ?? undefined, preserveFace, conversationId },
+      { promptId, userInput: userInput || undefined, inputImageKeys, model: selectedModel ?? undefined, preserveFace, useSourceImage, conversationId },
       {
         onSuccess: result =>
           setVirtualMessages(prev => [
