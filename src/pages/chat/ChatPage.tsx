@@ -142,7 +142,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       { id: `virtual-user-${prev.length}`, role: 'USER', content: userInput, images: imagePreviews },
     ])
     generateCreative.mutate(
-      { promptId, userInput: userInput || undefined, inputImageKeys, model: selectedModel },
+      { promptId, userInput: userInput || undefined, inputImageKeys, model: selectedModel ?? undefined },
       {
         onSuccess: result =>
           setVirtualMessages(prev => [
