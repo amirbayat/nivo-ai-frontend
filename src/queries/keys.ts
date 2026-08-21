@@ -26,6 +26,7 @@ export const keys = {
     gallery: (projectId?: string) => ['discovery', 'gallery', projectId ?? 'all'] as const,
     customizations: (projectId: string) => ['discovery', 'customizations', projectId] as const,
     extractionModels: () => ['discovery', 'extraction-models'] as const,
+    extractionHistory: () => ['discovery', 'extraction-history'] as const,
   },
   usage: {
     today: () => ['usage', 'today'] as const,

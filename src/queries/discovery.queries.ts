@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
-import type { CreativePromptCatalogItem, CreativeGenerationResult, CreativeCategory, CreativeGalleryItem, ProjectCustomization } from '@/types/api'
+import type { CreativePromptCatalogItem, CreativeGenerationResult, CreativeCategory, CreativeGalleryItem, ProjectCustomization, ExtractionHistoryItem } from '@/types/api'
 
 // docs/PRD-discovery-and-credits.md بخش ۵.۳/۵.۴ — کاتالوگ سبک‌های آماده + تولید + درخت دسته‌بندی
 
@@ -104,6 +104,7 @@ export function useExtractionModels() {
 
 // نتیجه دقیقاً شکل CreativePromptCatalogItem + extractedPrompt (متن استخراج‌شده) + usedModel
 export function useExtractPrompt() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (dto: { imageKey: string; modelId?: string; selectionMode?: 'cost_optimized' | 'best_answer' }) =>
       api
@@ -112,5 +113,15 @@ export function useExtractPrompt() {
           dto,
         )
         .then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.discovery.extractionHistory() }),
+  })
+}
+
+// تاریخچه‌ی استخراج‌های قبلی کاربر — برای استفاده‌ی دوباره از یک پرامپت قبلاً استخراج‌شده
+export function useExtractionHistory() {
+  return useQuery({
+    queryKey: keys.discovery.extractionHistory(),
+    queryFn: () =>
+      api.get<ExtractionHistoryItem[]>('/v2/discovery/prompt-extractions/history').then(r => r.data),
   })
 }

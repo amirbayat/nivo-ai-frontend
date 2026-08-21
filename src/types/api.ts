@@ -145,6 +145,15 @@ export interface CreativePromptCatalogItem {
   sortOrder: number
 }
 
+// یک ردیف تاریخچه‌ی «تبدیل عکس به پرامپت» — همون CreativePromptCatalogItem + وضعیت بررسی ادمین،
+// متن استخراج‌شده و تاریخ. مستقیماً قابل‌پاس‌دادن به onUsePrompt (همون handleSelectPrompt چت) است.
+export interface ExtractionHistoryItem extends CreativePromptCatalogItem {
+  extractedPrompt: string
+  reviewStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null
+  isActive: boolean
+  createdAt: string
+}
+
 export interface CreativeGalleryItem {
   id: string
   outputType: 'IMAGE' | 'TEXT'

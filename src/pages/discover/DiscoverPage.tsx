@@ -6,6 +6,7 @@ import { useCreateConversation } from "@/queries/conversation.queries";
 import { useChatStore } from "@/store/chat.store";
 import { PromptMasonryGrid } from "@/components/discover/PromptMasonryGrid";
 import { PromptExtractionCard } from "@/components/discover/PromptExtractionCard";
+import { ExtractionHistoryList } from "@/components/discover/ExtractionHistoryList";
 import { fa } from "@/locales/fa";
 import type { CreativePromptCatalogItem, CreativeCategory } from "@/types/api";
 
@@ -86,6 +87,7 @@ export function DiscoverPage() {
         </div>
 
         <PromptExtractionCard onUsePrompt={handleSelectPrompt} />
+        <ExtractionHistoryList onUsePrompt={handleSelectPrompt} />
 
         <div className="flex flex-col gap-6 md:flex-row">
           {/* سایدبار دسته‌بندی — سمت راست (اولین فرزند در RTL) */}

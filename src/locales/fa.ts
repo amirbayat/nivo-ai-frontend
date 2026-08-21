@@ -132,6 +132,12 @@ export const fa = {
       optimalUsageDescription: 'ارزان‌ترین مدلِ توانا انتخاب می‌شود — کمترین نیوو از حسابت کم می‌شود.',
       selectModelPlaceholder: 'یک مدل انتخاب کن',
       usedModelLabel: (name: string) => `با مدل ${name} استخراج شد`,
+      historyTitle: 'استخراج‌های قبلی من',
+      historyEmpty: 'هنوز عکسی برای استخراج پرامپت آپلود نکردی',
+      historyStatusPending: 'در انتظار بررسی',
+      historyStatusApproved: 'تایید شده',
+      historyStatusRejected: 'رد شده',
+      historyUseCta: 'استفاده دوباره',
     },
   },
   gallery: {
