@@ -99,6 +99,7 @@ export const fa = {
     preserveFaceLabel: 'تغییر ندادن چهره',
     preserveFaceHint: 'چهره‌ی داخل عکست دقیقاً همون‌طور که هست حفظ می‌شه',
     useSourceImageLabel: 'استفاده از عکس اصلی (برای نتیجه‌ی دقیق‌تر)',
+    useSourceImageExtraCost: (n: number) => `(+${n.toLocaleString('fa-IR')} نیوو)`,
     resultTitle: 'نتیجه',
     generateFailed: 'تولید ناموفق بود، دوباره تلاش کن',
     close: 'بستن',

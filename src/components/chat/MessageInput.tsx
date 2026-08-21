@@ -87,6 +87,11 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   // سوییچ «استفاده از عکس اصلی» — فقط برای سبک‌های استخراج‌شده (hasSourceImage) نشون داده
   // می‌شود؛ پیش‌فرض خاموش چون نیوو اضافه کسر می‌کند (creditConfig.sourceImageAccuracyCreditCost)
   const [useSourceImage, setUseSourceImage] = useState(false)
+  // قیمت واقعی که با سوییچ بالا فعلاً کسر می‌شه — همون چیزی که generateImageOutput سمت سرور
+  // هم حساب می‌کنه (prompt.creditCost + creditConfig.sourceImageAccuracyCreditCost)
+  const effectiveCreditCost =
+    (selectedCreativePrompt?.creditCost ?? 0) +
+    (useSourceImage ? (selectedCreativePrompt?.sourceImageAccuracyCreditCost ?? 0) : 0)
 
   useEffect(() => {
     setCreativeImagePreview(null)
@@ -217,7 +222,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-emerald-400/80">{fa.discover.selectedStyleLabel}</p>
             <p className="truncate text-sm font-semibold text-slate-100">{selectedCreativePrompt.title}</p>
-            <p className="mt-0.5 text-xs text-emerald-400">{fa.discover.creditCost(selectedCreativePrompt.creditCost)}</p>
+            <p className="mt-0.5 text-xs text-emerald-400">{fa.discover.creditCost(effectiveCreditCost)}</p>
 
             {/* style direction:ltr لازم است — توضیح کامل بالای سوییچ preserveFace */}
             {selectedCreativePrompt.hasSourceImage && (
@@ -242,6 +247,9 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
                   />
                 </button>
                 <span>{fa.discover.useSourceImageLabel}</span>
+                <span className="text-amber-400/90">
+                  {fa.discover.useSourceImageExtraCost(selectedCreativePrompt.sourceImageAccuracyCreditCost)}
+                </span>
               </label>
             )}
 
