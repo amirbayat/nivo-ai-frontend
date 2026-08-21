@@ -19,8 +19,7 @@ export function useChat(conversationId: string) {
   } = useChatStore()
 
   const sendMessage = useCallback(
-    async (content: string, images?: string[], model?: string, generateImage?: boolean, preserveFace?: boolean) => {
-      const effectiveModel = model ?? selectedModel ?? undefined
+    async (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => {
       abortRef.current?.abort()
       const ctrl = new AbortController()
       abortRef.current = ctrl
@@ -28,16 +27,18 @@ export function useChat(conversationId: string) {
       resetStreaming()
       setChatError(null)
       setIsStreaming(true)
-      if (generateImage) setIsGeneratingImage(true)
+      // اینجا هنوز نمی‌دانیم این پیام قرار است عکس تولید کند یا نه — تشخیص کاملاً سمت بک‌اند
+      // است (classifyImageIntent)؛ setIsGeneratingImage با رویداد SSE «image-generation-started»
+      // (پایین‌تر) روشن می‌شود، همین که سرور خودش تشخیص داد
 
       // فقط متادیتا — متن واقعی پیام هرگز به events-backend فرستاده نمی‌شود
       track('message_sent', {
         conversationId,
-        model: effectiveModel,
+        model: selectedModel,
+        imageModel,
         thinkingMode,
         contentLength: content.length,
         imageCount: images?.length ?? 0,
-        generateImage: !!generateImage,
       })
 
       // Optimistic: add user message to cache immediately so it shows before the stream starts
@@ -69,9 +70,9 @@ export function useChat(conversationId: string) {
             },
             body: JSON.stringify({
               content,
-              ...(effectiveModel ? { model: effectiveModel } : {}),
+              ...(selectedModel ? { model: selectedModel } : {}),
+              ...(imageModel ? { imageModel } : {}),
               ...(images?.length ? { images } : {}),
-              ...(generateImage ? { generateImage: true } : {}),
               // پیش‌فرض روشن است — فقط وقتی صریحاً خاموش شده باشد نیاز به فرستادن دارد
               ...(images?.length && preserveFace === false ? { preserveFace: false } : {}),
               thinkingMode,
@@ -151,7 +152,7 @@ export function useChat(conversationId: string) {
               // docs/PRD-chat-images.md بخش ۵.۵ — تولید عکس یک‌جا می‌آید (نه چانک‌به‌چانک)؛
               // بلافاصله در کش نشانده می‌شود تا کاربر منتظر invalidate/refetch نماند
               if (parsed.info === 'image-generated' && parsed.image) {
-                track('image_generated', { conversationId, model: effectiveModel })
+                track('image_generated', { conversationId, imageModel })
                 const image = parsed.image
                 const messageId = parsed.messageId ?? `img-${Date.now()}`
                 qc.setQueryData<ConversationDetail>(keys.conv.detail(conversationId), old => {

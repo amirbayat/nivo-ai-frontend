@@ -18,8 +18,7 @@ import type { CreativePromptCatalogItem } from '@/types/api'
 interface PendingMessage {
   content: string
   images?: string[]
-  model?: string
-  generateImage?: boolean
+  imageModel?: string
   preserveFace?: boolean
 }
 
@@ -38,14 +37,13 @@ export function ChatPage() {
   const handleFirstMessage = async (
     content: string,
     images?: string[],
-    model?: string,
-    generateImage?: boolean,
+    imageModel?: string,
     preserveFace?: boolean,
   ) => {
     try {
       const conv = await createConv.mutateAsync({ model: 'optimal', projectId })
       navigate(`/chat/${conv.id}`, {
-        state: { initialMessage: { content, images, model, generateImage, preserveFace } },
+        state: { initialMessage: { content, images, imageModel, preserveFace } },
         replace: true,
       })
     } catch {
@@ -122,7 +120,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
     if (msg && !isLoading && data) {
       pendingRef.current = null
       window.history.replaceState({}, '')
-      void sendMessage(msg.content, msg.images, msg.model, msg.generateImage, msg.preserveFace)
+      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace)
     }
   }, [isLoading, data, sendMessage])
 
@@ -244,7 +242,7 @@ function GeneratingCreativeBubble() {
 }
 
 function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
-  onSend: (content: string, images?: string[], model?: string, generateImage?: boolean, preserveFace?: boolean) => void
+  onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
   onSelectCreativePrompt: (item: CreativePromptCatalogItem) => void
   isCreating: boolean
 }) {

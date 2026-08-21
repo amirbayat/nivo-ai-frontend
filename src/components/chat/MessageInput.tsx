@@ -35,7 +35,7 @@ function resizeImage(file: File): Promise<string> {
 }
 
 interface MessageInputProps {
-  onSend: (content: string, images?: string[], model?: string, generateImage?: boolean, preserveFace?: boolean) => void
+  onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
   disabled?: boolean
   // برخلاف disabled، فقط دکمه‌ی ارسال (و Enter) را غیرفعال می‌کند — کاربر همچنان می‌تواند
   // در حین تولید پاسخ هوش مصنوعی تایپ کند و پیام بعدی‌اش را آماده کند
@@ -67,12 +67,10 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const imageGenModels = useMemo(() => {
     return (catalog ?? []).filter(m => m.supportsImageGen)
   }, [catalog])
-  const hasImageGenModels = imageGenModels.length > 0
   const pinnedImageGenModel = imageGenModels.find(m => m.name === selectedImageGenModel)
 
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
-  const [imageMode, setImageMode] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const creativeFileRef = useRef<HTMLInputElement>(null)
@@ -118,17 +116,6 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     reader.readAsDataURL(file)
   }
 
-  function toggleImageMode() {
-    if (!hasImageGenModels) return
-    setImageMode(v => {
-      const next = !v
-      track('image_gen_mode_toggled', { enabled: next })
-      return next
-    })
-    // عکس‌های پیوست‌شده نگه داشته می‌شوند — اگر کاربر قبلاً عکس آپلود کرده و بعد حالت تولید عکس
-    // را فعال کند، یعنی می‌خواهد همون عکس‌ها ویرایش/ترکیب شوند (images/edits)، نه یک تولید از صفر
-  }
-
   const submit = () => {
     const trimmed = value.trim()
     if (disabled || sending) return
@@ -152,14 +139,14 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
       return
     }
-    if (imageMode) {
-      if (!trimmed) return
-      track('image_gen_requested', { model: pinnedImageGenModel?.name, hasSourceImages: images.length > 0 })
-      onSend(trimmed, images.length ? images : undefined, pinnedImageGenModel?.name, true, preserveFace)
-    } else {
-      if (!trimmed && !images.length) return
-      onSend(trimmed, images.length ? images : undefined, undefined, undefined, preserveFace)
+    if (!trimmed && !images.length) return
+    if (images.length) {
+      track('image_gen_requested', { model: pinnedImageGenModel?.name, hasSourceImages: true })
     }
+    // imageModel همیشه پاس داده می‌شود (چه عکسی ضمیمه باشد چه نه) — تشخیص اینکه این پیام واقعاً
+    // باید عکس تولید/ویرایش کند یا صرفاً چت/تحلیل معمولی است، کاملاً سمت بک‌اند انجام می‌شود
+    // (classifyImageIntent در chat.service.ts)، نه اینجا
+    onSend(trimmed, images.length ? images : undefined, pinnedImageGenModel?.name, preserveFace)
     setValue('')
     setImages([])
     if (textareaRef.current) {
@@ -209,9 +196,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const canSend = selectedCreativePrompt
     ? !disabled && !sending && !generatingCreative && !uploadDiscoveryImage.isPending &&
       (!selectedCreativePrompt.requiresUserImage || Boolean(creativeImageKey))
-    : imageMode
-      ? Boolean(value.trim()) && !disabled && !sending
-      : (value.trim() || images.length > 0) && !disabled && !sending
+    : (value.trim() || images.length > 0) && !disabled && !sending
 
   return (
     <div className="border-t border-slate-700/50 p-4">
@@ -329,7 +314,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         </div>
       )}
 
-      {!selectedCreativePrompt && imageMode && (
+      {!selectedCreativePrompt && images.length > 0 && pinnedImageGenModel && (
         <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-fuchsia-300/80">
           <svg viewBox="0 0 24 24" fill="none" className="size-3.5 shrink-0">
             <path
@@ -337,13 +322,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
               fill="currentColor"
             />
           </svg>
-          <span>
-            {images.length > 0
-              ? `ویرایش/ترکیب همین ${images.length} عکس بر اساس توصیفت`
-              : pinnedImageGenModel
-                ? `با مدل «${pinnedImageGenModel.displayName}» ساخته می‌شود`
-                : 'کیفیت و ابعاد بر اساس توصیفت و اعتبار حسابت خودکار انتخاب می‌شود'}
-          </span>
+          <span>{`اگر بخوای این عکس(ها) رو ویرایش/ترکیب کنم، با مدل «${pinnedImageGenModel.displayName}» انجام می‌شه`}</span>
         </div>
       )}
 
@@ -417,40 +396,14 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
               'shrink-0 size-7 rounded-lg flex items-center justify-center transition-colors',
               images.length >= MAX_IMAGES || disabled
                 ? 'text-slate-600 cursor-not-allowed'
-                : imageMode
-                  ? 'text-fuchsia-300/70 hover:text-fuchsia-300 hover:bg-slate-700'
-                  : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-700',
+                : 'text-slate-400 hover:text-fuchsia-400 hover:bg-slate-700',
             )}
-            aria-label={imageMode ? 'پیوست عکس برای ویرایش/ترکیب' : 'پیوست تصویر'}
+            aria-label="پیوست عکس برای ویرایش/ترکیب"
           >
             <svg viewBox="0 0 24 24" fill="none" className="size-5">
               <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" />
               <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
               <path d="m3 15 5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        )}
-
-        {!selectedCreativePrompt && hasImageGenModels && (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={toggleImageMode}
-            className={clsx(
-              'shrink-0 size-7 rounded-lg flex items-center justify-center transition-all duration-200',
-              imageMode
-                ? 'bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-[0_0_12px_rgba(217,70,239,0.5)]'
-                : 'text-slate-400 hover:text-fuchsia-400 hover:bg-slate-700',
-              disabled && 'cursor-not-allowed opacity-50',
-            )}
-            aria-label="حالت تولید عکس"
-            aria-pressed={imageMode}
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="size-5">
-              <path
-                d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z"
-                fill="currentColor"
-              />
             </svg>
           </button>
         )}
@@ -466,8 +419,8 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
           placeholder={
             selectedCreativePrompt
               ? fa.discover.inputPlaceholder
-              : imageMode
-                ? images.length > 0 ? 'چی می‌خوای با این عکس(ها) درست کنم؟' : 'چی می‌خوای برات بسازم؟'
+              : images.length > 0
+                ? 'چیزی درباره‌ی این عکس(ها) بپرس، یا بخواه ویرایششون کنم'
                 : fa.chat.placeholder
           }
           rows={1}
@@ -478,19 +431,19 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
           style={{ minHeight: '24px' }}
         />
 
-        {/* در حالت تولید عکس/سبک دیسکاوری، reasoning effort اثری ندارد — هردو کاملاً جدا از streamText چت‌اند */}
-        {!imageMode && !selectedCreativePrompt && <ThinkingModeToggle disabled={disabled} />}
+        {/* در حالت سبک دیسکاوری reasoning effort اثری ندارد — کاملاً جدا از streamText چت است.
+            برای پیوست عکس معمولی، چون تشخیص تحلیل/ویرایش سمت بک‌اند است، ممکن است مسیر چت
+            معمولی طی شود، پس thinkingMode همچنان معنا دارد و مخفی نمی‌شود */}
+        {!selectedCreativePrompt && <ThinkingModeToggle disabled={disabled} />}
 
         <button
           onClick={submit}
           disabled={!canSend}
           className={clsx(
             'shrink-0 size-9 rounded-xl flex items-center justify-center transition-all',
-            canSend && imageMode
-              ? 'bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white hover:brightness-110 active:scale-95'
-              : canSend
-                ? 'bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95'
-                : 'bg-slate-700 text-slate-500 cursor-not-allowed',
+            canSend
+              ? 'bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95'
+              : 'bg-slate-700 text-slate-500 cursor-not-allowed',
           )}
         >
           <svg viewBox="0 0 24 24" fill="none" className="size-4 rotate-180">
