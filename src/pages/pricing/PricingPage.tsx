@@ -6,9 +6,9 @@ import { GatewayPickerModal } from "@/components/payment/GatewayPickerModal";
 import { fa } from "@/locales/fa";
 import type { CreditPackage } from "@/types/api";
 
-// تخمین دوستانه («حدوداً چندتا عکس/پیام میشه آورد») — نه فرمول دقیق؛ میانگین creditCost سبک‌های
-// عکس دیسکاوری فعلی (seed) حدود ۷ نیوو است، و یک پیام معمولی چت حدود ۱ نیوو
-const CREDITS_PER_IMAGE_ESTIMATE = 7;
+// تخمین دوستانه («حدوداً چندتا عکس/پیام میشه آورد») — نه فرمول دقیق؛ creditCost همه‌ی سبک‌های
+// عکس دیسکاوری یکسان ۱۶ نیوو است، و یک پیام معمولی چت حدود ۱ نیوو
+const CREDITS_PER_IMAGE_ESTIMATE = 16;
 const CREDITS_PER_MESSAGE_ESTIMATE = 1;
 
 // debounce ساده‌ی مقدار — برای این‌که با هر کلیدضربه کوئری قیمت زنده نره سمت سرور

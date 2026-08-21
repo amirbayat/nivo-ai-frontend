@@ -924,10 +924,10 @@ function ChatbotSection() {
   )
 }
 
-// ~۷ نیوو میانگین هزینه‌ی سبک‌های عکس، ~۱ نیوو میانگین هر پیام معمولی — همون تخمین دوستانه‌ی
+// creditCost همه‌ی سبک‌های عکس یکسان ۱۶ نیوو، ~۱ نیوو میانگین هر پیام معمولی — همون تخمین دوستانه‌ی
 // PricingPage.tsx (نه فرمول دقیق)، فقط اینجا هم تکرار شده تا لندینگ import مستقیم از یک صفحه‌ی
 // پشت‌ ProtectedRoute نداشته باشد
-const CREDITS_PER_IMAGE_ESTIMATE = 7
+const CREDITS_PER_IMAGE_ESTIMATE = 16
 const CREDITS_PER_MESSAGE_ESTIMATE = 1
 
 // جایگزین بخش قدیمی «پلن‌های ماهانه» (اکو/پلاس) — دیگر اشتراک ماهانه نداریم، مدل فروش الان
