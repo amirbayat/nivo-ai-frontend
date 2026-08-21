@@ -55,22 +55,36 @@ export function GalleryPage() {
 function GalleryCard({ item, onImageClick }: { item: CreativeGalleryItem; onImageClick: (src: string) => void }) {
   const imageKey = item.outputImageKey ? `/v2/discovery/images/${item.outputImageKey}` : "";
   const imageUrl = useAuthedImageUrl(imageKey);
+  // عکس ورودی‌ای که خود کاربر برای ویرایش فرستاده بود — قبلاً هیچ‌جا نشون داده نمی‌شد، فقط
+  // نتیجه‌ی هوش مصنوعی. اولین عکس ورودی کافی است (بیشتر سبک‌ها یک عکس ورودی دارند)
+  const inputKey = item.inputImageKeys?.[0] ? `/v2/discovery/images/${item.inputImageKeys[0]}` : "";
+  const inputImageUrl = useAuthedImageUrl(inputKey);
 
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-800/40">
       {item.outputType === "IMAGE" ? (
-        imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={item.prompt.title}
-            onClick={() => onImageClick(imageKey)}
-            className="h-48 w-full cursor-pointer object-cover"
-          />
-        ) : (
-          <div className="flex h-48 items-center justify-center bg-slate-800/60">
-            <div className="size-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-          </div>
-        )
+        <div className="relative">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={item.prompt.title}
+              onClick={() => onImageClick(imageKey)}
+              className="h-48 w-full cursor-pointer object-cover"
+            />
+          ) : (
+            <div className="flex h-48 items-center justify-center bg-slate-800/60">
+              <div className="size-6 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+            </div>
+          )}
+          {inputImageUrl && (
+            <img
+              src={inputImageUrl}
+              alt="عکس ورودی شما"
+              onClick={e => { e.stopPropagation(); onImageClick(inputKey) }}
+              className="absolute bottom-2 right-2 size-14 cursor-pointer rounded-lg border-2 border-slate-900 object-cover shadow-lg"
+            />
+          )}
+        </div>
       ) : (
         <p className="line-clamp-6 whitespace-pre-wrap p-4 text-xs leading-relaxed text-slate-300">
           {item.outputText}

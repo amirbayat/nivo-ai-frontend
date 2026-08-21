@@ -157,6 +157,7 @@ export interface ExtractionHistoryItem extends CreativePromptCatalogItem {
 export interface CreativeGalleryItem {
   id: string
   outputType: 'IMAGE' | 'TEXT'
+  inputImageKeys: string[] | null
   outputImageKey: string | null
   outputText: string | null
   creditCost: number

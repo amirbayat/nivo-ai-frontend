@@ -35,7 +35,7 @@ function resizeImage(file: File): Promise<string> {
 }
 
 interface MessageInputProps {
-  onSend: (content: string, images?: string[], model?: string, generateImage?: boolean) => void
+  onSend: (content: string, images?: string[], model?: string, generateImage?: boolean, preserveFace?: boolean) => void
   disabled?: boolean
   // برخلاف disabled، فقط دکمه‌ی ارسال (و Enter) را غیرفعال می‌کند — کاربر همچنان می‌تواند
   // در حین تولید پاسخ هوش مصنوعی تایپ کند و پیام بعدی‌اش را آماده کند
@@ -94,6 +94,12 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     setPreserveFace(true)
   }, [selectedCreativePrompt?.id])
 
+  // همین سوییچ برای پیوست عکس در چت معمولی (بدون سبک استودیو) هم استفاده می‌شود — با خالی‌شدن
+  // عکس‌های پیوست‌شده (ارسال یا حذف همه) دوباره به پیش‌فرض روشن برمی‌گردد
+  useEffect(() => {
+    if (!selectedCreativePrompt && images.length === 0) setPreserveFace(true)
+  }, [selectedCreativePrompt, images.length])
+
   function handleCreativeFileSelected(file: File) {
     setCreativeImageError(null)
     setCreativeImageKey(null)
@@ -149,10 +155,10 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     if (imageMode) {
       if (!trimmed) return
       track('image_gen_requested', { model: pinnedImageGenModel?.name, hasSourceImages: images.length > 0 })
-      onSend(trimmed, images.length ? images : undefined, pinnedImageGenModel?.name, true)
+      onSend(trimmed, images.length ? images : undefined, pinnedImageGenModel?.name, true, preserveFace)
     } else {
       if (!trimmed && !images.length) return
-      onSend(trimmed, images.length ? images : undefined)
+      onSend(trimmed, images.length ? images : undefined, undefined, undefined, preserveFace)
     }
     setValue('')
     setImages([])
@@ -267,7 +273,12 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
                 {creativeImageError && <p className="mt-1 text-[11px] text-red-400">{creativeImageError}</p>}
 
                 {/* فقط وقتی عکس ورودی واقعاً اضافه شده باشد نشون داده می‌شود — بدون عکس این
-                    سوییچ اصلاً اثری ندارد (توضیح بالای preserveFace) */}
+                    سوییچ اصلاً اثری ندارد (توضیح بالای preserveFace).
+                    style direction:ltr روی خودِ دکمه لازم است: index.css یک قانون سراسری
+                    `* { direction: rtl }` دارد که specificity بالاتری از attribute دیر
+                    `dir="ltr"` دارد و آن را بی‌اثر می‌کند؛ بدونش این فلکس تک-فرزندی
+                    flex-start را از راست می‌گیرد و knob با translate-x از کادر سوییچ بیرون
+                    می‌زند (نه صرفاً جهتش برعکس می‌شود) */}
                 {creativeImagePreview && (
                   <label className="mt-2.5 flex items-center gap-2 text-xs text-slate-300">
                     <button
@@ -280,12 +291,12 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
                         'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
                         preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
                       )}
+                      style={{ direction: 'ltr' }}
                     >
                       <span
                         className={clsx(
                           'inline-block size-3.5 rounded-full bg-white transition-transform',
-                          // در RTL باید معکوس حالت LTR باشد: روشن → چپ، خاموش → راست
-                          preserveFace ? 'translate-x-[3px]' : 'translate-x-[18px]',
+                          preserveFace ? 'translate-x-[18px]' : 'translate-x-[3px]',
                         )}
                       />
                     </button>
@@ -355,6 +366,31 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
             </div>
           ))}
         </div>
+      )}
+
+      {!selectedCreativePrompt && images.length > 0 && (
+        <label className="mb-2 flex items-center gap-2 text-xs text-slate-300">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={preserveFace}
+            aria-label={fa.discover.preserveFaceLabel}
+            onClick={() => setPreserveFace(v => !v)}
+            className={clsx(
+              'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
+              preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
+            )}
+            style={{ direction: 'ltr' }}
+          >
+            <span
+              className={clsx(
+                'inline-block size-3.5 rounded-full bg-white transition-transform',
+                preserveFace ? 'translate-x-[18px]' : 'translate-x-[3px]',
+              )}
+            />
+          </button>
+          <span>{fa.discover.preserveFaceLabel}</span>
+        </label>
       )}
 
       <div

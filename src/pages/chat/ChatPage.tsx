@@ -20,6 +20,7 @@ interface PendingMessage {
   images?: string[]
   model?: string
   generateImage?: boolean
+  preserveFace?: boolean
 }
 
 export function ChatPage() {
@@ -39,11 +40,12 @@ export function ChatPage() {
     images?: string[],
     model?: string,
     generateImage?: boolean,
+    preserveFace?: boolean,
   ) => {
     try {
       const conv = await createConv.mutateAsync({ model: 'optimal', projectId })
       navigate(`/chat/${conv.id}`, {
-        state: { initialMessage: { content, images, model, generateImage } },
+        state: { initialMessage: { content, images, model, generateImage, preserveFace } },
         replace: true,
       })
     } catch {
@@ -120,7 +122,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
     if (msg && !isLoading && data) {
       pendingRef.current = null
       window.history.replaceState({}, '')
-      void sendMessage(msg.content, msg.images, msg.model, msg.generateImage)
+      void sendMessage(msg.content, msg.images, msg.model, msg.generateImage, msg.preserveFace)
     }
   }, [isLoading, data, sendMessage])
 
@@ -242,7 +244,7 @@ function GeneratingCreativeBubble() {
 }
 
 function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
-  onSend: (content: string, images?: string[], model?: string, generateImage?: boolean) => void
+  onSend: (content: string, images?: string[], model?: string, generateImage?: boolean, preserveFace?: boolean) => void
   onSelectCreativePrompt: (item: CreativePromptCatalogItem) => void
   isCreating: boolean
 }) {

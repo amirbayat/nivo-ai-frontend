@@ -29,7 +29,7 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
   const [nameInput, setNameInput] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [mode, setMode] = useState<"auto" | "manual">("auto");
-  const [autoSelectionMode, setAutoSelectionMode] = useState<SelectionMode>("best_answer");
+  const [autoSelectionMode, setAutoSelectionMode] = useState<SelectionMode>("cost_optimized");
   const [manualModelId, setManualModelId] = useState<string | null>(null);
 
   const { data: modelOptions } = useExtractionModels();

@@ -19,7 +19,7 @@ export function useChat(conversationId: string) {
   } = useChatStore()
 
   const sendMessage = useCallback(
-    async (content: string, images?: string[], model?: string, generateImage?: boolean) => {
+    async (content: string, images?: string[], model?: string, generateImage?: boolean, preserveFace?: boolean) => {
       const effectiveModel = model ?? selectedModel ?? undefined
       abortRef.current?.abort()
       const ctrl = new AbortController()
@@ -72,6 +72,8 @@ export function useChat(conversationId: string) {
               ...(effectiveModel ? { model: effectiveModel } : {}),
               ...(images?.length ? { images } : {}),
               ...(generateImage ? { generateImage: true } : {}),
+              // پیش‌فرض روشن است — فقط وقتی صریحاً خاموش شده باشد نیاز به فرستادن دارد
+              ...(images?.length && preserveFace === false ? { preserveFace: false } : {}),
               thinkingMode,
             }),
           },
