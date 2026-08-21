@@ -89,10 +89,10 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
   // سرویس مسیریاب مدل خودش بین مدل‌های مجاز پلن انتخاب می‌کند (docs/PRD-model-selection-modes.md)
   const options: string[] = [COST_OPTIMIZED_MODE, BEST_ANSWER_MODE, ...topModels]
 
-  // pick active: selectedModel if valid, else fallback to currentModel or best-answer mode
+  // pick active: selectedModel if valid, else fallback to currentModel or cost-optimized mode
   const active = (selectedModel && [...AUTO_MODES, ...allowedModels].includes(selectedModel))
     ? selectedModel
-    : (currentModel && [...AUTO_MODES, ...allowedModels].includes(currentModel) ? currentModel : BEST_ANSWER_MODE)
+    : (currentModel && [...AUTO_MODES, ...allowedModels].includes(currentModel) ? currentModel : COST_OPTIMIZED_MODE)
 
   // sync store when stale localStorage value is not valid anymore
   useEffect(() => {

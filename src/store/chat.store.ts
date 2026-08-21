@@ -51,15 +51,15 @@ export const useChatStore = create<ChatState>(set => ({
   generatingImagePreview: null,
   chatError: null,
   chatErrorCode: null,
-  // «حالت بهینه» پیش‌فرض جدید — مسیریاب مدل بر اساس سختی پیام، مدل واقعی را انتخاب می‌کند
+  // پیش‌فرض جدید «مصرف بهینه» (۱۴۰۵/۰۶) — کاربری که هنوز چیزی انتخاب نکرده روی این حالت می‌افتد
   // 'optimal' مقدار قدیمی سنتینل «خودکار» است (قبل از معرفی دو حالت مصرف‌بهینه/بهترین‌پاسخ) —
   // معادل 'best_answer' فعلی در نظر گرفته می‌شود تا کاربرهای قدیمی رفتار قبلی رو حفظ کنن
   selectedModel: typeof window !== 'undefined'
     ? (() => {
         const stored = localStorage.getItem('nivo:selectedModel')
-        return stored === 'optimal' ? 'best_answer' : (stored ?? 'best_answer')
+        return stored === 'optimal' ? 'best_answer' : (stored ?? 'cost_optimized')
       })()
-    : 'best_answer',
+    : 'cost_optimized',
   selectedImageGenModel: typeof window !== 'undefined' ? localStorage.getItem('nivo:selectedImageGenModel') : null,
   thinkingMode:
     (typeof window !== 'undefined' ? (localStorage.getItem('nivo:thinkingMode') as ThinkingMode | null) : null) ?? 'smart',
