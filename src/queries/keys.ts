@@ -22,6 +22,7 @@ export const keys = {
   discovery: {
     catalog: (outputType?: string, categoryId?: string, sort?: string) =>
       ['discovery', 'catalog', outputType ?? 'all', categoryId ?? 'all', sort ?? 'default'] as const,
+    catalogItem: (id?: string) => ['discovery', 'catalog-item', id ?? 'none'] as const,
     categories: () => ['discovery', 'categories'] as const,
     gallery: (projectId?: string) => ['discovery', 'gallery', projectId ?? 'all'] as const,
     customizations: (projectId: string) => ['discovery', 'customizations', projectId] as const,

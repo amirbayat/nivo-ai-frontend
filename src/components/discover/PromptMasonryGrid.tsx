@@ -31,13 +31,18 @@ export function PromptMasonryGrid({
   )
 }
 
+// ضریب بزرگ‌کردن ارتفاع کارت‌های نمونه — روی نسبت تصویر/متن (که یا از تنظیمات ادمین
+// می‌آید یا مقدار پیش‌فرض بالاست) ضرب می‌شود؛ عددی کمتر از ۱ یعنی کارت کشیده‌تر/بلندتر
+// (aspect-ratio = عرض/ارتفاع، پس برای بلندتر شدن باید کوچک‌تر شود)
+const CARD_HEIGHT_BOOST = 0.75
+
 function PromptMasonryCard({ item, onSelect, disabled, selectLabel }: {
   item: CreativePromptCatalogItem
   onSelect: (item: CreativePromptCatalogItem) => void
   disabled?: boolean
   selectLabel?: string
 }) {
-  const ratio = parseAspectRatio(item.aspectRatio, item.outputType === 'TEXT' ? 4 / 3 : 1)
+  const ratio = parseAspectRatio(item.aspectRatio, item.outputType === 'TEXT' ? 4 / 3 : 1) * CARD_HEIGHT_BOOST
 
   return (
     <div className="group relative mb-3 break-inside-avoid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 transition-colors hover:border-emerald-500/40">

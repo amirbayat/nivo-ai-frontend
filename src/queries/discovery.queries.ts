@@ -23,6 +23,16 @@ export function useDiscoveryCatalog(params: {
   })
 }
 
+// یک آیتم کاتالوگ با id — برای دیپ‌لینک عمومی (نیوو استودیو، مثلاً nivoai.ir/studio?id=...)
+export function useDiscoveryCatalogItem(id: string | undefined) {
+  return useQuery({
+    queryKey: keys.discovery.catalogItem(id),
+    queryFn: () => api.get<CreativePromptCatalogItem>(`/v2/discovery/catalog/${id}`).then(r => r.data),
+    enabled: !!id,
+    retry: false,
+  })
+}
+
 export function useDiscoveryCategories() {
   return useQuery({
     queryKey: keys.discovery.categories(),

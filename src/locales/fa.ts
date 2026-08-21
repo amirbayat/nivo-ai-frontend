@@ -113,6 +113,9 @@ export const fa = {
     anonTrialUsedMessage: 'برای ادامه‌ی تولید با این سبک‌ها، ثبت‌نام کن و اعتبار هدیه بگیر',
     anonTrialSignupCta: 'ثبت‌نام و دریافت اعتبار هدیه',
     anonTrialBackToStudio: 'بازگشت به استودیو',
+    studioLinkLoading: 'در حال باز کردن سبک...',
+    studioLinkNotFound: 'این سبک پیدا نشد یا دیگر فعال نیست',
+    studioLinkBackToStudio: 'رفتن به استودیوی محتوا',
     extractPrompt: {
       title: 'تبدیل عکس به پرامپت',
       subtitle: 'یک عکس خفن (پروفایل، کاور اینستاگرام و ...) آپلود کن تا نیوو پرامپتی بسازه که با اون بتونی عکس‌های مشابه تولید کنی',

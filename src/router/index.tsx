@@ -7,6 +7,7 @@ import { OtpPage } from '@/pages/auth/OtpPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
+import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
 import { ProjectsPage } from '@/pages/projects/ProjectsPage'
 import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage'
 import { GalleryPage } from '@/pages/gallery/GalleryPage'
@@ -86,6 +87,9 @@ export function AppRouter() {
           DiscoverPage خودش بر اساس access_token شاخه می‌زند (ساخت Conversation واقعی
           فقط برای کاربر لاگین‌شده) */}
       <Route path="/discover" element={<DiscoverPage />} />
+      {/* دیپ‌لینک عمومی یک سبک استودیو — nivoai.ir/studio?id=... — بدون ProtectedRoute،
+          خودش بر اساس access_token شاخه می‌زند (StudioLinkPage) */}
+      <Route path="/studio" element={<StudioLinkPage />} />
       <Route
         path="/projects"
         element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>}
