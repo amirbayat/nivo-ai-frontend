@@ -63,7 +63,11 @@ export function ModelsPage() {
   const { data: catalog, isLoading } = useModelCatalog()
   const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel } = useChatStore()
 
-  const allowedModels: string[] = me?.plan?.allowedModels ?? [env.VITE_DEFAULT_MODEL]
+  // پلن‌های اعتباری (PAYG) دیگر «ارتقا پلن» ندارند — کل کاتالوگ فعال مجاز است، فقط با
+  // موجودی کیف‌پول محدود می‌شود، نه یک لیست ثابت allowedModels
+  const allowedModels: string[] = me?.plan?.isPayAsYouGo
+    ? (catalog ?? []).map(m => m.name)
+    : (me?.plan?.allowedModels ?? [env.VITE_DEFAULT_MODEL])
   const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN')
   const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN')
 

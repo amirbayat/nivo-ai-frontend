@@ -44,18 +44,30 @@ function modeIcon(model: string) {
 }
 
 export function ModelSelector({ currentModel }: { currentModel?: string }) {
-  const { selectedModel, setSelectedModel } = useChatStore()
+  const { selectedModel, setSelectedModel, selectedCreativePrompt } = useChatStore()
   const { data: me } = useMe()
   const { data: catalog } = useModelCatalog()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // مدل‌های IMAGE_GEN اصلاً قابلیت چت ندارند — این دراپ‌داون فقط برای انتخاب مدل چت است،
-  // پس هرگز نباید اینجا (نه در لیست، نه در «مدل‌های بیشتر») ظاهر شوند
-  const isChatModel = (name: string) => catalog?.find(m => m.name === name)?.modelType !== 'IMAGE_GEN'
-  const allowedModels: string[] = (me?.plan?.allowedModels ?? [env.VITE_DEFAULT_MODEL]).filter(isChatModel)
-  const featuredModels = me?.plan?.featuredModels?.filter(isChatModel)
+  // پیش‌فرض: فقط مدل‌های چت (نه IMAGE_GEN) — چون این دراپ‌داون قرار است برای پیام‌های متنی
+  // استفاده شود. اما اگر یک سبک تصویری استودیو انتخاب شده باشد (selectedCreativePrompt)،
+  // برعکس می‌شود: فقط مدل‌های تولید عکس قابل‌انتخاب‌اند — همان مدلی که به generate() می‌رود
+  const wantsImageGen = selectedCreativePrompt?.outputType === 'IMAGE'
+  const matchesRequiredType = (name: string) => {
+    const modelType = catalog?.find(m => m.name === name)?.modelType
+    return wantsImageGen ? modelType === 'IMAGE_GEN' : modelType !== 'IMAGE_GEN'
+  }
+  // پلن‌های اعتباری (PAYG) محدود به plan.allowedModels نیستند — کل کاتالوگ فعال در دسترس است
+  const catalogModelNames = (catalog ?? []).map(m => m.name)
+  const planAllowedModels = me?.plan?.isPayAsYouGo
+    ? catalogModelNames
+    : (me?.plan?.allowedModels ?? [env.VITE_DEFAULT_MODEL])
+  const allowedModels: string[] = planAllowedModels.filter(matchesRequiredType)
+  const featuredModels = wantsImageGen
+    ? undefined
+    : me?.plan?.featuredModels?.filter(matchesRequiredType)
   // اگر پلن مدل‌های ویژه تنظیم نکرده باشد، fallback به ۴ تای اول allowedModels (رفتار قبلی)
   const topModels = featuredModels?.length ? featuredModels : allowedModels.slice(0, TOP_N)
   const moreCount = allowedModels.length - topModels.length

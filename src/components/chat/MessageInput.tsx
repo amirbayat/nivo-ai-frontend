@@ -7,6 +7,7 @@ import { useMe } from '@/queries/auth.queries'
 import { useChatStore } from '@/store/chat.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
+import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import { ThinkingModeToggle } from './ThinkingModeToggle'
@@ -57,6 +58,9 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const { data: me } = useMe()
   const { selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt } = useChatStore()
   const navigate = useNavigate()
+  // مسیر نسبی (پرامپت‌های تازه‌استخراج‌شده‌ی خود کاربر) و URL مطلق (سبک‌های عمومیِ کاتالوگ) هر دو
+  // با همین هوک کار می‌کنند — useAuthedImageUrl پشت سر هم آدرس عمومی یا احراز-هویت‌شده را می‌فچد
+  const selectedPromptImageUrl = useAuthedImageUrl(selectedCreativePrompt?.exampleImageUrl ?? '')
   const uploadDiscoveryImage = useUploadDiscoveryImage()
   // docs/PRD-chat-images.md بخش ۵.۵/۶.۲ — فقط مدل‌هایی که هم supportsImageGen دارند هم
   // در allowedModels پلن کاربرند؛ اگر هیچ‌کدام نبود، دکمه‌ی حالت تولید عکس اصلاً نشان داده نمی‌شود.
@@ -206,9 +210,9 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     <div className="border-t border-slate-700/50 p-4">
       {selectedCreativePrompt && (
         <div className="mb-3 flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
-          {selectedCreativePrompt.outputType === 'IMAGE' && selectedCreativePrompt.exampleImageUrl && (
+          {selectedCreativePrompt.outputType === 'IMAGE' && selectedPromptImageUrl && (
             <img
-              src={selectedCreativePrompt.exampleImageUrl}
+              src={selectedPromptImageUrl}
               alt=""
               className="size-14 shrink-0 rounded-xl object-cover"
             />
@@ -218,7 +222,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
             <p className="truncate text-sm font-semibold text-slate-100">{selectedCreativePrompt.title}</p>
             <p className="mt-0.5 text-xs text-emerald-400">{fa.discover.creditCost(selectedCreativePrompt.creditCost)}</p>
 
-            {selectedCreativePrompt.requiresUserImage && (
+            {selectedCreativePrompt.outputType === 'IMAGE' && (
               <div className="mt-2">
                 <input
                   ref={creativeFileRef}
@@ -254,7 +258,9 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
                     onClick={() => creativeFileRef.current?.click()}
                     className="rounded-lg border border-dashed border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
                   >
-                    {fa.discover.uploadImageLabel}
+                    {selectedCreativePrompt.requiresUserImage
+                      ? fa.discover.uploadImageLabel
+                      : fa.discover.uploadImageLabelOptional}
                   </button>
                 )}
                 {creativeImageError && <p className="mt-1 text-[11px] text-red-400">{creativeImageError}</p>}

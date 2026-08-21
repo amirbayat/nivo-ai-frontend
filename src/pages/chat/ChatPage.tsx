@@ -106,7 +106,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
   const { data, isLoading } = useConversation(conversationId)
   const { sendMessage } = useChat(conversationId)
   const location = useLocation()
-  const { selectedCreativePrompt } = useChatStore()
+  const { selectedCreativePrompt, selectedModel } = useChatStore()
   const generateCreative = useGenerateCreative()
   const [virtualMessages, setVirtualMessages] = useState<VirtualMessage[]>([])
   const [creativeError, setCreativeError] = useState<string | null>(null)
@@ -142,7 +142,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       { id: `virtual-user-${prev.length}`, role: 'USER', content: userInput, images: imagePreviews },
     ])
     generateCreative.mutate(
-      { promptId, userInput: userInput || undefined, inputImageKeys },
+      { promptId, userInput: userInput || undefined, inputImageKeys, model: selectedModel },
       {
         onSuccess: result =>
           setVirtualMessages(prev => [

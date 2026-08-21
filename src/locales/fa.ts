@@ -89,6 +89,7 @@ export const fa = {
     inputPlaceholder: 'توضیح یا موضوع خودت رو بنویس...',
     requiresImageNotice: 'این سبک نیاز به آپلود عکس داره',
     uploadImageLabel: 'آپلود عکس',
+    uploadImageLabelOptional: 'آپلود عکس (اختیاری)',
     uploadImageHint: 'یک عکس انتخاب کن (jpg، png یا webp)',
     uploadingImage: 'در حال آپلود عکس...',
     uploadImageFailed: 'آپلود عکس ناموفق بود، دوباره تلاش کن',

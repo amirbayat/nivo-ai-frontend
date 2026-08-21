@@ -13,6 +13,7 @@ export function useAuthedImageUrl(src: string): string | undefined {
   )
 
   useEffect(() => {
+    if (!src) { setUrl(undefined); return }
     if (src.startsWith('data:')) { setUrl(src); return }
     const cached = cache.get(src)
     if (cached) { setUrl(cached); return }
