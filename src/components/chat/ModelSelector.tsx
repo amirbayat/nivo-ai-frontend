@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '@/store/chat.store'
 import { useMe } from '@/queries/auth.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
-import { env } from '@/env'
 import { COST_OPTIMIZED_MODE, COST_OPTIMIZED_DESCRIPTION, BEST_ANSWER_MODE, BEST_ANSWER_DESCRIPTION } from '@/lib/model-catalog'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
 import { track } from '@/lib/events'
@@ -59,12 +58,10 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
     const modelType = catalog?.find(m => m.name === name)?.modelType
     return wantsImageGen ? modelType === 'IMAGE_GEN' : modelType !== 'IMAGE_GEN'
   }
-  // پلن‌های اعتباری (PAYG) محدود به plan.allowedModels نیستند — کل کاتالوگ فعال در دسترس است
+  // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود — کل
+  // کاتالوگ فعال در دسترس است، فقط بر اساس outputType سبک استودیو (اگر انتخاب شده) فیلتر می‌شود]
   const catalogModelNames = (catalog ?? []).map(m => m.name)
-  const planAllowedModels = me?.plan?.isPayAsYouGo
-    ? catalogModelNames
-    : (me?.plan?.allowedModels ?? [env.VITE_DEFAULT_MODEL])
-  const allowedModels: string[] = planAllowedModels.filter(matchesRequiredType)
+  const allowedModels: string[] = catalogModelNames.filter(matchesRequiredType)
   const featuredModels = wantsImageGen
     ? undefined
     : me?.plan?.featuredModels?.filter(matchesRequiredType)

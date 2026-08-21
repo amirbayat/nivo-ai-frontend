@@ -1,9 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
-import { useMe } from '@/queries/auth.queries'
 import { useModelCatalog, type ModelCatalogEntry } from '@/queries/plans.queries'
 import { useChatStore } from '@/store/chat.store'
-import { env } from '@/env'
 import {
   COST_OPTIMIZED_MODE, COST_OPTIMIZED_DESCRIPTION, BEST_ANSWER_MODE, BEST_ANSWER_DESCRIPTION,
   tierDescription, tierLabel, imageQualityLabel, type ModelTier,
@@ -59,17 +57,21 @@ function ImageGenBadge() {
 
 export function ModelsPage() {
   const navigate = useNavigate()
-  const { data: me } = useMe()
   const { data: catalog, isLoading } = useModelCatalog()
-  const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel } = useChatStore()
+  const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel, selectedCreativePrompt } = useChatStore()
 
-  // پلن‌های اعتباری (PAYG) دیگر «ارتقا پلن» ندارند — کل کاتالوگ فعال مجاز است، فقط با
-  // موجودی کیف‌پول محدود می‌شود، نه یک لیست ثابت allowedModels
-  const allowedModels: string[] = me?.plan?.isPayAsYouGo
-    ? (catalog ?? []).map(m => m.name)
-    : (me?.plan?.allowedModels ?? [env.VITE_DEFAULT_MODEL])
+  // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود، کل
+  // کاتالوگ فعال برای همه در دسترس است (فقط بر اساس موجودی کیف‌پول محدود می‌شود، نه اینجا)]
   const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN')
   const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN')
+
+  // وقتی یک سبک استودیو انتخاب شده باشد، انتخاب مدل این صفحه باید بر اساس outputType همان
+  // سبک فیلتر شود (سبک تصویری → فقط مدل‌های تولید عکس، سبک متنی → فقط مدل‌های چت) — همان‌طور
+  // که دراپ‌داون هدر چت (ModelSelector.tsx) هم رفتار می‌کند
+  const inStudioMode = Boolean(selectedCreativePrompt)
+  const studioWantsImageGen = selectedCreativePrompt?.outputType === 'IMAGE'
+  const showChatModels = !inStudioMode || !studioWantsImageGen
+  const showGenericImageGenSection = !inStudioMode
 
   function select(model: string) {
     track('model_selected', { model, previousModel: selectedModel, source: 'models_page' })
@@ -86,29 +88,19 @@ export function ModelsPage() {
     navigate(-1)
   }
 
-  function goToPricingFromLockedModel(model: string) {
-    track('locked_model_upgrade_prompt_clicked', { model })
-    navigate('/pricing')
-  }
-
   function ModelCard({ model }: { model: ModelCatalogEntry }) {
-    const isAllowed = allowedModels.includes(model.name)
     const isActive = selectedModel === model.name
 
-    // مدل قفل‌شده هم باید کلیک‌پذیر بماند (کل کارت برود به /pricing) — به همین دلیل
-    // دیگه button-در-button نداریم (که HTML نامعتبر بود و باعث می‌شد فقط دکمه‌ی
-    // داخلی کوچیک کلیک‌پذیر باشه، نه کل کارت)
     return (
       <div
         role="button"
         tabIndex={0}
-        onClick={() => (isAllowed ? select(model.name) : goToPricingFromLockedModel(model.name))}
+        onClick={() => select(model.name)}
         onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') (isAllowed ? select(model.name) : goToPricingFromLockedModel(model.name))
+          if (e.key === 'Enter' || e.key === ' ') select(model.name)
         }}
         className={clsx(
           'flex w-full cursor-pointer items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-          !isAllowed && 'opacity-50',
           isActive
             ? 'border-emerald-500/60 bg-emerald-500/5'
             : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
@@ -120,32 +112,28 @@ export function ModelsPage() {
         <div className="flex-1">
           <h3 className="font-bold text-slate-100">{model.displayName}</h3>
           <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{tierDescription(model.tier)}</p>
-          {!isAllowed && (
-            <span className="mt-2.5 block text-xs font-medium text-emerald-400">
-              نیاز به ارتقا پلن ←
-            </span>
-          )}
         </div>
         {isActive && <Check />}
       </div>
     )
   }
 
+  // در حالت استودیوی تصویری، انتخاب مدل باید همان selectedModel عمومی را ست کند (همانی که به
+  // generateCreative فرستاده می‌شود)، نه selectedImageGenModel (که مخصوص حالت «تولید عکس» چت معمولی است)
   function ImageGenCard({ model }: { model: ModelCatalogEntry }) {
-    const isAllowed = allowedModels.includes(model.name)
-    const isActive = selectedImageGenModel === model.name
+    const isActive = studioWantsImageGen ? selectedModel === model.name : selectedImageGenModel === model.name
+    const onSelect = () => (studioWantsImageGen ? select(model.name) : selectImageGenModel(model.name))
 
     return (
       <div
         role="button"
         tabIndex={0}
-        onClick={() => (isAllowed ? selectImageGenModel(model.name) : goToPricingFromLockedModel(model.name))}
+        onClick={onSelect}
         onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') (isAllowed ? selectImageGenModel(model.name) : goToPricingFromLockedModel(model.name))
+          if (e.key === 'Enter' || e.key === ' ') onSelect()
         }}
         className={clsx(
           'flex w-full cursor-pointer items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-          !isAllowed && 'opacity-50',
           isActive
             ? 'border-fuchsia-500/60 bg-fuchsia-500/5'
             : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
@@ -160,11 +148,6 @@ export function ModelsPage() {
             <ImageGenBadge />
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{imageQualityLabel(model.tier)}</p>
-          {!isAllowed && (
-            <span className="mt-2.5 block text-xs font-medium text-emerald-400">
-              نیاز به ارتقا پلن ←
-            </span>
-          )}
         </div>
         {isActive && <Check />}
       </div>
@@ -228,31 +211,37 @@ export function ModelsPage() {
             {selectedModel === BEST_ANSWER_MODE && <Check />}
           </button>
 
-          <div className="flex items-center gap-3 pt-2 pb-1">
-            <span className="h-px flex-1 bg-slate-800" />
-            <span className="text-xs text-slate-600">یا یک مدل مشخص رو انتخاب کن</span>
-            <span className="h-px flex-1 bg-slate-800" />
-          </div>
+          {showChatModels && (
+            <>
+              <div className="flex items-center gap-3 pt-2 pb-1">
+                <span className="h-px flex-1 bg-slate-800" />
+                <span className="text-xs text-slate-600">یا یک مدل مشخص رو انتخاب کن</span>
+                <span className="h-px flex-1 bg-slate-800" />
+              </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <div className="size-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-            </div>
-          ) : (
-            TIER_ORDER.map(tier => {
-              const models = chatModels.filter(m => m.tier === tier)
-              if (!models.length) return null
-              return (
-                <div key={tier} className="space-y-3 pt-2">
-                  <p className="text-xs font-medium text-slate-500">سطح {tierLabel(tier)}</p>
-                  {models.map(model => <ModelCard key={model.name} model={model} />)}
+              {isLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="size-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
                 </div>
-              )
-            })
+              ) : (
+                TIER_ORDER.map(tier => {
+                  const models = chatModels.filter(m => m.tier === tier)
+                  if (!models.length) return null
+                  return (
+                    <div key={tier} className="space-y-3 pt-2">
+                      <p className="text-xs font-medium text-slate-500">سطح {tierLabel(tier)}</p>
+                      {models.map(model => <ModelCard key={model.name} model={model} />)}
+                    </div>
+                  )
+                })
+              )}
+            </>
           )}
         </div>
 
-        {!isLoading && imageGenModels.length > 0 && (
+        {/* بخش مدل‌های تولید عکس: در حالت عادی برای pin کردن مدل «تولید عکس» چت است؛ وقتی سبک
+            استودیوی تصویری فعال باشد، همین لیست برای انتخاب مدل آن سبک استفاده می‌شود (نه هر دو با هم) */}
+        {!isLoading && imageGenModels.length > 0 && (showGenericImageGenSection || studioWantsImageGen) && (
           <div className="mt-14">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-[0_0_16px_rgba(217,70,239,0.35)]">
@@ -260,34 +249,40 @@ export function ModelsPage() {
               </div>
               <div>
                 <h2 className="font-bold text-slate-100">مدل‌های تولید عکس</h2>
-                <p className="text-xs text-slate-500">برای حالت «تولید عکس» توی چت استفاده می‌شوند، نه چت متنی معمولی</p>
+                <p className="text-xs text-slate-500">
+                  {studioWantsImageGen
+                    ? 'برای سبک انتخاب‌شده از استودیوی محتوا استفاده می‌شود'
+                    : 'برای حالت «تولید عکس» توی چت استفاده می‌شوند، نه چت متنی معمولی'}
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <button
-                onClick={() => selectImageGenModel(null)}
-                className={clsx(
-                  'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-                  selectedImageGenModel === null
-                    ? 'border-fuchsia-500/60 bg-fuchsia-500/5'
-                    : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
-                )}
-              >
-                <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-                  <SparkleIcon className="size-5 text-fuchsia-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-100">خودکار (پیش‌فرض)</h3>
-                    <span className="rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[11px] text-fuchsia-300">پیشنهادی</span>
+              {showGenericImageGenSection && (
+                <button
+                  onClick={() => selectImageGenModel(null)}
+                  className={clsx(
+                    'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+                    selectedImageGenModel === null
+                      ? 'border-fuchsia-500/60 bg-fuchsia-500/5'
+                      : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+                  )}
+                >
+                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                    <SparkleIcon className="size-5 text-fuchsia-400" />
                   </div>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
-                    کیفیت و ابعاد بر اساس توصیف خودت و اعتبار حسابت خودکار انتخاب می‌شود
-                  </p>
-                </div>
-                {selectedImageGenModel === null && <Check />}
-              </button>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-slate-100">خودکار (پیش‌فرض)</h3>
+                      <span className="rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[11px] text-fuchsia-300">پیشنهادی</span>
+                    </div>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+                      کیفیت و ابعاد بر اساس توصیف خودت و اعتبار حسابت خودکار انتخاب می‌شود
+                    </p>
+                  </div>
+                  {selectedImageGenModel === null && <Check />}
+                </button>
+              )}
 
               {imageGenModels.map(model => (
                 <ImageGenCard key={model.name} model={model} />

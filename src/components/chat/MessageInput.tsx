@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
-import { useMe } from '@/queries/auth.queries'
 import { useChatStore } from '@/store/chat.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
@@ -55,22 +54,19 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const MAX_SIZE_BYTES = (flags?.maxImageSizeMb ?? 8) * 1024 * 1024
 
   const { data: catalog } = useModelCatalog()
-  const { data: me } = useMe()
   const { selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt } = useChatStore()
   const navigate = useNavigate()
   // مسیر نسبی (پرامپت‌های تازه‌استخراج‌شده‌ی خود کاربر) و URL مطلق (سبک‌های عمومیِ کاتالوگ) هر دو
   // با همین هوک کار می‌کنند — useAuthedImageUrl پشت سر هم آدرس عمومی یا احراز-هویت‌شده را می‌فچد
   const selectedPromptImageUrl = useAuthedImageUrl(selectedCreativePrompt?.exampleImageUrl ?? '')
   const uploadDiscoveryImage = useUploadDiscoveryImage()
-  // docs/PRD-chat-images.md بخش ۵.۵/۶.۲ — فقط مدل‌هایی که هم supportsImageGen دارند هم
-  // در allowedModels پلن کاربرند؛ اگر هیچ‌کدام نبود، دکمه‌ی حالت تولید عکس اصلاً نشان داده نمی‌شود.
-  // پیش‌فرض: کیفیت/اندازه بر اساس متن پیام و (برای Pay-as-you-go) موجودی کیف‌پول خودکار
-  // انتخاب می‌شود — اما اگر کاربر از صفحه‌ی «انتخاب مدل» یک مدل تولید عکس مشخص pin کرده باشد
-  // (selectedImageGenModel) و هنوز هم مجاز باشد، همان صریح فرستاده می‌شود
+  // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود؛ کل
+  // کاتالوگ فعال supportsImageGen در دسترس است]. پیش‌فرض: کیفیت/اندازه بر اساس متن پیام و
+  // (برای Pay-as-you-go) موجودی کیف‌پول خودکار انتخاب می‌شود — اما اگر کاربر از صفحه‌ی «انتخاب
+  // مدل» یک مدل تولید عکس مشخص pin کرده باشد (selectedImageGenModel)، همان صریح فرستاده می‌شود
   const imageGenModels = useMemo(() => {
-    const allowed = me?.plan?.allowedModels ?? []
-    return (catalog ?? []).filter(m => m.supportsImageGen && allowed.includes(m.name))
-  }, [catalog, me])
+    return (catalog ?? []).filter(m => m.supportsImageGen)
+  }, [catalog])
   const hasImageGenModels = imageGenModels.length > 0
   const pinnedImageGenModel = imageGenModels.find(m => m.name === selectedImageGenModel)
 
@@ -270,27 +266,32 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
                 )}
                 {creativeImageError && <p className="mt-1 text-[11px] text-red-400">{creativeImageError}</p>}
 
-                <label className="mt-2.5 flex items-center gap-2 text-xs text-slate-300">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={preserveFace}
-                    aria-label={fa.discover.preserveFaceLabel}
-                    onClick={() => setPreserveFace(v => !v)}
-                    className={clsx(
-                      'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
-                      preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
-                    )}
-                  >
-                    <span
+                {/* فقط وقتی عکس ورودی واقعاً اضافه شده باشد نشون داده می‌شود — بدون عکس این
+                    سوییچ اصلاً اثری ندارد (توضیح بالای preserveFace) */}
+                {creativeImagePreview && (
+                  <label className="mt-2.5 flex items-center gap-2 text-xs text-slate-300">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={preserveFace}
+                      aria-label={fa.discover.preserveFaceLabel}
+                      onClick={() => setPreserveFace(v => !v)}
                       className={clsx(
-                        'inline-block size-3.5 rounded-full bg-white transition-transform',
-                        preserveFace ? 'translate-x-[18px]' : 'translate-x-[3px]',
+                        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
+                        preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
                       )}
-                    />
-                  </button>
-                  <span>{fa.discover.preserveFaceLabel}</span>
-                </label>
+                    >
+                      <span
+                        className={clsx(
+                          'inline-block size-3.5 rounded-full bg-white transition-transform',
+                          // در RTL باید معکوس حالت LTR باشد: روشن → چپ، خاموش → راست
+                          preserveFace ? 'translate-x-[3px]' : 'translate-x-[18px]',
+                        )}
+                      />
+                    </button>
+                    <span>{fa.discover.preserveFaceLabel}</span>
+                  </label>
+                )}
               </div>
             )}
           </div>
