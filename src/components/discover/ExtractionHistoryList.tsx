@@ -90,18 +90,6 @@ function ViewAllModal({
   );
 }
 
-function statusLabel(status: ExtractionHistoryItem["reviewStatus"]): string {
-  if (status === "APPROVED") return fa.discover.extractPrompt.historyStatusApproved;
-  if (status === "REJECTED") return fa.discover.extractPrompt.historyStatusRejected;
-  return fa.discover.extractPrompt.historyStatusPending;
-}
-
-function statusClass(status: ExtractionHistoryItem["reviewStatus"]): string {
-  if (status === "APPROVED") return "bg-emerald-500/10 text-emerald-300";
-  if (status === "REJECTED") return "bg-red-500/10 text-red-300";
-  return "bg-amber-500/10 text-amber-300";
-}
-
 function HistoryItemCard({
   item,
   onUsePrompt,
@@ -139,11 +127,6 @@ function HistoryItemCard({
     >
       <div className="relative h-32 w-full bg-slate-900">
         {imgUrl && <img src={imgUrl} alt="" className="h-full w-full object-cover" />}
-        <span
-          className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] ${statusClass(item.reviewStatus)}`}
-        >
-          {statusLabel(item.reviewStatus)}
-        </span>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         {isEditing ? (
