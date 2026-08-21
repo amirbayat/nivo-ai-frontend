@@ -74,21 +74,43 @@ export function useUploadDiscoveryImage() {
   })
 }
 
-// تبدیل عکس به پرامپت — هزینه‌ی ثابت این اکشن، قبل از آپلود/استخراج به کاربر نشون داده می‌شه
-export function useExtractionCost() {
+export interface ExtractionModelOption {
+  id: string
+  name: string
+  displayName: string
+  provider: string
+  tier: 'SIMPLE' | 'MEDIUM' | 'COMPLEX'
+  estimatedCreditCost: number
+}
+
+export interface ExtractionModelOptions {
+  models: ExtractionModelOption[]
+  auto: {
+    bestAnswer: { modelId: string; estimatedCreditCost: number }
+    costOptimized: { modelId: string; estimatedCreditCost: number }
+  } | null
+}
+
+// مدل‌های قابل‌انتخاب برای «تبدیل عکس به پرامپت» + هزینه‌ی تخمینی هرکدام و دو حالت خودکار
+// (بهترین نتیجه/مصرف بهینه) — قبل از آپلود/استخراج به کاربر نشون داده می‌شه
+export function useExtractionModels() {
   return useQuery({
-    queryKey: keys.discovery.extractionCost(),
-    queryFn: () => api.get<{ creditCost: number }>('/v2/discovery/prompt-extractions/cost').then(r => r.data),
+    queryKey: keys.discovery.extractionModels(),
+    queryFn: () =>
+      api.get<ExtractionModelOptions>('/v2/discovery/prompt-extractions/models').then(r => r.data),
     staleTime: 5 * 60_000,
   })
 }
 
-// نتیجه دقیقاً شکل CreativePromptCatalogItem + یک فیلد اضافه‌ی extractedPrompt (متن استخراج‌شده)
+// نتیجه دقیقاً شکل CreativePromptCatalogItem + extractedPrompt (متن استخراج‌شده) + usedModel
 export function useExtractPrompt() {
   return useMutation({
-    mutationFn: (dto: { imageKey: string }) =>
+    mutationFn: (dto: { imageKey: string; modelId?: string; selectionMode?: 'cost_optimized' | 'best_answer' }) =>
       api
-        .post<CreativePromptCatalogItem & { extractedPrompt: string }>('/v2/discovery/prompt-extractions', dto)
+        .post<CreativePromptCatalogItem & { extractedPrompt: string; usedModel: { name: string; displayName: string } }>(
+          '/v2/discovery/prompt-extractions',
+          dto,
+        )
         .then(r => r.data),
   })
 }

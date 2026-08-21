@@ -1,10 +1,16 @@
 import { useRef, useState } from "react";
 import axios from "axios";
-import { useExtractionCost, useExtractPrompt, useUploadDiscoveryImage } from "@/queries/discovery.queries";
+import clsx from "clsx";
+import { useExtractionModels, useExtractPrompt, useUploadDiscoveryImage } from "@/queries/discovery.queries";
 import { fa } from "@/locales/fa";
 import type { CreativePromptCatalogItem } from "@/types/api";
 
-type ExtractionResult = CreativePromptCatalogItem & { extractedPrompt: string };
+type ExtractionResult = CreativePromptCatalogItem & {
+  extractedPrompt: string;
+  usedModel: { name: string; displayName: string };
+};
+
+type SelectionMode = "best_answer" | "cost_optimized";
 
 interface PromptExtractionCardProps {
   onUsePrompt: (item: CreativePromptCatalogItem) => void;
@@ -20,10 +26,22 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExtractionResult | null>(null);
   const [used, setUsed] = useState(false);
+  const [mode, setMode] = useState<"auto" | "manual">("auto");
+  const [autoSelectionMode, setAutoSelectionMode] = useState<SelectionMode>("best_answer");
+  const [manualModelId, setManualModelId] = useState<string | null>(null);
 
-  const { data: costData } = useExtractionCost();
+  const { data: modelOptions } = useExtractionModels();
   const uploadImage = useUploadDiscoveryImage();
   const extractPrompt = useExtractPrompt();
+
+  const effectiveManualModelId = manualModelId ?? modelOptions?.models[0]?.name ?? null;
+
+  const estimatedCreditCost =
+    mode === "manual"
+      ? modelOptions?.models.find((m) => m.name === effectiveManualModelId)?.estimatedCreditCost
+      : autoSelectionMode === "best_answer"
+        ? modelOptions?.auto?.bestAnswer.estimatedCreditCost
+        : modelOptions?.auto?.costOptimized.estimatedCreditCost;
 
   function handleFileSelected(f: File) {
     setError(null);
@@ -47,7 +65,9 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
       uploadImage.mutate(dataUrl, {
         onSuccess: (data) => {
           extractPrompt.mutate(
-            { imageKey: data.key },
+            mode === "manual" && effectiveManualModelId
+              ? { imageKey: data.key, modelId: effectiveManualModelId }
+              : { imageKey: data.key, selectionMode: autoSelectionMode },
             {
               onSuccess: (res) => setResult(res),
               onError: (err) => setError(extractErrorMessage(err)),
@@ -99,9 +119,73 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
       <div className="mb-6">
         <h2 className="text-xl font-bold text-slate-100 md:text-2xl">{fa.discover.extractPrompt.title}</h2>
         <p className="mt-1 text-sm text-slate-400">{fa.discover.extractPrompt.subtitle}</p>
-        {typeof costData?.creditCost === "number" && (
+
+        {!result && (
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex w-fit gap-1 rounded-full border border-slate-800 bg-slate-900/60 p-1 text-xs">
+              {(
+                [
+                  ["auto", fa.discover.extractPrompt.modeAuto],
+                  ["manual", fa.discover.extractPrompt.modeManual],
+                ] as [typeof mode, string][]
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setMode(value)}
+                  className={clsx(
+                    "rounded-full px-3 py-1.5 transition-colors",
+                    mode === value ? "bg-slate-700 text-slate-100 shadow-sm" : "text-slate-500 hover:text-slate-300",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {mode === "auto" ? (
+              <div className="flex w-fit gap-1 rounded-full border border-slate-800 bg-slate-900/60 p-1 text-xs">
+                {(
+                  [
+                    ["best_answer", fa.discover.extractPrompt.bestResultOption],
+                    ["cost_optimized", fa.discover.extractPrompt.optimalUsageOption],
+                  ] as [SelectionMode, string][]
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setAutoSelectionMode(value)}
+                    className={clsx(
+                      "rounded-full px-3 py-1.5 transition-colors",
+                      autoSelectionMode === value
+                        ? "bg-emerald-500/20 text-emerald-300 shadow-sm"
+                        : "text-slate-500 hover:text-slate-300",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <select
+                value={effectiveManualModelId ?? ""}
+                onChange={(e) => setManualModelId(e.target.value)}
+                className="w-fit rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-200 focus:border-emerald-500/50 focus:outline-none"
+              >
+                {!modelOptions?.models.length && <option>{fa.discover.extractPrompt.selectModelPlaceholder}</option>}
+                {modelOptions?.models.map((m) => (
+                  <option key={m.name} value={m.name}>
+                    {m.displayName} — {m.estimatedCreditCost.toLocaleString("fa-IR")} نیوو
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+
+        {typeof estimatedCreditCost === "number" && (
           <p className="mt-2 inline-block rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
-            {fa.discover.extractPrompt.costLabel(costData.creditCost)}
+            {fa.discover.extractPrompt.costLabel(estimatedCreditCost)}
           </p>
         )}
       </div>
@@ -153,7 +237,12 @@ export function PromptExtractionCard({ onUsePrompt }: PromptExtractionCardProps)
           {result ? (
             <div className="flex h-full flex-col justify-between gap-4">
               <div>
-                <p className="mb-2 text-sm font-medium text-slate-300">{fa.discover.extractPrompt.resultLabel}</p>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-300">{fa.discover.extractPrompt.resultLabel}</p>
+                  <p className="text-xs text-slate-500">
+                    {fa.discover.extractPrompt.usedModelLabel(result.usedModel.displayName)}
+                  </p>
+                </div>
                 <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
                   {result.extractedPrompt}
                 </div>
