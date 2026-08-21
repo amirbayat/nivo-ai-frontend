@@ -31,7 +31,6 @@ export const keys = {
     today: () => ['usage', 'today'] as const,
     history: (month: string) => ['usage', 'history', month] as const,
     budget: () => ['usage', 'budget'] as const,
-    messageQuota: () => ['usage', 'message-quota'] as const,
     wallet: () => ['usage', 'wallet'] as const,
   },
   plans: {

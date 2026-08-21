@@ -1,165 +1,55 @@
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
-import { useChatStore } from '@/store/chat.store'
-import { useMessageQuota } from '@/queries/usage.queries'
-import { useCountdown } from '@/hooks/useCountdown'
+import { useCreditsBalance } from '@/queries/credits.queries'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 
-// باکس «به محدودیت رسیدید» — همیشه نمایش داده می‌شود تا زمانی که واقعاً ریست شود
-// (بدون دکمه‌ی بستن؛ چون نباید بعد از یک بار بستن دیگر برنگردد)
-function HardLimitBox({ heading, message, resetAt, planTier, limitType }: {
-  heading: string
-  message: string
-  resetAt: string | null
-  planTier: string
-  limitType: string
-}) {
-  const navigate = useNavigate()
-  const countdown = useCountdown(resetAt)
-
-  return (
-    <div className="mx-4 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
-      <div className="flex items-start gap-3">
-        <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 size-4 flex-shrink-0 text-red-500">
-          <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-        </svg>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-red-400">{heading}</p>
-          <p className="mt-0.5 text-xs text-red-300/80">{message}</p>
-          {countdown && (
-            <p dir="ltr" className="mt-1 text-xs text-slate-400 text-right" style={{ direction: 'rtl' }}>
-              زمان باقی‌مانده تا ریست: <span dir="ltr" className="font-mono text-slate-300">{countdown}</span>
-            </p>
-          )}
-        </div>
-        {planTier !== 'premium' && (
-          <button
-            onClick={() => {
-              track('usage_limit_upgrade_clicked', { limitType })
-              navigate('/pricing')
-            }}
-            className="shrink-0 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition-colors"
-          >
-            {fa.chat.limitUpgrade}
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
+// در مدل اعتباری، تنها محدودکننده‌ی واقعی موجودی نیوو است — نه سهمیه‌ی روزانه/ساعتی قدیمی.
+// این بنر فقط وقتی اعتبار کم یا صفر شده نمایش داده می‌شود (بدون دکمه‌ی بستن، چون نباید بعد
+// از یک بار بستن دیگر برنگردد)
+const LOW_BALANCE_THRESHOLD = 20
 
 export function MessageLimitBanner() {
   const navigate = useNavigate()
-  const { messageStage, remainingNormal, remainingThrottled } = useChatStore()
-  const { data: quota } = useMessageQuota()
+  const { data: balance } = useCreditsBalance()
 
-  if (!quota) return null
+  if (!balance) return null
 
-  const planTier = quota.planTier
+  const isExhausted = balance.credits <= 0
+  const isLow = !isExhausted && balance.credits <= LOW_BALANCE_THRESHOLD
 
-  // اولویت با محدودیت‌های «سخت» (blocked) است — هر کدوم زودتر رخ داده باشه همون نشون داده می‌شه
-  if (quota.rollingWindow?.blocked) {
-    return (
-      <HardLimitBox
-        heading="به محدودیت رسیدید"
-        message={fa.chat.limitRollingWindowBlocked}
-        resetAt={quota.rollingWindow.resetAt}
-        planTier={planTier}
-        limitType="rolling_window_blocked"
-      />
-    )
+  if (!isExhausted && !isLow) return null
+
+  function goToPricing() {
+    track('usage_limit_upgrade_clicked', { limitType: isExhausted ? 'credit_exhausted' : 'credit_low' })
+    navigate('/pricing')
   }
-
-  if (quota.budget.blocked) {
-    return (
-      <HardLimitBox
-        heading="به محدودیت رسیدید"
-        message={fa.chat.limitBudgetBlocked}
-        resetAt={quota.budget.resetAt}
-        planTier={planTier}
-        limitType="budget_blocked"
-      />
-    )
-  }
-
-  if (quota.tokenQuota.blocked) {
-    return (
-      <HardLimitBox
-        heading="به محدودیت رسیدید"
-        message={fa.chat.limitQuotaExceeded}
-        resetAt={quota.tokenQuota.resetAt}
-        planTier={planTier}
-        limitType="quota_exceeded"
-      />
-    )
-  }
-
-  // determine effective soft-stage (prefer store — به‌روزشده از SSE حین استریم — وگرنه از پول کوئری)
-  const stage = messageStage !== 'normal' ? messageStage : quota.stage
-  const remNormal = remainingNormal ?? quota.remainingNormal
-  const remThrottled = remainingThrottled ?? quota.remainingThrottled
-
-  if (stage === 'blocked') {
-    return (
-      <HardLimitBox
-        heading="به محدودیت رسیدید"
-        message={fa.chat.limitBlocked}
-        resetAt={quota.resetAt}
-        planTier={planTier}
-        limitType="blocked"
-      />
-    )
-  }
-
-  const showSoftWarning =
-    stage === 'throttled' || (remNormal !== null && remNormal <= 3 && remNormal > 0)
-  if (!showSoftWarning) return null
-
-  const message =
-    stage === 'throttled' && remThrottled !== null
-      ? fa.chat.limitThrottled(remThrottled)
-      : remNormal !== null && remNormal > 0
-      ? fa.chat.limitNormalWarning(remNormal)
-      : null
-
-  if (!message) return null
 
   return (
     <div className={clsx(
       'mx-4 mb-2 rounded-xl border px-4 py-3',
-      stage === 'throttled' ? 'bg-orange-500/10 border-orange-500/30' : 'bg-amber-500/10 border-amber-500/30',
+      isExhausted ? 'bg-red-500/10 border-red-500/30' : 'bg-amber-500/10 border-amber-500/30',
     )}>
       <div className="flex items-start gap-3">
         <svg viewBox="0 0 20 20" fill="currentColor" className={clsx(
           'mt-0.5 size-4 flex-shrink-0',
-          stage === 'throttled' ? 'text-orange-500' : 'text-amber-500',
+          isExhausted ? 'text-red-500' : 'text-amber-500',
         )}>
           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
         </svg>
 
         <div className="flex-1 min-w-0">
-          <p className={clsx('text-sm font-medium', stage === 'throttled' ? 'text-orange-400' : 'text-amber-400')}>
-            {message}
+          <p className={clsx('text-sm font-medium', isExhausted ? 'text-red-400' : 'text-amber-400')}>
+            {isExhausted ? fa.chat.creditExhausted : fa.chat.creditLowWarning(balance.credits)}
           </p>
-          {stage === 'throttled' && quota.throttledInputTokens && (
-            <p className="mt-0.5 text-xs text-slate-500">
-              محدودیت: {quota.throttledInputTokens} توکن ورودی · {quota.throttledOutputTokens ?? '—'} توکن خروجی
-            </p>
-          )}
         </div>
 
-        {planTier !== 'premium' && (
-          <button
-            onClick={() => {
-              track('usage_limit_upgrade_clicked', { limitType: stage })
-              navigate('/pricing')
-            }}
-            className="shrink-0 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition-colors"
-          >
-            {fa.chat.limitUpgrade}
-          </button>
-        )}
+        <button
+          onClick={goToPricing}
+          className="shrink-0 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition-colors"
+        >
+          {fa.plans.upgradeCta}
+        </button>
       </div>
     </div>
   )

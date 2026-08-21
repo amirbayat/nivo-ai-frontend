@@ -331,18 +331,3 @@ export interface AnonConversationDetail extends AnonConversation {
   messages: AnonMessage[]
 }
 
-export interface MessageQuota {
-  todayCount: number
-  N: number | null
-  M: number
-  stage: 'normal' | 'throttled' | 'blocked'
-  remainingNormal: number | null
-  remainingThrottled: number | null
-  throttledInputTokens: number | null
-  throttledOutputTokens: number | null
-  resetAt: string
-  planTier: string
-  rollingWindow: { blocked: boolean; resetAt: string | null } | null
-  budget: { blocked: boolean; reason: 'exceeded' | 'session_limit' | null; resetAt: string }
-  tokenQuota: { blocked: boolean; resetAt: string | null }
-}

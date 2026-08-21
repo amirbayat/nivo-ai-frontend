@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import type { CreativePromptCatalogItem } from '@/types/api'
 
-export type MessageStage = 'normal' | 'throttled' | 'blocked'
 export type ThinkingMode = 'fast' | 'smart'
 
 interface ChatState {
@@ -16,9 +15,6 @@ interface ChatState {
   generatingImagePreview: string | null
   chatError: string | null
   chatErrorCode: string | null
-  messageStage: MessageStage
-  remainingNormal: number | null
-  remainingThrottled: number | null
   selectedModel: string | null
   // مستقل از selectedModel — چون مدل‌های تولید عکس modelType متفاوتی دارند (IMAGE_GEN) و
   // هرگز نباید به‌جای مدل چت معمولی به سرور فرستاده شوند؛ null یعنی «خودکار» (پیش‌فرض،
@@ -39,7 +35,6 @@ interface ChatState {
   setGeneratingImagePreview: (image: string | null) => void
   resetStreaming: () => void
   setChatError: (msg: string | null, code?: string | null) => void
-  setMessageStage: (stage: MessageStage, remainingNormal: number | null, remainingThrottled: number | null) => void
   setSelectedModel: (model: string) => void
   setSelectedImageGenModel: (model: string | null) => void
   setThinkingMode: (mode: ThinkingMode) => void
@@ -56,9 +51,6 @@ export const useChatStore = create<ChatState>(set => ({
   generatingImagePreview: null,
   chatError: null,
   chatErrorCode: null,
-  messageStage: 'normal',
-  remainingNormal: null,
-  remainingThrottled: null,
   // «حالت بهینه» پیش‌فرض جدید — مسیریاب مدل بر اساس سختی پیام، مدل واقعی را انتخاب می‌کند
   // 'optimal' مقدار قدیمی سنتینل «خودکار» است (قبل از معرفی دو حالت مصرف‌بهینه/بهترین‌پاسخ) —
   // معادل 'best_answer' فعلی در نظر گرفته می‌شود تا کاربرهای قدیمی رفتار قبلی رو حفظ کنن
@@ -86,8 +78,6 @@ export const useChatStore = create<ChatState>(set => ({
     isGeneratingImage: false, generatingImagePreview: null,
   }),
   setChatError: (msg, code = null) => set({ chatError: msg, chatErrorCode: code }),
-  setMessageStage: (stage, remainingNormal, remainingThrottled) =>
-    set({ messageStage: stage, remainingNormal, remainingThrottled }),
   setSelectedModel: model => set({ selectedModel: model }),
   setSelectedImageGenModel: model => set({ selectedImageGenModel: model }),
   setThinkingMode: mode => {

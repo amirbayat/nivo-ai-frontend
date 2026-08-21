@@ -14,7 +14,7 @@ export function useChat(conversationId: string) {
   const abortRef = useRef<AbortController | null>(null)
   const {
     appendStreamingContent, setIsStreaming, setIsReasoning, appendReasoningText,
-    resetStreaming, setChatError, setMessageStage, selectedModel, setIsGeneratingImage,
+    resetStreaming, setChatError, selectedModel, setIsGeneratingImage,
     setGeneratingImagePreview, thinkingMode,
   } = useChatStore()
 
@@ -86,29 +86,16 @@ export function useChat(conversationId: string) {
 
         if (!res.ok) {
           let msg = `خطا (${res.status})`
-          let stage: string | undefined
           let code: string | undefined
           try {
-            const body = await res.json() as { message?: string; stage?: string; code?: string }
+            const body = await res.json() as { message?: string; code?: string }
             if (body.message) msg = body.message
-            stage = body.stage
             code = body.code
           } catch { /* ignore */ }
-          // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن/سهمیه‌ی توکن) توسط بنر پایدار
-          // بالای اینپوت نمایش داده می‌شوند — اینجا دوباره نشونشون ندیم که یک پیام تکراری وسط چت
-          // ظاهر نشه. بنر معمولاً هر ۳۰ ثانیه پول می‌شود؛ همین‌جا هم فوری invalidate می‌کنیم که
-          // بلافاصله (نه با تا ۳۰ ثانیه تاخیر) نمایش داده شود.
-          const isLimitStage =
-            stage === 'blocked' ||
-            stage === 'rolling_window_blocked' ||
-            stage === 'budget_exceeded' ||
-            stage === 'budget_session_limit' ||
-            stage === 'quota_exceeded'
-          if (isLimitStage) {
-            void qc.invalidateQueries({ queryKey: keys.usage.messageQuota() })
-          } else {
-            setChatError(msg, code ?? null)
-          }
+          // اعتبار (نیوو) ناکافی هم مثل بقیه‌ی خطاها همین‌جا نشون داده می‌شود — بنر پایدار موجودی
+          // (بالای اینپوت) مستقل از این خطا، بر اساس موجودی واقعی (useCreditsBalance که در finally
+          // پایین‌تر invalidate می‌شود) به‌روز می‌ماند
+          setChatError(msg, code ?? null)
           setIsStreaming(false)
           return
         }
@@ -132,9 +119,6 @@ export function useChat(conversationId: string) {
                 error?: string
                 code?: string
                 info?: string
-                stage?: 'normal' | 'throttled'
-                remainingNormal?: number
-                remainingThrottled?: number
                 title?: string
                 reasoning?: boolean
                 reasoningChunk?: string
@@ -143,13 +127,6 @@ export function useChat(conversationId: string) {
               }
               if (parsed.chunk) appendStreamingContent(parsed.chunk)
               if (parsed.error) setChatError(parsed.error, parsed.code ?? null)
-              if (parsed.info === 'stage' && parsed.stage) {
-                setMessageStage(
-                  parsed.stage,
-                  parsed.remainingNormal ?? null,
-                  parsed.remainingThrottled ?? null,
-                )
-              }
               // اگر تولید عکس با toggle صریح فرانت شروع نشده باشد (تشخیص ضمنی سمت سرور)، فرانت
               // تا همین لحظه خبر نداشت این پیام قراره عکس تولید کند — این اولین علامتیه که می‌رسه
               if (parsed.info === 'image-generation-started') {
@@ -232,9 +209,6 @@ export function useChat(conversationId: string) {
         void qc.invalidateQueries({ queryKey: keys.conv.detail(conversationId) })
         void qc.invalidateQueries({ queryKey: keys.conv.list() })
         void qc.invalidateQueries({ queryKey: keys.usage.today() })
-        // بنر پایدار محدودیت (بالای اینپوت) بلافاصله بعد از هر تلاش ارسال — موفق یا ناموفق —
-        // با آخرین وضعیت واقعی به‌روز شود، نه اینکه تا poll بعدی (تا ۳۰ ثانیه) منتظر بماند.
-        void qc.invalidateQueries({ queryKey: keys.usage.messageQuota() })
         // کارت هدیه هم همین‌جا invalidate می‌شود — trial ممکنه دقیقاً همین پیام به پایان رسیده
         // باشه و باید بدون reload صفحه، فوراً از حالت trial به grace عوض شه (staleTime قبلاً ۵ دقیقه بود)
         void qc.invalidateQueries({ queryKey: keys.growth.giftStatus() })

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import { track } from '@/lib/events'
@@ -36,6 +36,7 @@ export function useCreditQuote(credits: number, enabled: boolean) {
 // خرید یک بسته — دقیقاً هم‌الگوی useInitiateWalletTopup: سرور paymentUrl برمی‌گرداند،
 // کاربر مستقیم به درگاه هدایت می‌شود (بازگشت از درگاه همان مسیر callback موجود کیف‌پول است)
 export function usePurchaseCreditPackage() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({
       packageId,
@@ -57,6 +58,14 @@ export function usePurchaseCreditPackage() {
         customCredits: variables.customCredits,
         gateway: variables.gateway,
       })
+      // مقدار نیووی این خرید را قبل از رفتن به درگاه ذخیره می‌کنیم تا صفحه‌ی callback بعد از
+      // برگشت بتواند دقیقاً بگوید «N نیوو اضافه شد» (همون الگوی nivo:signupBonusCredits در OtpPage)
+      const packages = qc.getQueryData<CreditPackage[]>(keys.credits.packages())
+      const purchasedCredits = variables.customCredits
+        ?? packages?.find(p => p.id === variables.packageId)?.credits
+      if (purchasedCredits) {
+        sessionStorage.setItem('nivo:pendingPurchaseCredits', String(purchasedCredits))
+      }
       window.location.href = data.paymentUrl
     },
   })

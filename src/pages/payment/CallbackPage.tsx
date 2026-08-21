@@ -10,6 +10,7 @@ export function CallbackPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [status, setStatus] = useState<'success' | 'failed' | null>(null)
+  const [addedCredits, setAddedCredits] = useState<number | null>(null)
   const refId = params.get('refId')
   const invoiceId = params.get('invoiceId')
   // docs/PRD-user-push-notifications-and-mobile-app-flows.md بخش ۵.۵ — این پرداخت از داخل اپ
@@ -24,6 +25,12 @@ export function CallbackPage() {
       track('payment_succeeded', { refId: refId ?? undefined, invoiceId: invoiceId ?? undefined })
       void qc.invalidateQueries({ queryKey: keys.auth.me() })
       void qc.invalidateQueries({ queryKey: keys.sub.current() })
+      void qc.invalidateQueries({ queryKey: keys.credits.balance() })
+      const pending = sessionStorage.getItem('nivo:pendingPurchaseCredits')
+      if (pending) {
+        setAddedCredits(Number(pending))
+        sessionStorage.removeItem('nivo:pendingPurchaseCredits')
+      }
     } else {
       setStatus('failed')
       track('payment_failed', { refId: refId ?? undefined, invoiceId: invoiceId ?? undefined })
@@ -41,8 +48,11 @@ export function CallbackPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-100">{fa.payment.success}</h2>
-              {refId && <p className="mt-1 text-sm text-slate-500">کد پیگیری: {refId}</p>}
+              <h2 className="text-xl font-bold text-slate-100">
+                {addedCredits ? fa.payment.creditsAdded(addedCredits) : fa.payment.success}
+              </h2>
+              <p className="mt-2 text-sm text-emerald-400">{fa.payment.motivational}</p>
+              {refId && <p className="mt-3 text-sm text-slate-500">کد پیگیری: {refId}</p>}
             </div>
             <button
               onClick={() => navigate('/chat', { replace: true })}
