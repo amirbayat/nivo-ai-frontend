@@ -67,23 +67,46 @@ function NumberStepper({ value, onChange, min, max, step = 1, unit, decimals = 0
 }) {
   const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v / step) * step))
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-slate-700/60 bg-slate-800/40 px-5 py-[18px]">
-      <button
-        onClick={() => onChange(clamp(value - step))}
-        className="flex size-10 items-center justify-center rounded-full border border-slate-700 text-slate-300"
-      >
-        <svg viewBox="0 0 20 20" fill="none" className="size-4"><path d="M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-      </button>
-      <div className="text-center">
-        <span className="text-[34px] font-bold text-slate-100" dir="ltr">{decimals ? value.toFixed(decimals) : value}</span>
-        <div className="mt-0.5 text-xs text-slate-500">{unit}</div>
+    <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 px-5 py-[18px]">
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => onChange(clamp(value - step))}
+          aria-label={fa.common.decrease}
+          // اندازه‌ی قبلی (size-10 = ۴۰px) روی موبایل زیر حداقل touch-target توصیه‌شده
+          // (۴۴px اپل/گوگل) بود — همین چند پیکسل باعث می‌شد کاربر باید خیلی دقیق روی
+          // دایره بزنه. active:scale هم فیدبک لمسی می‌ده که کلیک واقعاً ثبت شده
+          className="flex size-12 shrink-0 touch-manipulation items-center justify-center rounded-full border border-slate-700 text-slate-300 transition-transform active:scale-90 active:bg-slate-700/60"
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="size-5"><path d="M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        </button>
+        <div className="text-center">
+          <span className="text-[34px] font-bold text-slate-100" dir="ltr">{decimals ? value.toFixed(decimals) : value}</span>
+          <div className="mt-0.5 text-xs text-slate-500">{unit}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(clamp(value + step))}
+          aria-label={fa.common.increase}
+          className="flex size-12 shrink-0 touch-manipulation items-center justify-center rounded-full border border-emerald-500 bg-emerald-500/10 text-emerald-400 transition-transform active:scale-90 active:bg-emerald-500/25"
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="size-5"><path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        </button>
       </div>
-      <button
-        onClick={() => onChange(clamp(value + step))}
-        className="flex size-10 items-center justify-center rounded-full border border-emerald-500 bg-emerald-500/10 text-emerald-400"
-      >
-        <svg viewBox="0 0 20 20" fill="none" className="size-4"><path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-      </button>
+      {/* برای جابه‌جایی سریع روی بازه‌ی بزرگ (مثلاً قد از ۱۰۰ تا ۲۵۰) — دکمه‌های +/- فقط
+          برای تنظیم دقیق نهایی می‌مونن. dir="ltr" عمدیه: جهت اسلایدر عددی بین مرورگرها
+          (خصوصاً سافاری/Chrome iOS که موتورش WebKit است) با dir="rtl" یکدست رفتار نمی‌کنه */}
+      <input
+        type="range"
+        dir="ltr"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={e => onChange(clamp(Number(e.target.value)))}
+        aria-label={unit}
+        className="mt-4 h-2 w-full touch-manipulation appearance-none rounded-full bg-slate-700 accent-emerald-500"
+      />
     </div>
   )
 }
@@ -134,7 +157,13 @@ export function NivoCalOnboardingPage() {
         <div className="mx-auto flex max-w-lg flex-col items-center text-center">
           <div className="mb-5 flex w-full">
             <button
-              onClick={() => navigate(-1)}
+              // navigate(-1) اینجا برای کاربری که تازه پروفایل رو ساخته و اولین‌باره وارد این
+              // صفحه شده، قابل‌اعتماد نیست — چون قدم‌های ۱ تا ۴ ویزارد همه روی همین یک URL
+              // (state داخلی، نه history جدا) رندر می‌شن، این تنها یک entry در history عقب‌تر
+              // از /nivo-cal/onboarding می‌ره؛ برای کاربر تازه که تاریخچه‌ی SPA‌اش کم‌عمقه (مثلاً
+              // مستقیم بعد از لاگین/OTP وارد اینجا شده)، ممکنه اصلاً چیزی برای برگشتن نباشه و از
+              // اپ بیرون بره. مقصد ثابت و مطمئن یعنی همیشه به یک صفحه‌ی واقعی می‌رسه
+              onClick={() => navigate('/nivo-cal/dashboard')}
               className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200"
               aria-label={fa.common.back}
             >

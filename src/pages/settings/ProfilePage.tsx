@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { clsx } from 'clsx'
 import { useMe, useLogout } from '@/queries/auth.queries'
 import { useUpdateProfile } from '@/queries/settings.queries'
-import { useBudgetStatus } from '@/queries/usage.queries'
-import { useFeatureFlags } from '@/queries/config.queries'
 import { useMyDiscountCodes } from '@/queries/growth.queries'
 import { useCreditsBalance } from '@/queries/credits.queries'
 import { Input } from '@/components/ui/Input'
@@ -20,30 +17,9 @@ const DISCOUNT_SOURCE_LABEL: Record<MyDiscountCode['source'], string> = {
   MANUAL: 'کمپین ویژه',
 }
 
-function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b border-slate-700/40 last:border-0">
-      <span className="text-sm text-slate-400">{label}</span>
-      <span className={clsx('text-sm font-medium', highlight ? 'text-emerald-400' : 'text-slate-200')}>{value}</span>
-    </div>
-  )
-}
-
-function BudgetBar({ spent, total }: { spent: number; total: number }) {
-  const pct = total > 0 ? Math.min(100, Math.round((spent / total) * 100)) : 0
-  const color = pct >= 90 ? 'bg-red-400' : pct >= 70 ? 'bg-orange-400' : 'bg-emerald-400'
-  return (
-    <div className="mt-1 h-2 w-full rounded-full bg-slate-700/60 overflow-hidden">
-      <div className={clsx('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
-    </div>
-  )
-}
-
 export function ProfilePage() {
   const { data: me } = useMe()
   const update = useUpdateProfile()
-  const { data: budget } = useBudgetStatus()
-  const { data: flags } = useFeatureFlags()
   const logoutMut = useLogout()
   const { data: myCodes } = useMyDiscountCodes()
   const { data: creditsBalance } = useCreditsBalance()
@@ -139,9 +115,8 @@ export function ProfilePage() {
         <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
           <h3 className="text-sm font-semibold text-slate-200 mb-2">🤝 معرفی دوستان</h3>
           <p className="mb-4 text-sm text-slate-400">
-            لینکت رو برای دوستات بفرست — وقتی اولین خریدشون رو انجام بدن، هم تو هم دوستت یک کد تخفیف تازه
-            می‌گیرید. هر دوست جدیدی که معرفی کنی، یک کد تخفیف تازه برای خرید اعتبار می‌گیری —
-            بدون محدودیت در تعداد دفعات.
+            لینکت رو برای دوستات بفرست — به ازای هر دوستی که با لینک تو ثبت‌نام کنه، ۴۰ نیوو
+            هدیه می‌گیری. بدون محدودیت در تعداد دفعات.
           </p>
           <button
             onClick={copyReferralUrl}
@@ -171,54 +146,6 @@ export function ProfilePage() {
                   </span>
                 </button>
               ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* budget status */}
-      {budget && flags?.showDailyBudget && (
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
-          <h3 className="text-sm font-semibold text-slate-200 mb-4">{fa.settings.budgetSection}</h3>
-
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between text-xs text-slate-400 mb-1">
-                <span>{fa.settings.spentToday}</span>
-                <span dir="ltr">
-                  {budget.spentTodayToman.toLocaleString('fa-IR')} / {budget.dailyBudgetToman.toLocaleString('fa-IR')} تومان
-                </span>
-              </div>
-              <BudgetBar spent={budget.spentTodayToman} total={budget.dailyBudgetToman} />
-            </div>
-
-            <InfoRow
-              label={fa.settings.remaining}
-              value={`${budget.remainingTodayToman.toLocaleString('fa-IR')} تومان`}
-              highlight={budget.remainingTodayToman > 0}
-            />
-
-            {budget.walletBalanceToman > 0 && (
-              <Link
-                to="/settings/wallet"
-                className="flex items-center justify-between py-2.5 border-b border-slate-700/40 last:border-0 hover:bg-slate-700/20 -mx-2 px-2 rounded-lg transition-colors"
-              >
-                <span className="text-sm text-slate-400">{fa.settings.walletBalance}</span>
-                <span className="text-sm font-medium text-emerald-400">
-                  {budget.walletBalanceToman.toLocaleString('fa-IR')} تومان
-                </span>
-              </Link>
-            )}
-
-            <InfoRow
-              label={fa.settings.usdtRate}
-              value={budget.usdtToman.toLocaleString('fa-IR')}
-            />
-          </div>
-
-          {budget.warningLevel !== 'none' && budget.upsellSuggestion && (
-            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-              <p className="text-sm text-amber-300">{budget.upsellSuggestion}</p>
             </div>
           )}
         </div>

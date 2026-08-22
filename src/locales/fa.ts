@@ -393,6 +393,8 @@ export const fa = {
     back: 'بازگشت',
     toman: 'تومان',
     retry: 'تلاش مجدد',
+    increase: 'افزایش',
+    decrease: 'کاهش',
     tooManyRequests: (seconds: number) =>
       `تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً ${seconds.toLocaleString('fa-IR')} ثانیه دیگر دوباره تلاش کنید.`,
   },

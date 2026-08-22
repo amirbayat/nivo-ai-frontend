@@ -52,24 +52,42 @@ export function WeightLogSheet({ lastWeightKg, onClose }: WeightLogSheetProps) {
           </div>
         ) : (
           <>
-            <div className="mb-3.5 flex items-center justify-center gap-4">
+            <div className="mb-2 flex items-center justify-center gap-4">
               <button
+                type="button"
                 onClick={() => setWeight(w => Math.round((w - 0.1) * 10) / 10)}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-700 text-slate-300"
+                aria-label={fa.common.decrease}
+                className="flex size-12 shrink-0 touch-manipulation items-center justify-center rounded-full border border-slate-700 text-slate-300 transition-transform active:scale-90 active:bg-slate-700/60"
               >
-                <svg viewBox="0 0 20 20" fill="none" className="size-4"><path d="M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                <svg viewBox="0 0 20 20" fill="none" className="size-5"><path d="M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
               </button>
               <div className="min-w-[120px] text-center">
                 <span className="text-4xl font-extrabold text-slate-100" dir="ltr">{weight.toFixed(1)}</span>
                 <div className="mt-0.5 text-xs text-slate-500">{fa.nivoCalWeightSheet.unit}</div>
               </div>
               <button
+                type="button"
                 onClick={() => setWeight(w => Math.round((w + 0.1) * 10) / 10)}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-emerald-500 bg-emerald-500/10 text-emerald-400"
+                aria-label={fa.common.increase}
+                className="flex size-12 shrink-0 touch-manipulation items-center justify-center rounded-full border border-emerald-500 bg-emerald-500/10 text-emerald-400 transition-transform active:scale-90 active:bg-emerald-500/25"
               >
-                <svg viewBox="0 0 20 20" fill="none" className="size-4"><path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                <svg viewBox="0 0 20 20" fill="none" className="size-5"><path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
               </button>
             </div>
+
+            {/* پله‌ی ۰.۱ کیلوگرمی با دکمه یعنی برای تغییر ۲-۳ کیلویی باید ده‌ها بار کلیک کنی —
+                اسلایدر برای جهش سریع روی بازه‌ی بزرگ، دکمه‌ها برای ریزتنظیم نهایی */}
+            <input
+              type="range"
+              dir="ltr"
+              min={30}
+              max={300}
+              step={0.1}
+              value={weight}
+              onChange={e => setWeight(Math.round(Number(e.target.value) * 10) / 10)}
+              aria-label={fa.nivoCalWeightSheet.unit}
+              className="mb-3.5 h-2 w-full touch-manipulation appearance-none rounded-full bg-slate-700 accent-emerald-500"
+            />
 
             {logWeight.isError && (
               <p className="mb-3 text-center text-xs text-red-400">{fa.nivoCalWeightSheet.errorGeneric}</p>
