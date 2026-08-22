@@ -31,6 +31,14 @@ export default defineConfig({
       workbox: {
         // مقالات /blog باید همیشه از شبکه (رندر واقعی بک‌اند) بیایند، نه از app-shell کش‌شده
         navigateFallbackDenylist: [/^\/blog/],
+        // چون injectRegister:false است (ثبت SW دستی در main.tsx)، vite-plugin-pwa دیگر
+        // خودش این دو مقدار را برای registerType:'autoUpdate' ست نمی‌کند (فقط وقتی
+        // injectRegister==='auto'/null این کار را خودکار انجام می‌دهد) — بدون تنظیم صریح
+        // اینجا، service worker جدید بعد از هر دیپلوی نصب می‌شود ولی در حالت «waiting»
+        // می‌ماند و کنترل تب را نمی‌گیرد تا همه‌ی تب‌های اپ بسته شوند؛ یعنی کاربر تا رفرش
+        // معمولی نسخه‌ی جدید را نمی‌بیند (فقط با یک context تازه مثل incognito).
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],
