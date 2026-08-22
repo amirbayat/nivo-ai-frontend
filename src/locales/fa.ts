@@ -417,7 +417,7 @@ export const fa = {
   },
   anonChat: {
     usageGuide: 'راهنمای استفاده',
-    loginSignup: 'ورود / ثبت‌نام',
+    loginSignup: 'ورود',
     signupCta: 'ثبت‌نام رایگان',
     closeAria: 'بستن راهنما',
     modalTitle: 'راهنمای استفاده از نیوو',
