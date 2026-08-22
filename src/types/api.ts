@@ -156,6 +156,35 @@ export interface ExtractionHistoryItem extends CreativePromptCatalogItem {
   createdAt: string
 }
 
+// docs/PRD-nivo-cal.md فاز ۱ — خروجی ساخت‌یافته‌ی تحلیل عکس غذا؛ NutritionResultCard فقط از
+// همین فیلدها رندر می‌کند، هیچ متن خام مدل مستقیم نمایش داده نمی‌شود
+export interface NivoCalFoodItem {
+  nameFa: string
+  portionEstimate: string
+  calories: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+  fiberG: number | null
+  sugarG: number | null
+}
+
+export interface NivoCalScanResult {
+  isFood: boolean
+  confidence: 'high' | 'medium' | 'low'
+  items: NivoCalFoodItem[]
+  totalCalories: number
+  healthScore: 'healthy' | 'moderate' | 'unhealthy'
+  healthNotes: string[]
+}
+
+export interface NivoCalLog extends NivoCalScanResult {
+  id: string
+  imageUrl: string
+  note?: string | null
+  createdAt: string
+}
+
 export interface CreativeGalleryItem {
   id: string
   outputType: 'IMAGE' | 'TEXT'

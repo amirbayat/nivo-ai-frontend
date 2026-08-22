@@ -11,6 +11,7 @@ import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
 import { ProjectsPage } from '@/pages/projects/ProjectsPage'
 import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage'
 import { GalleryPage } from '@/pages/gallery/GalleryPage'
+import { NivoCalPage } from '@/pages/nivo-cal/NivoCalPage'
 import { ModelsPage } from '@/pages/models/ModelsPage'
 import { CallbackPage } from '@/pages/payment/CallbackPage'
 import { ProfilePage } from '@/pages/settings/ProfilePage'
@@ -101,6 +102,10 @@ export function AppRouter() {
       <Route
         path="/gallery"
         element={<ProtectedRoute><GalleryPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/nivo-cal"
+        element={<ProtectedRoute><NivoCalPage /></ProtectedRoute>}
       />
       <Route
         path="/models"
