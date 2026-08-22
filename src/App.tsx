@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { AppRouter } from '@/router'
 import { ToastContainer } from '@/components/ui/ToastContainer'
 import { env } from '@/env'
@@ -10,7 +11,14 @@ import { fa } from '@/locales/fa'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 60_000 },
+    queries: {
+      // ۴۲۹ یعنی سرور صریحاً گفته «کندتر بزن» (Retry-After) — ریترای فوری react-query دقیقاً
+      // خلاف همین است و می‌تواند حالت throttled را طولانی‌تر هم بکند؛ فقط خطاهای دیگر
+      // (شبکه، ۵xx) یک‌بار ریترای می‌شوند
+      retry: (failureCount, error) =>
+        failureCount < 1 && !(isAxiosError(error) && error.response?.status === 429),
+      staleTime: 60_000,
+    },
   },
 })
 
