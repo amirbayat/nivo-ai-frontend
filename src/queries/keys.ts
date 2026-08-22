@@ -59,6 +59,8 @@ export const keys = {
   },
   nivoCal: {
     logs: () => ['nivo-cal', 'logs'] as const,
+    profile: () => ['nivo-cal', 'profile'] as const,
+    dailySummary: () => ['nivo-cal', 'daily-summary'] as const,
   },
   campaign: {
     status: () => ['campaign', 'status'] as const,

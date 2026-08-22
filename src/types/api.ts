@@ -185,6 +185,69 @@ export interface NivoCalLog extends NivoCalScanResult {
   createdAt: string
 }
 
+// docs/PRD-nivo-cal.md فاز ۲ — پروفایل تغذیه؛ dailyCalorieTarget/proteinTargetG/... خروجی
+// قطعی فرمول Mifflin-St Jeor سمت بک‌اند هستند، هیچ‌وقت حدس مدل نیستند
+export type NivoCalGender = 'MALE' | 'FEMALE'
+export type NivoCalActivityLevel = 'SEDENTARY' | 'LIGHT' | 'ACTIVE' | 'VERY_ACTIVE'
+export type NivoCalGoal = 'LOSE_WEIGHT' | 'MAINTAIN' | 'GAIN_WEIGHT'
+
+export interface NutritionProfile {
+  id: string
+  userId: string
+  gender: NivoCalGender
+  age: number
+  heightCm: number
+  activityLevel: NivoCalActivityLevel
+  goal: NivoCalGoal
+  goalPaceLevel: number
+  dailyCalorieTarget: number
+  proteinTargetG: number
+  carbsTargetG: number
+  fatTargetG: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateNutritionProfileInput {
+  gender: NivoCalGender
+  age: number
+  heightCm: number
+  weightKg: number
+  activityLevel: NivoCalActivityLevel
+  goal: NivoCalGoal
+  goalPaceLevel?: number
+}
+
+export interface WeightLogEntry {
+  id: string
+  weightKg: number
+  createdAt: string
+  deltaKg: number | null
+}
+
+export interface WeightTrend {
+  points: { date: string; weightKg: number }[]
+  deltaKg: number
+  periodDays: number
+}
+
+export interface WeeklyAdherenceDay {
+  date: string
+  consumedCalories: number
+  targetCalories: number
+  status: 'under' | 'onTarget' | 'over' | 'noData'
+}
+
+export interface NivoCalDailySummary {
+  profile: NutritionProfile
+  consumed: { calories: number; proteinG: number; carbsG: number; fatG: number }
+  remainingCalories: number
+  meals: NivoCalLog[]
+  weightTrend: WeightTrend
+  streakDays: number
+  weeklyAdherence: WeeklyAdherenceDay[]
+}
+
 export interface CreativeGalleryItem {
   id: string
   outputType: 'IMAGE' | 'TEXT'

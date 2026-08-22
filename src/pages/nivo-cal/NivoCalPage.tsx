@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
-import { useFoodLogs, useScanFood } from '@/queries/nivoCal.queries'
+import { useFoodLogs, useNutritionProfile, useScanFood } from '@/queries/nivoCal.queries'
 import { NutritionResultCard } from '@/components/nivo-cal/NutritionResultCard'
+import { DeleteLogButton } from '@/components/nivo-cal/DeleteLogButton'
 import { fa } from '@/locales/fa'
 import type { NivoCalLog, NivoCalScanResult } from '@/types/api'
 
@@ -48,6 +49,8 @@ export function NivoCalPage() {
 
   const scanFood = useScanFood()
   const { data: logs, isLoading: logsLoading } = useFoodLogs()
+  // undefined یعنی هنوز لود نشده (چیزی نشون نده)، null یعنی صراحتاً پروفایل نداره (CTA نشون بده)
+  const { data: profile } = useNutritionProfile()
 
   useEffect(() => {
     if (!scanFood.isPending) return
@@ -162,6 +165,27 @@ export function NivoCalPage() {
           </div>
         )}
 
+        {profile === null && (
+          <div className="mt-5">
+            <button
+              onClick={() => navigate('/nivo-cal/onboarding')}
+              className="flex w-full items-center gap-3.5 rounded-[18px] border border-emerald-500/30 p-[18px] text-right transition-colors hover:border-emerald-500/50"
+              style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.14), rgba(56,189,248,0.06))' }}
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+                <svg viewBox="0 0 24 24" fill="none" className="size-5"><path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-slate-100">{fa.nivoCal.profileCta.title}</span>
+                <span className="mt-0.5 block text-xs leading-[1.6] text-slate-400">{fa.nivoCal.profileCta.subtitle}</span>
+              </span>
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0 text-emerald-400">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         <div className="mt-10">
           <h2 className="mb-3 text-sm font-bold text-slate-300">{fa.nivoCal.historyTitle}</h2>
           {logsLoading ? (
@@ -201,6 +225,7 @@ function FoodLogRow({ log }: { log: NivoCalLog }) {
       {log.isFood && (
         <span className="shrink-0 text-sm font-bold text-slate-100" dir="ltr">~{log.totalCalories}</span>
       )}
+      <DeleteLogButton id={log.id} />
     </div>
   )
 }

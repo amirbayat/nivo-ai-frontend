@@ -12,6 +12,9 @@ import { ProjectsPage } from '@/pages/projects/ProjectsPage'
 import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage'
 import { GalleryPage } from '@/pages/gallery/GalleryPage'
 import { NivoCalPage } from '@/pages/nivo-cal/NivoCalPage'
+import { NivoCalOnboardingPage } from '@/pages/nivo-cal/NivoCalOnboardingPage'
+import { NivoCalDashboardPage } from '@/pages/nivo-cal/NivoCalDashboardPage'
+import { useNutritionProfile } from '@/queries/nivoCal.queries'
 import { ModelsPage } from '@/pages/models/ModelsPage'
 import { CallbackPage } from '@/pages/payment/CallbackPage'
 import { ProfilePage } from '@/pages/settings/ProfilePage'
@@ -47,6 +50,16 @@ function GuestRoute({ children }: { children: ReactNode }) {
 // ۴۰۱ بخورد، و توسط اینترسپتور (api.ts) به‌جای دیدن تجربه‌ی مهمان به /login پرتاب شود. اینجا
 // با useMe() واقعاً اعتبار توکن چک می‌شود؛ تا وقتی مشخص نشده، یک صفحه‌ی خالی موقت (مثل الگوی
 // مشابه در LandingPage.tsx) نشان داده می‌شود تا از فلش نامناسب جلوگیری شود
+// «/nivo-cal» یک مقصد ثابت نیست — بسته به وجود پروفایل تغذیه، یا صفحه‌ی اسکن فعلی (فاز ۱ + CTA
+// ساخت پروفایل) یا داشبورد روزانه‌ی جدید (فاز ۲) را نشان می‌دهد؛ همان الگوی HomeRoute بالا برای
+// شاخه‌زدن روی یک مسیر ثابت بر اساس یک query. لینک مستقیم به «/nivo-cal/scan» (مثل FAB داشبورد)
+// همیشه صفحه‌ی اسکن را نشان می‌دهد، مستقل از این تصمیم — از این حلقه رد نمی‌شود.
+function NivoCalRootRoute() {
+  const { data: profile, isLoading } = useNutritionProfile()
+  if (isLoading) return <div className="min-h-screen bg-slate-950" />
+  return <Navigate to={profile ? '/nivo-cal/dashboard' : '/nivo-cal/scan'} replace />
+}
+
 function HomeRoute() {
   const hasToken = !!localStorage.getItem('access_token')
   const { data: me, isLoading } = useMe()
@@ -105,7 +118,19 @@ export function AppRouter() {
       />
       <Route
         path="/nivo-cal"
+        element={<ProtectedRoute><NivoCalRootRoute /></ProtectedRoute>}
+      />
+      <Route
+        path="/nivo-cal/scan"
         element={<ProtectedRoute><NivoCalPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/nivo-cal/onboarding"
+        element={<ProtectedRoute><NivoCalOnboardingPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/nivo-cal/dashboard"
+        element={<ProtectedRoute><NivoCalDashboardPage /></ProtectedRoute>}
       />
       <Route
         path="/models"
