@@ -61,7 +61,7 @@ export function NivoCalDashboardPage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/chat')}
               className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200"
               aria-label={fa.common.back}
             >
