@@ -11,6 +11,7 @@ import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
 import { ProjectsPage } from '@/pages/projects/ProjectsPage'
 import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage'
 import { GalleryPage } from '@/pages/gallery/GalleryPage'
+import { NivoCalIntroPage } from '@/pages/nivo-cal/NivoCalIntroPage'
 import { NivoCalPage } from '@/pages/nivo-cal/NivoCalPage'
 import { NivoCalOnboardingPage } from '@/pages/nivo-cal/NivoCalOnboardingPage'
 import { NivoCalDashboardPage } from '@/pages/nivo-cal/NivoCalDashboardPage'
@@ -79,6 +80,9 @@ export function AppRouter() {
       <Route path="/" element={<HomeRoute />} />
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      {/* لندینگ عمومی/مارکتینگ nivo-cal — حتی کاربر لاگین‌نکرده هم باید ویدیوی معرفی را ببیند،
+          برخلاف «/nivo-cal» که پشت ProtectedRoute است و مقصد ثابت داشبورد/اسکن کاربر لاگین‌کرده است */}
+      <Route path="/nivo-cal/intro" element={<NivoCalIntroPage />} />
 
       {/* guest */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />

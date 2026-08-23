@@ -524,6 +524,10 @@ function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
           <span className="text-emerald-400">ni</span>vo
         </Link>
         <nav className="flex items-center gap-2">
+          <Link to="/nivo-cal/intro"
+            className="rounded-xl px-5 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            نیوو کال
+          </Link>
           <a href="/blog"
             className="rounded-xl px-5 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             وبلاگ
