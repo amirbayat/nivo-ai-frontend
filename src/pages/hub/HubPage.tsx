@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import logoUrl from '@/assets/brand/horizontal-dark.svg'
 
 // docs/PRD-openrouter-migration.md §۱۳-۱۴ — نقطه‌ی ورود جدید بعد از لاگین (به‌جای ریدایرکت
 // مستقیم به /chat). پیکسل‌به‌پیکسل مطابق آرتبورد Main.dc.html در دیزاین‌کنوس — شامل کارت
@@ -31,25 +32,7 @@ export function HubPage() {
       {/* header */}
       <div className="relative flex items-center justify-between px-6 pt-8 sm:px-16">
         <div className="flex items-center gap-2.5">
-          <div
-            className="flex items-center justify-center font-extrabold"
-            style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#10b981,#0ea5e9)', color: '#02170f', fontSize: 16 }}
-          >
-            n
-          </div>
-          <span className="text-lg font-bold text-white">nivo</span>
-        </div>
-        <div className="flex items-center gap-3.5">
-          <div
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] sm:flex"
-            style={{ border: '1px solid rgba(148,163,184,0.22)', color: '#94a3b8' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
-            </svg>
-            تاریخچه‌ی گفتگوها
-          </div>
-          <div style={{ width: 38, height: 38, borderRadius: 9999, background: 'rgba(148,163,184,0.12)', border: '1px solid rgba(148,163,184,0.25)' }} />
+          <img src={logoUrl} alt="نیوو" className="h-8 w-auto" />
         </div>
       </div>
 
