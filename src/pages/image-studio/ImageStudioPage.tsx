@@ -37,6 +37,7 @@ interface PendingCreative {
   userInput: string
   inputImageKeys?: string[]
   imagePreviews?: string[]
+  preserveFace?: boolean
 }
 
 export function ImageStudioPage() {
@@ -123,6 +124,7 @@ function StudioWorkspace({ id }: { id?: string }) {
         userInput: pending.userInput || undefined,
         inputImageKeys: pending.inputImageKeys,
         conversationId: convId,
+        preserveFace: pending.preserveFace,
       },
       {
         onSuccess: result =>
@@ -158,15 +160,16 @@ function StudioWorkspace({ id }: { id?: string }) {
     userInput: string,
     inputImageKeys?: string[],
     imagePreviews?: string[],
+    preserveFace?: boolean,
   ) => {
     if (id) {
-      runGenerateCreative(id, { promptId, userInput, inputImageKeys, imagePreviews })
+      runGenerateCreative(id, { promptId, userInput, inputImageKeys, imagePreviews, preserveFace })
       return
     }
     try {
       const conv = await createConv.mutateAsync({ model: 'optimal' })
       navigate(`/image/${conv.id}`, {
-        state: { initialCreative: { promptId, userInput, inputImageKeys, imagePreviews } },
+        state: { initialCreative: { promptId, userInput, inputImageKeys, imagePreviews, preserveFace } },
         replace: true,
       })
     } catch {
@@ -229,7 +232,11 @@ function StudioWorkspace({ id }: { id?: string }) {
           <span className="text-[17px] font-bold text-white">{data?.title || 'تولید و ویرایش عکس'}</span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2.5">
-          <PlanUpgradeBadge />
+          {/* روی موبایل نوار سراسری خود ChatLayout همین نشان اعتبار را بالای هر صفحه‌ای
+              نشان می‌دهد (ChatLayout.tsx، نوار sm:hidden) — تکرارش اینجا فقط روی sm:+ */}
+          <div className="hidden sm:contents">
+            <PlanUpgradeBadge />
+          </div>
           <div
             className="flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold"
             style={
@@ -282,8 +289,8 @@ function StudioWorkspace({ id }: { id?: string }) {
       {/* workspace: پنل کنترل (راست) + گالری (چپ) — موبایل: ستونی */}
       <div className="flex flex-1 flex-col overflow-hidden sm:flex-row" style={{ padding: '20px 0' }}>
         <div
-          className="order-2 flex shrink-0 flex-col sm:order-1 sm:w-[400px] sm:pr-10"
-          style={{ borderTop: '1px solid rgba(148,163,184,0.14)' }}
+          className="order-2 flex shrink-0 flex-col sm:order-1 sm:w-[400px] sm:border-t sm:pr-10"
+          style={{ borderColor: 'rgba(148,163,184,0.14)' }}
         >
           <div className="flex h-full flex-1 flex-col pt-4 sm:pt-0">
             <StudioComposer
@@ -301,7 +308,7 @@ function StudioWorkspace({ id }: { id?: string }) {
           </div>
         </div>
 
-        <div className="order-1 flex-1 overflow-y-auto px-5 sm:order-2 sm:px-10">
+        <div className="order-1 flex-1 overflow-y-auto px-5 pb-24 sm:order-2 sm:px-10 sm:pb-6">
           <p className="mb-3.5 text-[13px]" style={{ color: '#64748b' }}>
             {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
           </p>

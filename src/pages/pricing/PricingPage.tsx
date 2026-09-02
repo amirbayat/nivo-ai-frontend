@@ -124,6 +124,101 @@ export function PricingPage() {
   );
 }
 
+function BoltIcon({ className }: { className?: string }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function StarIcon({ className }: { className?: string }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M12 2l2.6 6.6L21.5 9l-5.4 4.5L18 21l-6-3.9L6 21l1.9-7.5L2.5 9l6.9-.4L12 2z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DiamondIcon({ className }: { className?: string }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M6 3l-3 6.5L12 21l9-11.5L18 3H6z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M3 9.5h18M9.5 3L12 9.5 14.5 3M9 9.5L12 21l3-11.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ImageStatIcon({ className }: { className?: string }) {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="3" y="4" width="18" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="8.5" cy="10.5" r="1.5" fill="currentColor" />
+      <path d="M4 16.5l4.8-4.2a1.5 1.5 0 012 .06L16 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChatStatIcon({ className }: { className?: string }) {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M4 5.5A2.5 2.5 0 016.5 3h11A2.5 2.5 0 0120 5.5v8A2.5 2.5 0 0117.5 16H10l-4.5 4v-4h-1A2.5 2.5 0 010 13.5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// هر کارت یه مدال آیکون مخصوص خودش می‌گیره: ورودی=رعد خنثی، محبوب=ستاره‌ی سبز، به‌صرفه‌ترین=الماس کهربایی
+function packageAccent(pkg: CreditPackage) {
+  if (pkg.isPopular) {
+    return {
+      Icon: StarIcon,
+      iconWrap: "bg-emerald-500/15",
+      iconColor: "text-emerald-400",
+      card: "border-emerald-500/40 bg-gradient-to-b from-emerald-500/[0.07] to-transparent shadow-[0_0_44px_rgba(16,185,129,0.12)]",
+      ribbon: "bg-emerald-500",
+      button: "bg-emerald-500 text-white hover:bg-emerald-400",
+      divider: "bg-emerald-500/20",
+      statChip: "bg-emerald-500/8",
+      statText: "text-emerald-100",
+      statOr: "text-emerald-300",
+    };
+  }
+  if (pkg.isBestValue) {
+    return {
+      Icon: DiamondIcon,
+      iconWrap: "bg-amber-500/15",
+      iconColor: "text-amber-400",
+      card: "border-amber-500/35 bg-gradient-to-b from-amber-500/[0.06] to-transparent",
+      ribbon: "bg-amber-500",
+      button: "border border-slate-600 text-slate-300 hover:border-slate-500",
+      divider: "bg-amber-500/20",
+      statChip: "bg-amber-500/8",
+      statText: "text-amber-100",
+      statOr: "text-amber-300",
+    };
+  }
+  return {
+    Icon: BoltIcon,
+    iconWrap: "bg-slate-400/15",
+    iconColor: "text-slate-400",
+    card: "border-slate-700/60 bg-slate-800/40 hover:border-slate-600",
+    ribbon: null,
+    button: "border border-slate-600 text-slate-300 hover:border-slate-500",
+    divider: "bg-slate-700/50",
+    statChip: "bg-white/[0.03]",
+    statText: "text-slate-300",
+    statOr: "text-slate-600",
+  };
+}
+
 function PackageCard({
   pkg,
   loading,
@@ -139,32 +234,23 @@ function PackageCard({
   const originalPrice = hasDiscount ? Math.round(pkg.priceToman / (1 - pkg.discountPercent / 100)) : null;
   const approxImages = Math.max(1, Math.round(pkg.credits / CREDITS_PER_IMAGE_ESTIMATE));
   const approxMessages = Math.max(1, Math.round(pkg.credits / CREDITS_PER_MESSAGE_ESTIMATE));
+  const accent = packageAccent(pkg);
+  const ribbonLabel = pkg.isPopular ? fa.credits.popular : pkg.isBestValue ? fa.credits.bestValue : null;
 
   return (
-    <div
-      className={clsx(
-        "relative flex flex-col rounded-2xl border p-7 transition-all duration-300",
-        pkg.isPopular
-          ? "border-emerald-500/40 bg-gradient-to-b from-emerald-500/[0.06] to-transparent shadow-[0_0_40px_rgba(16,185,129,0.08)]"
-          : hasDiscount
-            ? "border-amber-500/30 bg-gradient-to-b from-amber-500/[0.05] to-transparent hover:border-amber-500/50"
-            : "border-slate-700/60 bg-slate-800/40 hover:border-slate-600",
-      )}
-    >
-      {pkg.isPopular && (
-        <span className="absolute -top-3 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-bold text-white">
-          {fa.credits.popular}
-        </span>
-      )}
-      {pkg.isBestValue && !pkg.isPopular && (
-        <span className="absolute -top-3 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-white">
-          {fa.credits.bestValue}
+    <div className={clsx("relative flex flex-col rounded-3xl border p-7 transition-all duration-300", accent.card)}>
+      {ribbonLabel && (
+        <span className={clsx("absolute -top-3.5 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full px-4 py-1 text-xs font-bold text-white", accent.ribbon)}>
+          {ribbonLabel}
         </span>
       )}
 
-      <div className="mb-6">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-lg font-bold text-slate-100">
+      <div className="flex items-center gap-3.5">
+        <div className={clsx("flex size-[52px] shrink-0 items-center justify-center rounded-2xl", accent.iconWrap)}>
+          <accent.Icon className={accent.iconColor} />
+        </div>
+        <div className="flex flex-1 items-center justify-between gap-2">
+          <h3 className="text-lg font-extrabold text-slate-100">
             {pkg.credits.toLocaleString("fa-IR")} {fa.credits.creditsUnit}
           </h3>
           {hasDiscount && (
@@ -173,29 +259,42 @@ function PackageCard({
             </span>
           )}
         </div>
-        <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
-          <span className="text-3xl font-extrabold text-slate-100">
-            {pkg.priceToman.toLocaleString("fa-IR")}
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-[32px] font-extrabold text-slate-100">
+          {pkg.priceToman.toLocaleString("fa-IR")}
+        </span>
+        <span className="text-[13px] text-slate-500">تومان</span>
+      </div>
+      {originalPrice !== null && (
+        <p className="mt-1 text-xs text-slate-600 line-through">
+          {originalPrice.toLocaleString("fa-IR")} تومان
+        </p>
+      )}
+
+      <div className={clsx("my-6 h-px", accent.divider)} />
+
+      <div className="flex items-center gap-2.5">
+        <div className={clsx("flex flex-1 items-center gap-2 rounded-2xl px-3 py-2.5", accent.statChip)}>
+          <ImageStatIcon className={accent.iconColor} />
+          <span className={clsx("text-[13px] font-semibold", accent.statText)}>
+            {approxImages.toLocaleString("fa-IR")} عکس
           </span>
-          <span className="text-sm text-slate-500">تومان</span>
         </div>
-        {originalPrice !== null && (
-          <p className="mt-1 text-xs text-slate-600 line-through">
-            {originalPrice.toLocaleString("fa-IR")} تومان
-          </p>
-        )}
-        <p className="mt-2 text-xs text-slate-500">{fa.credits.approxUsage(approxImages, approxMessages)}</p>
+        <span className={clsx("text-[11px]", accent.statOr)}>یا</span>
+        <div className={clsx("flex flex-1 items-center gap-2 rounded-2xl px-3 py-2.5", accent.statChip)}>
+          <ChatStatIcon className={accent.iconColor} />
+          <span className={clsx("text-[13px] font-semibold", accent.statText)}>
+            {approxMessages.toLocaleString("fa-IR")} پیام
+          </span>
+        </div>
       </div>
 
       <button
         onClick={onBuy}
         disabled={loading}
-        className={clsx(
-          "mt-auto rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50",
-          pkg.isPopular
-            ? "bg-emerald-500 text-white hover:bg-emerald-400"
-            : "border border-slate-600 text-slate-300 hover:border-slate-500",
-        )}
+        className={clsx("mt-6 rounded-xl py-3 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50", accent.button)}
       >
         {loading ? fa.credits.buying : fa.credits.buyButton}
       </button>
@@ -223,15 +322,20 @@ function CustomAmountCard({
 
   return (
     <div className="mt-8">
-      <div className="relative flex flex-col gap-8 rounded-2xl border border-fuchsia-500/40 bg-gradient-to-b from-fuchsia-500/[0.06] to-transparent p-8 md:flex-row">
-        <span className="absolute -top-3 right-6 rounded-full bg-fuchsia-500 px-3 py-0.5 text-xs font-medium text-white">
+      <div className="relative flex flex-col gap-8 rounded-3xl border border-fuchsia-500/40 bg-gradient-to-b from-fuchsia-500/[0.06] to-transparent p-8 md:flex-row md:items-center">
+        <span className="absolute -top-3.5 right-6 rounded-full bg-fuchsia-500 px-4 py-1 text-xs font-medium text-white">
           {fa.credits.customAmount}
         </span>
-        <div className="flex-1">
-          <h3 className="text-2xl font-bold text-slate-100">{fa.credits.customAmountLabel}</h3>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-            {`حداقل ${customPackage.credits.toLocaleString("fa-IR")} ${fa.credits.creditsUnit} — ${customPackage.discountPercent}٪ تخفیف`}
-          </p>
+        <div className="flex flex-1 items-center gap-3.5">
+          <div className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/15">
+            <PlusIcon className="text-fuchsia-400" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-slate-100">{fa.credits.customAmountLabel}</h3>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
+              {`حداقل ${customPackage.credits.toLocaleString("fa-IR")} ${fa.credits.creditsUnit} — ${customPackage.discountPercent}٪ تخفیف`}
+            </p>
+          </div>
         </div>
 
         <div className="flex shrink-0 flex-col justify-center gap-3 md:w-64">

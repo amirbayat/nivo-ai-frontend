@@ -27,6 +27,14 @@ const FILTERS: { key: CatalogFilter; label: string }[] = [
   { key: 'pro', label: 'حرفه‌ای' },
 ]
 
+// چیپ‌های «دنبال چی هستی؟» — میان‌بر روی همون سه‌سطحِ tier موجود (SIMPLE/MEDIUM/COMPLEX)، فقط با
+// یک برچسب کاربردی‌تر؛ هدف کمک به کاربر برای پیدا کردن مدل مناسب، بدون نیاز به دیتای تازه
+const QUICK_PICKS: { tier: ModelTier; label: string }[] = [
+  { tier: 'SIMPLE', label: 'سریع و ارزون' },
+  { tier: 'MEDIUM', label: 'متعادل و همه‌کاره' },
+  { tier: 'COMPLEX', label: 'قدرتمند و استدلالی' },
+]
+
 function totalPrice(m: ModelCatalogEntry) {
   return (m.inputPricePerM ?? 0) + (m.outputPricePerM ?? 0)
 }
@@ -36,6 +44,27 @@ function median(nums: number[]) {
   const sorted = [...nums].sort((a, b) => a - b)
   const mid = Math.floor(sorted.length / 2)
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
+
+// سرعت/دقت صرفاً از tier می‌آد (تنها سیگنال واقعی موجود برای این دو)؛ هزینه نسبی به میانه‌ی
+// قیمت واقعی کاتالوگ (همون priceMedian که فیلتر ارزان/گران هم استفاده می‌کنه) حساب می‌شه —
+// هیچ‌کدوم عدد ساختگی نیست، هر سه از دیتای واقعی ModelCatalogEntry مشتق شدن
+const TIER_SPEED: Record<ModelTier, number> = { SIMPLE: 5, MEDIUM: 4, COMPLEX: 2 }
+const TIER_QUALITY: Record<ModelTier, number> = { SIMPLE: 2, MEDIUM: 3, COMPLEX: 5 }
+
+function costLevel(price: number, median: number): number {
+  if (median <= 0) return 3
+  const ratio = price / median
+  if (ratio <= 0.4) return 1
+  if (ratio <= 0.8) return 2
+  if (ratio <= 1.3) return 3
+  if (ratio <= 2) return 4
+  return 5
+}
+
+function Dots({ n, className }: { n: number; className?: string }) {
+  const filled = Math.max(0, Math.min(5, n))
+  return <span className={clsx('tracking-widest', className)}>{'●'.repeat(filled)}{'○'.repeat(5 - filled)}</span>
 }
 
 function OptimalIcon() {
@@ -102,6 +131,9 @@ export function ModelsPage() {
   const { data: catalog, isLoading } = useModelCatalog()
   const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel, selectedCreativePrompt } = useChatStore()
   const [filter, setFilter] = useState<CatalogFilter>('all')
+  // برخلاف filter (که لیست رو مخفی/نمایان می‌کنه)، activeTier فقط کارت‌های غیرمرتبط رو کم‌رنگ
+  // می‌کنه — چون هدف «کمک به مقایسه» است، نه پنهان کردن گزینه‌ها
+  const [activeTier, setActiveTier] = useState<ModelTier | null>(null)
 
   // میانه‌ی قیمت کل کاتالوگ فعلی — مبنای فیلتر ارزان/گران (نسبی به همین لحظه، نه یک عدد ثابت)
   const priceMedian = useMemo(() => median((catalog ?? []).map(totalPrice)), [catalog])
@@ -155,6 +187,8 @@ export function ModelsPage() {
 
   function ModelCard({ model }: { model: ModelCatalogEntry }) {
     const isActive = selectedModel === model.name
+    const isQuickMatch = activeTier === model.tier
+    const isDimmed = Boolean(activeTier) && !isQuickMatch
 
     return (
       <div
@@ -168,7 +202,10 @@ export function ModelsPage() {
           'flex w-full cursor-pointer items-start gap-4 rounded-2xl border p-5 text-right transition-all',
           isActive
             ? 'border-emerald-500/60 bg-emerald-500/5'
-            : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+            : isQuickMatch
+              ? 'border-cyan-500/50 bg-cyan-500/[0.06]'
+              : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+          isDimmed && 'opacity-40',
         )}
       >
         <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
@@ -182,6 +219,11 @@ export function ModelsPage() {
           <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
             {model.description || tierDescription(model.tier)}
           </p>
+          <div className="mt-2.5 flex flex-wrap gap-4 text-[11px] text-slate-500">
+            <span>سرعت <Dots n={TIER_SPEED[model.tier]} className="text-emerald-400" /></span>
+            <span>دقت <Dots n={TIER_QUALITY[model.tier]} className="text-violet-400" /></span>
+            <span>هزینه <Dots n={costLevel(totalPrice(model), priceMedian)} className="text-amber-400" /></span>
+          </div>
         </div>
         {isActive && <Check />}
       </div>
@@ -297,7 +339,7 @@ export function ModelsPage() {
         </div>
 
         {!imageOnlyMode && (
-          <div className="mb-6 flex flex-wrap justify-center gap-2">
+          <div className="mb-4 flex flex-wrap justify-center gap-2">
             {FILTERS.map(f => (
               <button
                 key={f.key}
@@ -312,6 +354,28 @@ export function ModelsPage() {
                 {f.label}
               </button>
             ))}
+          </div>
+        )}
+
+        {!imageOnlyMode && (
+          <div className="mb-6">
+            <p className="mb-2 text-center text-xs text-slate-600">دنبال چی هستی؟</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {QUICK_PICKS.map(q => (
+                <button
+                  key={q.tier}
+                  onClick={() => setActiveTier(t => (t === q.tier ? null : q.tier))}
+                  className={clsx(
+                    'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
+                    activeTier === q.tier
+                      ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-300'
+                      : 'border-slate-700/60 text-slate-400 hover:border-slate-600',
+                  )}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
