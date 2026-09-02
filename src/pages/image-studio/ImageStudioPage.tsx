@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useGenerateCreative } from '@/queries/discovery.queries'
+import { useMe } from '@/queries/auth.queries'
+import { useWallet } from '@/queries/usage.queries'
 import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
 import { useSidebarControl } from '@/components/layout/ChatLayout'
-import { ChatImage, ImageGenCanvas } from '@/components/chat/MessageList'
+import { ChatImage, ImageGenCanvas, ChatErrorBox } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { PromptLibraryModal } from '@/components/discover/PromptLibraryModal'
 import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
@@ -54,6 +56,12 @@ function StudioWorkspace({ id }: { id?: string }) {
   const { data, isLoading } = useConversation(id ?? '')
   const { sendMessage } = useChat(id ?? '')
   const generateCreative = useGenerateCreative()
+  // «میزان اعتبار رو بنویس توی بخش تولید عکس» — دقیقاً همون Wallet که تولید عکس واقعی
+  // (هم مسیر معمولی، هم debitWallet نهایی) ازش کسر می‌کنه؛ فقط برای پلن Pay-as-you-go نشون
+  // داده می‌شه، دقیقاً هم‌الگوی Sidebar.tsx
+  const { data: me } = useMe()
+  const isPayAsYouGo = Boolean(me?.plan?.isPayAsYouGo)
+  const { data: wallet } = useWallet(isPayAsYouGo)
 
   const pendingRef = useRef<PendingMessage | null>(
     (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage ?? null,
@@ -172,6 +180,11 @@ function StudioWorkspace({ id }: { id?: string }) {
 
   const isGeneratingImage = useChatStore(s => s.isGeneratingImage)
   const generatingImagePreview = useChatStore(s => s.generatingImagePreview)
+  // قبلاً این صفحه اصلاً chatError/chatErrorCode را نمی‌خواند — یعنی وقتی تولید عکس fail
+  // می‌شد (مثلاً «تولید عکس روی OpenRouter هنوز مهاجرت نشده») فقط اسپینر بی‌صدا محو می‌شد،
+  // بدون هیچ پیام خطایی؛ همان الگوی ChatErrorBox که MessageList.tsx برای چت معمولی دارد
+  const chatError = useChatStore(s => s.chatError)
+  const chatErrorCode = useChatStore(s => s.chatErrorCode)
 
   // گالری = فقط عکس‌های تولیدشده توسط هوش مصنوعی — هم پیام‌های واقعی (ASSISTANT) هم نتیجه‌ی
   // تازه‌ی generateCreative که هنوز به‌صورت virtualMessages محلی است (هنوز refetch نشده)
@@ -281,6 +294,7 @@ function StudioWorkspace({ id }: { id?: string }) {
               onGenerateCreative={handleGenerateCreative}
               generatingCreative={generateCreative.isPending}
               creativeError={creativeError}
+              walletBalanceToman={isPayAsYouGo ? (wallet?.balanceToman ?? 0) : null}
             />
           </div>
         </div>
@@ -289,6 +303,12 @@ function StudioWorkspace({ id }: { id?: string }) {
           <p className="mb-3.5 text-[13px]" style={{ color: '#64748b' }}>
             {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
           </p>
+
+          {chatError && !isGeneratingImage && (
+            <div className="mb-4">
+              <ChatErrorBox message={chatError} code={chatErrorCode} />
+            </div>
+          )}
 
           {count === 0 && !isGeneratingImage && !generateCreative.isPending ? (
             <div className="flex flex-col items-center justify-center gap-3.5 py-16 text-center">

@@ -26,6 +26,7 @@ export function StudioComposer({
   onGenerateCreative,
   generatingCreative,
   creativeError,
+  walletBalanceToman,
 }: {
   onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
   disabled?: boolean
@@ -38,6 +39,8 @@ export function StudioComposer({
   onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[]) => void
   generatingCreative?: boolean
   creativeError?: string | null
+  // موجودی کیف‌پول (فقط پلن Pay-as-you-go) — null یعنی پلن این کاربر اصلاً کیف‌پول تومانی ندارد
+  walletBalanceToman?: number | null
 }) {
   const navigate = useNavigate()
   const { data: flags } = useFeatureFlags()
@@ -119,6 +122,15 @@ export function StudioComposer({
 
   return (
     <div className="flex h-full flex-1 flex-col gap-4 px-4 pb-4 sm:px-0">
+      {walletBalanceToman !== null && walletBalanceToman !== undefined && (
+        <div className="flex items-center justify-between gap-2 self-start rounded-full px-3.5 py-1.5 text-[12px]" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)', color: '#94a3b8' }}>
+          <span>موجودی کیف‌پول:</span>
+          <span className="font-semibold" dir="ltr" style={{ color: '#a7f3d0' }}>
+            {walletBalanceToman.toLocaleString('fa-IR')} تومان
+          </span>
+        </div>
+      )}
+
       {selectedCreativePrompt ? (
         /* چیپ سبک انتخاب‌شده — جایگزین چیپ مدل، چون مدل تولید این حالت خودکار/سرور-محور است */
         <div

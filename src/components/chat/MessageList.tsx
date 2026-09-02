@@ -217,7 +217,7 @@ function GeneratingImageBox({ preview }: { preview: string | null }) {
 // این باکس فقط برای خطاهای عمومی/غیرمنتظره است (مدل در دسترس نیست، قطعی شبکه و ...) —
 // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن) توسط بنر پایدار بالای اینپوت
 // (MessageLimitBanner) پوشش داده می‌شوند، نه اینجا.
-function ChatErrorBox({ message, code }: { message: string; code: string | null }) {
+export function ChatErrorBox({ message, code }: { message: string; code: string | null }) {
   const navigate = useNavigate()
   const isImageGenNotSupported = code === 'IMAGE_GEN_NOT_SUPPORTED'
 
