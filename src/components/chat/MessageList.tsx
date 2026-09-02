@@ -23,7 +23,8 @@ function LinkNewTab({ href, children }: { href?: string; children?: React.ReactN
 // wrapper مشترک روی <img> برای عکس‌های پیام — چون src ممکن است مسیر نسبی auth-dار بک‌اند
 // باشد (نه یک URL مستقیم قابل‌نمایش)، تا وقتی useAuthedImageUrl آن را resolve کند یک
 // اسکلت خاکستری نشان می‌دهیم به‌جای <img> شکسته
-function ChatImage({ src, className, alt, onClick }: {
+// export شده تا ImageStudioPage.tsx هم بتواند برای گالری از همین wrapper (auth-دار) استفاده کند
+export function ChatImage({ src, className, alt, onClick }: {
   src: string
   className?: string
   alt: string

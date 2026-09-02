@@ -263,12 +263,18 @@ function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
           <p className="mt-1 text-sm text-slate-600">{fa.chat.emptySubtitle}</p>
         </div>
 
+        {/* بازطراحی هاب/چت (docs/PRD-openrouter-migration.md §۱۴.۴) — composer وسط‌چین به‌جای
+            چسبیده به پایین، فقط در حالت خالی؛ بعد از اولین پیام، ActiveChat مثل قبل ورودی را
+            پایین می‌چسباند. MessageInput خودش دست‌نخورده می‌ماند (مشترک با ActiveChat) */}
+        <div className="w-full max-w-2xl">
+          <MessageInput onSend={onSend} disabled={isCreating} />
+        </div>
+
         <TrendingPromptGrid onSelect={onSelectCreativePrompt} disabled={isCreating} />
       </div>
       <OutageBanner />
       <GiftBanner />
       <MessageLimitBanner />
-      <MessageInput onSend={onSend} disabled={isCreating} />
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useModelCatalog, type ModelCatalogEntry } from '@/queries/plans.queries'
@@ -12,6 +13,30 @@ import { track } from '@/lib/events'
 const STORAGE_KEY = 'nivo:selectedModel'
 const IMAGE_GEN_STORAGE_KEY = 'nivo:selectedImageGenModel'
 const TIER_ORDER: ModelTier[] = ['COMPLEX', 'MEDIUM', 'SIMPLE']
+
+// docs/PRD-openrouter-migration.md §۱۳.۴/۱۴.۴ — فیلترهای صفحه‌ی انتخاب مدل. ترند/محبوب از
+// AiModel.badges می‌آیند (متن آزاد ادمین)، ارزان/گران از قیمت واقعی محاسبه می‌شود (نسبت به
+// میانه‌ی کل کاتالوگ فعلی)، حرفه‌ای همان tier=COMPLEX موجود است — بدون نیاز به ستون جدید
+type CatalogFilter = 'all' | 'trending' | 'popular' | 'cheap' | 'expensive' | 'pro'
+const FILTERS: { key: CatalogFilter; label: string }[] = [
+  { key: 'all', label: 'همه' },
+  { key: 'trending', label: 'ترند' },
+  { key: 'popular', label: 'محبوب' },
+  { key: 'cheap', label: 'ارزان' },
+  { key: 'expensive', label: 'گران' },
+  { key: 'pro', label: 'حرفه‌ای' },
+]
+
+function totalPrice(m: ModelCatalogEntry) {
+  return (m.inputPricePerM ?? 0) + (m.outputPricePerM ?? 0)
+}
+
+function median(nums: number[]) {
+  if (!nums.length) return 0
+  const sorted = [...nums].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
 
 function OptimalIcon() {
   return (
@@ -46,6 +71,22 @@ function SparkleIcon({ className }: { className?: string }) {
   )
 }
 
+function ModelBadges({ badges }: { badges: string[] }) {
+  if (!badges.length) return null
+  return (
+    <>
+      {badges.map(b => (
+        <span
+          key={b}
+          className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[11px] text-cyan-300"
+        >
+          {b}
+        </span>
+      ))}
+    </>
+  )
+}
+
 function ImageGenBadge() {
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-fuchsia-500/20 to-purple-600/20 px-2 py-0.5 text-[11px] font-medium text-fuchsia-300 ring-1 ring-fuchsia-500/30">
@@ -59,11 +100,26 @@ export function ModelsPage() {
   const navigate = useNavigate()
   const { data: catalog, isLoading } = useModelCatalog()
   const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel, selectedCreativePrompt } = useChatStore()
+  const [filter, setFilter] = useState<CatalogFilter>('all')
+
+  // میانه‌ی قیمت کل کاتالوگ فعلی — مبنای فیلتر ارزان/گران (نسبی به همین لحظه، نه یک عدد ثابت)
+  const priceMedian = useMemo(() => median((catalog ?? []).map(totalPrice)), [catalog])
+
+  const matchesFilter = (m: ModelCatalogEntry) => {
+    switch (filter) {
+      case 'trending': return m.badges.includes('ترند') || m.badges.includes('trending')
+      case 'popular': return m.badges.includes('محبوب') || m.badges.includes('popular')
+      case 'cheap': return totalPrice(m) <= priceMedian
+      case 'expensive': return totalPrice(m) > priceMedian
+      case 'pro': return m.tier === 'COMPLEX'
+      default: return true
+    }
+  }
 
   // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود، کل
   // کاتالوگ فعال برای همه در دسترس است (فقط بر اساس موجودی کیف‌پول محدود می‌شود، نه اینجا)]
-  const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN')
-  const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN')
+  const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN').filter(matchesFilter)
+  const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN').filter(matchesFilter)
 
   // وقتی یک سبک استودیو انتخاب شده باشد، انتخاب مدل این صفحه باید بر اساس outputType همان
   // سبک فیلتر شود (سبک تصویری → فقط مدل‌های تولید عکس، سبک متنی → فقط مدل‌های چت) — همان‌طور
@@ -110,8 +166,13 @@ export function ModelsPage() {
           <ProviderIcon provider={model.provider} size={20} />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-slate-100">{model.displayName}</h3>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{tierDescription(model.tier)}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-bold text-slate-100">{model.displayName}</h3>
+            <ModelBadges badges={model.badges} />
+          </div>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+            {model.description || tierDescription(model.tier)}
+          </p>
         </div>
         {isActive && <Check />}
       </div>
@@ -143,11 +204,14 @@ export function ModelsPage() {
           <ProviderIcon provider={model.provider} size={20} />
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-bold text-slate-100">{model.displayName}</h3>
             <ImageGenBadge />
+            <ModelBadges badges={model.badges} />
           </div>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{imageQualityLabel(model.tier)}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+            {model.description || imageQualityLabel(model.tier)}
+          </p>
         </div>
         {isActive && <Check />}
       </div>
@@ -166,6 +230,23 @@ export function ModelsPage() {
           </button>
           <h1 className="text-2xl font-bold text-slate-100">انتخاب مدل</h1>
           <p className="mt-2 text-slate-500">مدلی که می‌خوای پاسخ‌هات باهاش ساخته شه رو انتخاب کن</p>
+        </div>
+
+        <div className="mb-6 flex flex-wrap justify-center gap-2">
+          {FILTERS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={clsx(
+                'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
+                filter === f.key
+                  ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
+                  : 'border-slate-700/60 text-slate-400 hover:border-slate-600',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
 
         <div className="space-y-4">

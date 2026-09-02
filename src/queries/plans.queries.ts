@@ -22,6 +22,11 @@ export interface ModelCatalogEntry {
   supportsVision: boolean
   supportsImageGen: boolean
   sortOrder: number
+  // docs/PRD-openrouter-migration.md §۱۳.۴/۱۴.۴ — صفحه‌ی انتخاب مدل بازطراحی‌شده
+  description: string | null
+  badges: string[]
+  inputPricePerM: number
+  outputPricePerM: number
 }
 
 export function useModelCatalog() {
