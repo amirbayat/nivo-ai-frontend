@@ -120,7 +120,11 @@ export function ModelsPage() {
   // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود، کل
   // کاتالوگ فعال برای همه در دسترس است (فقط بر اساس موجودی کیف‌پول محدود می‌شود، نه اینجا)]
   const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN').filter(matchesFilter)
-  const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN').filter(matchesFilter)
+  // مدل‌های تولید عکس دو دسته‌اند: modelType=IMAGE_GEN (اختصاصی، مثل openai/gpt-image-2)، و
+  // مدل‌های چندمنظوره‌ی جدید (modelType=CHAT با supportsImageGen=true، مثل gpt-5-image/Nano
+  // Banana) — قبلاً فقط دسته‌ی اول چک می‌شد، بنابراین دسته‌ی دوم (که در پروداکشن تنها دسته‌ی
+  // موجود است) هیچ‌وقت اینجا دیده نمی‌شد
+  const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN' || m.supportsImageGen).filter(matchesFilter)
 
   // وقتی یک سبک استودیو انتخاب شده باشد، انتخاب مدل این صفحه باید بر اساس outputType همان
   // سبک فیلتر شود (سبک تصویری → فقط مدل‌های تولید عکس، سبک متنی → فقط مدل‌های چت) — همان‌طور

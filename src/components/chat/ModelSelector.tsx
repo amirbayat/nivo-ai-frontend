@@ -55,8 +55,11 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
   // برعکس می‌شود: فقط مدل‌های تولید عکس قابل‌انتخاب‌اند — همان مدلی که به generate() می‌رود
   const wantsImageGen = selectedCreativePrompt?.outputType === 'IMAGE'
   const matchesRequiredType = (name: string) => {
-    const modelType = catalog?.find(m => m.name === name)?.modelType
-    return wantsImageGen ? modelType === 'IMAGE_GEN' : modelType !== 'IMAGE_GEN'
+    const m = catalog?.find(m => m.name === name)
+    if (!m) return false
+    // مدل‌های تولید عکس یا modelType=IMAGE_GEN اختصاصی‌اند یا (دسته‌ی رایج‌تر در پروداکشن)
+    // یک مدل چت چندمنظوره با supportsImageGen=true (مثل gpt-5-image/Nano Banana)
+    return wantsImageGen ? (m.modelType === 'IMAGE_GEN' || m.supportsImageGen) : m.modelType !== 'IMAGE_GEN'
   }
   // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود — کل
   // کاتالوگ فعال در دسترس است، فقط بر اساس outputType سبک استودیو (اگر انتخاب شده) فیلتر می‌شود]
