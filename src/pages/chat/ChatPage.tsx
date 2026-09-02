@@ -11,11 +11,9 @@ import { GiftBanner } from '@/components/chat/GiftBanner'
 import { OutageBanner } from '@/components/chat/OutageBanner'
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
 import { ModelSelector } from '@/components/chat/ModelSelector'
-import { TrendingPromptGrid } from '@/components/chat/TrendingPromptGrid'
 import { ChatHeroComposer } from './ChatHeroComposer'
 import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
 import { fa } from '@/locales/fa'
-import type { CreativePromptCatalogItem } from '@/types/api'
 
 interface PendingMessage {
   content: string
@@ -27,7 +25,6 @@ interface PendingMessage {
 export function ChatPage() {
   const { id } = useParams<{ id?: string }>()
   const { isStreaming } = useChatStore()
-  const setSelectedCreativePrompt = useChatStore(s => s.setSelectedCreativePrompt)
   const navigate = useNavigate()
   const location = useLocation()
   const createConv = useCreateConversation()
@@ -53,24 +50,10 @@ export function ChatPage() {
     }
   }
 
-  // انتخاب یک پرامپت آماده‌ی عکسی از صفحه‌ی خالی — دقیقاً هم‌الگوی DiscoverPage.handleSelectPrompt:
-  // سبک را در استور مشترک می‌گذاریم و مکالمه‌ی تازه می‌سازیم؛ MessageInput خودِ ActiveChat
-  // (که selectedCreativePrompt را از استور می‌خواند) بعد از mount شدن، UI تولید عکس را نشان می‌دهد
-  const handleSelectCreativePrompt = async (item: CreativePromptCatalogItem) => {
-    setSelectedCreativePrompt(item)
-    try {
-      const conv = await createConv.mutateAsync({ model: 'optimal', projectId })
-      navigate(`/chat/${conv.id}`)
-    } catch {
-      // ignore — سبک انتخاب‌شده در استور می‌ماند، کاربر می‌تواند دوباره تلاش کند
-    }
-  }
-
   if (!id) {
     return (
       <EmptyState
         onSend={handleFirstMessage}
-        onSelectCreativePrompt={handleSelectCreativePrompt}
         isCreating={createConv.isPending}
       />
     )
@@ -227,9 +210,8 @@ function GeneratingCreativeBubble() {
   )
 }
 
-function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
+function EmptyState({ onSend, isCreating }: {
   onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
-  onSelectCreativePrompt: (item: CreativePromptCatalogItem) => void
   isCreating: boolean
 }) {
   return (
@@ -258,8 +240,6 @@ function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
             پیکسل‌به‌پیکسل مطابق ChatEmpty.dc.html، فقط در حالت خالی؛ بعد از اولین پیام،
             ActiveChat مثل قبل از MessageInput مشترک/چسبیده‌به‌پایین استفاده می‌کند */}
         <ChatHeroComposer onSend={onSend} disabled={isCreating} />
-
-        <TrendingPromptGrid onSelect={onSelectCreativePrompt} disabled={isCreating} />
       </div>
       <OutageBanner />
       <GiftBanner />

@@ -5,7 +5,6 @@ import { useAnonChat } from '@/hooks/useAnonChat'
 import { getAnonConversationId, setAnonConversationId } from '@/lib/anonSession'
 import { AnonSignupBanner } from '@/components/chat/AnonSignupBanner'
 import { AnonDiscoveryTrial } from '@/pages/anon-chat/AnonDiscoveryTrial'
-import { TrendingPromptGrid } from '@/components/chat/TrendingPromptGrid'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { useChatStore } from '@/store/chat.store'
 import { fa } from '@/locales/fa'
@@ -104,10 +103,6 @@ export function AnonChatPage() {
             </div>
             <AnonSamplePrompts prompts={status?.samplePrompts} onPick={handleSend} />
           </div>
-          {/* انتخاب یک کارت مستقیم selectedCreativePrompt را در استور مشترک می‌گذارد — با
-              بازرندر همین کامپوننت (بالای فایل)، به‌جای UI چت معمولی پنل AnonDiscoveryTrial
-              نمایش داده می‌شود؛ برخلاف کاربر لاگین‌کرده، اینجا نیازی به ساخت Conversation نیست */}
-          <TrendingPromptGrid onSelect={setSelectedCreativePrompt} />
         </div>
       )}
 
