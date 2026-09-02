@@ -9,6 +9,9 @@ export const keys = {
     list: (projectId?: string) =>
       projectId ? (['conversations', 'list', projectId] as const) : (['conversations', 'list'] as const),
     detail: (id: string) => ['conversations', 'detail', id] as const,
+    // docs/PRD-openrouter-migration.md §۱۴.۴ — ImageStudioHistory، جدا از list بالا تا با
+    // invalidate شدن لیست عمومی چت قاطی نشود
+    imageGenList: () => ['conversations', 'list', 'imageGenOnly'] as const,
   },
   credits: {
     balance: () => ['credits', 'balance'] as const,

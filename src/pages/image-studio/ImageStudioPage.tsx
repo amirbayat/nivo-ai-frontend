@@ -6,12 +6,12 @@ import { useMe } from '@/queries/auth.queries'
 import { useWallet } from '@/queries/usage.queries'
 import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
-import { useSidebarControl } from '@/components/layout/ChatLayout'
 import { ChatImage, ImageGenCanvas, ChatErrorBox } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { PromptLibraryModal } from '@/components/discover/PromptLibraryModal'
 import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
 import { StudioComposer } from './StudioComposer'
+import { ImageStudioHistoryDrawer } from './ImageStudioHistoryDrawer'
 import { fa } from '@/locales/fa'
 import type { Message, CreativePromptCatalogItem } from '@/types/api'
 
@@ -51,7 +51,6 @@ function StudioWorkspace({ id }: { id?: string }) {
   const { selectedCreativePrompt, setSelectedCreativePrompt } = useChatStore()
   const navigate = useNavigate()
   const location = useLocation()
-  const { openSidebar } = useSidebarControl()
   const createConv = useCreateConversation()
   const { data, isLoading } = useConversation(id ?? '')
   const { sendMessage } = useChat(id ?? '')
@@ -73,6 +72,7 @@ function StudioWorkspace({ id }: { id?: string }) {
   const [virtualMessages, setVirtualMessages] = useState<VirtualMessage[]>([])
   const [creativeError, setCreativeError] = useState<string | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   useEffect(() => {
     const msg = pendingRef.current
@@ -241,11 +241,11 @@ function StudioWorkspace({ id }: { id?: string }) {
             {`${count} از ${SOFT_CAP} عکس در این گفتگو`}
           </div>
           <button
-            onClick={openSidebar}
+            onClick={() => setHistoryOpen(true)}
             className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
             style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
-            title="تاریخچه‌ی گفتگوها"
-            aria-label="باز کردن تاریخچه‌ی گفتگوها"
+            title="تاریخچه‌ی استودیوی عکس"
+            aria-label="باز کردن تاریخچه‌ی استودیوی عکس"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
@@ -370,6 +370,8 @@ function StudioWorkspace({ id }: { id?: string }) {
         onClose={() => setLibraryOpen(false)}
         onSelect={handleSelectFromLibrary}
       />
+
+      <ImageStudioHistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
   )
 }

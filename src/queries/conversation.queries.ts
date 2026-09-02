@@ -16,6 +16,20 @@ export function useConversations(projectId?: string) {
   })
 }
 
+// docs/PRD-openrouter-migration.md §۱۴.۴/۱۴.۵ — ImageStudioHistory: همان endpoint لیست
+// گفتگوها، فقط فیلترشده به گفتگوهایی که حداقل یک عکس تولید کرده‌اند (imageGenCount > 0)
+export function useImageStudioConversations() {
+  return useInfiniteQuery({
+    queryKey: keys.conv.imageGenList(),
+    queryFn: ({ pageParam }) =>
+      api.get<ConversationsPage>('/conversations', {
+        params: { cursor: pageParam, limit: 20, imageGenOnly: true },
+      }).then(r => r.data),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: last => last.nextCursor ?? undefined,
+  })
+}
+
 export function useConversation(id: string) {
   return useQuery({
     queryKey: keys.conv.detail(id),

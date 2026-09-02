@@ -298,6 +298,9 @@ export interface Conversation {
   totalTokens: number
   lastMessageAt: string
   createdAt: string
+  // docs/PRD-openrouter-migration.md §۱۴.۲/۱۴.۶ — شمارنده‌ی denormalized عکس‌های تولیدشده‌ی
+  // موفق در این گفتگو (برای سقف توصیه‌ای/badge استودیوی عکس)
+  imageGenCount: number
 }
 
 export interface Message {
