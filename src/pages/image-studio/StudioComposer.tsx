@@ -33,6 +33,7 @@ export function StudioComposer({ onSend, disabled, sending }: {
   const [images, setImages] = useState<string[]>([])
   const [preserveFace, setPreserveFace] = useState(true)
   const [outputCount, setOutputCount] = useState(1)
+  const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const isTouchDevice = useIsTouchDevice()
@@ -76,7 +77,7 @@ export function StudioComposer({ onSend, disabled, sending }: {
     <div className="flex flex-col gap-4 px-4 pb-4 sm:px-0">
       {/* چیپ مدل */}
       <button
-        onClick={() => navigate('/models')}
+        onClick={() => navigate('/models?context=image-studio')}
         className="flex items-center gap-2.5 self-start rounded-full px-3.5 py-2 text-[13px]"
         style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#d1fae5' }}
       >
@@ -93,20 +94,22 @@ export function StudioComposer({ onSend, disabled, sending }: {
         </span>
       </button>
 
-      {/* جعبه‌ی اصلی */}
+      {/* جعبه‌ی اصلی — عمداً بزرگ و پررنگ، چون کانون توجه اصلی این صفحه است */}
       <div
-        className="flex flex-1 flex-col rounded-[20px] p-[18px]"
+        className={clsx(
+          'flex flex-1 flex-col rounded-[26px] p-6 transition-shadow duration-300',
+          isFocused ? 'shadow-[0_0_56px_rgba(16,185,129,0.16)]' : 'shadow-[0_0_40px_rgba(16,185,129,0.06)]',
+        )}
         style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(16,185,129,0.28)',
-          boxShadow: '0 0 40px rgba(16,185,129,0.06)',
+          background: 'linear-gradient(180deg, rgba(16,185,129,0.05) 0%, rgba(255,255,255,0.025) 100%)',
+          border: `1px solid ${isFocused ? 'rgba(16,185,129,0.5)' : 'rgba(16,185,129,0.28)'}`,
         }}
       >
         {images.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-4 flex flex-wrap gap-2.5">
             {images.map((src, idx) => (
               <div key={idx} className="group relative">
-                <img src={src} className="size-14 rounded-xl border border-slate-600 object-cover" alt={`عکس مرجع ${idx + 1}`} />
+                <img src={src} className="size-16 rounded-2xl border border-slate-600 object-cover" alt={`عکس مرجع ${idx + 1}`} />
                 <button
                   onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
                   className="absolute -top-1.5 -left-1.5 flex size-5 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-xs leading-none text-slate-300 hover:text-white"
@@ -131,12 +134,19 @@ export function StudioComposer({ onSend, disabled, sending }: {
         <textarea
           ref={textareaRef}
           value={value}
-          onChange={e => setValue(e.target.value)}
+          onChange={e => {
+            setValue(e.target.value)
+            e.target.style.height = 'auto'
+            e.target.style.height = `${Math.min(e.target.scrollHeight, 280)}px`
+          }}
           onKeyDown={onKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           disabled={disabled}
-          placeholder="عکسی که می‌خوای بسازی رو توصیف کن..."
-          rows={3}
-          className="flex-1 resize-none bg-transparent text-[15px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
+          placeholder="عکسی که می‌خوای بسازی رو توصیف کن... مثلاً «یک گربه‌ی نارنجی روی مبل مخملی آبی، نور نرم غروب»"
+          rows={5}
+          style={{ minHeight: 132 }}
+          className="flex-1 resize-none bg-transparent text-[16.5px] leading-[1.8] text-slate-100 placeholder:text-slate-600 focus:outline-none"
         />
 
         {images.length > 0 && (

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
+import { useSidebarControl } from '@/components/layout/ChatLayout'
 import { ChatImage, ImageGenCanvas } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { StudioComposer } from './StudioComposer'
@@ -34,6 +35,7 @@ function StudioWorkspace({ id }: { id?: string }) {
   const { isStreaming } = useChatStore()
   const navigate = useNavigate()
   const location = useLocation()
+  const { openSidebar } = useSidebarControl()
   const createConv = useCreateConversation()
   const { data, isLoading } = useConversation(id ?? '')
   const { sendMessage } = useChat(id ?? '')
@@ -123,15 +125,17 @@ function StudioWorkspace({ id }: { id?: string }) {
           >
             {`${count} از ${SOFT_CAP} عکس در این گفتگو`}
           </div>
-          <div
-            className="flex size-10 shrink-0 items-center justify-center rounded-full"
+          <button
+            onClick={openSidebar}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
             style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
-            title="تاریخچه‌ی گفتگوها (به‌زودی)"
+            title="تاریخچه‌ی گفتگوها"
+            aria-label="باز کردن تاریخچه‌ی گفتگوها"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
             </svg>
-          </div>
+          </button>
         </div>
       </div>
 

@@ -112,12 +112,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           >
             {fa.gallery.title}
           </button>
-          <button
-            onClick={() => { track("nivo_cal_nav_clicked"); navigate("/nivo-cal"); onNavigate?.(); }}
-            className="flex-1 rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
+          <a
+            href="https://cal.nivoai.ir"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => { track("nivo_cal_nav_clicked"); onNavigate?.(); }}
+            className="flex-1 rounded-lg border border-slate-700 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
           >
             {fa.nivoCal.navLabel}
-          </button>
+          </a>
         </div>
       </div>
 

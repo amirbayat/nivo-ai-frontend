@@ -107,11 +107,11 @@ export function AppRouter() {
           Conversation کار می‌کنند (docs/PRD-openrouter-migration.md §۱۴.۲/۱۴.۳) */}
       <Route
         path="/image"
-        element={<ProtectedRoute><ChatLayout><ImageStudioPage /></ChatLayout></ProtectedRoute>}
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><ImageStudioPage /></ChatLayout></ProtectedRoute>}
       />
       <Route
         path="/image/:id"
-        element={<ProtectedRoute><ChatLayout><ImageStudioPage /></ChatLayout></ProtectedRoute>}
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><ImageStudioPage /></ChatLayout></ProtectedRoute>}
       />
       <Route
         path="/video"

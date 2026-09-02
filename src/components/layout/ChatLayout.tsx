@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { clsx } from "clsx";
 import { Sidebar } from "./Sidebar";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
@@ -6,68 +6,97 @@ import { WelcomeCreditsModal } from "./WelcomeCreditsModal";
 import { useVisualViewportHeight } from "@/hooks/useVisualViewportHeight";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
-interface ChatLayoutProps {
-  children: ReactNode;
+interface SidebarControl {
+  sidebarOpen: boolean;
+  openSidebar: () => void;
+  closeSidebar: () => void;
 }
 
-export function ChatLayout({ children }: ChatLayoutProps) {
+const SidebarControlContext = createContext<SidebarControl | null>(null);
+
+// برای صفحاتی مثل استودیوی عکس که خودشان یک دکمه‌ی «تاریخچه» دارند و می‌خواهند
+// سایدبار مشترک را باز/بسته کنند، بدون اینکه state آن (که داخل ChatLayout است) را بالا بکشیم
+export function useSidebarControl() {
+  const ctx = useContext(SidebarControlContext);
+  if (!ctx) throw new Error("useSidebarControl باید داخل ChatLayout استفاده شود");
+  return ctx;
+}
+
+interface ChatLayoutProps {
+  children: ReactNode;
+  // در چت معمولی، سایدبار روی دسکتاپ همیشه باز است (رفتار قدیم/پیش‌فرض). استودیوی عکس
+  // می‌خواهد پیش‌فرض بسته باشد و فقط با کلیک روی «تاریخچه‌ی گفتگوها» باز شود — حتی روی
+  // دسکتاپ — پس این پرچم حالت «همیشه باز روی دسکتاپ» را غیرفعال می‌کند
+  collapsedByDefault?: boolean;
+}
+
+export function ChatLayout({ children, collapsedByDefault }: ChatLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { height, offsetTop } = useVisualViewportHeight();
 
   return (
-    <div
-      // fixed (نه در جریان عادی سند) تا وقتی سافاری آیفون با باز شدن کیبورد سعی می‌کند
-      // خود صفحه را اسکرول کند تا فیلد فوکوس‌شده بالای کیبورد دیده شود، سند چیزی برای
-      // اسکرول‌کردن نداشته باشد — در غیر این صورت این اسکرول native با تغییر height
-      // بر اساس visualViewport تداخل می‌کند و کل لایوت به‌هم می‌ریزد
-      className="fixed inset-x-0 flex overflow-hidden bg-slate-900"
-      style={{ top: offsetTop, height }}
+    <SidebarControlContext.Provider
+      value={{
+        sidebarOpen,
+        openSidebar: () => setSidebarOpen(true),
+        closeSidebar: () => setSidebarOpen(false),
+      }}
     >
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-30 bg-black/50 sm:hidden"
-          aria-hidden="true"
-        />
-      )}
-
       <div
-        className={clsx(
-          "fixed inset-y-0 right-0 z-40 transition-transform duration-300 sm:static sm:z-auto sm:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "translate-x-full",
-        )}
+        // fixed (نه در جریان عادی سند) تا وقتی سافاری آیفون با باز شدن کیبورد سعی می‌کند
+        // خود صفحه را اسکرول کند تا فیلد فوکوس‌شده بالای کیبورد دیده شود، سند چیزی برای
+        // اسکرول‌کردن نداشته باشد — در غیر این صورت این اسکرول native با تغییر height
+        // بر اساس visualViewport تداخل می‌کند و کل لایوت به‌هم می‌ریزد
+        className="fixed inset-x-0 flex overflow-hidden bg-slate-900"
+        style={{ top: offsetTop, height }}
       >
-        <Sidebar onNavigate={() => setSidebarOpen(false)} />
-      </div>
-
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:hidden">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700/60 hover:text-emerald-400 transition-colors"
-            aria-label="باز کردن منو"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="size-5">
-              <path
-                d="M4 6h16M4 12h16M4 18h16"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-          <img
-            src={logoUrl}
-            alt="نیوو"
-            className="w-28 h-auto"
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className={clsx("fixed inset-0 z-30 bg-black/50", !collapsedByDefault && "sm:hidden")}
+            aria-hidden="true"
           />
-          <div className="ms-auto flex items-center gap-2">
-            <PlanUpgradeBadge />
-          </div>
+        )}
+
+        <div
+          className={clsx(
+            "fixed inset-y-0 right-0 z-40 transition-transform duration-300",
+            !collapsedByDefault && "sm:static sm:z-auto sm:translate-x-0",
+            sidebarOpen ? "translate-x-0" : "translate-x-full",
+          )}
+        >
+          <Sidebar onNavigate={() => setSidebarOpen(false)} />
         </div>
-        {children}
-      </main>
-      <WelcomeCreditsModal />
-    </div>
+
+        <main className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:hidden">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700/60 hover:text-emerald-400 transition-colors"
+              aria-label="باز کردن منو"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="size-5">
+                <path
+                  d="M4 6h16M4 12h16M4 18h16"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <img
+              src={logoUrl}
+              alt="نیوو"
+              className="w-28 h-auto"
+            />
+            <div className="ms-auto flex items-center gap-2">
+              <PlanUpgradeBadge />
+            </div>
+          </div>
+          {children}
+        </main>
+        <WelcomeCreditsModal />
+      </div>
+    </SidebarControlContext.Provider>
   );
 }

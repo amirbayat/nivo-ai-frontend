@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useModelCatalog, type ModelCatalogEntry } from '@/queries/plans.queries'
 import { useChatStore } from '@/store/chat.store'
@@ -55,9 +55,9 @@ function CoinIcon() {
   )
 }
 
-function Check() {
+function Check({ className }: { className?: string } = {}) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-4 shrink-0 text-emerald-500">
+    <svg viewBox="0 0 16 16" fill="none" className={className ?? 'size-4 shrink-0 text-emerald-500'}>
       <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
@@ -98,6 +98,7 @@ function ImageGenBadge() {
 
 export function ModelsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { data: catalog, isLoading } = useModelCatalog()
   const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel, selectedCreativePrompt } = useChatStore()
   const [filter, setFilter] = useState<CatalogFilter>('all')
@@ -126,7 +127,11 @@ export function ModelsPage() {
   // که دراپ‌داون هدر چت (ModelSelector.tsx) هم رفتار می‌کند
   const inStudioMode = Boolean(selectedCreativePrompt)
   const studioWantsImageGen = selectedCreativePrompt?.outputType === 'IMAGE'
-  const showChatModels = !inStudioMode || !studioWantsImageGen
+  // از چیپ «تغییر مدل» توی استودیوی تولید عکس (StudioComposer.tsx) — همان‌طور که کاربر خواسته،
+  // آنجا فقط باید مدل‌های تولید عکس دیده شوند، نه کل کاتالوگ چت
+  const fromImageStudio = searchParams.get('context') === 'image-studio'
+  const imageOnlyMode = fromImageStudio || (inStudioMode && studioWantsImageGen)
+  const showChatModels = !imageOnlyMode
   const showGenericImageGenSection = !inStudioMode
 
   function select(model: string) {
@@ -181,9 +186,50 @@ export function ModelsPage() {
 
   // در حالت استودیوی تصویری، انتخاب مدل باید همان selectedModel عمومی را ست کند (همانی که به
   // generateCreative فرستاده می‌شود)، نه selectedImageGenModel (که مخصوص حالت «تولید عکس» چت معمولی است)
-  function ImageGenCard({ model }: { model: ModelCatalogEntry }) {
+  //
+  // grid=true (imageOnlyMode — از چیپ استودیوی عکس یا سبک تصویری): کارت بزرگ‌تر با آیکون بالا،
+  // چون اینجا تنها محتوای صفحه است. grid=false (بخش فرعیِ زیر لیست مدل‌های چت روی /models عادی):
+  // همان ردیف فشرده‌ی قبلی، بدون تغییر
+  function ImageGenCard({ model, grid }: { model: ModelCatalogEntry; grid?: boolean }) {
     const isActive = studioWantsImageGen ? selectedModel === model.name : selectedImageGenModel === model.name
     const onSelect = () => (studioWantsImageGen ? select(model.name) : selectImageGenModel(model.name))
+
+    if (grid) {
+      return (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onSelect}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') onSelect()
+          }}
+          className={clsx(
+            'group relative flex flex-col items-start gap-3 overflow-hidden rounded-3xl border p-5 text-right transition-all cursor-pointer',
+            isActive
+              ? 'border-fuchsia-500/60 bg-fuchsia-500/[0.07] shadow-[0_0_28px_rgba(217,70,239,0.12)]'
+              : 'border-slate-700/60 bg-slate-800/40 hover:border-fuchsia-500/30 hover:bg-slate-800/60',
+          )}
+        >
+          {isActive && (
+            <div className="absolute left-4 top-4 flex size-6 items-center justify-center rounded-full bg-fuchsia-500 text-white">
+              <Check className="size-3.5 text-white" />
+            </div>
+          )}
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500/25 to-purple-600/25 ring-1 ring-fuchsia-500/30">
+            <ProviderIcon provider={model.provider} size={22} />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-bold text-slate-100">{model.displayName}</h3>
+              <ModelBadges badges={model.badges} />
+            </div>
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+              {model.description || imageQualityLabel(model.tier)}
+            </p>
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div
@@ -220,7 +266,7 @@ export function ModelsPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-16" dir="rtl">
-      <div className="mx-auto max-w-3xl">
+      <div className={clsx('mx-auto', imageOnlyMode ? 'max-w-4xl' : 'max-w-3xl')}>
         <div className="mb-10 text-center">
           <button
             onClick={() => navigate(-1)}
@@ -228,118 +274,169 @@ export function ModelsPage() {
           >
             → بازگشت
           </button>
-          <h1 className="text-2xl font-bold text-slate-100">انتخاب مدل</h1>
-          <p className="mt-2 text-slate-500">مدلی که می‌خوای پاسخ‌هات باهاش ساخته شه رو انتخاب کن</p>
-        </div>
-
-        <div className="mb-6 flex flex-wrap justify-center gap-2">
-          {FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={clsx(
-                'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
-                filter === f.key
-                  ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
-                  : 'border-slate-700/60 text-slate-400 hover:border-slate-600',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          {/* دو حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md) */}
-          <button
-            onClick={() => select(COST_OPTIMIZED_MODE)}
-            className={clsx(
-              'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-              selectedModel === COST_OPTIMIZED_MODE
-                ? 'border-amber-500/60 bg-amber-500/5'
-                : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
-            )}
-          >
-            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-              <CoinIcon />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-slate-100">مصرف بهینه</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{COST_OPTIMIZED_DESCRIPTION}</p>
-            </div>
-            {selectedModel === COST_OPTIMIZED_MODE && <Check />}
-          </button>
-
-          <button
-            onClick={() => select(BEST_ANSWER_MODE)}
-            className={clsx(
-              'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-              selectedModel === BEST_ANSWER_MODE
-                ? 'border-emerald-500/60 bg-emerald-500/5'
-                : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
-            )}
-          >
-            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-              <OptimalIcon />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-100">بهترین پاسخ</h3>
-                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-400">پیشنهادی</span>
-              </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{BEST_ANSWER_DESCRIPTION}</p>
-            </div>
-            {selectedModel === BEST_ANSWER_MODE && <Check />}
-          </button>
-
-          {showChatModels && (
+          {imageOnlyMode ? (
             <>
-              <div className="flex items-center gap-3 pt-2 pb-1">
-                <span className="h-px flex-1 bg-slate-800" />
-                <span className="text-xs text-slate-600">یا یک مدل مشخص رو انتخاب کن</span>
-                <span className="h-px flex-1 bg-slate-800" />
-              </div>
-
-              {isLoading ? (
-                <div className="flex justify-center py-10">
-                  <div className="size-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+              <div className="mb-3 flex justify-center">
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-[0_0_20px_rgba(217,70,239,0.4)]">
+                  <SparkleIcon className="size-5 text-white" />
                 </div>
-              ) : (
-                TIER_ORDER.map(tier => {
-                  const models = chatModels.filter(m => m.tier === tier)
-                  if (!models.length) return null
-                  return (
-                    <div key={tier} className="space-y-3 pt-2">
-                      <p className="text-xs font-medium text-slate-500">سطح {tierLabel(tier)}</p>
-                      {models.map(model => <ModelCard key={model.name} model={model} />)}
-                    </div>
-                  )
-                })
-              )}
+              </div>
+              <h1 className="text-2xl font-bold text-slate-100">انتخاب مدل تولید عکس</h1>
+              <p className="mt-2 text-slate-500">مدلی که تصویرهات باهاش ساخته بشه رو انتخاب کن</p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-slate-100">انتخاب مدل</h1>
+              <p className="mt-2 text-slate-500">مدلی که می‌خوای پاسخ‌هات باهاش ساخته شه رو انتخاب کن</p>
             </>
           )}
         </div>
 
-        {/* بخش مدل‌های تولید عکس: در حالت عادی برای pin کردن مدل «تولید عکس» چت است؛ وقتی سبک
-            استودیوی تصویری فعال باشد، همین لیست برای انتخاب مدل آن سبک استفاده می‌شود (نه هر دو با هم) */}
-        {!isLoading && imageGenModels.length > 0 && (showGenericImageGenSection || studioWantsImageGen) && (
-          <div className="mt-14">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-[0_0_16px_rgba(217,70,239,0.35)]">
-                <SparkleIcon className="size-4.5 text-white" />
-              </div>
-              <div>
-                <h2 className="font-bold text-slate-100">مدل‌های تولید عکس</h2>
-                <p className="text-xs text-slate-500">
-                  {studioWantsImageGen
-                    ? 'برای سبک انتخاب‌شده از استودیوی محتوا استفاده می‌شود'
-                    : 'برای حالت «تولید عکس» توی چت استفاده می‌شوند، نه چت متنی معمولی'}
-                </p>
-              </div>
-            </div>
+        {!imageOnlyMode && (
+          <div className="mb-6 flex flex-wrap justify-center gap-2">
+            {FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={clsx(
+                  'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
+                  filter === f.key
+                    ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
+                    : 'border-slate-700/60 text-slate-400 hover:border-slate-600',
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-            <div className="space-y-4">
-              {showGenericImageGenSection && (
+        {!imageOnlyMode && (
+          <div className="space-y-4">
+            {/* دو حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md) */}
+            <button
+              onClick={() => select(COST_OPTIMIZED_MODE)}
+              className={clsx(
+                'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+                selectedModel === COST_OPTIMIZED_MODE
+                  ? 'border-amber-500/60 bg-amber-500/5'
+                  : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+              )}
+            >
+              <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                <CoinIcon />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-slate-100">مصرف بهینه</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{COST_OPTIMIZED_DESCRIPTION}</p>
+              </div>
+              {selectedModel === COST_OPTIMIZED_MODE && <Check />}
+            </button>
+
+            <button
+              onClick={() => select(BEST_ANSWER_MODE)}
+              className={clsx(
+                'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+                selectedModel === BEST_ANSWER_MODE
+                  ? 'border-emerald-500/60 bg-emerald-500/5'
+                  : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+              )}
+            >
+              <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                <OptimalIcon />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-100">بهترین پاسخ</h3>
+                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-400">پیشنهادی</span>
+                </div>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{BEST_ANSWER_DESCRIPTION}</p>
+              </div>
+              {selectedModel === BEST_ANSWER_MODE && <Check />}
+            </button>
+
+            {showChatModels && (
+              <>
+                <div className="flex items-center gap-3 pt-2 pb-1">
+                  <span className="h-px flex-1 bg-slate-800" />
+                  <span className="text-xs text-slate-600">یا یک مدل مشخص رو انتخاب کن</span>
+                  <span className="h-px flex-1 bg-slate-800" />
+                </div>
+
+                {isLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="size-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+                  </div>
+                ) : (
+                  TIER_ORDER.map(tier => {
+                    const models = chatModels.filter(m => m.tier === tier)
+                    if (!models.length) return null
+                    return (
+                      <div key={tier} className="space-y-3 pt-2">
+                        <p className="text-xs font-medium text-slate-500">سطح {tierLabel(tier)}</p>
+                        {models.map(model => <ModelCard key={model.name} model={model} />)}
+                      </div>
+                    )
+                  })
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* بخش مدل‌های تولید عکس: در حالت عادی برای pin کردن مدل «تولید عکس» چت است؛ وقتی سبک
+            استودیوی تصویری یا خود استودیوی عکس فعال باشد، همین لیست برای انتخاب مدل استفاده
+            می‌شود (imageOnlyMode) — طراحی گرید بزرگ‌تر چون اینجا تنها محتوای صفحه می‌شود */}
+        {!isLoading && imageGenModels.length > 0 && (showGenericImageGenSection || studioWantsImageGen) && (
+          <div className={imageOnlyMode ? '' : 'mt-14'}>
+            {!imageOnlyMode && (
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-[0_0_16px_rgba(217,70,239,0.35)]">
+                  <SparkleIcon className="size-4.5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-100">مدل‌های تولید عکس</h2>
+                  <p className="text-xs text-slate-500">
+                    {studioWantsImageGen
+                      ? 'برای سبک انتخاب‌شده از استودیوی محتوا استفاده می‌شود'
+                      : 'برای حالت «تولید عکس» توی چت استفاده می‌شوند، نه چت متنی معمولی'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className={clsx('grid gap-4', imageOnlyMode && 'sm:grid-cols-2')}>
+              {showGenericImageGenSection && imageOnlyMode && (
+                <button
+                  onClick={() => selectImageGenModel(null)}
+                  className={clsx(
+                    'group relative flex flex-col items-start gap-3 overflow-hidden rounded-3xl border p-5 text-right transition-all',
+                    selectedImageGenModel === null
+                      ? 'border-fuchsia-500/60 bg-fuchsia-500/[0.07] shadow-[0_0_28px_rgba(217,70,239,0.12)]'
+                      : 'border-slate-700/60 bg-slate-800/40 hover:border-fuchsia-500/30 hover:bg-slate-800/60',
+                  )}
+                >
+                  {selectedImageGenModel === null && (
+                    <div className="absolute left-4 top-4 flex size-6 items-center justify-center rounded-full bg-fuchsia-500 text-white">
+                      <Check className="size-3.5 text-white" />
+                    </div>
+                  )}
+                  <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500/25 to-purple-600/25 ring-1 ring-fuchsia-500/30">
+                    <SparkleIcon className="size-6 text-fuchsia-300" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-slate-100">خودکار (پیش‌فرض)</h3>
+                      <span className="rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[11px] text-fuchsia-300">پیشنهادی</span>
+                    </div>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+                      کیفیت و ابعاد بر اساس توصیف خودت و اعتبار حسابت خودکار انتخاب می‌شود
+                    </p>
+                  </div>
+                </button>
+              )}
+
+              {showGenericImageGenSection && !imageOnlyMode && (
                 <button
                   onClick={() => selectImageGenModel(null)}
                   className={clsx(
@@ -366,7 +463,7 @@ export function ModelsPage() {
               )}
 
               {imageGenModels.map(model => (
-                <ImageGenCard key={model.name} model={model} />
+                <ImageGenCard key={model.name} model={model} grid={imageOnlyMode} />
               ))}
             </div>
           </div>
