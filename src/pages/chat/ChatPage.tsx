@@ -12,6 +12,7 @@ import { OutageBanner } from '@/components/chat/OutageBanner'
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
 import { ModelSelector } from '@/components/chat/ModelSelector'
 import { TrendingPromptGrid } from '@/components/chat/TrendingPromptGrid'
+import { ChatHeroComposer } from './ChatHeroComposer'
 import { fa } from '@/locales/fa'
 import type { CreativePromptCatalogItem } from '@/types/api'
 
@@ -259,16 +260,14 @@ function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 sm:p-8">
         <div className="text-center">
-          <p className="text-lg font-medium text-slate-300">{fa.chat.emptyTitle}</p>
-          <p className="mt-1 text-sm text-slate-600">{fa.chat.emptySubtitle}</p>
+          <p className="text-[22px] font-bold text-white sm:text-[30px]">{fa.chat.emptyTitle}</p>
+          <p className="mt-1 text-sm text-slate-500">{fa.chat.emptySubtitle}</p>
         </div>
 
-        {/* بازطراحی هاب/چت (docs/PRD-openrouter-migration.md §۱۴.۴) — composer وسط‌چین به‌جای
-            چسبیده به پایین، فقط در حالت خالی؛ بعد از اولین پیام، ActiveChat مثل قبل ورودی را
-            پایین می‌چسباند. MessageInput خودش دست‌نخورده می‌ماند (مشترک با ActiveChat) */}
-        <div className="w-full max-w-2xl">
-          <MessageInput onSend={onSend} disabled={isCreating} />
-        </div>
+        {/* بازطراحی هاب/چت (docs/PRD-openrouter-migration.md §۱۴.۴) — composer وسط‌چین
+            پیکسل‌به‌پیکسل مطابق ChatEmpty.dc.html، فقط در حالت خالی؛ بعد از اولین پیام،
+            ActiveChat مثل قبل از MessageInput مشترک/چسبیده‌به‌پایین استفاده می‌کند */}
+        <ChatHeroComposer onSend={onSend} disabled={isCreating} />
 
         <TrendingPromptGrid onSelect={onSelectCreativePrompt} disabled={isCreating} />
       </div>

@@ -7,6 +7,7 @@ import { OtpPage } from '@/pages/auth/OtpPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
+import { VideoComingSoonPage } from '@/pages/video/VideoComingSoonPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
 import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
@@ -111,6 +112,10 @@ export function AppRouter() {
       <Route
         path="/image/:id"
         element={<ProtectedRoute><ChatLayout><ImageStudioPage /></ChatLayout></ProtectedRoute>}
+      />
+      <Route
+        path="/video"
+        element={<ProtectedRoute><VideoComingSoonPage /></ProtectedRoute>}
       />
       <Route
         path="/pricing"

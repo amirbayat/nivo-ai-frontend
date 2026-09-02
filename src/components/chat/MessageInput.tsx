@@ -11,7 +11,9 @@ import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import { ThinkingModeToggle } from './ThinkingModeToggle'
 
-function resizeImage(file: File): Promise<string> {
+// export شده تا StudioComposer.tsx (ImageStudioPage) هم بدون کپی کردن منطق تغییر اندازه، از
+// همین تابع برای پیش‌نمایش عکس مرجع استفاده کند
+export function resizeImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const img = new Image()

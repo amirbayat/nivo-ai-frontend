@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
-import { MessageInput } from '@/components/chat/MessageInput'
-import { ChatImage } from '@/components/chat/MessageList'
+import { ChatImage, ImageGenCanvas } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
+import { StudioComposer } from './StudioComposer'
 import type { Message } from '@/types/api'
 
-// docs/PRD-openrouter-migration.md §۱۳-۱۴ — استودیوی تولید/ویرایش عکس به‌سبک Google Labs/Whisk:
-// پنل کنترل ثابت (composer) + گالری کنار هم، به‌جای جمع‌شدن به چت. طبق تصمیم معماری §۱۴.۲،
-// این یک entity جدید نیست — همان Conversation/useChat موجود چت است، فقط با یک UI تخصصی روی آن؛
-// MessageInput همان کامپوننت مشترک چت است (ضمیمه‌ی عکس/حفظ چهره/مدل تولید عکس/حالت سریع-با تفکر
-// از قبل در آن پیاده‌سازی شده — چیز جدیدی لازم نبود).
+// docs/PRD-openrouter-migration.md §۱۳-۱۴ — استودیوی تولید/ویرایش عکس به‌سبک Google Labs/Whisk،
+// پیکسل‌به‌پیکسل مطابق ImageStudioWorkspace/ImageStudioEmpty/ImageStudioCapAdvisory.dc.html در
+// دیزاین‌کنوس. یک صفحه‌ی واحد است — چه گفتگو تازه باشد چه قدیمی، همیشه همان چیدمان دو‌ستونه
+// (پنل راست + گالری چپ) را نشان می‌دهد، فقط گالری خالی/پر است. طبق تصمیم معماری §۱۴.۲، این یک
+// entity جدید نیست — همان Conversation/useChat موجود چت، فقط با UI تخصصی.
 const SOFT_CAP = 10
 
 interface PendingMessage {
@@ -24,16 +24,43 @@ interface PendingMessage {
 
 export function ImageStudioPage() {
   const { id } = useParams<{ id?: string }>()
+  // key={id ?? 'new'} تضمین می‌کند وقتی از حالت «بدون گفتگو» به یک گفتگوی تازه‌ساخته‌شده
+  // navigate می‌شویم، کامپوننت واقعاً remount شود — وگرنه pendingRef (پایین) با location.state
+  // قدیمی (خالی) گیر می‌کرد، چون useRef فقط در اولین رندر مقداردهی می‌شود، نه با تغییر props/state
+  return <StudioWorkspace key={id ?? 'new'} id={id} />
+}
+
+function StudioWorkspace({ id }: { id?: string }) {
   const { isStreaming } = useChatStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const createConv = useCreateConversation()
+  const { data, isLoading } = useConversation(id ?? '')
+  const { sendMessage } = useChat(id ?? '')
 
-  const handleFirstMessage = async (
+  const pendingRef = useRef<PendingMessage | null>(
+    (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage ?? null,
+  )
+
+  useEffect(() => {
+    const msg = pendingRef.current
+    if (msg && id && !isLoading && data) {
+      pendingRef.current = null
+      window.history.replaceState({}, '')
+      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace)
+    }
+  }, [id, isLoading, data, sendMessage])
+
+  const handleSend = async (
     content: string,
     images?: string[],
     imageModel?: string,
     preserveFace?: boolean,
   ) => {
+    if (id) {
+      void sendMessage(content, images, imageModel, preserveFace)
+      return
+    }
     try {
       const conv = await createConv.mutateAsync({ model: 'optimal' })
       navigate(`/image/${conv.id}`, {
@@ -45,92 +72,11 @@ export function ImageStudioPage() {
     }
   }
 
-  if (!id) {
-    return <StudioStart onSend={handleFirstMessage} isCreating={createConv.isPending} />
-  }
+  const isGeneratingImage = useChatStore(s => s.isGeneratingImage)
+  const generatingImagePreview = useChatStore(s => s.generatingImagePreview)
 
-  return <ActiveStudio key={id} conversationId={id} isStreaming={isStreaming} />
-}
-
-function StudioHeader({ title, count }: { title: string; count?: number }) {
-  const navigate = useNavigate()
-  return (
-    <div className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4">
-      <button
-        onClick={() => navigate('/')}
-        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
-        aria-label="بازگشت به خانه"
-      >
-        {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
-        <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
-          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-        </svg>
-      </button>
-      <h2 className="truncate text-sm font-medium text-slate-200">{title}</h2>
-      {typeof count === 'number' && (
-        <span className="mr-auto shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] px-2.5 py-1 text-[11px] text-emerald-300">
-          {`${count} از ${SOFT_CAP} عکس`}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function StudioStart({ onSend, isCreating }: {
-  onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
-  isCreating: boolean
-}) {
-  return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <StudioHeader title="تولید و ویرایش عکس" />
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 sm:p-8">
-        <div className="text-center">
-          <p className="text-lg font-medium text-slate-300">چه عکسی برات بسازم؟</p>
-          <p className="mt-1 text-sm text-slate-600">توصیف کن یا یه عکس ضمیمه کن — نتیجه رو در چند ثانیه ببین</p>
-        </div>
-        <div className="w-full max-w-2xl">
-          <MessageInput onSend={onSend} disabled={isCreating} />
-        </div>
-        {/* «پرامپت آماده» (docs/PRD-openrouter-migration.md §۱۴.۴) — به‌جای ساختن یک کتابخانه‌ی
-            جدا، همان صفحه‌ی Discover موجود (سرچ/فیلتر/گالری سبک) بازاستفاده می‌شود. نکته: انتخاب
-            یک سبک از آنجا فعلاً به /chat/:id می‌رود (مسیر تولید دیسکاوری مستقل از این صفحه است)،
-            نه به همین استودیو — یکپارچه‌سازی کامل‌تر یک قدم بعدی است */}
-        <Link
-          to="/discover"
-          className="flex items-center gap-2 rounded-full border border-slate-700/60 px-4 py-2 text-xs text-slate-400 transition-colors hover:border-emerald-500/40 hover:text-emerald-300"
-        >
-          <svg viewBox="0 0 24 24" fill="none" className="size-3.5">
-            <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor" />
-          </svg>
-          پرامپت آماده
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-function ActiveStudio({ conversationId, isStreaming }: { conversationId: string; isStreaming: boolean }) {
-  const { data, isLoading } = useConversation(conversationId)
-  const { sendMessage } = useChat(conversationId)
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
-
-  const pendingRef = useRef<PendingMessage | null>(
-    (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage ?? null,
-  )
-
-  useEffect(() => {
-    const msg = pendingRef.current
-    if (msg && !isLoading && data) {
-      pendingRef.current = null
-      window.history.replaceState({}, '')
-      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace)
-    }
-  }, [isLoading, data, sendMessage])
-
-  // گالری = فقط عکس‌های تولیدشده توسط هوش مصنوعی (پیام‌های ASSISTANT) — عکس‌های مرجعی که
-  // خودِ کاربر ضمیمه کرده بخشی از «نتیجه» نیستند، در MessageInput/بالای پیام کاربر دیده می‌شوند
+  // گالری = فقط عکس‌های تولیدشده توسط هوش مصنوعی (پیام‌های ASSISTANT) — عکس‌های مرجعی که خودِ
+  // کاربر ضمیمه کرده بخشی از «نتیجه» نیستند
   const gallery = useMemo(() => {
     if (!data) return []
     const out: { key: string; src: string }[] = []
@@ -142,76 +88,130 @@ function ActiveStudio({ conversationId, isStreaming }: { conversationId: string;
     return out
   }, [data])
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="size-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-      </div>
-    )
-  }
-  if (!data) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-slate-500 text-sm">
-        مشکلی در بارگذاری این گفتگو پیش اومد
-      </div>
-    )
-  }
-
-  // توصیه، نه محدودیت سخت — تولید عکس بعد از این نقطه هم کاملاً فعال می‌ماند
-  // (docs/PRD-openrouter-migration.md §۱۳.۷: «مجبورش نکن»)
-  const nearCap = gallery.length >= SOFT_CAP
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  const count = gallery.length
+  const nearCap = count >= SOFT_CAP
 
   return (
-    // موبایل: ستونی (گالری بالا/اسکرول‌شونده، پنل پایین همیشه در دید) — دسکتاپ: کنار هم
-    // (پنل راست، گالری چپ در RTL). docs/PRD-openrouter-migration.md §۱۴.۴ («چیدمان کنار-هم
-    // دسکتاپ روی موبایل به دو ناحیه‌ی روی‌هم تبدیل می‌شود»)
-    <div className="flex flex-1 flex-col overflow-hidden sm:flex-row">
-      {/* پنل کنترل — دسکتاپ: راست (اولین فرزند در RTL)، موبایل: پایین */}
-      <div className="order-2 flex shrink-0 flex-col border-t border-slate-700/50 sm:order-1 sm:w-full sm:max-w-md sm:border-t-0 sm:border-l">
-        <div className="hidden sm:block">
-          <StudioHeader title={data.title ?? 'تولید و ویرایش عکس'} count={gallery.length} />
+    <div className="flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
+      {/* top bar */}
+      <div className="flex shrink-0 items-center justify-between px-5 pt-5 sm:px-10 sm:pt-7">
+        <div className="flex items-center gap-3.5">
+          <button
+            onClick={() => navigate('/')}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full"
+            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+            aria-label="بازگشت به خانه"
+          >
+            {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+          <span className="text-[17px] font-bold text-white">{data?.title || 'تولید و ویرایش عکس'}</span>
         </div>
-
-        {nearCap && (
-          <div className="mx-4 mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-3 text-xs leading-relaxed text-amber-200">
-            از {SOFT_CAP} عکس پیشنهادی این گفتگو گذشتی — برای بهینه‌کردن مصرف اعتبارت، پیشنهاد
-            می‌کنیم یک گفتگوی جدید شروع کنی. البته ادامه‌ی همینجا هم کاملاً امکان‌پذیره.
-            <button
-              onClick={() => navigate('/image')}
-              className="mt-2 block w-full rounded-lg bg-amber-500/15 py-1.5 text-center font-medium text-amber-100 transition-colors hover:bg-amber-500/25"
-            >
-              + گفتگوی جدید
-            </button>
+        <div className="flex items-center gap-2.5">
+          <div
+            className="flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold"
+            style={
+              nearCap
+                ? { background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.3)', color: '#fde68a' }
+                : count > 0
+                  ? { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.26)', color: '#d1fae5' }
+                  : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.18)', color: '#64748b' }
+            }
+          >
+            {`${count} از ${SOFT_CAP} عکس در این گفتگو`}
           </div>
-        )}
-
-        <div className="hidden flex-1 sm:block" />
-        <MessageInput onSend={sendMessage} sending={isStreaming} />
+          <div
+            className="flex size-10 shrink-0 items-center justify-center rounded-full"
+            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+            title="تاریخچه‌ی گفتگوها (به‌زودی)"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
+            </svg>
+          </div>
+        </div>
       </div>
 
-      {/* گالری — دسکتاپ: چپ، موبایل: بالا (اسکرول‌شونده) */}
-      <div className="order-1 flex-1 overflow-y-auto p-6 sm:order-2">
-        <div className="sm:hidden">
-          <StudioHeader title={data.title ?? 'تولید و ویرایش عکس'} count={gallery.length} />
+      {/* توصیه، نه محدودیت سخت (docs/PRD-openrouter-migration.md §۱۳.۷: «مجبورش نکن») */}
+      {nearCap && (
+        <div
+          className="mx-5 mt-4 flex shrink-0 flex-col gap-3 rounded-2xl px-5 py-3.5 sm:mx-10 sm:flex-row sm:items-center sm:justify-between"
+          style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.26)' }}
+        >
+          <div className="flex items-center gap-3 text-[13.5px]" style={{ color: '#fde68a' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" />
+            </svg>
+            از {SOFT_CAP} عکس پیشنهادی برای هر گفتگو گذشتی — برای بهینه‌کردن مصرف اعتبارت، پیشنهاد
+            اکید می‌کنیم یک گفتگوی جدید شروع کنی. البته ادامه‌ی همینجا هم کاملاً امکان‌پذیره.
+          </div>
+          <button
+            onClick={() => navigate('/image')}
+            className="shrink-0 rounded-full px-5 py-2 text-[13px] font-bold"
+            style={{ background: 'rgba(251,191,36,0.16)', border: '1px solid rgba(251,191,36,0.4)', color: '#fef3c7' }}
+          >
+            + گفتگوی جدید
+          </button>
         </div>
-        {gallery.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-600">
-            <p className="text-sm">هنوز عکسی نساختی</p>
-            <p className="text-xs">یه توصیف بنویس و از پنل کناری بفرست</p>
+      )}
+
+      {/* workspace: پنل کنترل (راست) + گالری (چپ) — موبایل: ستونی */}
+      <div className="flex flex-1 flex-col overflow-hidden sm:flex-row" style={{ padding: '20px 0' }}>
+        <div
+          className="order-2 flex shrink-0 flex-col sm:order-1 sm:w-[400px] sm:pr-10"
+          style={{ borderTop: '1px solid rgba(148,163,184,0.14)' }}
+        >
+          <div className="pt-4 sm:pt-0">
+            <StudioComposer onSend={handleSend} disabled={createConv.isPending} sending={isStreaming} />
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {gallery.map(g => (
-              <ChatImage
-                key={g.key}
-                src={g.src}
-                alt="تصویر ساخته‌شده توسط هوش مصنوعی"
-                onClick={() => setLightboxSrc(g.src)}
-                className="aspect-square w-full cursor-pointer rounded-2xl object-cover ring-1 ring-fuchsia-500/20 transition-all hover:ring-fuchsia-400/50"
-              />
-            ))}
-          </div>
-        )}
+        </div>
+
+        <div className="order-1 flex-1 overflow-y-auto px-5 sm:order-2 sm:px-10">
+          <p className="mb-3.5 text-[13px]" style={{ color: '#64748b' }}>
+            {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
+          </p>
+
+          {count === 0 && !isGeneratingImage ? (
+            <div className="flex flex-col items-center justify-center gap-3.5 py-16 text-center">
+              <div
+                className="flex size-16 items-center justify-center rounded-[20px]"
+                style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: '#34d399' }}
+              >
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
+                </svg>
+              </div>
+              <p className="text-[15px] font-semibold text-slate-100">هنوز عکسی نساختی</p>
+              <p className="max-w-[280px] text-[13.5px] leading-relaxed" style={{ color: '#64748b' }}>
+                یه توصیف بنویس یا از پرامپت‌های آماده استفاده کن و «ساخت عکس» رو بزن
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3">
+              {isGeneratingImage && (
+                <div className="relative aspect-square overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(16,185,129,0.28)' }}>
+                  <ImageGenCanvas preview={generatingImagePreview} className="absolute inset-0 size-full" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    <div className="size-8 animate-spin rounded-full border-2 border-slate-500/30" style={{ borderTopColor: '#34d399' }} />
+                    <span className="text-[12px]" style={{ color: '#a7f3d0' }}>در حال ساخت...</span>
+                  </div>
+                </div>
+              )}
+              {gallery.map(g => (
+                <ChatImage
+                  key={g.key}
+                  src={g.src}
+                  alt="تصویر ساخته‌شده توسط هوش مصنوعی"
+                  onClick={() => setLightboxSrc(g.src)}
+                  className="aspect-square w-full cursor-pointer rounded-2xl object-cover ring-1 ring-fuchsia-500/20 transition-all hover:ring-fuchsia-400/50"
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {lightboxSrc && (
