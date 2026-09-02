@@ -124,18 +124,18 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
     <div ref={ref} className="relative" dir="rtl">
       <button
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1.5 rounded-lg bg-slate-700/60 px-2.5 py-1 hover:bg-slate-700 transition-colors group"
+        className="flex items-center gap-1.5 rounded-full bg-purple-500/[0.08] border border-purple-400/25 px-3 py-1.5 hover:bg-purple-500/[0.13] transition-colors group"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         {modeIcon(active) ?? <ProviderIcon provider={providerOf(active)} />}
-        <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">
+        <span className="text-xs font-medium text-purple-200 group-hover:text-purple-100 transition-colors">
           {displayName(active)}
         </span>
         <svg
           viewBox="0 0 10 6"
           fill="none"
-          className={`w-2.5 h-2.5 text-slate-600 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-2.5 h-2.5 text-purple-400/70 transition-transform ${open ? 'rotate-180' : ''}`}
         >
           <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

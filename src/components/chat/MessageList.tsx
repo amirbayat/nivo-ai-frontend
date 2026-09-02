@@ -58,7 +58,7 @@ export function MessageList({ messages, extraContent }: MessageListProps) {
   }, [messages, streamingContent, reasoningText, chatError])
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+    <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
       {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
       {messages.map(msg => (
         <MessageBubble
@@ -85,21 +85,24 @@ export function MessageList({ messages, extraContent }: MessageListProps) {
       )}
 
       {!isGeneratingImage && isStreaming && !streamingContent && !reasoningText && isReasoning && (
-        <div className="flex items-center gap-2 px-2 text-sm text-slate-400">
-          <span className="animate-pulse">🤔</span>
+        <div className="flex items-center gap-2.5 px-1 text-sm text-slate-400">
+          <div className="size-8 rounded-full shrink-0 bg-gradient-to-br from-emerald-500 to-purple-600 shadow-[0_0_14px_rgba(16,185,129,0.25)] animate-pulse" />
           در حال فکر کردن...
         </div>
       )}
 
       {!isGeneratingImage && isStreaming && !streamingContent && !reasoningText && !isReasoning && (
-        <div className="flex gap-1 items-center px-2">
-          {[0, 1, 2].map(i => (
-            <span
-              key={i}
-              className="size-2 rounded-full bg-emerald-500 animate-bounce"
-              style={{ animationDelay: `${i * 0.15}s` }}
-            />
-          ))}
+        <div className="flex items-center gap-2.5 px-1">
+          <div className="size-8 rounded-full shrink-0 bg-gradient-to-br from-emerald-500 to-purple-600 shadow-[0_0_14px_rgba(16,185,129,0.25)]" />
+          <div className="flex gap-1 items-center">
+            {[0, 1, 2].map(i => (
+              <span
+                key={i}
+                className="size-1.5 rounded-full bg-emerald-500 animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -286,7 +289,9 @@ export function MessageBubble({
         <div
           className={clsx(
             'size-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold',
-            isUser ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-300',
+            isUser
+              ? 'bg-emerald-500/20 text-emerald-400'
+              : 'bg-gradient-to-br from-emerald-500 to-purple-600 text-white shadow-[0_0_14px_rgba(16,185,129,0.25)]',
           )}
         >
           {isUser ? 'ش' : 'AI'}
@@ -296,8 +301,8 @@ export function MessageBubble({
           <div
             className={clsx(
               'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
-              'bg-emerald-600/20 text-emerald-50 rounded-tl-sm',
-              streaming && 'border border-emerald-500/30',
+              'bg-emerald-500/[0.14] border border-emerald-500/[0.18] text-emerald-50 rounded-tl-sm',
+              streaming && 'border-emerald-500/30',
             )}
           >
             {images && images.length > 0 && (

@@ -160,8 +160,14 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4">
+    <div
+      className="flex flex-1 flex-col overflow-hidden"
+      style={{
+        backgroundImage:
+          'radial-gradient(ellipse 900px 500px at 70% -10%, rgba(124,58,237,0.05), transparent 60%), radial-gradient(ellipse 900px 600px at 20% 110%, rgba(16,185,129,0.045), transparent 60%)',
+      }}
+    >
+      <div className="flex items-center gap-3 border-b border-slate-700/30 px-4 py-3 sm:px-6 sm:py-4">
         <h2 className="truncate text-sm font-medium text-slate-200">
           {data.title ?? fa.chat.untitled}
         </h2>
@@ -227,8 +233,14 @@ function EmptyState({ onSend, onSelectCreativePrompt, isCreating }: {
   isCreating: boolean
 }) {
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4">
+    <div
+      className="flex flex-1 flex-col overflow-hidden"
+      style={{
+        backgroundImage:
+          'radial-gradient(ellipse 900px 500px at 70% -10%, rgba(124,58,237,0.05), transparent 60%), radial-gradient(ellipse 900px 600px at 20% 110%, rgba(16,185,129,0.045), transparent 60%)',
+      }}
+    >
+      <div className="flex items-center gap-3 border-b border-slate-700/30 px-4 py-3 sm:px-6 sm:py-4">
         <h2 className="truncate text-sm font-medium text-slate-200">{fa.chat.untitled}</h2>
         <div className="mr-auto flex items-center gap-2 shrink-0">
           <ModelSelector />

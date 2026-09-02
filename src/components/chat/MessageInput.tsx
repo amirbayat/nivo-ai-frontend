@@ -211,7 +211,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     : (value.trim() || images.length > 0) && !disabled && !sending
 
   return (
-    <div className="border-t border-slate-700/50 p-4">
+    <div className="border-t border-slate-700/30 p-4">
       {selectedCreativePrompt && (
         <div className="mb-3 flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
           {selectedCreativePrompt.outputType === 'IMAGE' && selectedPromptImageUrl && (
@@ -415,8 +415,8 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
 
       <div
         className={clsx(
-          'flex items-end gap-3 rounded-2xl border bg-slate-800/80 px-4 py-3 transition-colors',
-          disabled ? 'border-slate-700/30' : 'border-slate-600/60 focus-within:border-emerald-500/50',
+          'flex items-end gap-3 rounded-[20px] border bg-slate-800/70 px-4 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.22)] transition-colors',
+          disabled ? 'border-slate-700/30' : 'border-slate-600/50 focus-within:border-emerald-500/50 focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_8px_28px_rgba(0,0,0,0.22)]',
         )}
       >
         <input
@@ -483,7 +483,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
           className={clsx(
             'shrink-0 size-9 rounded-xl flex items-center justify-center transition-all',
             canSend
-              ? 'bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95'
+              ? 'bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:bg-emerald-600 active:scale-95'
               : 'bg-slate-700 text-slate-500 cursor-not-allowed',
           )}
         >

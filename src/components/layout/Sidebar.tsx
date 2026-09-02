@@ -12,6 +12,46 @@ import { fa } from "@/locales/fa";
 import { track } from "@/lib/events";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
+// گروه‌بندی لیست مکالمه‌ها بر اساس تاریخ (امروز/دیروز/۷ روز گذشته/قدیمی‌تر) — فقط چیدمان
+// بصری لیست موجود است، هیچ کوئری/داده‌ی جدیدی لازم ندارد چون lastMessageAt از قبل می‌آید
+const DAY_MS = 86_400_000;
+
+function startOfDay(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function groupConversationsByDate<T extends { lastMessageAt: string }>(
+  items: T[],
+): Array<{ label: string; items: T[] }> {
+  const today = startOfDay(new Date());
+  const buckets: Record<string, T[]> = {
+    امروز: [],
+    دیروز: [],
+    "۷ روز گذشته": [],
+    قدیمی‌تر: [],
+  };
+  for (const item of items) {
+    const diffDays = (today - startOfDay(new Date(item.lastMessageAt))) / DAY_MS;
+    if (diffDays <= 0) buckets["امروز"].push(item);
+    else if (diffDays === 1) buckets["دیروز"].push(item);
+    else if (diffDays <= 7) buckets["۷ روز گذشته"].push(item);
+    else buckets["قدیمی‌تر"].push(item);
+  }
+  return Object.entries(buckets)
+    .filter(([, list]) => list.length > 0)
+    .map(([label, list]) => ({ label, items: list }));
+}
+
+// توی گروه «امروز» ساعت دقیق‌تر و مفیدتر از تکرار خودِ «امروز» است؛ بقیه‌ی گروه‌ها همون
+// تاریخ کامل قبلی را نگه می‌دارند
+function conversationDateLabel(iso: string): string {
+  const d = new Date(iso);
+  if (startOfDay(d) === startOfDay(new Date())) {
+    return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+  }
+  return d.toLocaleDateString("fa-IR");
+}
+
 // اسم کاربر فقط یک فیلد ترکیبی است (نه firstName/lastName جدا) — با split روی فاصله
 // حرف اول کلمه‌ی اول و حرف اول کلمه‌ی آخر را می‌گیریم؛ بدون نام، دایره خالی می‌ماند
 function avatarInitials(name?: string | null): string {
@@ -48,9 +88,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   };
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-l border-slate-700/50 bg-slate-900">
+    <aside
+      className="flex h-full w-72 shrink-0 flex-col border-l border-slate-700/30"
+      style={{ background: 'linear-gradient(180deg, #0a0f1c 0%, #0f172a 100%)' }}
+    >
       {/* header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700/50">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700/30">
         <div className="flex items-center gap-2">
           <img
             src={logoUrl}
@@ -60,7 +103,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         </div>
         <button
           onClick={handleNew}
-          className="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700/60 hover:text-emerald-400 transition-colors"
+          className="size-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-emerald-400 transition-colors"
           title={fa.chat.newChat}
         >
           <svg viewBox="0 0 24 24" fill="none" className="size-4">
@@ -74,21 +117,21 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         </button>
       </div>
 
-      <div className="px-4 py-3 border-b border-slate-700/50">
+      <div className="px-4 py-3 border-b border-slate-700/30">
         <PlanUpgradeBadge />
       </div>
 
-      <div className="px-4 py-3 border-b border-slate-700/50">
+      <div className="px-4 py-3 border-b border-slate-700/30">
         <div className="flex gap-2">
           <button
             onClick={() => { track("projects_nav_clicked"); navigate("/projects"); onNavigate?.(); }}
-            className="flex-1 rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
+            className="flex-1 rounded-xl border border-slate-700/60 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
           >
             {fa.projects.title}
           </button>
           <button
             onClick={() => { track("gallery_nav_clicked"); navigate("/gallery"); onNavigate?.(); }}
-            className="flex-1 rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
+            className="flex-1 rounded-xl border border-slate-700/60 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
           >
             {fa.gallery.title}
           </button>
@@ -97,7 +140,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => { track("nivo_cal_nav_clicked"); onNavigate?.(); }}
-            className="flex-1 rounded-lg border border-slate-700 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
+            className="flex-1 rounded-xl border border-slate-700/60 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
           >
             {fa.nivoCal.navLabel}
           </a>
@@ -105,52 +148,75 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
       </div>
 
       {/* conversations */}
-      <div className="flex-1 overflow-y-auto py-2">
+      <div className="flex-1 overflow-y-auto py-2 px-2">
         {conversations.length === 0 && (
           <p className="px-4 py-8 text-center text-xs text-slate-600">
             {fa.chat.noHistory}
           </p>
         )}
-        {conversations.map((conv) => (
-          <div
-            key={conv.id}
-            onClick={() => handleSelect(conv.id)}
-            className={clsx(
-              "group relative mx-2 rounded-xl px-3 py-2.5 cursor-pointer transition-colors",
-              selectedConvId === conv.id
-                ? "bg-emerald-500/15 text-emerald-300"
-                : "text-slate-400 hover:bg-slate-700/40 hover:text-slate-200",
-            )}
-          >
-            <p className="truncate text-sm leading-tight">
-              {conv.title ?? fa.chat.untitled}
+        {groupConversationsByDate(conversations).map((group) => (
+          <div key={group.label} className="mb-1">
+            <p className="mb-1 mt-3 px-2 text-[11px] font-bold tracking-wide text-slate-600 first:mt-1">
+              {group.label}
             </p>
-            <p className="mt-0.5 text-xs text-slate-600">
-              {new Date(conv.lastMessageAt).toLocaleDateString("fa-IR")}
-            </p>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                archiveMut.mutate(conv.id, {
-                  onSuccess: () =>
-                    track("conversation_archived", { conversationId: conv.id }),
-                });
-                if (selectedConvId === conv.id) {
-                  setSelectedConvId(null);
-                  navigate("/chat");
-                }
-              }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 size-6 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="size-3.5">
-                <path
-                  d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
+            {group.items.map((conv) => {
+              const active = selectedConvId === conv.id;
+              return (
+                <div
+                  key={conv.id}
+                  onClick={() => handleSelect(conv.id)}
+                  className={clsx(
+                    "group relative rounded-xl px-3 py-2.5 cursor-pointer transition-colors",
+                    active
+                      ? "bg-emerald-500/10"
+                      : "hover:bg-slate-700/40",
+                  )}
+                >
+                  {active && (
+                    <span className="absolute inset-y-2 right-0 w-[3px] rounded-full bg-emerald-500" />
+                  )}
+                  <p
+                    className={clsx(
+                      "truncate text-[13px] font-medium leading-tight",
+                      active ? "text-emerald-100" : "text-slate-300",
+                    )}
+                  >
+                    {conv.title ?? fa.chat.untitled}
+                  </p>
+                  <p
+                    className={clsx(
+                      "mt-1 text-[11px]",
+                      active ? "text-emerald-400/80" : "text-slate-600",
+                    )}
+                  >
+                    {conversationDateLabel(conv.lastMessageAt)}
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      archiveMut.mutate(conv.id, {
+                        onSuccess: () =>
+                          track("conversation_archived", { conversationId: conv.id }),
+                      });
+                      if (selectedConvId === conv.id) {
+                        setSelectedConvId(null);
+                        navigate("/chat");
+                      }
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 size-6 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" className="size-3.5">
+                      <path
+                        d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         ))}
         {hasNextPage && (
@@ -167,7 +233,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
       </div>
 
       {/* footer */}
-      <div className="border-t border-slate-700/50 p-3">
+      <div className="border-t border-slate-700/30 p-3">
         <button
           onClick={() => navigate("/settings/profile")}
           className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 transition-colors text-right"
