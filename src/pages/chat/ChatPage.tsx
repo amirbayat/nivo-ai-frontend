@@ -13,6 +13,7 @@ import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
 import { ModelSelector } from '@/components/chat/ModelSelector'
 import { TrendingPromptGrid } from '@/components/chat/TrendingPromptGrid'
 import { ChatHeroComposer } from './ChatHeroComposer'
+import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
 import { fa } from '@/locales/fa'
 import type { CreativePromptCatalogItem } from '@/types/api'
 
@@ -78,29 +79,6 @@ export function ChatPage() {
   // key={id} یعنی با عوض شدن مکالمه، state محلی creativeResults/... کاملاً ری‌مانت می‌شود —
   // نتایج دیسکاوری فقط state محلی این کامپوننت‌اند (نه Message واقعی)، پس نباید بین مکالمات نشت کنند
   return <ActiveChat key={id} conversationId={id} isStreaming={isStreaming} />
-}
-
-// یک پیام محلی/مصنوعی داخل جریان مکالمه‌ی سبک دیسکاوری — هیچ‌کدام Message واقعی بک‌اند
-// نیستند (با رفرش صفحه یا عوض کردن مکالمه از بین می‌روند)، اما دقیقاً با همان کامپوننت
-// MessageBubble پیام‌های واقعی رندر می‌شوند تا از نگاه کاربر «توی خودِ چت» و به‌شکل واقعی
-// پیش برود: یک پیام دستیار که سبک را معرفی و درخواست عکس/توضیح می‌کند، پیام کاربر با عکس
-// آپلودی‌اش، و در آخر پیام دستیار با عکس تولیدشده
-interface VirtualMessage {
-  id: string
-  role: 'ASSISTANT' | 'USER'
-  content: string
-  images?: string[]
-}
-
-function creativeIntroMessage(prompt: CreativePromptCatalogItem): VirtualMessage {
-  const ask = prompt.requiresUserImage
-    ? `عکستو برام بفرست تا با سبک «${prompt.title}» عوضش کنم.`
-    : `بگو با سبک «${prompt.title}» چی می‌خوای برات بسازم.`
-  return {
-    id: `virtual-intro-${prompt.id}`,
-    role: 'ASSISTANT',
-    content: prompt.description ? `${ask}\n\n${prompt.description}` : ask,
-  }
 }
 
 function ActiveChat({ conversationId, isStreaming }: { conversationId: string; isStreaming: boolean }) {

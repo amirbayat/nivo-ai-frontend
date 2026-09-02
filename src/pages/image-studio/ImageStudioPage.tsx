@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
+import { useGenerateCreative } from '@/queries/discovery.queries'
 import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
 import { useSidebarControl } from '@/components/layout/ChatLayout'
 import { ChatImage, ImageGenCanvas } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
+import { PromptLibraryModal } from '@/components/discover/PromptLibraryModal'
+import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
 import { StudioComposer } from './StudioComposer'
-import type { Message } from '@/types/api'
+import { fa } from '@/locales/fa'
+import type { Message, CreativePromptCatalogItem } from '@/types/api'
 
 // docs/PRD-openrouter-migration.md §۱۳-۱۴ — استودیوی تولید/ویرایش عکس به‌سبک Google Labs/Whisk،
 // پیکسل‌به‌پیکسل مطابق ImageStudioWorkspace/ImageStudioEmpty/ImageStudioCapAdvisory.dc.html در
@@ -23,6 +27,15 @@ interface PendingMessage {
   preserveFace?: boolean
 }
 
+// حالت «بدون گفتگو»ی سبک انتخاب‌شده از کتابخانه‌ی پرامپت‌های آماده — دقیقاً معادل PendingMessage
+// بالا، فقط برای مسیر generateCreative به‌جای sendMessage معمولی
+interface PendingCreative {
+  promptId: string
+  userInput: string
+  inputImageKeys?: string[]
+  imagePreviews?: string[]
+}
+
 export function ImageStudioPage() {
   const { id } = useParams<{ id?: string }>()
   // key={id ?? 'new'} تضمین می‌کند وقتی از حالت «بدون گفتگو» به یک گفتگوی تازه‌ساخته‌شده
@@ -33,16 +46,25 @@ export function ImageStudioPage() {
 
 function StudioWorkspace({ id }: { id?: string }) {
   const { isStreaming } = useChatStore()
+  const { selectedCreativePrompt, setSelectedCreativePrompt } = useChatStore()
   const navigate = useNavigate()
   const location = useLocation()
   const { openSidebar } = useSidebarControl()
   const createConv = useCreateConversation()
   const { data, isLoading } = useConversation(id ?? '')
   const { sendMessage } = useChat(id ?? '')
+  const generateCreative = useGenerateCreative()
 
   const pendingRef = useRef<PendingMessage | null>(
     (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage ?? null,
   )
+  const pendingCreativeRef = useRef<PendingCreative | null>(
+    (location.state as { initialCreative?: PendingCreative } | null)?.initialCreative ?? null,
+  )
+
+  const [virtualMessages, setVirtualMessages] = useState<VirtualMessage[]>([])
+  const [creativeError, setCreativeError] = useState<string | null>(null)
+  const [libraryOpen, setLibraryOpen] = useState(false)
 
   useEffect(() => {
     const msg = pendingRef.current
@@ -52,6 +74,12 @@ function StudioWorkspace({ id }: { id?: string }) {
       void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace)
     }
   }, [id, isLoading, data, sendMessage])
+
+  // با انتخاب یک سبک از کتابخانه (یا بازیابی‌اش بعد از remount ناشی از ساخت گفتگوی تازه)،
+  // پیام معرفی سبک به‌عنوان اولین پیام مصنوعی این workspace اضافه می‌شود — دقیقاً هم‌الگوی ChatPage
+  useEffect(() => {
+    if (selectedCreativePrompt) setVirtualMessages([creativeIntroMessage(selectedCreativePrompt)])
+  }, [selectedCreativePrompt])
 
   const handleSend = async (
     content: string,
@@ -74,21 +102,95 @@ function StudioWorkspace({ id }: { id?: string }) {
     }
   }
 
+  function runGenerateCreative(convId: string, pending: PendingCreative) {
+    setCreativeError(null)
+    setVirtualMessages(prev => [
+      ...prev,
+      { id: `virtual-user-${prev.length}`, role: 'USER', content: pending.userInput, images: pending.imagePreviews },
+    ])
+    generateCreative.mutate(
+      {
+        promptId: pending.promptId,
+        userInput: pending.userInput || undefined,
+        inputImageKeys: pending.inputImageKeys,
+        conversationId: convId,
+      },
+      {
+        onSuccess: result =>
+          setVirtualMessages(prev => [
+            ...prev,
+            {
+              id: `virtual-result-${result.id}`,
+              role: 'ASSISTANT',
+              content: result.status === 'FAILED' ? fa.discover.generateFailed : (result.outputText ?? ''),
+              images:
+                result.status === 'SUCCEEDED' && result.outputType === 'IMAGE' && result.outputImageKey
+                  ? [`/v2/discovery/images/${result.outputImageKey}`]
+                  : undefined,
+            },
+          ]),
+        onError: () => setCreativeError(fa.discover.generateFailed),
+      },
+    )
+  }
+
+  useEffect(() => {
+    const pending = pendingCreativeRef.current
+    if (pending && id && !isLoading && data) {
+      pendingCreativeRef.current = null
+      window.history.replaceState({}, '')
+      runGenerateCreative(id, pending)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isLoading, data])
+
+  const handleGenerateCreative = async (
+    promptId: string,
+    userInput: string,
+    inputImageKeys?: string[],
+    imagePreviews?: string[],
+  ) => {
+    if (id) {
+      runGenerateCreative(id, { promptId, userInput, inputImageKeys, imagePreviews })
+      return
+    }
+    try {
+      const conv = await createConv.mutateAsync({ model: 'optimal' })
+      navigate(`/image/${conv.id}`, {
+        state: { initialCreative: { promptId, userInput, inputImageKeys, imagePreviews } },
+        replace: true,
+      })
+    } catch {
+      // کاربر می‌تواند دوباره تلاش کند
+    }
+  }
+
+  function handleSelectFromLibrary(item: CreativePromptCatalogItem) {
+    setSelectedCreativePrompt(item)
+    setLibraryOpen(false)
+  }
+
   const isGeneratingImage = useChatStore(s => s.isGeneratingImage)
   const generatingImagePreview = useChatStore(s => s.generatingImagePreview)
 
-  // گالری = فقط عکس‌های تولیدشده توسط هوش مصنوعی (پیام‌های ASSISTANT) — عکس‌های مرجعی که خودِ
-  // کاربر ضمیمه کرده بخشی از «نتیجه» نیستند
+  // گالری = فقط عکس‌های تولیدشده توسط هوش مصنوعی — هم پیام‌های واقعی (ASSISTANT) هم نتیجه‌ی
+  // تازه‌ی generateCreative که هنوز به‌صورت virtualMessages محلی است (هنوز refetch نشده)
   const gallery = useMemo(() => {
-    if (!data) return []
     const out: { key: string; src: string }[] = []
-    for (const m of data.messages as Message[]) {
+    if (data) {
+      for (const m of data.messages as Message[]) {
+        if (m.role === 'ASSISTANT' && m.images?.length) {
+          m.images.forEach((src, i) => out.push({ key: `${m.id}-${i}`, src }))
+        }
+      }
+    }
+    for (const m of virtualMessages) {
       if (m.role === 'ASSISTANT' && m.images?.length) {
         m.images.forEach((src, i) => out.push({ key: `${m.id}-${i}`, src }))
       }
     }
     return out
-  }, [data])
+  }, [data, virtualMessages])
 
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const count = gallery.length
@@ -168,8 +270,18 @@ function StudioWorkspace({ id }: { id?: string }) {
           className="order-2 flex shrink-0 flex-col sm:order-1 sm:w-[400px] sm:pr-10"
           style={{ borderTop: '1px solid rgba(148,163,184,0.14)' }}
         >
-          <div className="pt-4 sm:pt-0">
-            <StudioComposer onSend={handleSend} disabled={createConv.isPending} sending={isStreaming} />
+          <div className="flex h-full flex-1 flex-col pt-4 sm:pt-0">
+            <StudioComposer
+              onSend={handleSend}
+              disabled={createConv.isPending}
+              sending={isStreaming}
+              selectedCreativePrompt={selectedCreativePrompt}
+              onClearCreativePrompt={() => setSelectedCreativePrompt(null)}
+              onOpenPromptLibrary={() => setLibraryOpen(true)}
+              onGenerateCreative={handleGenerateCreative}
+              generatingCreative={generateCreative.isPending}
+              creativeError={creativeError}
+            />
           </div>
         </div>
 
@@ -178,7 +290,7 @@ function StudioWorkspace({ id }: { id?: string }) {
             {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
           </p>
 
-          {count === 0 && !isGeneratingImage ? (
+          {count === 0 && !isGeneratingImage && !generateCreative.isPending ? (
             <div className="flex flex-col items-center justify-center gap-3.5 py-16 text-center">
               <div
                 className="flex size-16 items-center justify-center rounded-[20px]"
@@ -204,6 +316,17 @@ function StudioWorkspace({ id }: { id?: string }) {
                   </div>
                 </div>
               )}
+              {generateCreative.isPending && (
+                <div
+                  className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl"
+                  style={{ border: '1px solid rgba(217,70,239,0.28)', background: 'rgba(217,70,239,0.05)' }}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="size-8 animate-spin rounded-full border-2 border-slate-500/30" style={{ borderTopColor: '#e879f9' }} />
+                    <span className="text-[12px]" style={{ color: '#f5d0fe' }}>در حال ساخت با سبک انتخابی...</span>
+                  </div>
+                </div>
+              )}
               {gallery.map(g => (
                 <ChatImage
                   key={g.key}
@@ -221,6 +344,12 @@ function StudioWorkspace({ id }: { id?: string }) {
       {lightboxSrc && (
         <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} analyticsSource="image_studio" />
       )}
+
+      <PromptLibraryModal
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
+        onSelect={handleSelectFromLibrary}
+      />
     </div>
   )
 }

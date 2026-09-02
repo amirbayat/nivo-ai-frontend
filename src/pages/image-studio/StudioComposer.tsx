@@ -1,11 +1,14 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
+import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
 import { useChatStore } from '@/store/chat.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { resizeImage } from '@/components/chat/MessageInput'
+import { fa } from '@/locales/fa'
+import type { CreativePromptCatalogItem } from '@/types/api'
 
 // پنل کنترل استودیوی عکس — پیکسل‌به‌پیکسل مطابق آرتبورد ImageStudioWorkspace.dc.html در
 // دیزاین‌کنوس (docs/PRD-openrouter-migration.md §۱۳-۱۴). عمداً یک کامپوننت جدا از
@@ -13,10 +16,28 @@ import { resizeImage } from '@/components/chat/MessageInput'
 // زیرش با یک خط جداکننده + دکمه‌ی تمام‌عرض «ساخت عکس») آنقدر با نوار فشرده‌ی چت فرق دارد که
 // شاخه‌زدن داخل همان کامپوننت باعث می‌شد چت معمولی هم ریسک رگرسیون بگیرد. فقط resizeImage
 // (تغییر اندازه‌ی عکس مرجع) از آنجا export و بازاستفاده شده، نه کل منطق.
-export function StudioComposer({ onSend, disabled, sending }: {
+export function StudioComposer({
+  onSend,
+  disabled,
+  sending,
+  selectedCreativePrompt,
+  onClearCreativePrompt,
+  onOpenPromptLibrary,
+  onGenerateCreative,
+  generatingCreative,
+  creativeError,
+}: {
   onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
   disabled?: boolean
   sending?: boolean
+  // وقتی یک سبک از کتابخانه‌ی پرامپت‌های آماده انتخاب شده باشد، composer به‌جای onSend معمولی
+  // از مسیر generateCreative استفاده می‌کند — دقیقاً همان مکانیزمی که MessageInput.tsx برای چت دارد
+  selectedCreativePrompt?: CreativePromptCatalogItem | null
+  onClearCreativePrompt?: () => void
+  onOpenPromptLibrary?: () => void
+  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[]) => void
+  generatingCreative?: boolean
+  creativeError?: string | null
 }) {
   const navigate = useNavigate()
   const { data: flags } = useFeatureFlags()
@@ -27,21 +48,44 @@ export function StudioComposer({ onSend, disabled, sending }: {
   const selectedImageGenModel = useChatStore(s => s.selectedImageGenModel)
   const imageGenModels = useMemo(() => (catalog ?? []).filter(m => m.supportsImageGen), [catalog])
   const pinnedModel = imageGenModels.find(m => m.name === selectedImageGenModel)
-  const modelLabel = pinnedModel?.displayName ?? 'GPT Image 2'
+  // imageGenModels از همان ترتیب sortOrder سرور می‌آید — اولین مورد یعنی «دیفالت» واقعی
+  // (یا مدل پیش‌فرض این پلن، اگر ادمین از صفحه‌ی پلن‌ها ستش کرده باشد)، نه یک نام هاردکد
+  const modelLabel = pinnedModel?.displayName ?? imageGenModels[0]?.displayName ?? 'مدل پیش‌فرض'
 
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [preserveFace, setPreserveFace] = useState(true)
   const [outputCount, setOutputCount] = useState(1)
   const [isFocused, setIsFocused] = useState(false)
+  const [creativeImageError, setCreativeImageError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const isTouchDevice = useIsTouchDevice()
+  const uploadDiscoveryImage = useUploadDiscoveryImage()
 
-  const canSend = (value.trim() || images.length > 0) && !disabled && !sending
+  const canSend = selectedCreativePrompt
+    ? !disabled && !sending && !generatingCreative && !uploadDiscoveryImage.isPending &&
+      (!selectedCreativePrompt.requiresUserImage || images.length > 0)
+    : (value.trim() || images.length > 0) && !disabled && !sending
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSend) return
+    if (selectedCreativePrompt) {
+      setCreativeImageError(null)
+      try {
+        // سبک‌های دیسکاوری کلید MinIO می‌خواهند (نه data URL خام) — قبل از generate آپلود می‌شوند
+        const inputImageKeys = images.length
+          ? await Promise.all(images.map(src => uploadDiscoveryImage.mutateAsync(src).then(r => r.key)))
+          : undefined
+        onGenerateCreative?.(selectedCreativePrompt.id, value.trim(), inputImageKeys, images.length ? images : undefined)
+        setValue('')
+        setImages([])
+        if (textareaRef.current) textareaRef.current.style.height = 'auto'
+      } catch {
+        setCreativeImageError(fa.discover.uploadImageFailed)
+      }
+      return
+    }
     // n>1 هنوز سمت بک‌اند پشتیبانی نمی‌شود (docs/EXECUTION-PLAN.md، سوال باز) — فعلاً فقط ۱
     // خروجی واقعی ارسال می‌شود، گزینه‌های ۲/۳/۴ در UI غیرفعال‌اند (پایین‌تر)
     onSend(value.trim(), images.length ? images : undefined, pinnedModel?.name, preserveFace)
@@ -53,7 +97,7 @@ export function StudioComposer({ onSend, disabled, sending }: {
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !isTouchDevice) {
       e.preventDefault()
-      submit()
+      void submit()
     }
   }
 
@@ -74,30 +118,59 @@ export function StudioComposer({ onSend, disabled, sending }: {
   }
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-4 sm:px-0">
-      {/* چیپ مدل */}
-      <button
-        onClick={() => navigate('/models?context=image-studio')}
-        className="flex items-center gap-2.5 self-start rounded-full px-3.5 py-2 text-[13px]"
-        style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#d1fae5' }}
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
-        </svg>
-        <span className="font-semibold">{modelLabel}</span>
-        <span style={{ width: 1, height: 12, background: 'rgba(148,163,184,0.3)' }} />
-        <span className="flex items-center gap-1" style={{ color: '#94a3b8' }}>
-          تغییر مدل
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
+    <div className="flex h-full flex-1 flex-col gap-4 px-4 pb-4 sm:px-0">
+      {selectedCreativePrompt ? (
+        /* چیپ سبک انتخاب‌شده — جایگزین چیپ مدل، چون مدل تولید این حالت خودکار/سرور-محور است */
+        <div
+          className="flex items-center justify-between gap-2.5 self-start rounded-full py-2 pr-3.5 pl-2 text-[13px]"
+          style={{ background: 'rgba(217,70,239,0.08)', border: '1px solid rgba(217,70,239,0.28)', color: '#f5d0fe' }}
+        >
+          <span className="font-semibold">
+            {fa.discover.selectedStyleLabel}: {selectedCreativePrompt.title}
+          </span>
+          <button
+            onClick={onClearCreativePrompt}
+            className="flex size-6 shrink-0 items-center justify-center rounded-full text-fuchsia-200/80 transition-colors hover:bg-fuchsia-500/20 hover:text-white"
+            aria-label={fa.discover.exitStyleMode}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        /* چیپ مدل */
+        <button
+          onClick={() => navigate('/models?context=image-studio')}
+          className="flex items-center gap-2.5 self-start rounded-full px-3.5 py-2 text-[13px]"
+          style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#d1fae5' }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
           </svg>
-        </span>
-      </button>
+          <span className="font-semibold">{modelLabel}</span>
+          <span style={{ width: 1, height: 12, background: 'rgba(148,163,184,0.3)' }} />
+          <span className="flex items-center gap-1" style={{ color: '#94a3b8' }}>
+            تغییر مدل
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </span>
+        </button>
+      )}
 
-      {/* جعبه‌ی اصلی — عمداً بزرگ و پررنگ، چون کانون توجه اصلی این صفحه است */}
+      {selectedCreativePrompt?.description && (
+        <p className="-mt-2 text-[12.5px] leading-relaxed" style={{ color: '#94a3b8' }}>
+          {selectedCreativePrompt.description}
+        </p>
+      )}
+
+      {/* جعبه‌ی اصلی — عمداً بزرگ و پررنگ، چون کانون توجه اصلی این صفحه است. h-full/flex-1
+          تضمین می‌کند این جعبه کل ارتفاع ستون کنترل را پر کند (مطابق دیزاین)، نه فقط به‌اندازه‌ی
+          محتوای textarea */}
       <div
         className={clsx(
-          'flex flex-1 flex-col rounded-[26px] p-6 transition-shadow duration-300',
+          'flex h-full flex-1 flex-col rounded-[26px] p-6 transition-shadow duration-300',
           isFocused ? 'shadow-[0_0_56px_rgba(16,185,129,0.16)]' : 'shadow-[0_0_40px_rgba(16,185,129,0.06)]',
         )}
         style={{
@@ -143,13 +216,24 @@ export function StudioComposer({ onSend, disabled, sending }: {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={disabled}
-          placeholder="عکسی که می‌خوای بسازی رو توصیف کن... مثلاً «یک گربه‌ی نارنجی روی مبل مخملی آبی، نور نرم غروب»"
+          placeholder={
+            selectedCreativePrompt
+              ? fa.discover.inputPlaceholder
+              : 'عکسی که می‌خوای بسازی رو توصیف کن... مثلاً «یک گربه‌ی نارنجی روی مبل مخملی آبی، نور نرم غروب»'
+          }
           rows={5}
           style={{ minHeight: 132 }}
           className="flex-1 resize-none bg-transparent text-[16.5px] leading-[1.8] text-slate-100 placeholder:text-slate-600 focus:outline-none"
         />
 
-        {images.length > 0 && (
+        {selectedCreativePrompt?.requiresUserImage && images.length === 0 && (
+          <p className="mt-1 text-xs" style={{ color: '#fbbf24' }}>{fa.discover.requiresImageNotice}</p>
+        )}
+        {creativeImageError && (
+          <p className="mt-1 text-xs text-red-400">{creativeImageError}</p>
+        )}
+
+        {!selectedCreativePrompt && images.length > 0 && (
           <label className="mt-1 mb-2 flex items-center gap-2 text-xs text-slate-300">
             <button
               type="button"
@@ -182,8 +266,9 @@ export function StudioComposer({ onSend, disabled, sending }: {
               </svg>
               افزودن عکس
             </button>
-            <Link
-              to="/discover"
+            <button
+              type="button"
+              onClick={onOpenPromptLibrary}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold text-slate-100"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.25)' }}
             >
@@ -191,9 +276,10 @@ export function StudioComposer({ onSend, disabled, sending }: {
                 <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" />
               </svg>
               پرامپت آماده
-            </Link>
+            </button>
           </div>
 
+          {!selectedCreativePrompt && (
           <div className="flex items-center justify-between">
             <span className="text-[12.5px]" style={{ color: '#64748b' }}>تعداد خروجی</span>
             <div className="flex gap-1.5">
@@ -215,9 +301,10 @@ export function StudioComposer({ onSend, disabled, sending }: {
               ))}
             </div>
           </div>
+          )}
 
           <button
-            onClick={submit}
+            onClick={() => void submit()}
             disabled={!canSend}
             className="rounded-full py-3.5 text-[15px] font-bold transition-all"
             style={
@@ -226,14 +313,20 @@ export function StudioComposer({ onSend, disabled, sending }: {
                 : { background: 'rgba(16,185,129,0.35)', color: 'rgba(2,23,15,0.6)' }
             }
           >
-            ساخت عکس
+            {generatingCreative || uploadDiscoveryImage.isPending ? fa.discover.generating : 'ساخت عکس'}
           </button>
         </div>
       </div>
 
-      <p className="text-center text-[12px]" style={{ color: '#64748b' }}>
-        حداکثر {MAX_IMAGES} عکس مرجع در هر درخواست
-      </p>
+      {creativeError && (
+        <p className="text-center text-[12px] text-red-400">{creativeError}</p>
+      )}
+
+      {!selectedCreativePrompt && (
+        <p className="text-center text-[12px]" style={{ color: '#64748b' }}>
+          حداکثر {MAX_IMAGES} عکس مرجع در هر درخواست
+        </p>
+      )}
     </div>
   )
 }

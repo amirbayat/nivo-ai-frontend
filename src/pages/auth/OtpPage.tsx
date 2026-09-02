@@ -63,7 +63,9 @@ export function OtpPage() {
       if (result.signupBonusCredits) {
         sessionStorage.setItem('nivo:signupBonusCredits', String(result.signupBonusCredits))
       }
-      navigate('/chat', { replace: true })
+      // بعد از لاگین موفق کاربر باید به هاب برود (نه مستقیم /chat) — طبق HomeRoute در
+      // router/index.tsx، «/» برای کاربر لاگین‌کرده HubPage است
+      navigate('/', { replace: true })
     } catch {
       track('otp_verify_failed', { reason: 'invalid_code' })
       setError(fa.common.error)
@@ -106,7 +108,7 @@ export function OtpPage() {
           </div>
           <p className="text-slate-100">{waitlisted.message}</p>
           <p className="mt-2 text-sm text-slate-500">{fa.waitlist.queuePosition(waitlisted.queuePosition)}</p>
-          <Button className="mt-6 w-full" onClick={() => navigate('/chat', { replace: true })}>
+          <Button className="mt-6 w-full" onClick={() => navigate('/', { replace: true })}>
             {fa.waitlist.gotIt}
           </Button>
         </div>
