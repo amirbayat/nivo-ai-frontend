@@ -141,42 +141,17 @@ function ReasoningBox({ text }: { text: string }) {
 }
 
 // docs/PRD-chat-images.md بخش ۶.۱ — تولید عکس برخلاف استریم متن فوری شروع نمی‌شود (چند ثانیه
-// طول می‌کشد)؛ یک جعبه‌ی اسکلتی/blur تا رسیدن رویداد image-generated نشان داده می‌شود
-// وقتی provider هنوز هیچ پیش‌نمایشی نفرستاده، shimmer تزئینی نشون می‌دیم؛ به محض رسیدن اولین
-// partial_image، همون عکس واقعی (هرچند محو/ناقص) رو نشون می‌دیم — دقیقاً افکت progressive-reveal
-// شبکه‌ی ۶×۶ که موج‌دار (قطری) روشن/خاموش می‌شود — الگوی ثابت (نه Math.random در هر رندر)
-// تا با هر re-render جابه‌جا نشود؛ delay هر خونه بر اساس فاصله‌ی قطری‌اش از گوشه محاسبه می‌شود
-const TILE_GRID_SIZE = 6
-const TILE_CELLS = Array.from({ length: TILE_GRID_SIZE * TILE_GRID_SIZE }, (_, i) => {
-  const row = Math.floor(i / TILE_GRID_SIZE)
-  const col = i % TILE_GRID_SIZE
-  return { key: i, delay: (row + col) * 0.1 }
-})
-
-// چند «ستاره»‌ی ریز با موقعیت ثابت برای حس فضایی پس‌زمینه
-const STARS = [
-  { top: '12%', left: '18%', delay: '0s' },
-  { top: '22%', left: '78%', delay: '0.6s' },
-  { top: '68%', left: '85%', delay: '1.2s' },
-  { top: '80%', left: '12%', delay: '0.3s' },
-  { top: '45%', left: '92%', delay: '1.6s' },
-  { top: '8%', left: '55%', delay: '0.9s' },
-]
-
+// طول می‌کشد)؛ تا رسیدن رویداد image-generated یک ابر نرم محو (که به‌آرامی نفس می‌کشد) با یک
+// هاله‌ی ظریف دور یک آیکون ساده نشان داده می‌شود. به محض رسیدن اولین partial_image، همون تصویر
+// واقعی (هرچند محو/ناقص) با یک محو-شدن نرم (image-gen-reveal) جایگزین می‌شود — بدون جهش ناگهانی.
 // استخراج‌شده تا هم اینجا (حباب چت) هم گالری استودیوی عکس (ImageStudioPage.tsx) از همین
-// انیمیشن نبولا/ستاره استفاده کنند — سایز از بیرون کنترل می‌شود (className)
+// انیمیشن استفاده کنند — سایز از بیرون کنترل می‌شود (className)
 export function ImageGenCanvas({ preview, className }: { preview: string | null; className?: string }) {
   return (
     <div className={clsx('image-gen-canvas relative overflow-hidden rounded-xl', className)}>
-      <div className="image-gen-nebula-blob image-gen-nebula-blob-1" />
-      <div className="image-gen-nebula-blob image-gen-nebula-blob-2" />
-      {STARS.map((s, i) => (
-        <span
-          key={i}
-          className="image-gen-star"
-          style={{ top: s.top, left: s.left, animationDelay: s.delay }}
-        />
-      ))}
+      <span className="image-gen-glow image-gen-glow-a" />
+      <span className="image-gen-glow image-gen-glow-b" />
+      <span className="image-gen-shimmer" />
       {preview ? (
         <img
           src={preview}
@@ -184,14 +159,11 @@ export function ImageGenCanvas({ preview, className }: { preview: string | null;
           className="image-gen-reveal absolute inset-0 size-full object-cover"
         />
       ) : (
-        <div className="absolute inset-0 grid grid-cols-6 gap-1.5 p-4">
-          {TILE_CELLS.map(cell => (
-            <div
-              key={cell.key}
-              className="image-gen-tile"
-              style={{ animationDelay: `${cell.delay}s` }}
-            />
-          ))}
+        <div className="image-gen-mark">
+          <span className="image-gen-halo" />
+          <svg viewBox="0 0 24 24" fill="none" className="image-gen-spark">
+            <path d="M12 3.5l1.6 4.1 4.1 1.6-4.1 1.6-1.6 4.1-1.6-4.1-4.1-1.6 4.1-1.6L12 3.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+          </svg>
         </div>
       )}
     </div>
@@ -205,11 +177,8 @@ function GeneratingImageBox({ preview }: { preview: string | null }) {
         AI
       </div>
       <div className="flex flex-col gap-2 rounded-2xl rounded-tr-sm bg-slate-800 px-4 py-3">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-fuchsia-300">
-          <svg viewBox="0 0 24 24" fill="none" className="image-gen-sparkle size-3.5">
-            <path d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z" fill="currentColor" />
-          </svg>
-          <span>{preview ? 'در حال تکمیل عکس...' : 'در حال ساخت عکس...'}</span>
+        <div className="text-xs font-medium text-slate-400">
+          {preview ? 'در حال تکمیل عکس...' : 'در حال ساخت عکس...'}
         </div>
         <ImageGenCanvas preview={preview} className="h-48 w-48" />
       </div>

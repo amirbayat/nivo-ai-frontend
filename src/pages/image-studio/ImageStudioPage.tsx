@@ -8,6 +8,7 @@ import { useChat } from '@/hooks/useChat'
 import { useChatStore } from '@/store/chat.store'
 import { ChatImage, ImageGenCanvas, ChatErrorBox } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
+import { PlanUpgradeBadge } from '@/components/layout/PlanUpgradeBadge'
 import { PromptLibraryModal } from '@/components/discover/PromptLibraryModal'
 import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
 import { StudioComposer } from './StudioComposer'
@@ -227,7 +228,8 @@ function StudioWorkspace({ id }: { id?: string }) {
           </button>
           <span className="text-[17px] font-bold text-white">{data?.title || 'تولید و ویرایش عکس'}</span>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
+          <PlanUpgradeBadge />
           <div
             className="flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold"
             style={
@@ -328,10 +330,9 @@ function StudioWorkspace({ id }: { id?: string }) {
           ) : (
             <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3">
               {isGeneratingImage && (
-                <div className="relative aspect-square overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(16,185,129,0.28)' }}>
+                <div className="relative aspect-square overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(52,211,153,0.28)' }}>
                   <ImageGenCanvas preview={generatingImagePreview} className="absolute inset-0 size-full" />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                    <div className="size-8 animate-spin rounded-full border-2 border-slate-500/30" style={{ borderTopColor: '#34d399' }} />
+                  <div className="absolute inset-x-0 bottom-3 flex justify-center">
                     <span className="text-[12px]" style={{ color: '#a7f3d0' }}>در حال ساخت...</span>
                   </div>
                 </div>

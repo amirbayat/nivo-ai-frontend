@@ -51,70 +51,78 @@ body {
   }
 }
 
-/* تولید عکس — پس‌زمینه‌ی «فضایی» (نبولا) + شبکه‌ی مربعی از نقاط که موج‌دار روشن/خاموش
-   می‌شوند، شبیه افکت loading تولید عکس ChatGPT — به‌جای shimmer ساده‌ی قبلی */
-@keyframes nivo-sparkle-spin {
-  0%   { transform: rotate(0deg) scale(0.9); opacity: 0.7; }
-  50%  { transform: rotate(180deg) scale(1.2); opacity: 1; }
-  100% { transform: rotate(360deg) scale(0.9); opacity: 0.7; }
-}
-@keyframes nivo-nebula-drift {
+/* تولید عکس — یک ابر نرم محو که به‌آرامی نفس می‌کشد + هاله‌ی ظریف دور یک آیکون ساده،
+   به‌جای پلاک‌های چشمک‌زن/نبولای شلوغ نسخه‌ی قبل (فقط یک رنگ تاکیدی: سبز برند) */
+@keyframes nivo-glow-float-a {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(4%, -5%) scale(1.12); }
+  50%      { transform: translate(5%, 4%) scale(1.08); }
 }
-@keyframes nivo-star-twinkle {
-  0%, 100% { opacity: 0.15; transform: scale(0.7); }
-  50%      { opacity: 1; transform: scale(1); }
+@keyframes nivo-glow-float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-5%, -5%) scale(1.05); }
 }
-@keyframes nivo-tile-pulse {
-  0%, 100% { opacity: 0.12; transform: scale(0.8); }
-  45%      { opacity: 1; transform: scale(1); }
-  55%      { opacity: 1; transform: scale(1); }
+@keyframes nivo-shimmer-sweep {
+  0%        { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(120%); }
+}
+@keyframes nivo-halo-pulse {
+  0%   { transform: scale(0.82); opacity: 0.55; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+@keyframes nivo-mark-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
 }
 
 .image-gen-canvas {
-  background: linear-gradient(135deg, #1e1b3a, #0b1024);
+  background: linear-gradient(160deg, #12141f, #0b1024);
 }
-.image-gen-nebula-blob {
+.image-gen-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(14px);
-  animation: nivo-nebula-drift 6s ease-in-out infinite;
+  filter: blur(34px);
 }
-.image-gen-nebula-blob-1 {
-  width: 65%; height: 65%; top: -10%; right: -10%;
-  background: radial-gradient(circle, rgba(217,70,239,0.55), transparent 70%);
+.image-gen-glow-a {
+  width: 70%; height: 70%; top: -18%; right: -12%;
+  background: radial-gradient(circle, rgba(52,211,153,0.45), transparent 70%);
+  animation: nivo-glow-float-a 11s ease-in-out infinite;
 }
-.image-gen-nebula-blob-2 {
-  width: 70%; height: 70%; bottom: -15%; left: -15%;
-  background: radial-gradient(circle, rgba(99,102,241,0.5), transparent 70%);
-  animation-delay: -3s;
+.image-gen-glow-b {
+  width: 62%; height: 62%; bottom: -20%; left: -14%;
+  background: radial-gradient(circle, rgba(91,100,120,0.5), transparent 70%);
+  animation: nivo-glow-float-b 13s ease-in-out infinite;
 }
-.image-gen-star {
-  position: absolute;
-  width: 3px; height: 3px;
+.image-gen-shimmer {
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 42%, rgba(255,255,255,0.07) 50%, transparent 58%);
+  transform: translateX(-120%);
+  animation: nivo-shimmer-sweep 3.6s ease-in-out infinite;
+}
+.image-gen-mark {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.image-gen-halo {
+  position: absolute; width: 36%; height: 36%;
   border-radius: 50%;
-  background: #fff;
-  animation: nivo-star-twinkle 2.4s ease-in-out infinite;
+  border: 1px solid rgba(52,211,153,0.35);
+  animation: nivo-halo-pulse 2.8s ease-out infinite;
 }
-.image-gen-tile {
-  border-radius: 3px;
-  background: linear-gradient(135deg, #e879f9, #a78bfa);
-  animation: nivo-tile-pulse 2.2s ease-in-out infinite;
-}
-.image-gen-sparkle {
-  animation: nivo-sparkle-spin 2.4s ease-in-out infinite;
+.image-gen-spark {
+  width: 20%; height: 20%;
+  color: #34d399;
+  animation: nivo-mark-breathe 2.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .image-gen-nebula-blob, .image-gen-star, .image-gen-tile, .image-gen-sparkle { animation: none; }
+  .image-gen-glow-a, .image-gen-glow-b, .image-gen-shimmer, .image-gen-halo, .image-gen-spark { animation: none; }
 }
 
 @keyframes nivo-image-reveal {
-  from { opacity: 0; transform: scale(0.96); }
+  from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
 }
 .image-gen-reveal {
-  animation: nivo-image-reveal 0.4s ease-out;
+  animation: nivo-image-reveal 0.6s ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
   .image-gen-reveal { animation: none; }
