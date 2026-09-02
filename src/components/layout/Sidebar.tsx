@@ -125,13 +125,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         <div className="flex gap-2">
           <button
             onClick={() => { track("projects_nav_clicked"); navigate("/projects"); onNavigate?.(); }}
-            className="flex-1 rounded-xl border border-slate-700/60 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
+            className="flex flex-1 items-center justify-center rounded-xl border border-slate-700/60 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
           >
             {fa.projects.title}
           </button>
           <button
             onClick={() => { track("gallery_nav_clicked"); navigate("/gallery"); onNavigate?.(); }}
-            className="flex-1 rounded-xl border border-slate-700/60 px-2.5 py-2 text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
+            className="flex flex-1 items-center justify-center rounded-xl border border-slate-700/60 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
           >
             {fa.gallery.title}
           </button>
@@ -140,7 +140,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => { track("nivo_cal_nav_clicked"); onNavigate?.(); }}
-            className="flex-1 rounded-xl border border-slate-700/60 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
+            className="flex flex-1 items-center justify-center rounded-xl border border-slate-700/60 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
           >
             {fa.nivoCal.navLabel}
           </a>

@@ -67,6 +67,7 @@ export function ChatPage() {
 function ActiveChat({ conversationId, isStreaming }: { conversationId: string; isStreaming: boolean }) {
   const { data, isLoading } = useConversation(conversationId)
   const { sendMessage } = useChat(conversationId)
+  const navigate = useNavigate()
   const location = useLocation()
   const { selectedCreativePrompt, selectedModel } = useChatStore()
   const generateCreative = useGenerateCreative()
@@ -151,6 +152,16 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       }}
     >
       <div className="flex items-center gap-3 border-b border-slate-700/30 px-4 py-3 sm:px-6 sm:py-4">
+        <button
+          onClick={() => navigate('/')}
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-colors"
+          aria-label="بازگشت به خانه"
+        >
+          {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
         <h2 className="truncate text-sm font-medium text-slate-200">
           {data.title ?? fa.chat.untitled}
         </h2>
@@ -214,6 +225,7 @@ function EmptyState({ onSend, isCreating }: {
   onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
   isCreating: boolean
 }) {
+  const navigate = useNavigate()
   return (
     <div
       className="flex flex-1 flex-col overflow-hidden"
@@ -223,6 +235,16 @@ function EmptyState({ onSend, isCreating }: {
       }}
     >
       <div className="flex items-center gap-3 border-b border-slate-700/30 px-4 py-3 sm:px-6 sm:py-4">
+        <button
+          onClick={() => navigate('/')}
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-colors"
+          aria-label="بازگشت به خانه"
+        >
+          {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
         <h2 className="truncate text-sm font-medium text-slate-200">{fa.chat.untitled}</h2>
         <div className="mr-auto flex items-center gap-2 shrink-0">
           <ModelSelector />
