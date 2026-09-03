@@ -8,8 +8,8 @@ import type { CreditPackage } from "@/types/api";
 
 // تخمین دوستانه («حدوداً چندتا عکس/پیام میشه آورد») — نه فرمول دقیق؛ creditCost همه‌ی سبک‌های
 // عکس دیسکاوری یکسان ۱۶ نیوو است، و یک پیام معمولی چت حدود ۱ نیوو
-const CREDITS_PER_IMAGE_ESTIMATE = 16;
-const CREDITS_PER_MESSAGE_ESTIMATE = 1;
+const CREDITS_PER_IMAGE_ESTIMATE = 9;
+const CREDITS_PER_MESSAGE_ESTIMATE = .5;
 
 // debounce ساده‌ی مقدار — برای این‌که با هر کلیدضربه کوئری قیمت زنده نره سمت سرور
 function useDebouncedValue<T>(value: T, delayMs: number): T {
