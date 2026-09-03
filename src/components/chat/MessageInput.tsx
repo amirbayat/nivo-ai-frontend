@@ -4,6 +4,7 @@ import { clsx } from 'clsx'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
 import { useChatStore } from '@/store/chat.store'
+import { useToastStore } from '@/store/toast.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
@@ -11,28 +12,49 @@ import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import { ThinkingModeToggle } from './ThinkingModeToggle'
 
+// عکس‌های آیفون معمولاً با فرمت HEIC/HEIF می‌آیند که مرورگرهای کرومیوم/فایرفاکس (و مدل‌های
+// هوش مصنوعی سمت سرور) قادر به decode آن نیستند — بدون این تبدیل، <img>.onerror سایلنت این
+// فایل‌ها را در handleFiles حذف می‌کرد، بدون هیچ خطایی به کاربر
+async function toDecodableBlob(file: File): Promise<Blob> {
+  const isHeic = /^image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)
+  if (!isHeic) return file
+  const { default: heic2any } = await import('heic2any')
+  const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
+  return Array.isArray(converted) ? converted[0] : converted
+}
+
 // export شده تا StudioComposer.tsx (ImageStudioPage) هم بدون کپی کردن منطق تغییر اندازه، از
 // همین تابع برای پیش‌نمایش عکس مرجع استفاده کند
 export function resizeImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      const MAX_DIM = 1024
-      let { width, height } = img
-      if (width > MAX_DIM || height > MAX_DIM) {
-        if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
-        else { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
+    void (async () => {
+      try {
+        const blob = await toDecodableBlob(file)
+        const url = URL.createObjectURL(blob)
+        const img = new Image()
+        img.onload = () => {
+          const MAX_DIM = 1024
+          let { width, height } = img
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
+            else { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+          URL.revokeObjectURL(url)
+          resolve(canvas.toDataURL('image/jpeg', 0.8))
+        }
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          reject(new Error('image decode failed'))
+        }
+        img.src = url
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error('heic conversion failed'))
       }
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-      URL.revokeObjectURL(url)
-      resolve(canvas.toDataURL('image/jpeg', 0.8))
-    }
-    img.onerror = reject
-    img.src = url
+    })()
   })
 }
 
@@ -190,15 +212,18 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     const remaining = MAX_IMAGES - images.length
     const toProcess = Array.from(files).slice(0, remaining)
     const results: string[] = []
+    let failed = 0
     for (const file of toProcess) {
-      if (!file.type.startsWith('image/')) continue
+      // بعضی فایل‌منیجرهای اندروید برای HEIC فیلد type را خالی می‌فرستند — اسم فایل هم چک می‌شود
+      if (!file.type.startsWith('image/') && !/\.hei[cf]$/i.test(file.name)) continue
       if (file.size > MAX_SIZE_BYTES) continue
       try {
         results.push(await resizeImage(file))
-      } catch { /* skip */ }
+      } catch { failed++ }
     }
     setImages(prev => [...prev, ...results].slice(0, MAX_IMAGES))
     if (fileRef.current) fileRef.current.value = ''
+    if (failed > 0) useToastStore.getState().addToast(fa.chat.imageProcessFailed(failed))
   }
 
   const removeImage = (idx: number) => {

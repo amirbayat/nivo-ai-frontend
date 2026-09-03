@@ -13,6 +13,13 @@ export function CallbackPage() {
   const [addedCredits, setAddedCredits] = useState<number | null>(null)
   const refId = params.get('refId')
   const invoiceId = params.get('invoiceId')
+  // مسیری که کاربر پرداخت را از آنجا شروع کرده بود (مثلاً /image/xxx) — قبل از redirect به
+  // درگاه در useInitiatePayment/useInitiateWalletTopup ذخیره شده؛ بدون این، کاربر همیشه به یک
+  // مقصد ثابت («رفتن به چت») پرت می‌شد، حتی اگر از استودیوی عکس شارژ کرده باشد. useState با
+  // initializer تنبل: فقط یک‌بار (رندر اول) خوانده می‌شود، نه با هر رندر — وگرنه بعد از پاک شدنش
+  // در useEffect پایین، رندر بعدی (وقتی status ست می‌شود و دکمه واقعاً نمایش داده می‌شود) مقدار
+  // null می‌گرفت
+  const [returnPath] = useState(() => sessionStorage.getItem('nivo:pendingReturnPath'))
   // docs/PRD-user-push-notifications-and-mobile-app-flows.md بخش ۵.۵ — این پرداخت از داخل اپ
   // اندروید شروع شده بود (initiate با source=app)؛ چون اینجا احتمالاً در مرورگر خارجی هستیم
   // (نه WebView)، یک لینک عادی به nivoai.ir کافی‌ست — اگر App Link verified باشد، همین کلیک اپ را باز می‌کند
@@ -31,7 +38,9 @@ export function CallbackPage() {
         setAddedCredits(Number(pending))
         sessionStorage.removeItem('nivo:pendingPurchaseCredits')
       }
+      sessionStorage.removeItem('nivo:pendingReturnPath')
     } else {
+      sessionStorage.removeItem('nivo:pendingReturnPath')
       setStatus('failed')
       track('payment_failed', { refId: refId ?? undefined, invoiceId: invoiceId ?? undefined })
     }
@@ -55,10 +64,10 @@ export function CallbackPage() {
               {refId && <p className="mt-3 text-sm text-slate-500">کد پیگیری: {refId}</p>}
             </div>
             <button
-              onClick={() => navigate('/chat', { replace: true })}
+              onClick={() => navigate(returnPath ?? '/chat', { replace: true })}
               className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-medium text-white hover:bg-emerald-600 transition-colors"
             >
-              {fa.payment.goToChat}
+              {returnPath && returnPath !== '/chat' ? fa.payment.continueLabel : fa.payment.goToChat}
             </button>
             {invoiceId && (
               <button

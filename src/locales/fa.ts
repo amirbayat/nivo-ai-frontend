@@ -47,6 +47,9 @@ export const fa = {
     // تنها محدودکننده موجودی اعتبار (نیوو) است
     creditLowWarning: (n: number) => `اعتبار شما رو به اتمام است — ${n.toLocaleString('fa-IR')} نیوو باقی مونده`,
     creditExhausted: 'اعتبار شما تمام شده است. برای ادامه‌ی چت، نیوو شارژ کنید.',
+    imageProcessFailed: (n: number) =>
+      n === 1 ? 'یکی از عکس‌ها قابل پردازش نبود و اضافه نشد' : `${n.toLocaleString('fa-IR')} تا از عکس‌ها قابل پردازش نبودند و اضافه نشدند`,
+    retry: 'تلاش دوباره',
   },
   credits: {
     title: 'شارژ اعتبار نیوو',
@@ -369,6 +372,7 @@ export const fa = {
     motivational: 'حالا یک چیز فوق‌العاده بساز!',
     failed: 'پرداخت ناموفق بود.',
     goToChat: 'رفتن به چت',
+    continueLabel: 'ادامه بده',
     tryAgain: 'تلاش مجدد',
     returnToApp: 'بازگشت به اپ',
     chooseGateway: 'انتخاب درگاه پرداخت',

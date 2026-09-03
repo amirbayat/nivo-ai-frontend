@@ -70,6 +70,9 @@ export function useInitiatePayment() {
         gateway: variables.gateway,
         isUpgrade: variables.isUpgrade ?? false,
       })
+      // مقصد فعلی کاربر (مثلاً /image/xxx) قبل از redirect سخت به درگاه ذخیره می‌شود تا
+      // CallbackPage.tsx بعد از پرداخت بتواند دقیقاً به همان‌جا برگرداند، نه یک مقصد هاردکد
+      sessionStorage.setItem('nivo:pendingReturnPath', window.location.pathname)
       window.location.href = data.paymentUrl
     },
   })
@@ -85,6 +88,7 @@ export function useInitiateWalletTopup() {
       }).then(r => r.data),
     onSuccess: (data, variables) => {
       track('wallet_topup_initiated', { amountToman: variables.amountToman, gateway: variables.gateway })
+      sessionStorage.setItem('nivo:pendingReturnPath', window.location.pathname)
       window.location.href = data.paymentUrl
     },
   })

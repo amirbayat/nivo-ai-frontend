@@ -189,7 +189,7 @@ function GeneratingImageBox({ preview }: { preview: string | null }) {
 // این باکس فقط برای خطاهای عمومی/غیرمنتظره است (مدل در دسترس نیست، قطعی شبکه و ...) —
 // خطاهای «محدودیت» (سقف روزانه/پنجره‌ی لغزان/بودجه‌ی توکن) توسط بنر پایدار بالای اینپوت
 // (MessageLimitBanner) پوشش داده می‌شوند، نه اینجا.
-export function ChatErrorBox({ message, code }: { message: string; code: string | null }) {
+export function ChatErrorBox({ message, code, onRetry }: { message: string; code: string | null; onRetry?: () => void }) {
   const navigate = useNavigate()
   const isImageGenNotSupported = code === 'IMAGE_GEN_NOT_SUPPORTED'
 
@@ -215,13 +215,22 @@ export function ChatErrorBox({ message, code }: { message: string; code: string 
           <span className="text-sm font-semibold text-red-300">{heading}</span>
         </div>
         <p className="text-sm text-red-200/80 leading-relaxed">{message}</p>
-        {isImageGenNotSupported && (
+        {isImageGenNotSupported ? (
           <button
             onClick={() => navigate('/pricing')}
             className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition-colors"
           >
             {fa.chat.limitUpgrade}
           </button>
+        ) : (
+          onRetry && (
+            <button
+              onClick={onRetry}
+              className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-400 transition-colors"
+            >
+              {fa.chat.retry}
+            </button>
+          )
         )}
       </div>
     </div>

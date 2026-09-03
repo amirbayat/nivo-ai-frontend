@@ -25,6 +25,12 @@ interface ChatState {
   // سبک انتخاب‌شده از استودیوی محتوا (DiscoverPage) — تا برگشت به چت حفظ می‌شود؛ MessageInput
   // با وجود این مقدار به‌جای ارسال پیام معمولی، generate آن سبک را صدا می‌زند (docs/PRD-discovery-and-credits.md)
   selectedCreativePrompt: CreativePromptCatalogItem | null
+  // پیش‌نویس پنل استودیوی عکس (StudioComposer) — چیپ «تغییر مدل» به‌جای دراپ‌داون، به یک
+  // صفحه‌ی جدا (/models) navigate می‌کند که کل ImageStudioPage را unmount می‌کند؛ اگر این مقادیر
+  // useState محلی همان کامپوننت بودند، با هر تغییر مدل، متن/عکس‌های تایپ‌شده پاک می‌شدند
+  studioDraftValue: string
+  studioDraftImages: string[]
+  studioDraftPreserveFace: boolean
   setSelectedConvId: (id: string | null) => void
   setStreamingContent: (text: string) => void
   appendStreamingContent: (chunk: string) => void
@@ -39,6 +45,10 @@ interface ChatState {
   setSelectedImageGenModel: (model: string | null) => void
   setThinkingMode: (mode: ThinkingMode) => void
   setSelectedCreativePrompt: (prompt: CreativePromptCatalogItem | null) => void
+  setStudioDraftValue: (value: string) => void
+  setStudioDraftImages: (images: string[] | ((prev: string[]) => string[])) => void
+  setStudioDraftPreserveFace: (v: boolean) => void
+  resetStudioDraft: () => void
 }
 
 export const useChatStore = create<ChatState>(set => ({
@@ -64,6 +74,9 @@ export const useChatStore = create<ChatState>(set => ({
   thinkingMode:
     (typeof window !== 'undefined' ? (localStorage.getItem('nivo:thinkingMode') as ThinkingMode | null) : null) ?? 'smart',
   selectedCreativePrompt: null,
+  studioDraftValue: '',
+  studioDraftImages: [],
+  studioDraftPreserveFace: true,
 
   setSelectedConvId: id => set({ selectedConvId: id }),
   setStreamingContent: text => set({ streamingContent: text }),
@@ -85,4 +98,10 @@ export const useChatStore = create<ChatState>(set => ({
     set({ thinkingMode: mode })
   },
   setSelectedCreativePrompt: prompt => set({ selectedCreativePrompt: prompt }),
+  setStudioDraftValue: value => set({ studioDraftValue: value }),
+  setStudioDraftImages: images => set(s => ({
+    studioDraftImages: typeof images === 'function' ? images(s.studioDraftImages) : images,
+  })),
+  setStudioDraftPreserveFace: v => set({ studioDraftPreserveFace: v }),
+  resetStudioDraft: () => set({ studioDraftValue: '', studioDraftImages: [], studioDraftPreserveFace: true }),
 }))

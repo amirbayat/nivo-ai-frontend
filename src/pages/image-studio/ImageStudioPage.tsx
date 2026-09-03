@@ -75,6 +75,13 @@ function StudioWorkspace({ id }: { id?: string }) {
   const [creativeError, setCreativeError] = useState<string | null>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  // بلافاصله روی کلیک «ساخت عکس» (سبک انتخابی) true می‌شود — قبل از این‌که آپلود عکس مرجع تمام
+  // شود و generateCreative.isPending شروع شود — تا اسپینر گالری بدون تاخیر ظاهر شود
+  const [creativeSubmitting, setCreativeSubmitting] = useState(false)
+  // برای دکمه‌ی «تلاش دوباره» — آخرین پیام معمولی/سبک ارسال‌شده را نگه می‌دارد تا با یک کلیک
+  // دوباره فرستاده شود، بدون این‌که کاربر مجبور باشد دوباره تایپ کند
+  const lastSendRef = useRef<PendingMessage | null>(null)
+  const lastCreativeRef = useRef<{ convId: string; pending: PendingCreative } | null>(null)
 
   useEffect(() => {
     const msg = pendingRef.current
@@ -97,6 +104,7 @@ function StudioWorkspace({ id }: { id?: string }) {
     imageModel?: string,
     preserveFace?: boolean,
   ) => {
+    lastSendRef.current = { content, images, imageModel, preserveFace }
     if (id) {
       void sendMessage(content, images, imageModel, preserveFace)
       return
@@ -112,12 +120,14 @@ function StudioWorkspace({ id }: { id?: string }) {
     }
   }
 
-  function runGenerateCreative(convId: string, pending: PendingCreative) {
+  function retrySend() {
+    const last = lastSendRef.current
+    if (last) void handleSend(last.content, last.images, last.imageModel, last.preserveFace)
+  }
+
+  // فقط تلاش تولید را دوباره می‌زند (بدون افزودن حباب پیام کاربر تازه) — برای دکمه‌ی «تلاش دوباره»
+  function generateCreativeNow(convId: string, pending: PendingCreative) {
     setCreativeError(null)
-    setVirtualMessages(prev => [
-      ...prev,
-      { id: `virtual-user-${prev.length}`, role: 'USER', content: pending.userInput, images: pending.imagePreviews },
-    ])
     generateCreative.mutate(
       {
         promptId: pending.promptId,
@@ -127,7 +137,8 @@ function StudioWorkspace({ id }: { id?: string }) {
         preserveFace: pending.preserveFace,
       },
       {
-        onSuccess: result =>
+        onSuccess: result => {
+          setCreativeSubmitting(false)
           setVirtualMessages(prev => [
             ...prev,
             {
@@ -139,10 +150,31 @@ function StudioWorkspace({ id }: { id?: string }) {
                   ? [`/v2/discovery/images/${result.outputImageKey}`]
                   : undefined,
             },
-          ]),
-        onError: () => setCreativeError(fa.discover.generateFailed),
+          ])
+        },
+        onError: () => {
+          setCreativeSubmitting(false)
+          setCreativeError(fa.discover.generateFailed)
+        },
       },
     )
+  }
+
+  function runGenerateCreative(convId: string, pending: PendingCreative) {
+    lastCreativeRef.current = { convId, pending }
+    setVirtualMessages(prev => [
+      ...prev,
+      { id: `virtual-user-${prev.length}`, role: 'USER', content: pending.userInput, images: pending.imagePreviews },
+    ])
+    generateCreativeNow(convId, pending)
+  }
+
+  function retryGenerateCreative() {
+    const last = lastCreativeRef.current
+    if (last) {
+      setCreativeSubmitting(true)
+      generateCreativeNow(last.convId, last.pending)
+    }
   }
 
   useEffect(() => {
@@ -182,7 +214,6 @@ function StudioWorkspace({ id }: { id?: string }) {
     setLibraryOpen(false)
   }
 
-  const isGeneratingImage = useChatStore(s => s.isGeneratingImage)
   const generatingImagePreview = useChatStore(s => s.generatingImagePreview)
   // قبلاً این صفحه اصلاً chatError/chatErrorCode را نمی‌خواند — یعنی وقتی تولید عکس fail
   // می‌شد (مثلاً «تولید عکس روی OpenRouter هنوز مهاجرت نشده») فقط اسپینر بی‌صدا محو می‌شد،
@@ -206,7 +237,9 @@ function StudioWorkspace({ id }: { id?: string }) {
         m.images.forEach((src, i) => out.push({ key: `${m.id}-${i}`, src }))
       }
     }
-    return out
+    // پیام‌ها به ترتیب زمانی صعودی می‌آیند (قدیمی اول) — گالری باید جدیدترین عکس را اول
+    // نشان دهد، نه آخر
+    return out.reverse()
   }, [data, virtualMessages])
 
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
@@ -312,8 +345,11 @@ function StudioWorkspace({ id }: { id?: string }) {
               onClearCreativePrompt={() => setSelectedCreativePrompt(null)}
               onOpenPromptLibrary={() => setLibraryOpen(true)}
               onGenerateCreative={handleGenerateCreative}
+              onCreativeSubmitStart={() => setCreativeSubmitting(true)}
+              onCreativeSubmitEnd={() => setCreativeSubmitting(false)}
               generatingCreative={generateCreative.isPending}
               creativeError={creativeError}
+              onRetryCreative={retryGenerateCreative}
               walletBalanceToman={isPayAsYouGo ? (wallet?.balanceToman ?? 0) : null}
             />
           </div>
@@ -324,13 +360,13 @@ function StudioWorkspace({ id }: { id?: string }) {
             {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
           </p>
 
-          {chatError && !isGeneratingImage && (
+          {chatError && !isStreaming && (
             <div className="mb-4">
-              <ChatErrorBox message={chatError} code={chatErrorCode} />
+              <ChatErrorBox message={chatError} code={chatErrorCode} onRetry={retrySend} />
             </div>
           )}
 
-          {count === 0 && !isGeneratingImage && !generateCreative.isPending ? (
+          {count === 0 && !isStreaming && !generateCreative.isPending && !creativeSubmitting ? (
             <div className="flex flex-col items-center justify-center gap-3.5 py-16 text-center">
               <div
                 className="flex size-16 items-center justify-center rounded-[20px]"
@@ -347,7 +383,7 @@ function StudioWorkspace({ id }: { id?: string }) {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3">
-              {isGeneratingImage && (
+              {isStreaming && (
                 <div className="relative aspect-square overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(52,211,153,0.28)' }}>
                   <ImageGenCanvas preview={generatingImagePreview} className="absolute inset-0 size-full" />
                   <div className="absolute inset-x-0 bottom-3 flex justify-center">
@@ -355,7 +391,7 @@ function StudioWorkspace({ id }: { id?: string }) {
                   </div>
                 </div>
               )}
-              {generateCreative.isPending && (
+              {(generateCreative.isPending || creativeSubmitting) && (
                 <div
                   className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl"
                   style={{ border: '1px solid rgba(217,70,239,0.28)', background: 'rgba(217,70,239,0.05)' }}

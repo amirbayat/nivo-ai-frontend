@@ -5,9 +5,13 @@ import { useFeatureFlags } from '@/queries/config.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
 import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
 import { useChatStore } from '@/store/chat.store'
+import { useToastStore } from '@/store/toast.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { resizeImage } from '@/components/chat/MessageInput'
+import { ProviderIcon } from '@/components/models/ProviderIcon'
 import { fa } from '@/locales/fa'
+import { track } from '@/lib/events'
 import type { CreativePromptCatalogItem } from '@/types/api'
 
 // پنل کنترل استودیوی عکس — پیکسل‌به‌پیکسل مطابق آرتبورد ImageStudioWorkspace.dc.html در
@@ -29,8 +33,11 @@ export function StudioComposer({
   onClearCreativePrompt,
   onOpenPromptLibrary,
   onGenerateCreative,
+  onCreativeSubmitStart,
+  onCreativeSubmitEnd,
   generatingCreative,
   creativeError,
+  onRetryCreative,
   walletBalanceToman,
 }: {
   onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
@@ -42,8 +49,16 @@ export function StudioComposer({
   onClearCreativePrompt?: () => void
   onOpenPromptLibrary?: () => void
   onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[], preserveFace?: boolean) => void
+  // بلافاصله روی کلیک (قبل از آپلود عکس‌های مرجع) صدا زده می‌شود تا اسپینر گالری همون لحظه
+  // ظاهر شود، نه فقط بعد از این‌که آپلود تمام شد و generateCreative.isPending شروع شد
+  onCreativeSubmitStart?: () => void
+  // فقط وقتی خود آپلود عکس مرجع fail شود صدا زده می‌شود (قبل از این‌که generateCreative اصلاً
+  // صدا زده شود) — تا اسپینر گالری برای همیشه روشن نماند؛ اگر آپلود موفق بود، خاموش‌شدن اسپینر
+  // با onSuccess/onError خودِ generateCreative (سمت ImageStudioPage) هندل می‌شود
+  onCreativeSubmitEnd?: () => void
   generatingCreative?: boolean
   creativeError?: string | null
+  onRetryCreative?: () => void
   // موجودی کیف‌پول (فقط پلن Pay-as-you-go) — null یعنی پلن این کاربر اصلاً کیف‌پول تومانی ندارد
   walletBalanceToman?: number | null
 }) {
@@ -54,28 +69,55 @@ export function StudioComposer({
 
   const { data: catalog } = useModelCatalog()
   const selectedImageGenModel = useChatStore(s => s.selectedImageGenModel)
+  const setSelectedImageGenModel = useChatStore(s => s.setSelectedImageGenModel)
   const imageGenModels = useMemo(() => (catalog ?? []).filter(m => m.supportsImageGen), [catalog])
   const pinnedModel = imageGenModels.find(m => m.name === selectedImageGenModel)
   // imageGenModels از همان ترتیب sortOrder سرور می‌آید — اولین مورد یعنی «دیفالت» واقعی
   // (یا مدل پیش‌فرض این پلن، اگر ادمین از صفحه‌ی پلن‌ها ستش کرده باشد)، نه یک نام هاردکد
   const modelLabel = pinnedModel?.displayName ?? imageGenModels[0]?.displayName ?? 'مدل پیش‌فرض'
 
-  const [value, setValue] = useState('')
-  const [images, setImages] = useState<string[]>([])
-  const [preserveFace, setPreserveFace] = useState(true)
+  // value/images/preserveFace عمداً در chat.store (نه useState محلی) نگه داشته می‌شوند — چیپ
+  // «تغییر مدل» به /models navigate می‌کند که این کامپوننت را unmount می‌کند؛ useState محلی با
+  // آن remount از دست می‌رفت (این دقیقاً باگی بود که کاربر گزارش داد: «مدل رو عوض می‌کنم، پرامپت
+  // بسته می‌شود»)
+  const value = useChatStore(s => s.studioDraftValue)
+  const setValue = useChatStore(s => s.setStudioDraftValue)
+  const images = useChatStore(s => s.studioDraftImages)
+  const setImages = useChatStore(s => s.setStudioDraftImages)
+  const preserveFace = useChatStore(s => s.studioDraftPreserveFace)
+  const setPreserveFace = useChatStore(s => s.setStudioDraftPreserveFace)
+  const resetStudioDraft = useChatStore(s => s.resetStudioDraft)
   const [isFocused, setIsFocused] = useState(false)
   const [creativeImageError, setCreativeImageError] = useState<string | null>(null)
   // فقط روی موبایل معنا دارد (دسکتاپ همیشه باز است، پایین‌تر با sm: بازنویسی می‌شود) — با
-  // انتخاب یک سبک تازه از کتابخانه، شیت خودکار باز می‌شود تا کاربر بلافاصله عکس مرجع را ببیند
+  // انتخاب یک سبک تازه از کتابخانه، مدال خودکار باز می‌شود تا کاربر بلافاصله عکس مرجع را ببیند
   const [mobileExpanded, setMobileExpanded] = useState(false)
+  // فقط روی موبایل معنا دارد — کدام پنل داخل مدال تمام‌صفحه دیده می‌شود. زدن «تغییر مدل»
+  // به‌جای navigate به یک صفحه‌ی جدا (که پنل رو unmount می‌کرد)، همین‌جا به لیست مدل‌ها سوییچ
+  // می‌کند؛ خود مدال باز می‌ماند و چیزی از دست نمی‌رود
+  const [mobileView, setMobileView] = useState<'compose' | 'models'>('compose')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const isTouchDevice = useIsTouchDevice()
+  const isDesktop = useMediaQuery('(min-width: 640px)')
   const uploadDiscoveryImage = useUploadDiscoveryImage()
 
   useEffect(() => {
     if (selectedCreativePrompt) setMobileExpanded(true)
   }, [selectedCreativePrompt])
+
+  function closeMobileModal() {
+    setMobileExpanded(false)
+    setMobileView('compose')
+  }
+
+  function selectImageGenModel(model: string | null) {
+    track('image_gen_model_selected', { model: model ?? 'auto', source: 'image_studio_inline' })
+    setSelectedImageGenModel(model)
+    if (model) localStorage.setItem('nivo:selectedImageGenModel', model)
+    else localStorage.removeItem('nivo:selectedImageGenModel')
+    setMobileView('compose')
+  }
 
   const canSend = selectedCreativePrompt
     ? !disabled && !sending && !generatingCreative && !uploadDiscoveryImage.isPending &&
@@ -91,27 +133,29 @@ export function StudioComposer({
     if (!canSend) return
     if (selectedCreativePrompt) {
       setCreativeImageError(null)
+      // همین‌جا (قبل از await آپلود) صدا زده می‌شود تا اسپینر گالری بلافاصله روی کلیک ظاهر شود،
+      // نه فقط بعد از تمام‌شدن آپلود عکس‌های مرجع (که ممکن است چند ثانیه طول بکشد)
+      onCreativeSubmitStart?.()
       try {
         // سبک‌های دیسکاوری کلید MinIO می‌خواهند (نه data URL خام) — قبل از generate آپلود می‌شوند
         const inputImageKeys = images.length
           ? await Promise.all(images.map(src => uploadDiscoveryImage.mutateAsync(src).then(r => r.key)))
           : undefined
         onGenerateCreative?.(selectedCreativePrompt.id, value.trim(), inputImageKeys, images.length ? images : undefined, preserveFace)
-        setValue('')
-        setImages([])
-        setMobileExpanded(false)
+        resetStudioDraft()
+        closeMobileModal()
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
       } catch {
         setCreativeImageError(fa.discover.uploadImageFailed)
+        onCreativeSubmitEnd?.()
       }
       return
     }
     // چند خروجی هم‌زمان هنوز سمت بک‌اند پشتیبانی نمی‌شود (docs/EXECUTION-PLAN.md، سوال باز) —
     // فعلاً همیشه دقیقاً ۱ خروجی ساخته می‌شود، بدون هیچ گزینه‌ای در UI (چون چیزی برای انتخاب نیست)
     onSend(value.trim(), images.length ? images : undefined, pinnedModel?.name, preserveFace)
-    setValue('')
-    setImages([])
-    setMobileExpanded(false)
+    resetStudioDraft()
+    closeMobileModal()
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
@@ -127,15 +171,18 @@ export function StudioComposer({
     const remaining = MAX_IMAGES - images.length
     const toProcess = Array.from(files).slice(0, remaining)
     const results: string[] = []
+    let failed = 0
     for (const file of toProcess) {
-      if (!file.type.startsWith('image/')) continue
+      // بعضی فایل‌منیجرهای اندروید برای HEIC فیلد type را خالی می‌فرستند — اسم فایل هم چک می‌شود
+      if (!file.type.startsWith('image/') && !/\.hei[cf]$/i.test(file.name)) continue
       if (file.size > MAX_SIZE_BYTES) continue
       try {
         results.push(await resizeImage(file))
-      } catch { /* skip */ }
+      } catch { failed++ }
     }
     setImages(prev => [...prev, ...results].slice(0, MAX_IMAGES))
     if (fileRef.current) fileRef.current.value = ''
+    if (failed > 0) useToastStore.getState().addToast(fa.chat.imageProcessFailed(failed))
   }
 
   const promptLibraryLabel = selectedCreativePrompt ? 'تغییر سبک' : 'پرامپت آماده'
@@ -203,24 +250,50 @@ export function StudioComposer({
         </button>
       </div>
 
-      {/* پنل کامل — دسکتاپ: همیشه در ستون ثابت. موبایل: شیت چسبیده‌به‌پایین، فقط وقتی باز است.
+      {/* پنل کامل — دسکتاپ: همیشه در ستون ثابت (بدون تغییر). موبایل: یک مدال تمام‌صفحه با
+          انیمیشن اسلاید+محو (نه شیت نیمه‌باز قبلی) — inset-0 (نه فقط inset-x-0 bottom-0) کل
+          کانتینر positioned ریشه‌ی ChatLayout را می‌پوشاند، دقیقاً معادل «تمام صفحه» روی موبایل.
           z-25 عمداً زیر overlay/drawer سایدبار (z-30/z-40 در ChatLayout.tsx) است */}
       <div
         className={clsx(
-          'flex-col gap-4',
-          'absolute inset-x-0 bottom-0 z-[25] max-h-[86vh] overflow-y-auto rounded-t-[28px] border-t border-slate-700/50 bg-[#020C18] px-4 pt-3',
-          mobileExpanded ? 'flex' : 'hidden',
-          'sm:static sm:z-auto sm:flex sm:h-full sm:max-h-none sm:flex-1 sm:overflow-visible sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0',
+          'absolute inset-0 z-[25] flex flex-col overflow-hidden bg-[#020C18] transition-[transform,opacity] duration-300 ease-out',
+          mobileExpanded ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none',
+          'sm:static sm:z-auto sm:inset-auto sm:flex sm:h-full sm:flex-1 sm:translate-y-0 sm:opacity-100 sm:pointer-events-auto sm:overflow-visible sm:bg-transparent sm:transition-none',
         )}
-        style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
       >
-        <button
-          type="button"
-          onClick={() => setMobileExpanded(false)}
-          className="mx-auto mb-1 h-1 w-9 shrink-0 rounded-full bg-slate-600 sm:hidden"
-          aria-label="بستن پنل ساخت عکس"
-        />
+        {/* هدر مدال — فقط موبایل. عنوان بسته به پنل فعلی عوض می‌شود؛ ضربدر همیشه کل مدال را می‌بندد */}
+        <div
+          className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 px-4 pb-3 sm:hidden"
+          style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}
+        >
+          <span className="text-[14.5px] font-bold text-white">
+            {mobileView === 'models' ? 'انتخاب مدل تولید عکس' : 'ساخت عکس'}
+          </span>
+          <button
+            type="button"
+            onClick={closeMobileModal}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)' }}
+            aria-label="بستن"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
 
+        {/* دو پنل کنار هم (نوشتن پرامپت / انتخاب مدل) که با اسلاید افقی بین‌شون سوییچ می‌شه —
+            فقط روی موبایل؛ دسکتاپ با sm:contents از چیدمان کنار می‌ره و پنل مدل اصلاً دیده
+            نمی‌شه (دسکتاپ همچنان با چیپ «تغییر مدل» به /models می‌ره، بدون تغییر) */}
+        <div className="relative flex-1 overflow-hidden sm:contents">
+          <div
+            className={clsx(
+              'absolute inset-0 flex flex-col gap-4 overflow-y-auto px-4 pt-3 transition-transform duration-300 ease-out',
+              mobileView === 'models' ? '-translate-x-full' : 'translate-x-0',
+              'sm:static sm:inset-auto sm:flex sm:h-full sm:flex-1 sm:translate-x-0 sm:overflow-visible sm:px-0 sm:pt-0 sm:transition-none',
+            )}
+            style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+          >
         {walletBalanceToman !== null && walletBalanceToman !== undefined && (
           <div className="flex items-center justify-between gap-2 self-start rounded-full px-3.5 py-1.5 text-[12px]" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)', color: '#94a3b8' }}>
             <span>موجودی کیف‌پول:</span>
@@ -250,9 +323,10 @@ export function StudioComposer({
             </button>
           </div>
         ) : (
-          /* چیپ مدل */
+          /* چیپ مدل — دسکتاپ: navigate به صفحه‌ی مدل‌ها (بدون تغییر). موبایل: همون مدال باز
+             می‌ماند، فقط به پنل «انتخاب مدل» سوییچ می‌کند (بدون navigate/unmount) */
           <button
-            onClick={() => navigate('/models?context=image-studio')}
+            onClick={() => (isDesktop ? navigate('/models?context=image-studio') : setMobileView('models'))}
             className="flex items-center gap-2.5 self-start rounded-full px-3.5 py-2 text-[13px]"
             style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#d1fae5' }}
           >
@@ -340,7 +414,16 @@ export function StudioComposer({
             <p className="mt-1 text-xs" style={{ color: '#fbbf24' }}>{fa.discover.requiresImageNotice}</p>
           )}
           {creativeImageError && (
-            <p className="mt-1 text-xs text-red-400">{creativeImageError}</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-xs text-red-400">{creativeImageError}</p>
+              <button
+                type="button"
+                onClick={() => void submit()}
+                className="shrink-0 text-xs font-semibold text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+              >
+                {fa.chat.retry}
+              </button>
+            </div>
           )}
 
           {showPreserveFace && (
@@ -349,7 +432,7 @@ export function StudioComposer({
                 type="button"
                 role="switch"
                 aria-checked={preserveFace}
-                onClick={() => setPreserveFace(v => !v)}
+                onClick={() => setPreserveFace(!preserveFace)}
                 className={clsx(
                   'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
                   preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
@@ -409,8 +492,85 @@ export function StudioComposer({
         </div>
 
         {creativeError && (
-          <p className="text-center text-[12px] text-red-400">{creativeError}</p>
+          <div className="flex flex-col items-center gap-1.5">
+            <p className="text-center text-[12px] text-red-400">{creativeError}</p>
+            {onRetryCreative && (
+              <button
+                type="button"
+                onClick={onRetryCreative}
+                className="text-[12px] font-semibold text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+              >
+                {fa.chat.retry}
+              </button>
+            )}
+          </div>
         )}
+          </div>
+
+          {/* پنل انتخاب مدل — فقط موبایل (دسکتاپ هیچ‌وقت mobileView را عوض نمی‌کند) */}
+          <div
+            className={clsx(
+              'absolute inset-0 flex flex-col gap-2.5 overflow-y-auto px-4 pt-3 transition-transform duration-300 ease-out sm:hidden',
+              mobileView === 'models' ? 'translate-x-0' : 'translate-x-full',
+            )}
+            style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+          >
+            {/* برگشت به پرامپت بدون انتخاب مدل تازه — chevron رو به راست، چون این حرکت
+                «بازگشت» است (CLAUDE.md: فلش بازگشت در RTL باید رو به راست باشد) */}
+            <button
+              type="button"
+              onClick={() => setMobileView('compose')}
+              className="flex items-center gap-1.5 self-start text-[12.5px] font-semibold text-slate-400"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              بازگشت به پرامپت
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selectImageGenModel(null)}
+              className={clsx(
+                'flex items-center gap-3 rounded-2xl border p-3.5 text-right',
+                selectedImageGenModel === null ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-slate-700/60 bg-slate-800/40',
+              )}
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-emerald-400">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z" /></svg>
+              </span>
+              <span className="flex-1">
+                <span className="block text-[13px] font-bold text-slate-100">خودکار (پیش‌فرض)</span>
+                <span className="block text-[11px] text-slate-500">کیفیت/ابعاد بر اساس توصیف و اعتبار</span>
+              </span>
+              {selectedImageGenModel === null && (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-emerald-500"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              )}
+            </button>
+            {imageGenModels.map(model => (
+              <button
+                key={model.name}
+                type="button"
+                onClick={() => selectImageGenModel(model.name)}
+                className={clsx(
+                  'flex items-center gap-3 rounded-2xl border p-3.5 text-right',
+                  selectedImageGenModel === model.name ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-slate-700/60 bg-slate-800/40',
+                )}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5">
+                  <ProviderIcon provider={model.provider} size={16} />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-[13px] font-bold text-slate-100">{model.displayName}</span>
+                  {model.description && <span className="block text-[11px] text-slate-500">{model.description}</span>}
+                </span>
+                {selectedImageGenModel === model.name && (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-emerald-500"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </>
   )
