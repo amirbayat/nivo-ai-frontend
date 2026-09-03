@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { useCreditsBalance } from '@/queries/credits.queries'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
@@ -9,6 +10,7 @@ export function PlanUpgradeBadge() {
   const navigate = useNavigate()
   const { data: balance } = useCreditsBalance()
 
+  const isCritical = (balance?.credits ?? 0) <= 0
   const isLow = (balance?.credits ?? 0) < 20
 
   function goToPricing() {
@@ -21,11 +23,11 @@ export function PlanUpgradeBadge() {
   if (isLow) {
     return (
       <>
-        <button onClick={goToPricing} className="nivo-shiny-upgrade">
+        <button onClick={goToPricing} className={clsx('nivo-shiny-upgrade', isCritical && 'nivo-shiny-upgrade--critical')}>
           <span className="nivo-shiny-upgrade__inner">
-            <CreditCoinIcon className="size-3.5 text-emerald-400" />
-            <span className="text-slate-300">اعتبار شما: <span className="font-semibold text-emerald-300">{creditsText}</span> {fa.credits.creditsUnit}</span>
-            <span className="font-semibold text-emerald-300">{fa.plans.upgradeCta}</span>
+            <CreditCoinIcon className={clsx('size-3.5', isCritical ? 'text-red-400' : 'text-emerald-400')} />
+            <span className="text-slate-300">اعتبار شما: <span className={clsx('font-semibold', isCritical ? 'text-red-400' : 'text-emerald-300')}>{creditsText}</span> {fa.credits.creditsUnit}</span>
+            <span className={clsx('font-semibold', isCritical ? 'text-red-400' : 'text-emerald-300')}>{fa.plans.upgradeCta}</span>
           </span>
         </button>
         <style>{`
@@ -37,6 +39,11 @@ export function PlanUpgradeBadge() {
             background-size: 200% 100%;
             animation: nivo-shine 3s linear infinite;
             cursor: pointer;
+          }
+          .nivo-shiny-upgrade--critical {
+            background: linear-gradient(90deg, #ef4444, #f97316, #ef4444);
+            background-size: 200% 100%;
+            animation: nivo-shine 3s linear infinite, nivo-critical-pulse 1.6s ease-in-out infinite;
           }
           .nivo-shiny-upgrade__inner {
             display: flex;
@@ -50,6 +57,10 @@ export function PlanUpgradeBadge() {
           }
           @keyframes nivo-shine {
             to { background-position: -200% 0; }
+          }
+          @keyframes nivo-critical-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+            50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
           }
         `}</style>
       </>

@@ -30,7 +30,7 @@ export function WalletPage() {
               <div className="mt-2 h-8 w-32 animate-pulse rounded-lg bg-slate-700/50" />
             ) : (
               <>
-                <p className="mt-1 text-2xl font-bold text-emerald-400">
+                <p className={clsx('mt-1 text-2xl font-bold', (creditsBalance?.credits ?? 0) < 0 ? 'text-red-400' : 'text-emerald-400')}>
                   {(creditsBalance?.credits ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500">نیوو</span>
                 </p>
               </>

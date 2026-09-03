@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { useMe, useLogout } from '@/queries/auth.queries'
 import { useUpdateProfile } from '@/queries/settings.queries'
 import { useMyDiscountCodes } from '@/queries/growth.queries'
@@ -95,7 +96,7 @@ export function ProfilePage() {
             {fa.settings.buyCredits}
           </Link>
         </div>
-        <p className="text-2xl font-bold text-emerald-400">
+        <p className={clsx('text-2xl font-bold', (creditsBalance?.credits ?? 0) < 0 ? 'text-red-400' : 'text-emerald-400')}>
           {(creditsBalance?.credits ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500">نیوو</span>
         </p>
         <Link
