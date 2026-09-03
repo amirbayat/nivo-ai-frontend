@@ -92,6 +92,15 @@ function Check({ className }: { className?: string } = {}) {
   )
 }
 
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className}>
+      <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M17 17l-3.8-3.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function SparkleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
@@ -131,6 +140,7 @@ export function ModelsPage() {
   const { data: catalog, isLoading } = useModelCatalog()
   const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel, selectedCreativePrompt } = useChatStore()
   const [filter, setFilter] = useState<CatalogFilter>('all')
+  const [search, setSearch] = useState('')
   // برخلاف filter (که لیست رو مخفی/نمایان می‌کنه)، activeTier فقط کارت‌های غیرمرتبط رو کم‌رنگ
   // می‌کنه — چون هدف «کمک به مقایسه» است، نه پنهان کردن گزینه‌ها
   const [activeTier, setActiveTier] = useState<ModelTier | null>(null)
@@ -149,14 +159,25 @@ export function ModelsPage() {
     }
   }
 
+  const searchQuery = search.trim().toLowerCase()
+  const matchesSearch = (m: ModelCatalogEntry) => {
+    if (!searchQuery) return true
+    return (
+      m.displayName.toLowerCase().includes(searchQuery) ||
+      m.name.toLowerCase().includes(searchQuery) ||
+      m.provider.toLowerCase().includes(searchQuery) ||
+      (m.description ?? '').toLowerCase().includes(searchQuery)
+    )
+  }
+
   // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود، کل
   // کاتالوگ فعال برای همه در دسترس است (فقط بر اساس موجودی کیف‌پول محدود می‌شود، نه اینجا)]
-  const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN').filter(matchesFilter)
+  const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN').filter(matchesFilter).filter(matchesSearch)
   // مدل‌های تولید عکس دو دسته‌اند: modelType=IMAGE_GEN (اختصاصی، مثل openai/gpt-image-2)، و
   // مدل‌های چندمنظوره‌ی جدید (modelType=CHAT با supportsImageGen=true، مثل gpt-5-image/Nano
   // Banana) — قبلاً فقط دسته‌ی اول چک می‌شد، بنابراین دسته‌ی دوم (که در پروداکشن تنها دسته‌ی
   // موجود است) هیچ‌وقت اینجا دیده نمی‌شد
-  const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN' || m.supportsImageGen).filter(matchesFilter)
+  const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN' || m.supportsImageGen).filter(matchesFilter).filter(matchesSearch)
 
   // وقتی یک سبک استودیو انتخاب شده باشد، انتخاب مدل این صفحه باید بر اساس outputType همان
   // سبک فیلتر شود (سبک تصویری → فقط مدل‌های تولید عکس، سبک متنی → فقط مدل‌های چت) — همان‌طور
@@ -342,6 +363,19 @@ export function ModelsPage() {
           )}
         </div>
 
+        <div className="mb-6">
+          <div className="relative mx-auto max-w-sm">
+            <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="جستجوی مدل..."
+              className="w-full rounded-full border border-slate-700/60 bg-slate-800/40 py-2.5 pr-10 pl-4 text-sm text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-emerald-500/50"
+            />
+          </div>
+        </div>
+
         {!imageOnlyMode && (
           <div className="mb-4 flex flex-wrap justify-center gap-2">
             {FILTERS.map(f => (
@@ -385,47 +419,52 @@ export function ModelsPage() {
 
         {!imageOnlyMode && (
           <div className="space-y-4">
-            {/* دو حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md) */}
-            <button
-              onClick={() => select(COST_OPTIMIZED_MODE)}
-              className={clsx(
-                'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-                selectedModel === COST_OPTIMIZED_MODE
-                  ? 'border-amber-500/60 bg-amber-500/5'
-                  : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
-              )}
-            >
-              <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-                <CoinIcon />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-slate-100">مصرف بهینه</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{COST_OPTIMIZED_DESCRIPTION}</p>
-              </div>
-              {selectedModel === COST_OPTIMIZED_MODE && <Check />}
-            </button>
+            {/* دو حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md)؛ حین
+                جستجو مخفی می‌شن چون این‌ها مدل مشخصی نیستن که با متن جستجو مچ بشن */}
+            {!searchQuery && (
+              <>
+                <button
+                  onClick={() => select(COST_OPTIMIZED_MODE)}
+                  className={clsx(
+                    'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+                    selectedModel === COST_OPTIMIZED_MODE
+                      ? 'border-amber-500/60 bg-amber-500/5'
+                      : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+                  )}
+                >
+                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                    <CoinIcon />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-slate-100">مصرف بهینه</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{COST_OPTIMIZED_DESCRIPTION}</p>
+                  </div>
+                  {selectedModel === COST_OPTIMIZED_MODE && <Check />}
+                </button>
 
-            <button
-              onClick={() => select(BEST_ANSWER_MODE)}
-              className={clsx(
-                'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-                selectedModel === BEST_ANSWER_MODE
-                  ? 'border-emerald-500/60 bg-emerald-500/5'
-                  : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
-              )}
-            >
-              <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-                <OptimalIcon />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-100">بهترین پاسخ</h3>
-                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-400">پیشنهادی</span>
-                </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{BEST_ANSWER_DESCRIPTION}</p>
-              </div>
-              {selectedModel === BEST_ANSWER_MODE && <Check />}
-            </button>
+                <button
+                  onClick={() => select(BEST_ANSWER_MODE)}
+                  className={clsx(
+                    'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+                    selectedModel === BEST_ANSWER_MODE
+                      ? 'border-emerald-500/60 bg-emerald-500/5'
+                      : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+                  )}
+                >
+                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                    <OptimalIcon />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-slate-100">بهترین پاسخ</h3>
+                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-400">پیشنهادی</span>
+                    </div>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{BEST_ANSWER_DESCRIPTION}</p>
+                  </div>
+                  {selectedModel === BEST_ANSWER_MODE && <Check />}
+                </button>
+              </>
+            )}
 
             {showChatModels && (
               <>
@@ -439,6 +478,8 @@ export function ModelsPage() {
                   <div className="flex justify-center py-10">
                     <div className="size-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
                   </div>
+                ) : chatModels.length === 0 && searchQuery ? (
+                  <p className="py-6 text-center text-sm text-slate-500">موردی برای «{search.trim()}» پیدا نشد</p>
                 ) : (
                   TIER_ORDER.map(tier => {
                     const models = chatModels.filter(m => m.tier === tier)
