@@ -182,7 +182,11 @@ export function ModelsPage() {
     setSelectedImageGenModel(model)
     if (model) localStorage.setItem(IMAGE_GEN_STORAGE_KEY, model)
     else localStorage.removeItem(IMAGE_GEN_STORAGE_KEY)
-    navigate(-1)
+    // اگر از خود استودیوی عکس اومده بودیم (چیپ «تغییر مدل»)، باید به همون گفتگو برگردیم؛ ولی
+    // از هر جای دیگه (مثلاً «مدل‌های بیشتر» توی هدر چت) که یک مدل تولید عکس رو انتخاب می‌کنه،
+    // باید مستقیم بره توی صفحه‌ی تولید عکس، نه برگرده به چتی که این مدل توش کاربردی نداره
+    if (fromImageStudio) navigate(-1)
+    else navigate('/image')
   }
 
   function ModelCard({ model }: { model: ModelCatalogEntry }) {
