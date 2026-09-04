@@ -21,6 +21,7 @@ export function ChatHeroComposer({ onSend, disabled }: {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const canSend = (value.trim() || images.length > 0) && !disabled
 
@@ -29,6 +30,7 @@ export function ChatHeroComposer({ onSend, disabled }: {
     onSend(value.trim(), images.length ? images : undefined, undefined, true)
     setValue('')
     setImages([])
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -36,6 +38,16 @@ export function ChatHeroComposer({ onSend, disabled }: {
       e.preventDefault()
       submit()
     }
+  }
+
+  const onInput = () => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 22
+    const maxHeight = lineHeight * 4
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
   }
 
   const handleFiles = async (files: FileList | null) => {
@@ -99,7 +111,7 @@ export function ChatHeroComposer({ onSend, disabled }: {
       )}
 
       <div
-        className="flex w-full items-center gap-3 rounded-full p-2.5"
+        className="flex w-full items-end gap-3 rounded-[26px] p-2.5"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(124,58,237,0.32)', boxShadow: '0 0 50px rgba(124,58,237,0.08)' }}
       >
         <button
@@ -115,13 +127,15 @@ export function ChatHeroComposer({ onSend, disabled }: {
         </button>
 
         <textarea
+          ref={textareaRef}
           value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={onKeyDown}
+          onInput={onInput}
           disabled={disabled}
           placeholder="پیامتو بنویس، یا یه عکس ضمیمه کن..."
           rows={1}
-          className="flex-1 resize-none bg-transparent text-[15px] text-slate-100 placeholder:text-slate-600 focus:outline-none"
+          className="flex-1 resize-none bg-transparent text-[15px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
           style={{ minHeight: 24 }}
         />
 

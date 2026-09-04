@@ -340,8 +340,50 @@ export function MessageBubble({
         )}
       </div>
 
+      {!streaming && content && (
+        <div className={clsx('mt-1.5 flex items-center gap-1', isUser ? 'justify-start pl-11' : 'pr-11')}>
+          <MessageCopyButton text={content} role={role} />
+        </div>
+      )}
+
       {!isUser && !streaming && !disableFeedback && id && <MessageFeedbackRow messageId={id} initial={feedback} />}
     </div>
+  )
+}
+
+// دکمه‌ی کپی زیر هر آیتم چت (هم پرامپت کاربر، هم پاسخ دستیار) — استایل و آیکون هم‌راستا
+// با CopyButton بلوک کد (CodeBlock.tsx) تا حس یکپارچه‌ای در کل چت داشته باشد
+function MessageCopyButton({ text, role }: { text: string; role: Message['role'] }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    void navigator.clipboard.writeText(text)
+    track('message_copied', { role })
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={clsx(
+        'flex size-6 items-center justify-center rounded-md transition-colors',
+        copied ? 'text-emerald-400' : 'text-slate-600 hover:bg-slate-800 hover:text-slate-400',
+      )}
+      aria-label={copied ? 'کپی شد' : 'کپی متن پیام'}
+      title={copied ? 'کپی شد' : 'کپی'}
+    >
+      {copied ? (
+        <svg viewBox="0 0 20 20" fill="none" className="size-3.5">
+          <path d="M4 10l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 20 20" fill="none" className="size-3.5">
+          <rect x="7" y="7" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M4.5 12.5V4.5a1 1 0 011-1h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )}
+    </button>
   )
 }
 
