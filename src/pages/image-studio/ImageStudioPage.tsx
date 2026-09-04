@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useGenerateCreative } from '@/queries/discovery.queries'
 import { useMe } from '@/queries/auth.queries'
@@ -460,21 +461,33 @@ function StudioWorkspace({ id }: { id?: string }) {
                       type="button"
                       disabled={isAdding}
                       onClick={e => { e.stopPropagation(); void toggleAddToPrompt(g.key, g.src) }}
-                      className="absolute inset-x-1.5 top-1.5 flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-semibold transition-colors disabled:opacity-60"
+                      className={clsx(
+                        'absolute right-2 top-2 flex items-center gap-1.5 rounded-full py-1.5 pr-2.5 pl-2 text-[11px] font-bold backdrop-blur-md transition-all duration-200 disabled:opacity-70',
+                        !isAdding && 'hover:scale-[1.04] active:scale-95',
+                      )}
                       style={
                         added
-                          ? { background: 'rgba(16,185,129,0.9)', color: '#02170f' }
-                          : { background: 'rgba(2,4,10,0.55)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.16)' }
+                          ? { background: 'linear-gradient(135deg,#10b981,#34d399)', color: '#02170f', boxShadow: '0 2px 10px rgba(16,185,129,0.45)' }
+                          : { background: 'rgba(2,6,16,0.55)', color: '#f1f5f9', border: '1px solid rgba(255,255,255,0.22)', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }
                       }
                       aria-label={added ? 'حذف از پرامپت' : 'افزودن به پرامپت'}
                     >
-                      {isAdding ? (
-                        <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-white/30" style={{ borderTopColor: 'currentColor' }} />
-                      ) : added ? (
-                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" className="shrink-0">
-                          <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      ) : null}
+                      <span
+                        className="flex size-4 shrink-0 items-center justify-center rounded-full"
+                        style={added ? { background: 'rgba(2,23,15,0.18)' } : { background: 'rgba(255,255,255,0.14)' }}
+                      >
+                        {isAdding ? (
+                          <span className="size-2.5 animate-spin rounded-full border-2 border-white/30" style={{ borderTopColor: 'currentColor' }} />
+                        ) : added ? (
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
+                          </svg>
+                        )}
+                      </span>
                       {added ? 'اضافه شد' : 'افزودن به پرامپت'}
                     </button>
                   </div>
