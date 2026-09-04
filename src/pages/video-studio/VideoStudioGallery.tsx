@@ -188,6 +188,14 @@ function ShotCard({
         ) : (
           <div className="flex size-full items-center justify-center text-[11px] text-slate-500">بدون پیش‌نمایش</div>
         )}
+        {(effectiveStatus === 'PENDING' || effectiveStatus === 'PROCESSING') && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 backdrop-blur-[1px]">
+            <div className="size-7 animate-spin rounded-full border-2 border-slate-300/30" style={{ borderTopColor: '#38bdf8' }} />
+            <span className="text-[11px] font-semibold text-slate-100">
+              {effectiveStatus === 'PENDING' ? 'در صف تولید...' : 'در حال تولید ویدیو...'}
+            </span>
+          </div>
+        )}
         <ShotStatusBadge status={effectiveStatus} />
         <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-1 text-[10px] font-bold text-slate-100" style={{ display: effectiveStatus === 'NOT_STARTED' ? 'block' : 'none' }}>
           صحنه {shot.order}
