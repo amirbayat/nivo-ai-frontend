@@ -3,6 +3,24 @@ import { clsx } from 'clsx'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
 import type { ModelCatalogEntry } from '@/queries/plans.queries'
 import type { StudioAspectRatio } from '@/types/api'
+import { getVideoPriceTier, VIDEO_PRICE_TIER_COLOR, VIDEO_PRICE_TIER_LABEL } from './curatedModels'
+
+// پیل کوچک ارزان/متوسط/گران — فقط برای مدل‌های VIDEO_GEN (دستور صریح کاربر: دسته‌بندی قیمتی
+// مدل‌های ویدیو، چون قیمت هر ثانیه‌شان تا ۱۰ برابر با هم فرق دارد و بدون این نشانه انتخاب کور است)
+function VideoPriceBadge({ model }: { model: ModelCatalogEntry }) {
+  if (model.modelType !== 'VIDEO_GEN') return null
+  const tier = getVideoPriceTier(model.videoGenPricePerSecondUsd)
+  if (!tier) return null
+  const c = VIDEO_PRICE_TIER_COLOR[tier]
+  return (
+    <span
+      className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold"
+      style={{ background: c.bg, border: `1px solid ${c.border}`, color: c.text }}
+    >
+      {VIDEO_PRICE_TIER_LABEL[tier]}
+    </span>
+  )
+}
 
 // docs/PRD-video-studio-chat-flow.md §۲ — سه چیپ مدل جدا (چت/عکس/ویدیو) که همیشه در دسترسند،
 // نه بخشی از یک wizard. روی دسکتاپ یک dropdown ساده‌ی خودش (نه navigate به /models، چون این
@@ -43,6 +61,7 @@ export function ModelDropdownChip({
       >
         {current && <ProviderIcon provider={current.provider} size={14} />}
         <span className="font-semibold">{current?.displayName ?? label}</span>
+        {current && <VideoPriceBadge model={current} />}
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -64,6 +83,7 @@ export function ModelDropdownChip({
             >
               <ProviderIcon provider={m.provider} size={14} />
               <span className="flex-1 truncate font-semibold">{m.displayName}</span>
+              <VideoPriceBadge model={m} />
               {m.name === selectedName && (
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-emerald-500">
                   <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -107,7 +127,10 @@ export function ModelRadioList({
             <ProviderIcon provider={model.provider} size={16} />
           </span>
           <span className="flex-1">
-            <span className="block text-[13px] font-bold text-slate-100">{model.displayName}</span>
+            <span className="flex items-center gap-1.5">
+              <span className="block text-[13px] font-bold text-slate-100">{model.displayName}</span>
+              <VideoPriceBadge model={model} />
+            </span>
             {model.description && <span className="block text-[11px] text-slate-500">{model.description}</span>}
           </span>
           {selectedName === model.name && (

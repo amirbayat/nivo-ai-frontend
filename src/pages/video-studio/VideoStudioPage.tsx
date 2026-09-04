@@ -14,7 +14,6 @@ import {
   useVideoProject,
   type SetVideoStudioModelsDto,
 } from '@/queries/videoStudio.queries'
-import { ModelDropdownChip, AspectRatioSegmented } from './ModelPickers'
 import {
   CharacterGrid,
   ResultActionBar,
@@ -25,7 +24,7 @@ import {
   type VideoStudioStage,
 } from './VideoStudioGallery'
 import { VideoStudioSettingsModal } from './VideoStudioSettingsModal'
-import type { StudioAspectRatio, StudioProject } from '@/types/api'
+import type { StudioProject } from '@/types/api'
 
 // docs/PRD-video-studio-chat-flow.md — صفحه‌ی واحد استودیوی ویدیو، بدون wizard/استپر. دسکتاپ:
 // دو ستون (چت راست / گالری چپ)، هر دو همیشه روی صفحه. موبایل: یک فید تک‌ستونه که گالری مستقیم
@@ -180,7 +179,7 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
   const { data: project, isLoading } = useVideoProject(id)
 
   const [prefs, setPrefs] = useState<ModelPrefs>(() => loadPrefs())
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [playerVideoKey, setPlayerVideoKey] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -193,8 +192,11 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
   const requestShotVideo = useRequestShotVideo(id ?? '')
   const [renderAllPending, setRenderAllPending] = useState(false)
 
-  const chatModels = (catalog ?? []).filter(m => m.modelType === 'CHAT')
-  const photoModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN')
+  // دستور صریح کاربر: چیپ مدل چت/عکس این صفحه نباید کل کاتالوگ عمومی سایت را نشان بدهد — فقط
+  // مدل‌هایی که ادمین از پنل مدل‌ها با `videoStudioEligible` علامت زده (نه allowlist هاردکد در
+  // کد). مدل‌های ویدیو نیازی به این فیلتر ندارند چون کل کاتالوگ VIDEO_GEN ذاتاً مخصوص همین فیچر است.
+  const chatModels = (catalog ?? []).filter(m => m.modelType === 'CHAT' && m.videoStudioEligible)
+  const photoModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN' && m.videoStudioEligible)
   const videoModels = (catalog ?? []).filter(m => m.modelType === 'VIDEO_GEN')
 
   const chatModelId = project?.chatModelId ?? prefs.chatModelId
@@ -371,10 +373,6 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
     if (createProject.isError) setErrorMsg('ساخت پروژه ناموفق بود، دوباره امتحان کن')
   }, [createProject.isError])
 
-  const showPhotoChip = stage === 'character' || stage === 'storyboard'
-  const showImageRatio = stage === 'storyboard'
-  const showVideoChip = stage === 'render' || stage === 'result'
-
   return (
     <div className="flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
       {/* top bar */}
@@ -394,12 +392,14 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
           <span className="text-[17px] font-bold text-white">{project?.initialPrompt ? 'استودیوی ویدیو' : 'ساخت ویدیوی جدید'}</span>
         </div>
         <div className="flex items-center gap-2.5">
-          {/* دکمه‌ی تنظیمات مدل/ابعاد — فقط موبایل، مدال تمام‌صفحه‌ی VideoStudioSettingsModal را باز می‌کند */}
+          {/* دستور صریح کاربر: یک دکمه‌ی تنظیمات (نه چند چیپ پراکنده) — روی موبایل و دسکتاپ هر
+              دو، همین یک دکمه مدال VideoStudioSettingsModal را باز می‌کند */}
           <button
-            onClick={() => setMobileSettingsOpen(true)}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full sm:hidden"
+            onClick={() => setSettingsOpen(true)}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full"
             style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
-            aria-label="مدل‌ها و ابعاد"
+            aria-label="تنظیمات مدل‌ها و ابعاد"
+            title="تنظیمات"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -431,10 +431,6 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
             className="hidden shrink-0 flex-col sm:order-1 sm:flex sm:w-[420px] sm:border-t sm:pr-10"
             style={{ borderColor: 'rgba(148,163,184,0.14)' }}
           >
-            <div className="mb-4 flex items-center justify-between px-1">
-              <span className="text-[12px] font-semibold text-slate-500">مدل چت</span>
-              <ModelDropdownChip label="مدل چت" models={chatModels} selectedName={chatModelId} onSelect={v => updateModel('chatModelId', v)} />
-            </div>
             <div className="flex-1 space-y-5 overflow-y-auto px-1 pb-4">
               {buildFeed(false)}
               {errorMsg && <p className="mr-11 text-[12.5px] text-red-400">{errorMsg}</p>}
@@ -448,25 +444,9 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
 
           {/* ── دسکتاپ: ستون گالری (چپ) ── */}
           <div className="order-1 hidden flex-1 flex-col overflow-y-auto px-5 pb-6 sm:order-2 sm:flex sm:px-10">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
-              <p className="text-[13px]" style={{ color: '#64748b' }}>گالری این پروژه</p>
-              <div className="flex flex-wrap items-center gap-2.5">
-                {showPhotoChip && (
-                  <>
-                    <ModelDropdownChip label="مدل عکس" models={photoModels} selectedName={photoModelId} onSelect={v => updateModel('photoModelId', v)} />
-                    {showImageRatio && (
-                      <AspectRatioSegmented value={imageAspectRatio} onChange={(v: StudioAspectRatio) => updateModel('imageAspectRatio', v)} size="sm" />
-                    )}
-                  </>
-                )}
-                {showVideoChip && (
-                  <>
-                    <ModelDropdownChip label="مدل ویدیو" models={videoModels} selectedName={videoModelId} onSelect={v => updateModel('videoModelId', v)} />
-                    <AspectRatioSegmented value={videoAspectRatio} onChange={(v: StudioAspectRatio) => updateModel('videoAspectRatio', v)} size="sm" />
-                  </>
-                )}
-              </div>
-            </div>
+            {/* دستور صریح کاربر: بدون چیپ‌های پراکنده — انتخاب مدل/ابعاد فقط از همان یک دکمه‌ی
+                تنظیمات بالای صفحه (VideoStudioSettingsModal) انجام می‌شود، نه یک دکمه‌ی دوم اینجا */}
+            <p className="mb-4 text-[13px]" style={{ color: '#64748b' }}>گالری این پروژه</p>
 
             {project ? (
               <GalleryBody
@@ -514,8 +494,8 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
       )}
 
       <VideoStudioSettingsModal
-        open={mobileSettingsOpen}
-        onClose={() => setMobileSettingsOpen(false)}
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
         stage={stage}
         chatModels={chatModels}
         photoModels={photoModels}

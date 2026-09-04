@@ -32,6 +32,11 @@ export interface ModelCatalogEntry {
   // ثابت را هم می‌دهد)
   videoGenSupportedDurationsSec: number[]
   videoGenSupportedSizes: string[]
+  // برای دسته‌بندی ارزان/متوسط/گران مدل‌های ویدیو سمت فرانت
+  videoGenPricePerSecondUsd: number | null
+  videoGenAudioMultiplier: number | null
+  // دستور صریح کاربر — ادمین از پنل مدل‌ها مشخص می‌کند کدام مدل CHAT/IMAGE_GEN توی استودیوی ویدیو نشان داده شود
+  videoStudioEligible: boolean
 }
 
 export function useModelCatalog() {
