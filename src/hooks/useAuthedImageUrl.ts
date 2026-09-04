@@ -32,6 +32,21 @@ function scheduleFetch<T>(task: () => Promise<T>): Promise<T> {
   })
 }
 
+// «افزودن به پرامپت» از گالری — برخلاف useAuthedImageUrl (که فقط برای نمایش، object URL کش‌شده
+// می‌خواهد)، اینجا باید یک data URL واقعی (base64) برگردد چون همان چیزی است که کامپوزر چت
+// (studioDraftImages) برای فرستادن/آپلود دوباره انتظار دارد — همیشه یک فچ تازه، بدون کش مشترک
+export async function fetchImageAsDataUrl(src: string): Promise<string> {
+  if (src.startsWith('data:')) return src
+  const res = await scheduleFetch(() => api.get(src, { responseType: 'blob' }))
+  const blob = res.data as Blob
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
 export function useAuthedImageUrl(src: string): string | undefined {
   const [url, setUrl] = useState<string | undefined>(() =>
     src.startsWith('data:') ? src : cache.get(src),

@@ -4,8 +4,11 @@ import { useConversation, useCreateConversation } from '@/queries/conversation.q
 import { useGenerateCreative } from '@/queries/discovery.queries'
 import { useMe } from '@/queries/auth.queries'
 import { useWallet } from '@/queries/usage.queries'
+import { useFeatureFlags } from '@/queries/config.queries'
 import { useChat } from '@/hooks/useChat'
+import { fetchImageAsDataUrl } from '@/hooks/useAuthedImageUrl'
 import { useChatStore } from '@/store/chat.store'
+import { useToastStore } from '@/store/toast.store'
 import { ChatImage, ImageGenCanvas, ChatErrorBox } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { PlanUpgradeBadge } from '@/components/layout/PlanUpgradeBadge'
@@ -246,6 +249,41 @@ function StudioWorkspace({ id }: { id?: string }) {
   const count = gallery.length
   const nearCap = count >= SOFT_CAP
 
+  // «افزودن به پرامپت» — انتخاب یکی از عکس‌های همین گالری به‌عنوان عکس مرجع تولید بعدی، بدون
+  // نیاز به دانلود/آپلود دستی. studioDraftImages همان state کامپوزر است (StudioComposer.tsx)؛
+  // اضافه‌کردن اینجا دقیقاً معادل زدن دکمه‌ی «افزودن عکس» و انتخاب همین فایل است. نگاشت
+  // key→dataUrl فقط برای دکمه‌ی «حذف» لازم است؛ وضعیت «اضافه‌شده» همیشه زنده از خودِ
+  // studioDraftImages مشتق می‌شود (نه یک boolean جدا) تا اگر کاربر از داخل کامپوزر آن عکس را
+  // حذف کرد (ضربدر روی چیپ عکس مرجع)، تیک گالری هم خودکار برداشته شود
+  const studioDraftImages = useChatStore(s => s.studioDraftImages)
+  const setStudioDraftImages = useChatStore(s => s.setStudioDraftImages)
+  const { data: flags } = useFeatureFlags()
+  const maxImages = flags?.maxImagesPerMessage ?? 4
+  const [galleryDataUrls, setGalleryDataUrls] = useState<Record<string, string>>({})
+  const [addingGalleryKey, setAddingGalleryKey] = useState<string | null>(null)
+
+  async function toggleAddToPrompt(key: string, src: string) {
+    const existingDataUrl = galleryDataUrls[key]
+    if (existingDataUrl && studioDraftImages.includes(existingDataUrl)) {
+      setStudioDraftImages(prev => prev.filter(i => i !== existingDataUrl))
+      return
+    }
+    if (studioDraftImages.length >= maxImages) {
+      useToastStore.getState().addToast(`حداکثر ${maxImages} عکس مرجع در هر درخواست`)
+      return
+    }
+    setAddingGalleryKey(key)
+    try {
+      const dataUrl = existingDataUrl ?? (await fetchImageAsDataUrl(src))
+      setGalleryDataUrls(prev => ({ ...prev, [key]: dataUrl }))
+      setStudioDraftImages(prev => (prev.length >= maxImages ? prev : [...prev, dataUrl]))
+    } catch {
+      useToastStore.getState().addToast('افزودن عکس به پرامپت ناموفق بود')
+    } finally {
+      setAddingGalleryKey(null)
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
       {/* top bar */}
@@ -356,9 +394,14 @@ function StudioWorkspace({ id }: { id?: string }) {
         </div>
 
         <div className="order-1 flex-1 overflow-y-auto px-5 pb-24 sm:order-2 sm:px-10 sm:pb-6">
-          <p className="mb-3.5 text-[13px]" style={{ color: '#64748b' }}>
-            {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
-          </p>
+          <div className="mb-3.5 flex items-center justify-between gap-2">
+            <p className="text-[13px]" style={{ color: '#64748b' }}>
+              {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
+            </p>
+            {count > 0 && (
+              <p className="text-[12px]" style={{ color: '#64748b' }}>افزودن به پرامپت</p>
+            )}
+          </div>
 
           {chatError && !isStreaming && (
             <div className="mb-4">
@@ -402,15 +445,41 @@ function StudioWorkspace({ id }: { id?: string }) {
                   </div>
                 </div>
               )}
-              {gallery.map(g => (
-                <ChatImage
-                  key={g.key}
-                  src={g.src}
-                  alt="تصویر ساخته‌شده توسط هوش مصنوعی"
-                  onClick={() => setLightboxSrc(g.src)}
-                  className="aspect-square w-full cursor-pointer rounded-2xl object-cover ring-1 ring-fuchsia-500/20 transition-all hover:ring-fuchsia-400/50"
-                />
-              ))}
+              {gallery.map(g => {
+                const added = Boolean(galleryDataUrls[g.key]) && studioDraftImages.includes(galleryDataUrls[g.key])
+                const isAdding = addingGalleryKey === g.key
+                return (
+                  <div key={g.key} className="relative">
+                    <ChatImage
+                      src={g.src}
+                      alt="تصویر ساخته‌شده توسط هوش مصنوعی"
+                      onClick={() => setLightboxSrc(g.src)}
+                      className="aspect-square w-full cursor-pointer rounded-2xl object-cover ring-1 ring-fuchsia-500/20 transition-all hover:ring-fuchsia-400/50"
+                    />
+                    <button
+                      type="button"
+                      disabled={isAdding}
+                      onClick={e => { e.stopPropagation(); void toggleAddToPrompt(g.key, g.src) }}
+                      className="absolute inset-x-1.5 top-1.5 flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-semibold transition-colors disabled:opacity-60"
+                      style={
+                        added
+                          ? { background: 'rgba(16,185,129,0.9)', color: '#02170f' }
+                          : { background: 'rgba(2,4,10,0.55)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.16)' }
+                      }
+                      aria-label={added ? 'حذف از پرامپت' : 'افزودن به پرامپت'}
+                    >
+                      {isAdding ? (
+                        <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-white/30" style={{ borderTopColor: 'currentColor' }} />
+                      ) : added ? (
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" className="shrink-0">
+                          <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : null}
+                      {added ? 'اضافه شد' : 'افزودن به پرامپت'}
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
