@@ -7,7 +7,7 @@ import { OtpPage } from '@/pages/auth/OtpPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
-import { VideoComingSoonPage } from '@/pages/video/VideoComingSoonPage'
+import { VideoStudioPage } from '@/pages/video-studio/VideoStudioPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
 import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
@@ -113,9 +113,14 @@ export function AppRouter() {
         path="/image/:id"
         element={<ProtectedRoute><ChatLayout collapsedByDefault><ImageStudioPage /></ChatLayout></ProtectedRoute>}
       />
+      {/* استودیوی ویدیو — docs/PRD-video-studio-chat-flow.md، همان الگوی /image و /image/:id */}
       <Route
         path="/video"
-        element={<ProtectedRoute><VideoComingSoonPage /></ProtectedRoute>}
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoStudioPage /></ChatLayout></ProtectedRoute>}
+      />
+      <Route
+        path="/video/:id"
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoStudioPage /></ChatLayout></ProtectedRoute>}
       />
       <Route
         path="/pricing"

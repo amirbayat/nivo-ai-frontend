@@ -17,7 +17,7 @@ export interface ModelCatalogEntry {
   name: string
   displayName: string
   provider: string
-  modelType: 'CHAT' | 'IMAGE_GEN'
+  modelType: 'CHAT' | 'IMAGE_GEN' | 'VIDEO_GEN'
   tier: 'SIMPLE' | 'MEDIUM' | 'COMPLEX'
   supportsVision: boolean
   supportsImageGen: boolean
@@ -27,6 +27,11 @@ export interface ModelCatalogEntry {
   badges: string[]
   inputPricePerM: number
   outputPricePerM: number
+  // docs/PRD-video-studio-chat-flow.md — فقط برای ردیف‌های modelType==='VIDEO_GEN' پر است؛
+  // برای فیلترکردن گزینه‌های ابعاد ویدیو بر اساس مدل انتخاب‌شده (اختیاری، PRD اجازه‌ی سه گزینه‌ی
+  // ثابت را هم می‌دهد)
+  videoGenSupportedDurationsSec: number[]
+  videoGenSupportedSizes: string[]
 }
 
 export function useModelCatalog() {

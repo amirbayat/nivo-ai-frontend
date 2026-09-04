@@ -3,9 +3,8 @@ import logoUrl from '@/assets/brand/horizontal-dark.svg'
 
 // docs/PRD-openrouter-migration.md §۱۳-۱۴ — نقطه‌ی ورود جدید بعد از لاگین (به‌جای ریدایرکت
 // مستقیم به /chat). پیکسل‌به‌پیکسل مطابق آرتبورد Main.dc.html در دیزاین‌کنوس — شامل کارت
-// ویدیو که در آخرین نسخه‌ی تاییدشده‌ی دیزاین فعال/کلیک‌پذیر است (نه غیرفعال/«به‌زودی»)؛
-// چون فلوی واقعی ویدیو هنوز ساخته نشده، به یک صفحه‌ی «به‌زودی» جدا لینک می‌شود (VideoComingSoonPage)
-// به‌جای این‌که ظاهراً غیرفعال باشد ولی هیچ‌جا نرود.
+// ویدیو که به فلوی چت‌محور واقعی استودیوی ویدیو لینک می‌شود (docs/PRD-video-studio-chat-flow.md،
+// VideoStudioPage روی مسیر /video).
 export function HubPage() {
   const navigate = useNavigate()
 
