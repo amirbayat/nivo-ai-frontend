@@ -1,16 +1,19 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { api } from '@/lib/api'
+import { resizeImage } from '@/components/chat/MessageInput'
+import { PlanUpgradeBadge } from '@/components/layout/PlanUpgradeBadge'
 import { useModelCatalog } from '@/queries/plans.queries'
 import {
   useCreateVideoProject,
-  useGenerateCharacters,
-  useGenerateStoryboard,
+  useProjectMessages,
   useRegenerateCharacters,
   useRequestShotVideo,
   useSelectCharacter,
+  useSendMessage,
   useSetVideoStudioModels,
+  useUploadVideoStudioImage,
   useVideoProject,
   type SetVideoStudioModelsDto,
 } from '@/queries/videoStudio.queries'
@@ -24,19 +27,22 @@ import {
   type VideoStudioStage,
 } from './VideoStudioGallery'
 import { VideoStudioSettingsModal } from './VideoStudioSettingsModal'
-import type { StudioProject } from '@/types/api'
+import type { StudioMessage, StudioProject } from '@/types/api'
 
-// docs/PRD-video-studio-chat-flow.md — صفحه‌ی واحد استودیوی ویدیو، بدون wizard/استپر. دسکتاپ:
-// دو ستون (چت راست / گالری چپ)، هر دو همیشه روی صفحه. موبایل: یک فید تک‌ستونه که گالری مستقیم
-// داخل پیام‌های دستیار رندر می‌شود؛ انتخاب مدل/ابعاد از یک آیکون هدر، مدال تمام‌صفحه‌ی انیمیشن‌دار
-// دقیقاً به سبک StudioComposer.tsx (استودیوی عکس) باز می‌شود.
+// docs/PRD-video-studio-chat-flow.md — صفحه‌ی واحد استودیوی ویدیو، بدون wizard/استپر.
 //
-// این فیچر بر خلاف استودیوی عکس، روی یک Conversation/چت واقعی LLM سوار نیست — بک‌اند فقط
-// اکشن‌های مشخص (ساخت پروژه، ساخت کاراکتر، استوری‌برد، رندر هر صحنه) را دارد، نه یک endpoint
-// «ارسال پیام» عمومی. پس «گفتگو»ی این صفحه یک فید ثابت از متن‌های راهنمای دستیار + اکشن‌های
-// واقعی است (نه چتِ استریم‌شونده) — دقیقاً هم‌راستا با PRD («کاربر مرحله را از متن پیام‌های
-// دستیار می‌فهمد»)، فقط بدون یک LLM واقعی پشت این متن‌ها (که چیزی هم در قرارداد بک‌اند برایش
-// وجود ندارد).
+// دستور صریح کاربر (بازطراحی ۱۴۰۵-۰۶-۱۳): نسخه‌ی قبلی این صفحه یک state machine ثابت بود —
+// متن‌های از‌پیش‌نوشته + دکمه‌ی اجباری («ساخت طرح‌های کاراکتر»، «ساخت ویدیوی همه‌ی صحنه‌ها») بر
+// اساس project.status، بدون اتصال به endpoint واقعی چت بک‌اند. الان به /messages واقعی
+// (video-studio.service.ts/sendMessage) وصل است: هر پیام (اولین پیام هم همینطور) از تشخیص
+// intent واقعی رد می‌شود و بک‌اند خودش تصمیم می‌گیرد کاراکتر/استوری‌برد/ویدیوی مستقیم بسازد یا
+// فقط پاسخ بدهد — هیچ دکمه/chip ثابتی داخل چت نیست، فقط گفتگوی آزاد. باکس نوشتن هم به‌جای یک
+// فرم کوچک ته صفحه، حالا خودِ ستون/مدال چت است (رنگ/گلوی امرالد، شبیه باکس تولید عکس) — پیام‌ها
+// بالای همین باکس اسکرول می‌شوند و نوشتن دقیقاً پایینِ همین باکس بزرگ است.
+//
+// دسکتاپ: دو ستون (چت راست / گالری چپ) هر دو همیشه روی صفحه. موبایل: صفحه‌ی پایه گالری +
+// نوار نوشتن جمع‌شده‌ی پایین صفحه؛ تپ‌کردن، مدال تمام‌صفحه‌ی چت (MobileChatModal) را باز
+// می‌کند — دقیقاً مکانیزم StudioComposer.tsx (استودیوی عکس).
 
 interface ModelPrefs {
   chatModelId: string | null
@@ -86,59 +92,6 @@ function UserBubble({ children }: { children: ReactNode }) {
   )
 }
 
-// زیر آواتار AI هم‌تراز می‌شود (۳۲پیکسل آواتار + ۱۲پیکسل gap ≈ mr-11)
-function UnderAvatar({ children }: { children: ReactNode }) {
-  return <div className="mr-11">{children}</div>
-}
-
-function TextComposer({
-  placeholder,
-  onSubmit,
-  loading,
-  buttonLabel,
-}: {
-  placeholder: string
-  onSubmit: (text: string) => void
-  loading: boolean
-  buttonLabel: string
-}) {
-  const [value, setValue] = useState('')
-  function submit() {
-    if (!value.trim() || loading) return
-    onSubmit(value.trim())
-    setValue('')
-  }
-  return (
-    <div
-      className="flex flex-col gap-2.5 rounded-[22px] p-4"
-      style={{ background: 'linear-gradient(180deg, rgba(16,185,129,0.05) 0%, rgba(255,255,255,0.025) 100%)', border: '1px solid rgba(16,185,129,0.28)' }}
-    >
-      <textarea
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            submit()
-          }
-        }}
-        rows={3}
-        placeholder={placeholder}
-        className="resize-none bg-transparent text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
-      />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!value.trim() || loading}
-        className="rounded-full py-3 text-[14px] font-bold text-[#02170f] transition-opacity disabled:opacity-50"
-        style={{ background: '#10b981' }}
-      >
-        {loading ? 'در حال ارسال...' : buttonLabel}
-      </button>
-    </div>
-  )
-}
-
 function ActionButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
@@ -168,6 +121,249 @@ function SecondaryButton({ children, ...props }: React.ButtonHTMLAttributes<HTML
   )
 }
 
+// باکس نوشتن — همیشه در دسترس، هیچ‌وقت با یک دکمه جایگزین نمی‌شود. «افزودن عکس» برای
+// «این عکس رو برام ویدیو کن» طبق درخواست صریح کاربر (نمونه‌ی این جریان: عکس ضمیمه می‌شود،
+// آپلود می‌شود، کلیدش به‌عنوان imageKey همراه پیام می‌رود — video-studio.service.ts خودش
+// تشخیص می‌دهد که این یعنی generate_quick_video).
+function ComposerBox({
+  onSend,
+  sending,
+  submitLabel,
+  placeholder,
+}: {
+  onSend: (text: string, imageKey?: string) => void
+  sending: boolean
+  submitLabel: string
+  placeholder: string
+}) {
+  const [value, setValue] = useState('')
+  const [image, setImage] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const uploadImage = useUploadVideoStudioImage()
+  const busy = sending || uploadImage.isPending
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith('image/')) return
+    try {
+      setImage(await resizeImage(file))
+      setUploadError(null)
+    } catch {
+      setUploadError('پردازش عکس ناموفق بود')
+    }
+  }
+
+  async function submit() {
+    if ((!value.trim() && !image) || busy) return
+    let imageKey: string | undefined
+    if (image) {
+      try {
+        imageKey = (await uploadImage.mutateAsync(image)).key
+      } catch {
+        setUploadError('آپلود عکس ناموفق بود، دوباره امتحان کن')
+        return
+      }
+    }
+    onSend(value.trim() || 'این عکس رو برام ویدیو کن', imageKey)
+    setValue('')
+    setImage(null)
+  }
+
+  return (
+    <div className="flex shrink-0 flex-col gap-3 border-t px-6 py-5" style={{ borderColor: 'rgba(16,185,129,0.16)' }}>
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0]
+            if (file) void handleFile(file)
+            e.target.value = ''
+          }}
+        />
+        {image ? (
+          <div className="relative">
+            <img src={image} className="size-11 rounded-xl border object-cover" style={{ borderColor: 'rgba(16,185,129,0.35)' }} alt="عکس مرجع" />
+            <button
+              type="button"
+              onClick={() => setImage(null)}
+              className="absolute -top-1.5 -left-1.5 flex size-5 items-center justify-center rounded-full border text-xs leading-none text-slate-300"
+              style={{ background: '#0f172a', borderColor: 'rgba(148,163,184,0.3)' }}
+              aria-label="حذف عکس مرجع"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-slate-400"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+            </svg>
+            افزودن عکس
+          </button>
+        )}
+      </div>
+      {uploadError && <p className="text-[11.5px] text-red-400">{uploadError}</p>}
+      <textarea
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            void submit()
+          }
+        }}
+        rows={2}
+        placeholder={placeholder}
+        className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
+      />
+      <button
+        type="button"
+        onClick={() => void submit()}
+        disabled={(!value.trim() && !image) || busy}
+        className="w-full rounded-full py-3.5 text-[15px] font-bold text-[#02170f] transition-opacity disabled:opacity-50"
+        style={{ background: 'linear-gradient(90deg,#10b981,#34d399)' }}
+      >
+        {busy ? 'در حال ارسال...' : submitLabel}
+      </button>
+    </div>
+  )
+}
+
+// ستون/مدال چت — یک باکس بزرگ و فول‌هایت (نه پیام‌های شناور + یک باکس کوچیک پایین): پیام‌ها
+// بالای همین باکس اسکرول می‌شوند، نوشتن دقیقاً پایینِ همین باکس است
+function ChatPanel({
+  project,
+  messages,
+  onSend,
+  sending,
+  errorMsg,
+  className,
+}: {
+  project: StudioProject | undefined
+  messages: StudioMessage[]
+  onSend: (text: string, imageKey?: string) => void
+  sending: boolean
+  errorMsg: string | null
+  className?: string
+}) {
+  return (
+    <div
+      className={clsx('flex flex-1 flex-col overflow-hidden rounded-[28px]', className)}
+      style={{
+        background: 'linear-gradient(165deg, rgba(16,185,129,0.10) 0%, rgba(147,51,234,0.05) 55%, rgba(255,255,255,0.02) 100%)',
+        border: '1.5px solid rgba(16,185,129,0.30)',
+        boxShadow: '0 0 0 1px rgba(16,185,129,0.06), 0 24px 60px -24px rgba(16,185,129,0.35)',
+      }}
+    >
+      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+        {!project && (
+          <AssistantBubble>
+            سلام! بگو ایده‌ی ویدیویی که می‌خوای بسازیم چیه — یا یه عکس اضافه کن و بگو همون رو برات ویدیو کنم.
+          </AssistantBubble>
+        )}
+        {/* حالت گذرا بلافاصله بعد از navigate (قبل از رسیدن اولین پیام واقعی از سرور) + پروژه‌های
+            قدیمی از قبل از این بازطراحی که هنوز StudioMessage ندارند — initialPrompt را به‌عنوان
+            اولین حباب کاربر نشان بده تا گفتگو خالی/عجیب دیده نشود */}
+        {project && messages.length === 0 && <UserBubble>{project.initialPrompt}</UserBubble>}
+        {messages.map(m =>
+          m.role === 'user' ? (
+            <UserBubble key={m.id}>{m.content}</UserBubble>
+          ) : (
+            <AssistantBubble key={m.id}>{m.content}</AssistantBubble>
+          ),
+        )}
+        {errorMsg && <p className="mr-11 text-[12.5px] text-red-400">{errorMsg}</p>}
+      </div>
+      <ComposerBox
+        onSend={onSend}
+        sending={sending}
+        submitLabel={project ? 'ارسال' : 'شروع'}
+        placeholder={project ? 'بنویس چی می‌خوای — یا یه عکس اضافه کن...' : 'ایده‌ی ویدیوتو توصیف کن یا یه عکس اضافه کن...'}
+      />
+    </div>
+  )
+}
+
+// مدال تمام‌صفحه‌ی چت روی موبایل — دقیقاً مکانیزم StudioComposer.tsx (استودیوی عکس): پشت این
+// مدال همیشه گالری است، بستنش برمی‌گرداند به همان گالری
+function MobileChatModal({
+  open,
+  onClose,
+  project,
+  messages,
+  onSend,
+  sending,
+  errorMsg,
+}: {
+  open: boolean
+  onClose: () => void
+  project: StudioProject | undefined
+  messages: StudioMessage[]
+  onSend: (text: string, imageKey?: string) => void
+  sending: boolean
+  errorMsg: string | null
+}) {
+  return (
+    <div
+      className={clsx(
+        'absolute inset-0 z-[25] flex flex-col overflow-hidden bg-[#020C18] transition-[transform,opacity] duration-300 ease-out sm:hidden',
+        open ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-full opacity-0',
+      )}
+    >
+      <div
+        className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 px-4 pb-3"
+        style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}
+      >
+        <span className="text-[14.5px] font-bold text-white">گفتگو</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)' }}
+          aria-label="بستن"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        {!project && (
+          <AssistantBubble>
+            سلام! بگو ایده‌ی ویدیویی که می‌خوای بسازیم چیه — یا یه عکس اضافه کن و بگو همون رو برات ویدیو کنم.
+          </AssistantBubble>
+        )}
+        {/* حالت گذرا بلافاصله بعد از navigate (قبل از رسیدن اولین پیام واقعی از سرور) + پروژه‌های
+            قدیمی از قبل از این بازطراحی که هنوز StudioMessage ندارند — initialPrompt را به‌عنوان
+            اولین حباب کاربر نشان بده تا گفتگو خالی/عجیب دیده نشود */}
+        {project && messages.length === 0 && <UserBubble>{project.initialPrompt}</UserBubble>}
+        {messages.map(m =>
+          m.role === 'user' ? (
+            <UserBubble key={m.id}>{m.content}</UserBubble>
+          ) : (
+            <AssistantBubble key={m.id}>{m.content}</AssistantBubble>
+          ),
+        )}
+        {errorMsg && <p className="mr-11 text-[12.5px] text-red-400">{errorMsg}</p>}
+      </div>
+      <ComposerBox
+        onSend={onSend}
+        sending={sending}
+        submitLabel={project ? 'ارسال' : 'شروع'}
+        placeholder={project ? 'بنویس چی می‌خوای — یا یه عکس اضافه کن...' : 'ایده‌ی ویدیوتو توصیف کن یا یه عکس اضافه کن...'}
+      />
+    </div>
+  )
+}
+
 export function VideoStudioPage() {
   const { id } = useParams<{ id?: string }>()
   return <VideoStudioWorkspace key={id ?? 'new'} id={id} />
@@ -177,18 +373,20 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
   const navigate = useNavigate()
   const { data: catalog } = useModelCatalog()
   const { data: project, isLoading } = useVideoProject(id)
+  const { data: messages } = useProjectMessages(id)
 
   const [prefs, setPrefs] = useState<ModelPrefs>(() => loadPrefs())
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [playerVideoKey, setPlayerVideoKey] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [isStarting, setIsStarting] = useState(false)
 
   const createProject = useCreateVideoProject()
   const setModels = useSetVideoStudioModels(id ?? '')
-  const generateCharacters = useGenerateCharacters(id ?? '')
+  const sendMessage = useSendMessage(id ?? '')
   const regenerateCharacters = useRegenerateCharacters(id ?? '')
   const selectCharacter = useSelectCharacter(id ?? '')
-  const generateStoryboard = useGenerateStoryboard(id ?? '')
   const requestShotVideo = useRequestShotVideo(id ?? '')
   const [renderAllPending, setRenderAllPending] = useState(false)
 
@@ -213,23 +411,38 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
     if (id) setModels.mutate({ [field]: value } as SetVideoStudioModelsDto)
   }
 
-  async function handleCreateProject(text: string) {
+  // نقطه‌ی ورود واحد چت — چه اولین پیام باشد چه پیام‌های بعدی، همیشه از تشخیص intent واقعی
+  // بک‌اند رد می‌شود (video-studio.service.ts/sendMessage)، نه یک دکمه‌ی مخصوص هر مرحله
+  async function handleSend(text: string, imageKey?: string) {
     setErrorMsg(null)
-    try {
-      const created = await createProject.mutateAsync({ initialPrompt: text })
-      const toSet: SetVideoStudioModelsDto = {}
-      if (prefs.chatModelId) toSet.chatModelId = prefs.chatModelId
-      if (prefs.photoModelId) toSet.photoModelId = prefs.photoModelId
-      if (prefs.videoModelId) toSet.videoModelId = prefs.videoModelId
-      if (prefs.imageAspectRatio) toSet.imageAspectRatio = prefs.imageAspectRatio
-      if (prefs.videoAspectRatio) toSet.videoAspectRatio = prefs.videoAspectRatio
-      if (Object.keys(toSet).length > 0) {
-        await api.patch(`/video-studio/projects/${created.id}/models`, toSet).catch(() => undefined)
+    if (!project) {
+      setIsStarting(true)
+      try {
+        const created = await createProject.mutateAsync({ initialPrompt: text })
+        const toSet: SetVideoStudioModelsDto = {}
+        if (prefs.chatModelId) toSet.chatModelId = prefs.chatModelId
+        if (prefs.photoModelId) toSet.photoModelId = prefs.photoModelId
+        if (prefs.videoModelId) toSet.videoModelId = prefs.videoModelId
+        if (prefs.imageAspectRatio) toSet.imageAspectRatio = prefs.imageAspectRatio
+        if (prefs.videoAspectRatio) toSet.videoAspectRatio = prefs.videoAspectRatio
+        if (Object.keys(toSet).length > 0) {
+          await api.patch(`/video-studio/projects/${created.id}/models`, toSet).catch(() => undefined)
+        }
+        // اولین پیام واقعی را همین‌جا (قبل از navigate) می‌فرستیم تا intent واقعی تشخیص داده
+        // شود — بعد از navigate کامپوننت با key جدید از نو mount می‌شود و همه‌چیز را از سرور می‌خواند
+        await api.post(`/video-studio/projects/${created.id}/messages`, { content: text, imageKey })
+        navigate(`/video/${created.id}`)
+      } catch {
+        setErrorMsg('ساخت پروژه ناموفق بود، دوباره امتحان کن')
+      } finally {
+        setIsStarting(false)
       }
-      navigate(`/video/${created.id}`)
-    } catch {
-      setErrorMsg('ساخت پروژه ناموفق بود، دوباره امتحان کن')
+      return
     }
+    sendMessage.mutate(
+      { content: text, imageKey },
+      { onError: () => setErrorMsg('ارسال پیام ناموفق بود، دوباره امتحان کن') },
+    )
   }
 
   async function handleRenderAll() {
@@ -242,136 +455,6 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
       setRenderAllPending(false)
     }
   }
-
-  // ── فید چت — بازنمایی متنی مراحل + اکشن‌ها. embedGallery=true یعنی گالری هم داخل همین فید
-  // رندر شود (موبایل)؛ روی دسکتاپ فقط متن/اکشن است، چون گالری در ستون جدای خودش است.
-  function buildFeed(embedGallery: boolean): ReactNode {
-    if (!project) {
-      return (
-        <AssistantBubble>
-          سلام! بگو ایده‌ی ویدیویی که می‌خوای بسازیم چیه — تیزر، روایت کوتاه، معرفی محصول یا هرچی تو ذهنته.
-        </AssistantBubble>
-      )
-    }
-
-    const nodes: ReactNode[] = [<UserBubble key="idea">{project.initialPrompt}</UserBubble>]
-
-    if (project.characterOptions.length === 0) {
-      nodes.push(
-        <AssistantBubble key="ask-character">
-          ایده‌ی خوبیه! قبل از هرچی بذار یه کاراکتر برات طراحی کنم — چهار طرح مختلف می‌سازم تا از بینشون انتخاب کنی.
-        </AssistantBubble>,
-      )
-      nodes.push(
-        <UnderAvatar key="gen-character-btn">
-          <ActionButton disabled={generateCharacters.isPending} onClick={() => generateCharacters.mutate()}>
-            {generateCharacters.isPending ? 'در حال طراحی کاراکترها...' : 'ساخت طرح‌های کاراکتر'}
-          </ActionButton>
-        </UnderAvatar>,
-      )
-    } else if (project.status === 'DRAFT') {
-      nodes.push(
-        <AssistantBubble key="pick-character">
-          این چهار طرح کاراکتر رو برات ساختم؛ کدومش رو دوست داری؟ اگه هیچ‌کدوم مناسب نبود، «بازطراحی کن» رو بزن.
-        </AssistantBubble>,
-      )
-      if (embedGallery) {
-        nodes.push(
-          <UnderAvatar key="character-grid">
-            <CharacterGrid
-              options={project.characterOptions}
-              selecting={selectCharacter.isPending}
-              onSelect={optId => selectCharacter.mutate(optId)}
-              compact
-            />
-          </UnderAvatar>,
-        )
-      }
-      nodes.push(
-        <UnderAvatar key="regen-character-btn">
-          <SecondaryButton disabled={regenerateCharacters.isPending} onClick={() => regenerateCharacters.mutate()}>
-            {regenerateCharacters.isPending ? 'در حال بازطراحی...' : 'بازطراحی کن'}
-          </SecondaryButton>
-        </UnderAvatar>,
-      )
-    } else if (project.shots.length === 0) {
-      nodes.push(
-        <AssistantBubble key="ask-storyboard">
-          عالی! حالا بگو داستان چند صحنه باشه، دیالوگ/موسیقی مدنظرته یا نه، و آخرش چطوری تموم بشه.
-        </AssistantBubble>,
-      )
-    } else if (stage === 'storyboard') {
-      nodes.push(
-        <AssistantBubble key="storyboard-ready">
-          استوری‌بردت آماده‌ست — هر صحنه یک تصویره؛ می‌تونی متن هر صحنه رو ویرایش کنی، بعد بزن «ساخت ویدیو» براش یا برای همه‌ی صحنه‌ها.
-        </AssistantBubble>,
-      )
-      if (embedGallery) {
-        nodes.push(
-          <UnderAvatar key="shot-grid">
-            <ShotGrid projectId={project.id} shots={project.shots} stage={stage} compact onOpenPlayer={setPlayerVideoKey} />
-          </UnderAvatar>,
-        )
-      }
-      nodes.push(
-        <UnderAvatar key="render-all-btn">
-          <ActionButton disabled={renderAllPending} onClick={() => void handleRenderAll()}>
-            {renderAllPending ? 'در حال ارسال...' : 'ساخت ویدیوی همه‌ی صحنه‌ها'}
-          </ActionButton>
-        </UnderAvatar>,
-      )
-    } else if (stage === 'render') {
-      nodes.push(
-        <AssistantBubble key="rendering">
-          صحنه‌ها دارن رندر می‌شن — می‌تونی این صفحه رو ببندی، وقتی آماده شد بهت اطلاع می‌دیم.
-        </AssistantBubble>,
-      )
-      if (embedGallery) {
-        nodes.push(
-          <UnderAvatar key="shot-grid-render">
-            <ShotGrid projectId={project.id} shots={project.shots} stage={stage} compact onOpenPlayer={setPlayerVideoKey} />
-          </UnderAvatar>,
-        )
-      }
-    } else {
-      nodes.push(<AssistantBubble key="done">همه‌ی صحنه‌ها آماده‌ست! هر کلیپ رو جدا دانلود کن یا از «تدوین یکجا» برای دانلود پشت‌سرهم همه استفاده کن.</AssistantBubble>)
-      if (embedGallery) {
-        nodes.push(
-          <UnderAvatar key="shot-grid-result">
-            <ShotGrid projectId={project.id} shots={project.shots} stage={stage} compact onOpenPlayer={setPlayerVideoKey} />
-          </UnderAvatar>,
-        )
-        nodes.push(
-          <UnderAvatar key="result-actions">
-            <ResultActionBar shots={project.shots} />
-          </UnderAvatar>,
-        )
-      }
-    }
-
-    return <>{nodes}</>
-  }
-
-  function getComposer(): { placeholder: string; onSubmit: (text: string) => void; loading: boolean; buttonLabel: string } | null {
-    if (!project) {
-      return { placeholder: 'ایده‌ی ویدیوتو توصیف کن...', onSubmit: v => void handleCreateProject(v), loading: createProject.isPending, buttonLabel: 'شروع' }
-    }
-    if (project.status === 'CHARACTER_SELECTED' && project.shots.length === 0) {
-      return {
-        placeholder: 'مثلاً: ۴ صحنه، بدون دیالوگ با موسیقی آرام، پایان با لبخند کاراکتر...',
-        onSubmit: v => generateStoryboard.mutate(v),
-        loading: generateStoryboard.isPending,
-        buttonLabel: 'ساخت استوری‌برد',
-      }
-    }
-    return null
-  }
-
-  const composer = getComposer()
-
-  useEffect(() => {
-    if (createProject.isError) setErrorMsg('ساخت پروژه ناموفق بود، دوباره امتحان کن')
-  }, [createProject.isError])
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
@@ -392,6 +475,11 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
           <span className="text-[17px] font-bold text-white">{project?.initialPrompt ? 'استودیوی ویدیو' : 'ساخت ویدیوی جدید'}</span>
         </div>
         <div className="flex items-center gap-2.5">
+          {/* روی موبایل نوار سراسری خود ChatLayout همین نشان اعتبار را نشان می‌دهد — تکرارش
+              اینجا فقط روی sm:+ (دقیقاً الگوی ImageStudioPage.tsx) */}
+          <div className="hidden sm:contents">
+            <PlanUpgradeBadge />
+          </div>
           {/* دستور صریح کاربر: یک دکمه‌ی تنظیمات (نه چند چیپ پراکنده) — روی موبایل و دسکتاپ هر
               دو، همین یک دکمه مدال VideoStudioSettingsModal را باز می‌کند */}
           <button
@@ -426,26 +514,19 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
 
       {!isLoading && (
         <div className="relative flex flex-1 flex-col overflow-hidden sm:flex-row" style={{ padding: '20px 0' }}>
-          {/* ── دسکتاپ: ستون چت (راست) ── */}
-          <div
-            className="hidden shrink-0 flex-col sm:order-1 sm:flex sm:w-[420px] sm:border-t sm:pr-10"
-            style={{ borderColor: 'rgba(148,163,184,0.14)' }}
-          >
-            <div className="flex-1 space-y-5 overflow-y-auto px-1 pb-4">
-              {buildFeed(false)}
-              {errorMsg && <p className="mr-11 text-[12.5px] text-red-400">{errorMsg}</p>}
-            </div>
-            {composer && (
-              <div className="px-1 pt-3">
-                <TextComposer {...composer} />
-              </div>
-            )}
+          {/* ── دسکتاپ: ستون چت (راست) — یک باکس بزرگ فول‌هایت ── */}
+          <div className="hidden shrink-0 flex-col sm:order-1 sm:flex sm:w-[420px] sm:pr-10">
+            <ChatPanel
+              project={project}
+              messages={messages ?? []}
+              onSend={handleSend}
+              sending={sendMessage.isPending || isStarting}
+              errorMsg={errorMsg}
+            />
           </div>
 
           {/* ── دسکتاپ: ستون گالری (چپ) ── */}
           <div className="order-1 hidden flex-1 flex-col overflow-y-auto px-5 pb-6 sm:order-2 sm:flex sm:px-10">
-            {/* دستور صریح کاربر: بدون چیپ‌های پراکنده — انتخاب مدل/ابعاد فقط از همان یک دکمه‌ی
-                تنظیمات بالای صفحه (VideoStudioSettingsModal) انجام می‌شود، نه یک دکمه‌ی دوم اینجا */}
             <p className="mb-4 text-[13px]" style={{ color: '#64748b' }}>گالری این پروژه</p>
 
             {project ? (
@@ -455,30 +536,63 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
                 selectCharacter={selectCharacter}
                 regenerateCharacters={regenerateCharacters}
                 onOpenPlayer={setPlayerVideoKey}
+                onRenderAll={() => void handleRenderAll()}
+                renderAllPending={renderAllPending}
               />
             ) : (
               <VideoStudioEmptyState />
             )}
           </div>
 
-          {/* ── موبایل: فید یک‌ستونه ── */}
-          <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-28 sm:hidden">
-            <div className="space-y-5 py-2">
-              {buildFeed(true)}
-              {errorMsg && <p className="mr-11 text-[12.5px] text-red-400">{errorMsg}</p>}
+          {/* ── موبایل: صفحه‌ی پایه = گالری + نوار نوشتن جمع‌شده ── */}
+          <div className="flex flex-1 flex-col overflow-hidden sm:hidden">
+            <div className="flex-1 overflow-y-auto px-4 pb-3">
+              {project ? (
+                <GalleryBody
+                  project={project}
+                  stage={stage}
+                  selectCharacter={selectCharacter}
+                  regenerateCharacters={regenerateCharacters}
+                  onOpenPlayer={setPlayerVideoKey}
+                  onRenderAll={() => void handleRenderAll()}
+                  renderAllPending={renderAllPending}
+                />
+              ) : (
+                <VideoStudioEmptyState />
+              )}
+            </div>
+            <div className="shrink-0 px-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+              <button
+                type="button"
+                onClick={() => setMobileChatOpen(true)}
+                className="flex w-full items-center gap-2.5 rounded-full py-2 pr-2 pl-4 text-right"
+                style={{
+                  background: 'linear-gradient(165deg, rgba(16,185,129,0.12) 0%, rgba(147,51,234,0.06) 100%)',
+                  border: '1.5px solid rgba(16,185,129,0.34)',
+                  boxShadow: '0 0 0 1px rgba(16,185,129,0.08), 0 16px 34px -18px rgba(16,185,129,0.45)',
+                }}
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </span>
+                <span className="flex-1 truncate text-[13px]" style={{ color: '#94a3b8' }}>
+                  {[...(messages ?? [])].reverse().find(m => m.role === 'assistant')?.content ?? 'بنویس چی می‌خوای بسازیم...'}
+                </span>
+              </button>
             </div>
           </div>
 
-          {composer && (
-            <div
-              className="absolute inset-x-0 bottom-0 z-10 sm:hidden"
-              style={{ background: 'linear-gradient(0deg, #020C18 60%, transparent)', paddingBottom: 'max(14px, env(safe-area-inset-bottom))', paddingTop: 12 }}
-            >
-              <div className="px-4">
-                <TextComposer {...composer} />
-              </div>
-            </div>
-          )}
+          <MobileChatModal
+            open={mobileChatOpen}
+            onClose={() => setMobileChatOpen(false)}
+            project={project}
+            messages={messages ?? []}
+            onSend={(text, imageKey) => { void handleSend(text, imageKey) }}
+            sending={sendMessage.isPending || isStarting}
+            errorMsg={errorMsg}
+          />
         </div>
       )}
 
@@ -521,12 +635,16 @@ function GalleryBody({
   selectCharacter,
   regenerateCharacters,
   onOpenPlayer,
+  onRenderAll,
+  renderAllPending,
 }: {
   project: StudioProject
   stage: VideoStudioStage
   selectCharacter: ReturnType<typeof useSelectCharacter>
   regenerateCharacters: ReturnType<typeof useRegenerateCharacters>
   onOpenPlayer: (key: string) => void
+  onRenderAll: () => void
+  renderAllPending: boolean
 }) {
   if (stage === 'empty') return <VideoStudioEmptyState />
 
@@ -552,6 +670,11 @@ function GalleryBody({
   return (
     <div className="flex flex-col gap-4">
       <ShotGrid projectId={project.id} shots={project.shots} stage={stage} onOpenPlayer={onOpenPlayer} />
+      {stage === 'storyboard' && (
+        <ActionButton disabled={renderAllPending} onClick={onRenderAll} className="self-start">
+          {renderAllPending ? 'در حال ارسال...' : 'ساخت ویدیوی همه‌ی صحنه‌ها'}
+        </ActionButton>
+      )}
       {stage === 'result' && <ResultActionBar shots={project.shots} />}
     </div>
   )

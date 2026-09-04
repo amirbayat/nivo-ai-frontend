@@ -90,5 +90,6 @@ export const keys = {
     detail: (id: string) => ['video-studio', 'detail', id] as const,
     shotVideoStatus: (projectId: string, shotId: string) =>
       ['video-studio', 'shot-video-status', projectId, shotId] as const,
+    messages: (projectId: string) => ['video-studio', 'messages', projectId] as const,
   },
 } as const

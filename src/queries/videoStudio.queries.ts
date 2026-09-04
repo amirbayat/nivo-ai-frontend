@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
-import type { StudioProject, StudioShot, StudioShotVideoStatusResponse } from '@/types/api'
+import type { StudioMessage, StudioProject, StudioShot, StudioShotVideoStatusResponse } from '@/types/api'
 
 // docs/PRD-video-studio-chat-flow.md — استودیوی ویدیو (فلوی چت‌محور، بدون wizard/استپر).
 // همه‌ی این هوک‌ها مستقیم روی /video-studio بک‌اند سوارند (nivo-ai-backend/src/modules/video-studio).
@@ -48,15 +48,6 @@ export function useSetVideoStudioModels(projectId: string) {
   })
 }
 
-export function useGenerateCharacters(projectId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: () =>
-      api.post<StudioProject>(`/video-studio/projects/${projectId}/characters`).then(r => r.data),
-    onSuccess: data => qc.setQueryData(keys.videoStudio.detail(projectId), data),
-  })
-}
-
 export function useRegenerateCharacters(projectId: string) {
   const qc = useQueryClient()
   return useMutation({
@@ -71,15 +62,6 @@ export function useSelectCharacter(projectId: string) {
   return useMutation({
     mutationFn: (optionId: string) =>
       api.post<StudioProject>(`/video-studio/projects/${projectId}/characters/${optionId}/select`).then(r => r.data),
-    onSuccess: data => qc.setQueryData(keys.videoStudio.detail(projectId), data),
-  })
-}
-
-export function useGenerateStoryboard(projectId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (details: string) =>
-      api.post<StudioProject>(`/video-studio/projects/${projectId}/storyboard`, { details }).then(r => r.data),
     onSuccess: data => qc.setQueryData(keys.videoStudio.detail(projectId), data),
   })
 }
@@ -99,6 +81,37 @@ export function useRequestShotVideo(projectId: string) {
     mutationFn: (shotId: string) =>
       api.post<StudioShot>(`/video-studio/projects/${projectId}/shots/${shotId}/video`).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoStudio.detail(projectId) }),
+  })
+}
+
+// چت واقعی — دستور صریح کاربر: بدون wizard/دکمه‌ی ثابت، بک‌اند خودش intent را از متن آزاد
+// تشخیص می‌دهد (video-studio.service.ts/sendMessage) و اکشن مناسب را اجرا می‌کند
+export function useProjectMessages(projectId?: string) {
+  return useQuery({
+    queryKey: keys.videoStudio.messages(projectId ?? ''),
+    queryFn: () => api.get<StudioMessage[]>(`/video-studio/projects/${projectId}/messages`).then(r => r.data),
+    enabled: !!projectId,
+  })
+}
+
+export function useSendMessage(projectId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: { content: string; imageKey?: string }) =>
+      api.post<{ message: StudioMessage; project: StudioProject }>(`/video-studio/projects/${projectId}/messages`, dto).then(r => r.data),
+    onSuccess: data => {
+      qc.setQueryData(keys.videoStudio.detail(projectId), data.project)
+      void qc.invalidateQueries({ queryKey: keys.videoStudio.messages(projectId) })
+    },
+  })
+}
+
+// «افزودن عکس» توی کامپوزر — قبل از ارسال پیام صدا زده می‌شود، کلید MinIO برگشتی در
+// sendMessage به‌عنوان imageKey فرستاده می‌شود (دقیقاً الگوی useUploadDiscoveryImage)
+export function useUploadVideoStudioImage() {
+  return useMutation({
+    mutationFn: (dataUrl: string) =>
+      api.post<{ key: string }>('/video-studio/upload-image', { image: dataUrl }).then(r => r.data),
   })
 }
 

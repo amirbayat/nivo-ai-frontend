@@ -485,6 +485,16 @@ export interface StudioProject {
   shots: StudioShot[]
 }
 
+export interface StudioMessage {
+  id: string
+  projectId: string
+  role: 'user' | 'assistant'
+  content: string
+  intent: 'generate_character' | 'regenerate_character' | 'generate_storyboard' | 'generate_quick_video' | 'general' | null
+  suggestedActions: string[]
+  createdAt: string
+}
+
 export interface StudioShotVideoStatusResponse {
   videoStatus: StudioShotVideoStatus
   videoKey: string | null
