@@ -106,6 +106,24 @@ export function useSendMessage(projectId: string) {
   })
 }
 
+// فاز اول ساده‌شده (SimpleVideoForm.tsx) — متن + عکس اختیاری + مدل + سایز → مستقیم یک ویدیو،
+// بدون رفتن از لایه‌ی چت/intent classification. خروجی برای navigate به /video/:projectId است؛
+// پیگیری وضعیت همان‌جا از useShotVideoStatus موجود استفاده می‌کند.
+export interface GenerateSimpleVideoDto {
+  prompt: string
+  imageKey?: string
+  videoModelId: string
+  videoAspectRatio: string
+  audioEnabled?: boolean
+}
+
+export function useGenerateSimpleVideo() {
+  return useMutation({
+    mutationFn: (dto: GenerateSimpleVideoDto) =>
+      api.post<{ projectId: string; shotId: string }>('/video-studio/simple/generate', dto).then(r => r.data),
+  })
+}
+
 // «افزودن عکس» توی کامپوزر — قبل از ارسال پیام صدا زده می‌شود، کلید MinIO برگشتی در
 // sendMessage به‌عنوان imageKey فرستاده می‌شود (دقیقاً الگوی useUploadDiscoveryImage)
 export function useUploadVideoStudioImage() {

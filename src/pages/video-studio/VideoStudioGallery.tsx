@@ -17,7 +17,9 @@ export type VideoStudioStage = 'empty' | 'character' | 'storyboard' | 'render' |
 
 export function getVideoStudioStage(project: StudioProject | undefined): VideoStudioStage {
   if (!project) return 'empty'
-  if (project.characterOptions.length === 0) return 'empty'
+  // پروژه‌ی «تولید ساده» (SimpleVideoForm.tsx) هیچ‌وقت characterOptions ندارد ولی مستقیم shot
+  // دارد — نباید empty نمایش داده شود؛ فقط وقتی واقعاً نه کاراکتر نه صحنه‌ای ساخته شده empty است
+  if (project.characterOptions.length === 0 && project.shots.length === 0) return 'empty'
   if (project.shots.length === 0) return 'character'
   const anyRequested = project.shots.some(s => s.videoStatus !== 'NOT_STARTED')
   const allSucceeded = project.shots.every(s => s.videoStatus === 'SUCCEEDED')

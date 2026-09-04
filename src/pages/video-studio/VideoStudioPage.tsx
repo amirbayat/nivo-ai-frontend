@@ -27,6 +27,7 @@ import {
   type VideoStudioStage,
 } from './VideoStudioGallery'
 import { VideoStudioSettingsModal } from './VideoStudioSettingsModal'
+import { SimpleVideoForm } from './SimpleVideoForm'
 import type { StudioMessage, StudioProject } from '@/types/api'
 
 // docs/PRD-video-studio-chat-flow.md — صفحه‌ی واحد استودیوی ویدیو، بدون wizard/استپر.
@@ -481,30 +482,35 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
             <PlanUpgradeBadge />
           </div>
           {/* دستور صریح کاربر: یک دکمه‌ی تنظیمات (نه چند چیپ پراکنده) — روی موبایل و دسکتاپ هر
-              دو، همین یک دکمه مدال VideoStudioSettingsModal را باز می‌کند */}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
-            aria-label="تنظیمات مدل‌ها و ابعاد"
-            title="تنظیمات"
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => navigate('/video')}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
-            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
-            title="پروژه‌ی جدید"
-            aria-label="شروع پروژه‌ی جدید"
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
+              دو، همین یک دکمه مدال VideoStudioSettingsModal را باز می‌کند. فقط برای پروژه‌ی
+              چت‌محور از‌قبل باز معنی دارد — صفحه‌ی ورودی SimpleVideoForm انتخاب مدل/سایز خودش را دارد */}
+          {project && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full"
+              style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+              aria-label="تنظیمات مدل‌ها و ابعاد"
+              title="تنظیمات"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
+          )}
+          {project && (
+            <button
+              onClick={() => navigate('/video')}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
+              style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+              title="پروژه‌ی جدید"
+              aria-label="شروع پروژه‌ی جدید"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -512,7 +518,9 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
         <div className="flex flex-1 items-center justify-center text-[13px] text-slate-500">در حال بارگذاری پروژه...</div>
       )}
 
-      {!isLoading && (
+      {!isLoading && !project && <SimpleVideoForm onCreated={pid => navigate(`/video/${pid}`)} />}
+
+      {!isLoading && project && (
         <div className="relative flex flex-1 flex-col overflow-hidden sm:flex-row" style={{ padding: '20px 0' }}>
           {/* ── دسکتاپ: ستون چت (راست) — یک باکس بزرگ فول‌هایت ── */}
           <div className="hidden shrink-0 flex-col sm:order-1 sm:flex sm:w-[420px] sm:pr-10">
@@ -529,7 +537,20 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
           <div className="order-1 hidden flex-1 flex-col overflow-y-auto px-5 pb-6 sm:order-2 sm:flex sm:px-10">
             <p className="mb-4 text-[13px]" style={{ color: '#64748b' }}>گالری این پروژه</p>
 
-            {project ? (
+            <GalleryBody
+              project={project}
+              stage={stage}
+              selectCharacter={selectCharacter}
+              regenerateCharacters={regenerateCharacters}
+              onOpenPlayer={setPlayerVideoKey}
+              onRenderAll={() => void handleRenderAll()}
+              renderAllPending={renderAllPending}
+            />
+          </div>
+
+          {/* ── موبایل: صفحه‌ی پایه = گالری + نوار نوشتن جمع‌شده ── */}
+          <div className="flex flex-1 flex-col overflow-hidden sm:hidden">
+            <div className="flex-1 overflow-y-auto px-4 pb-3">
               <GalleryBody
                 project={project}
                 stage={stage}
@@ -539,27 +560,6 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
                 onRenderAll={() => void handleRenderAll()}
                 renderAllPending={renderAllPending}
               />
-            ) : (
-              <VideoStudioEmptyState />
-            )}
-          </div>
-
-          {/* ── موبایل: صفحه‌ی پایه = گالری + نوار نوشتن جمع‌شده ── */}
-          <div className="flex flex-1 flex-col overflow-hidden sm:hidden">
-            <div className="flex-1 overflow-y-auto px-4 pb-3">
-              {project ? (
-                <GalleryBody
-                  project={project}
-                  stage={stage}
-                  selectCharacter={selectCharacter}
-                  regenerateCharacters={regenerateCharacters}
-                  onOpenPlayer={setPlayerVideoKey}
-                  onRenderAll={() => void handleRenderAll()}
-                  renderAllPending={renderAllPending}
-                />
-              ) : (
-                <VideoStudioEmptyState />
-              )}
             </div>
             <div className="shrink-0 px-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
               <button
