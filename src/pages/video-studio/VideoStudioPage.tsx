@@ -27,6 +27,7 @@ import {
   type VideoStudioStage,
 } from './VideoStudioGallery'
 import { VideoStudioSettingsModal } from './VideoStudioSettingsModal'
+import { VideoStudioHistoryDrawer } from './VideoStudioHistoryDrawer'
 import { SimpleVideoForm } from './SimpleVideoForm'
 import type { StudioMessage, StudioProject } from '@/types/api'
 
@@ -378,6 +379,7 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
 
   const [prefs, setPrefs] = useState<ModelPrefs>(() => loadPrefs())
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [playerVideoKey, setPlayerVideoKey] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -511,8 +513,21 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
               </svg>
             </button>
           )}
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
+            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+            title="تاریخچه‌ی استودیوی ویدیو"
+            aria-label="باز کردن تاریخچه‌ی استودیوی ویدیو"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      <VideoStudioHistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
 
       {isLoading && (
         <div className="flex flex-1 items-center justify-center text-[13px] text-slate-500">در حال بارگذاری پروژه...</div>
