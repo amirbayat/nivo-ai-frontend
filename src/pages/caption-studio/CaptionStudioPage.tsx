@@ -15,7 +15,8 @@ import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import type { CaptionProject, CaptionSegment, CaptionStyleOverrides, CaptionWord } from '@/types/api'
 
 // docs/PRD-video-auto-captions.md §۵.۲/۵.۳ — ادیت متن/زمان‌بندی + بازیابی localStorage + جابجایی
-// آزاد زیرنویس با درگ + کلیک-برای-seek + گزینه‌ی رزولوشن خروجی، همه پیاده‌شده‌اند.
+// آزاد زیرنویس با درگ مستقیم روی ویدیو (موس/لمس) + پلیر سفارشی بیرون از قاب ویدیو + پنل‌های
+// تمام‌صفحه‌ی موبایل، همه پیاده‌شده‌اند.
 export function CaptionStudioPage() {
   const { id } = useParams<{ id?: string }>()
   return <CaptionStudioWorkspace key={id ?? 'new'} id={id} />
@@ -42,11 +43,10 @@ function CaptionStudioWorkspace({ id }: { id?: string }) {
         </button>
       </div>
 
-      {/* flex-1 overflow-y-auto — رفع باگ overflow: ChatLayout والد این صفحه به ارتفاع
-          viewport فیکس/overflow-hidden است، پس این سطح باید خودش اسکرول‌پذیر باشد
-          (الگوی VideoStudioPage.tsx/ImageStudioPage.tsx) وگرنه محتوای بلند (ویدیو + پنل
-          استایل + دکمه‌ی خروجی) از پایین صفحه بدون هیچ راه اسکرولی قطع می‌شود */}
-      <div className="flex flex-1 flex-col overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+      {/* بدنه‌ی زیر top-bar دیگر صفحه‌ی اسکرول‌شونده نیست — یک شِل با ارتفاع ثابت (مثل یک
+          ادیتور واقعی) که خودش اسکرول نمی‌خورد؛ اسکرول فقط داخل نواحی مشخص (لیست زیرنویس‌ها،
+          پنل استایل، شیت تمام‌صفحه‌ی موبایل) اتفاق می‌افتد */}
+      <div className="flex flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
         {!id && <CaptionUploadForm onCreated={pid => navigate(`/captions/${pid}`)} />}
         {id && (isLoading || !project) && <CenteredMessage text="در حال بارگذاری پروژه..." />}
         {id && project && <CaptionProjectView project={project} />}
@@ -266,6 +266,7 @@ const STYLE_PRESETS = [
 ]
 
 type EditorTab = 'text' | 'style' | 'export'
+const TAB_LABELS: Record<EditorTab, string> = { text: 'متن', style: 'استایل', export: 'خروجی' }
 
 // فقط رزولوشن‌های ≤ ابعاد واقعی سورس مجازند (بدون آپ‌اسکیل جعلی) — بخش تصمیم محصولی پلن.
 // height=undefined یعنی «کیفیت اصلی» (بدون اسکیل، رزولوشن سورس)
@@ -275,6 +276,28 @@ const RESOLUTION_OPTIONS: { label: string; height: number | undefined }[] = [
   { label: 'Full HD', height: 1080 },
   { label: '4K', height: 2160 },
 ]
+
+function TabIcon({ tab }: { tab: EditorTab }) {
+  if (tab === 'text') {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 6h16M4 12h10M4 18h7" />
+      </svg>
+    )
+  }
+  if (tab === 'style') {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 20l4-10 4 6 3-4 5 8H4z" /><circle cx="8" cy="7" r="2" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15V3m0 12l-4-4m4 4l4-4M4 21h16" />
+    </svg>
+  )
+}
 
 function CaptionEditor({ project }: { project: CaptionProject }) {
   const isDone = project.status === 'DONE'
@@ -291,6 +314,7 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
   )
   const [styleOverrides, setStyleOverrides] = useState<CaptionStyleOverrides>(() => initialStyle)
   const [tab, setTab] = useState<EditorTab>('text')
+  const [mobileTab, setMobileTab] = useState<EditorTab | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [restoreOffer, setRestoreOffer] = useState<{ segments: CaptionSegment[]; styleOverrides: CaptionStyleOverrides } | null>(null)
   const [currentSec, setCurrentSec] = useState(0)
@@ -298,17 +322,16 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
   const didInit = useRef(false)
 
-  // برای هایلایت ردیف فعال در تب «متن» و کلیک-برای-seek — فقط وقتی ویدیوی درحال‌ادیت
-  // (نه ویدیوی نهایی رندرشده که ادیتور کنارش نیست) واقعاً mount شده
+  // برای هایلایت ردیف فعال در تب «متن»/تایم‌لاین و کلیک-برای-seek
   useEffect(() => {
     const video = videoRef.current
-    if (!video || isDone) return
+    if (!video) return
     function onTimeUpdate() {
       if (video) setCurrentSec(video.currentTime)
     }
     video.addEventListener('timeupdate', onTimeUpdate)
     return () => video.removeEventListener('timeupdate', onTimeUpdate)
-  }, [videoUrl, isDone])
+  }, [videoUrl])
 
   function seekTo(seg: CaptionSegment) {
     if (videoRef.current) videoRef.current.currentTime = seg.startMs / 1000
@@ -391,25 +414,75 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
     discardSource.mutate()
   }
 
+  function openExportTab() {
+    setTab('export')
+    setMobileTab('export')
+  }
+
   const editingSegment = segments.find(s => s.id === editingId) ?? null
   const availableResolutions = RESOLUTION_OPTIONS.filter(
     opt => opt.height === undefined || !project.sourceHeight || opt.height <= project.sourceHeight,
   )
   const sourceGone = !!project.sourceDeletedAt
 
+  function renderTabContent(activeTab: EditorTab) {
+    if (activeTab === 'text') {
+      return <CueList segments={segments} currentSec={currentSec} onSeek={seekTo} onEdit={setEditingId} />
+    }
+    if (activeTab === 'style') {
+      return (
+        <StylePanel
+          value={styleOverrides}
+          onChange={setStyleOverrides}
+          onWordsPerLineChange={n => regenerateSegments(n, styleOverrides.linesPerCue ?? 1)}
+          onLinesPerCueChange={n => regenerateSegments(styleOverrides.wordsPerLine ?? 4, n)}
+          onSelectPreset={applyPreset}
+        />
+      )
+    }
+    return (
+      <ExportPanel
+        projectId={project.id}
+        isDone={isDone}
+        sourceGone={sourceGone}
+        availableResolutions={availableResolutions}
+        targetHeight={targetHeight}
+        onTargetHeightChange={setTargetHeight}
+        onRender={() => startRender.mutate(targetHeight)}
+        renderPending={startRender.isPending}
+        renderError={startRender.isError}
+        onDownloadVideo={handleDownloadVideo}
+        downloadProgress={downloadProgress}
+        onDiscardSource={handleDiscardSource}
+        discardPending={discardSource.isPending}
+      />
+    )
+  }
+
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-5 py-6 sm:px-0">
-      <div className="text-center">
-        <p className="text-[15px] font-bold text-white">
-          {isDone ? 'ویدیوی زیرنویس‌دار آماده است' : 'ویرایشگر زیرنویس'}
-        </p>
-        {project.asrModelName && (
-          <p className="mt-1 text-[11px]" style={{ color: '#64748b' }}>مدل تشخیص گفتار: {project.asrModelName}</p>
-        )}
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2 pt-1 sm:px-6">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[14px] font-bold text-white">
+            {isDone ? 'ویدیوی زیرنویس‌دار آماده است' : 'ویرایشگر زیرنویس'}
+          </span>
+          {project.asrModelName && (
+            <span className="text-[10.5px]" style={{ color: '#64748b' }}>مدل تشخیص گفتار: {project.asrModelName}</span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={openExportTab}
+          className="flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-bold text-[#241000]"
+          style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
+        >
+          <TabIcon tab="export" />
+          خروجی
+        </button>
       </div>
 
       {restoreOffer && (
-        <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-2xl px-4 py-3" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)' }}>
+        <div className="mx-4 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-2xl px-4 py-3 sm:mx-6" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)' }}>
           <span className="text-[12px] text-slate-200">یک نسخه‌ی ذخیره‌نشده از ادیت قبلی پیدا شد — بازیابی شود؟</span>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => setRestoreOffer(null)} className="text-[11.5px] font-semibold text-slate-400">رد کردن</button>
@@ -418,186 +491,86 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
         </div>
       )}
 
-      {/* sm:justify-center — دو ستون دیگر روی دسکتاپ به سمت راست چسبیده نمی‌مانند، واقعاً
-          وسط پهنای صفحه قرار می‌گیرند */}
-      <div className="flex flex-col gap-5 sm:flex-row sm:justify-center">
-        {/* w-fit (نه w-full) — عرض این جعبه دقیقاً با عرض واقعی رندرشده‌ی ویدیو (بعد از
-            محدودشدن با max-h) یکی می‌شود، نه یک عرض ثابت که برای ویدیوی عمودی روی موبایل
-            ارتفاع خیلی زیادی می‌ساخت. min-w برای حالت «در حال بارگذاری» که هنوز ویدیویی
-            برای اندازه‌گیری نیست */}
-        <div className="relative mx-auto w-fit min-w-[240px] max-w-full overflow-hidden rounded-2xl bg-black sm:mx-0">
-          {!videoUrl && <div className="flex aspect-video w-[280px] items-center justify-center text-[12px] text-slate-500">در حال بارگذاری ویدیو...</div>}
-          {videoUrl && !isDone && (
-            <VideoWithCaptionOverlay
+      <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 sm:p-6">
+          {!videoUrl && (
+            <div className="flex flex-1 items-center justify-center rounded-2xl text-[12px]" style={{ color: '#64748b', background: 'rgba(255,255,255,0.02)' }}>
+              در حال بارگذاری ویدیو...
+            </div>
+          )}
+          {videoUrl && (
+            <VideoStage
               videoRef={videoRef}
               videoUrl={videoUrl}
-              segments={segments}
-              styleOverrides={styleOverrides}
-              onDragPosition={pos => setStyleOverrides(prev => ({ ...prev, positionX: pos.x, positionY: pos.y }))}
+              segments={!isDone ? segments : undefined}
+              styleOverrides={!isDone ? styleOverrides : undefined}
+              onDragPosition={!isDone ? pos => setStyleOverrides(prev => ({ ...prev, positionX: pos.x, positionY: pos.y })) : undefined}
             />
           )}
-          {videoUrl && isDone && (
-            // ویدیوی رندرشده از قبل زیرنویس سوزانده دارد (caption-render.processor.ts) —
-            // نیازی به overlay Canvas نیست. max-h — رفع باگ overflow ویدیوی بزرگ (مخصوصاً
-            // ویدیوهای عمودی) روی موبایل/صفحه‌های کوتاه: چون این‌جا video خودش (نه یک div
-            // با aspect-ratio دستی) اندازه‌ی طبیعی‌اش را با max-height/width:auto محاسبه
-            // می‌کند، در همه‌ی مرورگرها (از جمله سافاری موبایل) درست کار می‌کند
-            <video
-              src={videoUrl}
-              controls
-              playsInline
-              preload="metadata"
-              className="block max-h-[42vh] w-auto max-w-full object-contain sm:max-h-[70vh]"
-            />
-          )}
+          {videoUrl && <ControlBar videoRef={videoRef} />}
+          {videoUrl && !isDone && <TimelineStrip segments={segments} currentSec={currentSec} onSeek={seekTo} />}
         </div>
 
-        {!isDone && (
-          <div className="flex w-full flex-col gap-3 sm:w-[320px]">
-            <div className="flex items-center gap-1 rounded-full p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.18)' }}>
-              {([['text', 'متن'], ['style', 'استایل'], ['export', 'خروجی']] as const).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setTab(key)}
-                  className="flex-1 rounded-full py-2 text-[12px] font-bold transition-colors"
-                  style={tab === key ? { background: '#f59e0b', color: '#241000' } : { color: '#94a3b8' }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {tab === 'text' && (
-              <div className="flex max-h-[360px] flex-col gap-2 overflow-y-auto">
-                {segments.map(seg => {
-                  const active = currentSec * 1000 >= seg.startMs && currentSec * 1000 <= seg.endMs
-                  return (
-                    <div
-                      key={seg.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => seekTo(seg)}
-                      onKeyDown={e => { if (e.key === 'Enter') seekTo(seg) }}
-                      className="flex cursor-pointer items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-right transition-colors"
-                      style={
-                        active
-                          ? { background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.4)' }
-                          : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }
-                      }
-                    >
-                      <span className="flex flex-col gap-0.5">
-                        <span className="text-[9.5px]" style={{ color: active ? '#f59e0b' : '#64748b' }}>
-                          {(seg.startMs / 1000).toFixed(1)} - {(seg.endMs / 1000).toFixed(1)}
-                        </span>
-                        <span className="text-[12.5px] text-slate-200">{seg.text}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); setEditingId(seg.id) }}
-                        aria-label="ویرایش این زیرنویس"
-                        className="flex size-7 shrink-0 items-center justify-center rounded-full"
-                        style={{ color: '#64748b' }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                          <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                        </svg>
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {tab === 'style' && (
-              <StylePanel
-                value={styleOverrides}
-                onChange={setStyleOverrides}
-                onWordsPerLineChange={n => regenerateSegments(n, styleOverrides.linesPerCue ?? 1)}
-                onLinesPerCueChange={n => regenerateSegments(styleOverrides.wordsPerLine ?? 4, n)}
-                onSelectPreset={applyPreset}
-              />
-            )}
-
-            {tab === 'export' && <ExportPanel projectId={project.id} />}
+        {/* دسکتاپ — پنل کناری همیشه inline (نه مدال) */}
+        <div className="hidden shrink-0 flex-col gap-3 border-r p-4 sm:flex sm:w-[300px]" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
+          <div className="flex shrink-0 items-center gap-1 rounded-full p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.18)' }}>
+            {(['text', 'style', 'export'] as const).map(key => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className="flex-1 rounded-full py-2 text-[12px] font-bold transition-colors"
+                style={tab === key ? { background: '#f59e0b', color: '#241000' } : { color: '#94a3b8' }}
+              >
+                {TAB_LABELS[key]}
+              </button>
+            ))}
           </div>
-        )}
+          <div className="flex-1 overflow-y-auto">{renderTabContent(tab)}</div>
+        </div>
       </div>
 
-      {!sourceGone && (
-        <div className="mx-auto flex flex-wrap items-center justify-center gap-1.5">
-          {availableResolutions.map(opt => (
-            <button
-              key={opt.label}
-              type="button"
-              onClick={() => setTargetHeight(opt.height)}
-              className="rounded-full px-3.5 py-1.5 text-[11px] font-bold"
-              style={
-                targetHeight === opt.height
-                  ? { background: '#f59e0b', color: '#241000' }
-                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)', color: '#94a3b8' }
-              }
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {!isDone && !sourceGone && (
-        <button
-          type="button"
-          onClick={() => startRender.mutate(targetHeight)}
-          disabled={startRender.isPending}
-          className="mx-auto rounded-full px-7 py-3 text-[14px] font-bold text-[#241000] disabled:opacity-50"
-          style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
-        >
-          {startRender.isPending ? 'در حال شروع رندر...' : 'خروجی نهایی'}
-        </button>
-      )}
-      {isDone && (
-        <div className="mx-auto flex flex-wrap items-center justify-center gap-2">
+      {/* موبایل — تب پایین صفحه، هر کدوم یک شیت تمام‌صفحه باز می‌کند */}
+      <div className="flex shrink-0 items-center justify-around border-t py-2 sm:hidden" style={{ borderColor: 'rgba(148,163,184,0.14)' }}>
+        {(['text', 'style', 'export'] as const).map(key => (
           <button
+            key={key}
             type="button"
-            onClick={handleDownloadVideo}
-            disabled={downloadProgress !== null}
-            className="rounded-full px-6 py-2.5 text-[12.5px] font-bold text-[#241000] disabled:opacity-50"
-            style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
+            onClick={() => setMobileTab(key)}
+            className="flex flex-col items-center gap-1 px-4 py-1"
+            style={{ color: '#64748b' }}
           >
-            {downloadProgress !== null ? `در حال دانلود... ${downloadProgress}٪` : 'دانلود ویدیو'}
+            <TabIcon tab={key} />
+            <span className="text-[10.5px] font-bold">{TAB_LABELS[key]}</span>
           </button>
-          {!sourceGone && (
+        ))}
+      </div>
+
+      {mobileTab && (
+        <div className="fixed inset-0 z-40 flex flex-col sm:hidden" style={{ background: '#0b1120' }}>
+          <div className="flex shrink-0 items-center justify-between border-b px-4 py-3.5" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
+            <span className="text-[13px] font-bold text-white">{TAB_LABELS[mobileTab]}</span>
             <button
               type="button"
-              onClick={() => startRender.mutate(targetHeight)}
-              disabled={startRender.isPending}
-              className="rounded-full px-6 py-2.5 text-[12.5px] font-semibold text-slate-300"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)' }}
+              onClick={() => setMobileTab(null)}
+              className="flex size-7 items-center justify-center rounded-full text-slate-400"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
             >
-              {startRender.isPending ? 'در حال رندر دوباره...' : 'رندر دوباره'}
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" width="11" height="11"><path d="M4 4l12 12M16 4L4 16" /></svg>
             </button>
-          )}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">{renderTabContent(mobileTab)}</div>
+          <div className="shrink-0 p-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+            <button
+              type="button"
+              onClick={() => setMobileTab(null)}
+              className="w-full rounded-full py-3 text-[13px] font-bold text-[#241000]"
+              style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
+            >
+              اعمال
+            </button>
+          </div>
         </div>
-      )}
-      {startRender.isError && (
-        <p className="text-center text-[12px] text-red-400">شروع رندر ناموفق بود — اعتبار کافی نیست یا خطایی رخ داد</p>
-      )}
-
-      {!sourceGone && (project.status === 'READY_FOR_EDIT' || isDone) && (
-        <button
-          type="button"
-          onClick={handleDiscardSource}
-          disabled={discardSource.isPending}
-          className="mx-auto text-[11px] font-semibold underline-offset-2 hover:underline disabled:opacity-50"
-          style={{ color: '#64748b' }}
-        >
-          پایان کار و آزادسازی فضا (حذف ویدیوی اصلی)
-        </button>
-      )}
-      {sourceGone && (
-        <p className="text-center text-[11px]" style={{ color: '#64748b' }}>
-          ویدیوی اصلی حذف شده — رندر دوباره ممکن نیست
-        </p>
       )}
 
       {editingSegment && (
@@ -608,6 +581,201 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
           onClose={() => setEditingId(null)}
         />
       )}
+    </div>
+  )
+}
+
+function CueList({
+  segments,
+  currentSec,
+  onSeek,
+  onEdit,
+}: {
+  segments: CaptionSegment[]
+  currentSec: number
+  onSeek: (seg: CaptionSegment) => void
+  onEdit: (id: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {segments.map(seg => {
+        const active = currentSec * 1000 >= seg.startMs && currentSec * 1000 <= seg.endMs
+        return (
+          <div
+            key={seg.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => onSeek(seg)}
+            onKeyDown={e => { if (e.key === 'Enter') onSeek(seg) }}
+            className="flex cursor-pointer items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-right transition-colors"
+            style={
+              active
+                ? { background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.4)' }
+                : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }
+            }
+          >
+            <span className="flex flex-col gap-0.5">
+              <span className="text-[9.5px]" style={{ color: active ? '#f59e0b' : '#64748b' }}>
+                {(seg.startMs / 1000).toFixed(1)} - {(seg.endMs / 1000).toFixed(1)}
+              </span>
+              <span className="text-[12.5px] text-slate-200">{seg.text}</span>
+            </span>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onEdit(seg.id) }}
+              aria-label="ویرایش این زیرنویس"
+              className="flex size-7 shrink-0 items-center justify-center rounded-full"
+              style={{ color: '#64748b' }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+              </svg>
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function TimelineStrip({
+  segments,
+  currentSec,
+  onSeek,
+}: {
+  segments: CaptionSegment[]
+  currentSec: number
+  onSeek: (seg: CaptionSegment) => void
+}) {
+  return (
+    <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
+      {segments.map(seg => {
+        const active = currentSec * 1000 >= seg.startMs && currentSec * 1000 <= seg.endMs
+        return (
+          <button
+            key={seg.id}
+            type="button"
+            onClick={() => onSeek(seg)}
+            className="shrink-0 rounded-xl px-3 py-2 text-right"
+            style={
+              active
+                ? { minWidth: 110, border: '1.5px solid #10b981', background: 'rgba(16,185,129,0.10)' }
+                : { minWidth: 90, border: '1px solid rgba(148,163,184,0.3)', background: 'rgba(30,41,59,0.5)' }
+            }
+          >
+            <div className="text-[9px]" style={{ color: active ? '#34d399' : '#64748b' }}>
+              {(seg.startMs / 1000).toFixed(1)} - {(seg.endMs / 1000).toFixed(1)}
+            </div>
+            <div className="truncate text-[11px] font-semibold" style={{ color: active ? '#fff' : '#94a3b8', maxWidth: 140 }}>
+              {seg.text}
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function formatPlayerTime(sec: number): string {
+  if (!Number.isFinite(sec) || sec < 0) sec = 0
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+// پلیر کاملاً سفارشی، بیرون از قاب ویدیو (نه رویش) — کنترل پیش‌فرض مرورگر روی <video> عمداً
+// خاموش است (بدون attribute کنترل)؛ این تنها راه پخش/توقف/جابجایی زمان است
+function ControlBar({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement | null> }) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [scrubbing, setScrubbing] = useState(false)
+  const trackRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    function onPlay() { setIsPlaying(true) }
+    function onPause() { setIsPlaying(false) }
+    function onTimeUpdate() { if (!scrubbing && video) setCurrentTime(video.currentTime) }
+    function onLoadedMeta() { if (video) setDuration(video.duration || 0) }
+    video.addEventListener('play', onPlay)
+    video.addEventListener('pause', onPause)
+    video.addEventListener('timeupdate', onTimeUpdate)
+    video.addEventListener('loadedmetadata', onLoadedMeta)
+    if (video.readyState >= 1) setDuration(video.duration || 0)
+    return () => {
+      video.removeEventListener('play', onPlay)
+      video.removeEventListener('pause', onPause)
+      video.removeEventListener('timeupdate', onTimeUpdate)
+      video.removeEventListener('loadedmetadata', onLoadedMeta)
+    }
+  }, [videoRef, scrubbing])
+
+  function togglePlay() {
+    const video = videoRef.current
+    if (!video) return
+    if (video.paused) void video.play()
+    else video.pause()
+  }
+
+  // نوار زمان راست‌به‌چپ پر می‌شود (هم‌جهت با بقیه‌ی UI که RTL است) — پیشرفت = فاصله از لبه‌ی راست
+  function ratioFromPointer(e: React.PointerEvent<HTMLDivElement>): number {
+    const rect = trackRef.current?.getBoundingClientRect()
+    if (!rect || rect.width === 0) return 0
+    return Math.max(0, Math.min(1, (rect.right - e.clientX) / rect.width))
+  }
+
+  function seekToRatio(ratio: number) {
+    setCurrentTime(ratio * duration)
+    if (videoRef.current) videoRef.current.currentTime = ratio * duration
+  }
+
+  function handleScrubDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setScrubbing(true)
+    seekToRatio(ratioFromPointer(e))
+  }
+  function handleScrubMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!scrubbing) return
+    seekToRatio(ratioFromPointer(e))
+  }
+  function handleScrubUp() {
+    setScrubbing(false)
+  }
+
+  const progress = duration > 0 ? currentTime / duration : 0
+
+  return (
+    <div className="flex shrink-0 items-center gap-3 rounded-2xl px-4 py-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }}>
+      <button
+        type="button"
+        onClick={togglePlay}
+        aria-label={isPlaying ? 'توقف' : 'پخش'}
+        className="flex size-8 shrink-0 items-center justify-center rounded-full"
+        style={{ background: '#10b981', color: '#02170f' }}
+      >
+        {isPlaying ? (
+          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M7 5l12 7-12 7V5z" /></svg>
+        )}
+      </button>
+      <div
+        ref={trackRef}
+        onPointerDown={handleScrubDown}
+        onPointerMove={handleScrubMove}
+        onPointerUp={handleScrubUp}
+        className="relative flex-1 cursor-pointer"
+        style={{ height: 22, touchAction: 'none' }}
+      >
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full" style={{ height: 8, background: 'rgba(255,255,255,0.12)' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 rounded-full" style={{ height: 8, right: 0, width: `${progress * 100}%`, background: 'linear-gradient(90deg,#10b981,#34d399)' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 rounded-full" style={{ width: 16, height: 16, right: `calc(${progress * 100}% - 8px)`, background: '#fff', border: '3px solid #10b981' }} />
+      </div>
+      <span className="shrink-0 text-[11px] font-semibold" style={{ color: '#94a3b8' }}>
+        {formatPlayerTime(currentTime)} / {formatPlayerTime(duration)}
+      </span>
     </div>
   )
 }
@@ -909,7 +1077,7 @@ function StylePanel({
             )
           })}
         </div>
-        <span className="text-[10px]" style={{ color: '#64748b' }}>یا مستقیم روی ویدیو زیرنویس رو بکش — هر جای ویدیو، نه فقط بالا/وسط/پایین</span>
+        <span className="text-[10px]" style={{ color: '#64748b' }}>یا مستقیم روی ویدیو زیرنویس رو بکش — هر جای ویدیو، هم با موس هم با انگشت</span>
       </div>
 
       <p className="text-[10px] leading-relaxed" style={{ color: '#64748b' }}>
@@ -919,11 +1087,39 @@ function StylePanel({
   )
 }
 
-function ExportPanel({ projectId }: { projectId: string }) {
+function ExportPanel({
+  projectId,
+  isDone,
+  sourceGone,
+  availableResolutions,
+  targetHeight,
+  onTargetHeightChange,
+  onRender,
+  renderPending,
+  renderError,
+  onDownloadVideo,
+  downloadProgress,
+  onDiscardSource,
+  discardPending,
+}: {
+  projectId: string
+  isDone: boolean
+  sourceGone: boolean
+  availableResolutions: { label: string; height: number | undefined }[]
+  targetHeight: number | undefined
+  onTargetHeightChange: (h: number | undefined) => void
+  onRender: () => void
+  renderPending: boolean
+  renderError: boolean
+  onDownloadVideo: () => void
+  downloadProgress: number | null
+  onDiscardSource: () => void
+  discardPending: boolean
+}) {
   const [busy, setBusy] = useState<'srt' | 'vtt' | 'ass' | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleDownload(format: 'srt' | 'vtt' | 'ass') {
+  async function handleDownloadSubtitle(format: 'srt' | 'vtt' | 'ass') {
     setBusy(format)
     setError(null)
     try {
@@ -936,37 +1132,112 @@ function ExportPanel({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-[11.5px] leading-relaxed" style={{ color: '#94a3b8' }}>
-        فایل زیرنویس خام — برای استفاده در ادیتورهای دیگر مثل Premiere یا CapCut
-      </p>
-      <div className="flex gap-2">
-        {(['srt', 'vtt', 'ass'] as const).map(fmt => (
-          <button
-            key={fmt}
-            type="button"
-            onClick={() => void handleDownload(fmt)}
-            disabled={busy === fmt}
-            className="flex-1 rounded-full py-2.5 text-[12px] font-bold uppercase disabled:opacity-50"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)', color: '#e2e8f0' }}
-          >
-            {busy === fmt ? '...' : fmt}
-          </button>
-        ))}
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>رزولوشن خروجی</span>
+        <div className="flex flex-wrap gap-1.5">
+          {availableResolutions.map(opt => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => onTargetHeightChange(opt.height)}
+              disabled={sourceGone}
+              className="rounded-full px-3.5 py-1.5 text-[11px] font-bold disabled:opacity-40"
+              style={chipStyle(targetHeight === opt.height)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
-      {error && <p className="text-[11px] text-red-400">{error}</p>}
+
+      {!sourceGone && (
+        <button
+          type="button"
+          onClick={onRender}
+          disabled={renderPending}
+          className="rounded-full py-3 text-[13.5px] font-bold text-[#241000] disabled:opacity-50"
+          style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
+        >
+          {renderPending ? 'در حال شروع رندر...' : isDone ? 'رندر دوباره' : 'خروجی نهایی'}
+        </button>
+      )}
+      {renderError && (
+        <p className="text-[11.5px] text-red-400">شروع رندر ناموفق بود — اعتبار کافی نیست یا خطایی رخ داد</p>
+      )}
+
+      {isDone && (
+        <button
+          type="button"
+          onClick={onDownloadVideo}
+          disabled={downloadProgress !== null}
+          className="rounded-full py-2.5 text-[12.5px] font-bold disabled:opacity-50"
+          style={{ background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.35)', color: '#34d399' }}
+        >
+          {downloadProgress !== null ? `در حال دانلود... ${downloadProgress}٪` : 'دانلود ویدیوی نهایی'}
+        </button>
+      )}
+
+      <div className="h-px" style={{ background: 'rgba(148,163,184,0.16)' }} />
+
+      <div className="flex flex-col gap-2">
+        <p className="text-[11.5px] leading-relaxed" style={{ color: '#94a3b8' }}>
+          فایل زیرنویس خام — برای استفاده در ادیتورهای دیگر مثل Premiere یا CapCut
+        </p>
+        <div className="flex gap-2">
+          {(['srt', 'vtt', 'ass'] as const).map(fmt => (
+            <button
+              key={fmt}
+              type="button"
+              onClick={() => void handleDownloadSubtitle(fmt)}
+              disabled={busy === fmt}
+              className="flex-1 rounded-full py-2.5 text-[12px] font-bold uppercase disabled:opacity-50"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)', color: '#e2e8f0' }}
+            >
+              {busy === fmt ? '...' : fmt}
+            </button>
+          ))}
+        </div>
+        {error && <p className="text-[11px] text-red-400">{error}</p>}
+      </div>
+
+      {!sourceGone && (
+        <button
+          type="button"
+          onClick={onDiscardSource}
+          disabled={discardPending}
+          className="text-[11px] font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+          style={{ color: '#64748b' }}
+        >
+          پایان کار و آزادسازی فضا (حذف ویدیوی اصلی)
+        </button>
+      )}
+      {sourceGone && (
+        <p className="text-[11px]" style={{ color: '#64748b' }}>
+          ویدیوی اصلی حذف شده — رندر دوباره ممکن نیست
+        </p>
+      )}
     </div>
   )
 }
 
-// پیش‌نمایش زنده‌ی زیرنویس با Canvas — بخش ۵.۲: فرانت فقط با آرایه‌ی کلمات کار می‌کند، نه
-// پیکسل؛ رسم مستقیم روی canvas یعنی هیچ transcoding واقعی سمت کلاینت لازم نیست. segments
-// همان چیزی است که کاربر ادیت می‌کند — پیش‌نمایش بلافاصله بعد از هر ادیت به‌روز می‌شود.
-//
-// درگ روی خودِ زیرنویس: کاملاً آزاد (هر نقطه‌ی ویدیو) — چون رندرر بک‌اند حالا از \pos(x,y)
-// آزاد استفاده می‌کند (نه فقط ۳ Alignment گسسته، ass-subtitle-builder.ts), مختصات پیوسته‌ی
-// همین‌جا مستقیم قابل‌رندر واقعی است، نه نیاز به اسنپ.
-function VideoWithCaptionOverlay({
+// محاسبه‌ی مستطیل واقعی ویدیو داخل جعبه‌ی flex:1 — دقیقاً همون الگوریتم object-fit:contain
+// (letterbox)، چون canvas/دستگیره‌ی درگ باید دقیقاً روی خودِ پیکسل‌های ویدیو بیفتند، نه کل
+// جعبه (که معمولاً به‌خاطر نسبت تصویر متفاوت، حاشیه‌ی خالی هم دارد)
+function computeContainRect(boxW: number, boxH: number, vidW: number, vidH: number) {
+  if (!boxW || !boxH || !vidW || !vidH) return { left: 0, top: 0, width: boxW, height: boxH }
+  const scale = Math.min(boxW / vidW, boxH / vidH)
+  const width = vidW * scale
+  const height = vidH * scale
+  return { left: (boxW - width) / 2, top: (boxH - height) / 2, width, height }
+}
+
+// جعبه‌ی ویدیو — یک ناحیه‌ی flex:1 ثابت (نه چیزی که با محتوای پنل کناری بزرگ/کوچک شود)، با
+// پس‌زمینه‌ی letterbox؛ ویدیو با object-fit:contain همیشه وسط و کامل دیده می‌شود. کنترل پیش‌فرض
+// مرورگر عمداً خاموش است (ControlBar بیرون از این جعبه کنترل واقعی را می‌دهد). وقتی segments
+// پاس داده شود (حالت ادیت، نه ویدیوی نهایی رندرشده)، پیش‌نمایش Canvas + دستگیره‌ی درگ آزاد
+// (موس/لمس) هم روی همین جعبه می‌آید — دقیقاً هم‌ترازِ پیکسل‌های واقعی ویدیو، نه کل جعبه.
+function VideoStage({
   videoRef,
   videoUrl,
   segments,
@@ -975,11 +1246,15 @@ function VideoWithCaptionOverlay({
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>
   videoUrl: string
-  segments: CaptionSegment[]
-  styleOverrides: CaptionStyleOverrides
-  onDragPosition: (position: { x: number; y: number }) => void
+  segments?: CaptionSegment[]
+  styleOverrides?: CaptionStyleOverrides
+  onDragPosition?: (position: { x: number; y: number }) => void
 }) {
+  const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const editable = segments !== undefined && styleOverrides !== undefined && !!onDragPosition
+  const [boxSize, setBoxSize] = useState({ width: 0, height: 0 })
+  const [videoSize, setVideoSize] = useState({ width: 0, height: 0 })
   const [dragPreviewPos, setDragPreviewPos] = useState<{ x: number; y: number } | null>(null)
   const segmentsRef = useRef(segments)
   segmentsRef.current = segments
@@ -989,12 +1264,33 @@ function VideoWithCaptionOverlay({
   dragPreviewRef.current = dragPreviewPos
 
   useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const entry = entries[0]
+      if (entry) setBoxSize({ width: entry.contentRect.width, height: entry.contentRect.height })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
     const video = videoRef.current
-    const canvas = canvasRef.current
-    if (!video || !canvas) return
+    if (!video) return
+
+    function onLoadedMeta() {
+      if (video) setVideoSize({ width: video.videoWidth, height: video.videoHeight })
+    }
+    video.addEventListener('loadedmetadata', onLoadedMeta)
+    if (video.readyState >= 1) onLoadedMeta()
+
+    if (!editable) {
+      return () => video.removeEventListener('loadedmetadata', onLoadedMeta)
+    }
 
     let raf = 0
     function draw() {
+      const canvas = canvasRef.current
       if (!video || !canvas) return
       const ctx = canvas.getContext('2d')
       if (!ctx) return
@@ -1003,38 +1299,34 @@ function VideoWithCaptionOverlay({
         canvas.height = video.videoHeight || canvas.height
       }
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-
       const tMs = video.currentTime * 1000
-      const seg = segmentsRef.current.find(s => tMs >= s.startMs && tMs <= s.endMs) ?? segmentsRef.current[0]
-      if (seg) {
+      const list = segmentsRef.current ?? []
+      const seg = list.find(s => tMs >= s.startMs && tMs <= s.endMs) ?? list[0]
+      if (seg && styleRef.current) {
         drawCue(ctx, canvas.width, canvas.height, seg, video.currentTime, styleRef.current, dragPreviewRef.current)
       }
-
       raf = requestAnimationFrame(draw)
     }
-
-    function onLoadedMeta() {
-      raf = requestAnimationFrame(draw)
-    }
-
-    video.addEventListener('loadedmetadata', onLoadedMeta)
-    if (video.readyState >= 1) onLoadedMeta()
+    raf = requestAnimationFrame(draw)
 
     return () => {
       video.removeEventListener('loadedmetadata', onLoadedMeta)
       cancelAnimationFrame(raf)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [editable])
+
+  const rect = computeContainRect(boxSize.width, boxSize.height, videoSize.width, videoSize.height)
 
   function ratioFromEvent(e: React.PointerEvent<HTMLDivElement>): { x: number; y: number } {
-    // مختصات نسبت به کل ویدیو محاسبه می‌شود (نه فقط دستگیره) — pointer capture یعنی حتی
-    // اگر انگشت/موس از محدوده‌ی دستگیره‌ی کوچک بیرون برود، move/up باز هم دریافت می‌شود
-    const container = e.currentTarget.parentElement as HTMLElement
-    const rect = container.getBoundingClientRect()
+    const box = stageRef.current
+    if (!box || rect.width === 0 || rect.height === 0) return { x: 0.5, y: 0.5 }
+    const boxRect = box.getBoundingClientRect()
+    const localX = e.clientX - boxRect.left - rect.left
+    const localY = e.clientY - boxRect.top - rect.top
     return {
-      x: Math.max(0.06, Math.min(0.94, (e.clientX - rect.left) / rect.width)),
-      y: Math.max(0.06, Math.min(0.94, (e.clientY - rect.top) / rect.height)),
+      x: Math.max(0.06, Math.min(0.94, localX / rect.width)),
+      y: Math.max(0.06, Math.min(0.94, localY / rect.height)),
     }
   }
 
@@ -1042,51 +1334,67 @@ function VideoWithCaptionOverlay({
     e.currentTarget.setPointerCapture(e.pointerId)
     setDragPreviewPos(ratioFromEvent(e))
   }
-
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (dragPreviewRef.current === null) return
     setDragPreviewPos(ratioFromEvent(e))
   }
-
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     if (dragPreviewRef.current === null) return
-    onDragPosition(ratioFromEvent(e))
+    onDragPosition?.(ratioFromEvent(e))
     setDragPreviewPos(null)
   }
 
-  const { x: handleX, y: handleY } = resolvePositionRatio(styleOverrides, null)
+  const { x: handleXRatio, y: handleYRatio } = editable && styleOverrides
+    ? resolvePositionRatio(styleOverrides, dragPreviewPos)
+    : { x: 0.5, y: 0.5 }
+  const handleLeft = rect.left + handleXRatio * rect.width
+  const handleTop = rect.top + handleYRatio * rect.height
+  const handleBoxW = Math.max(60, rect.width * 0.5)
+  const handleBoxH = Math.max(40, rect.height * 0.22)
 
   return (
-    // width:fit-content — این جعبه دقیقاً به اندازه‌ی خودِ ویدیو (که پایین‌تر با
-    // max-height/width:auto اندازه‌ی طبیعی‌اش را حساب می‌کند) جمع می‌شود، نه یک اندازه‌ی
-    // ثابت که برای ویدیوی عمودی روی موبایل ارتفاع بیش‌ازحد می‌ساخت. canvas/دستگیره‌ی درگ
-    // چون absolute هستند در محاسبه‌ی این اندازه شرکت نمی‌کنند، پس همیشه دقیقاً روی ویدیو می‌افتند
-    <div className="relative w-fit max-w-full">
+    <div
+      ref={stageRef}
+      className="relative min-h-0 flex-1 overflow-hidden rounded-2xl"
+      style={{
+        background:
+          'radial-gradient(circle at 15% -10%, rgba(52,211,153,0.20), transparent 55%), radial-gradient(circle at 100% 115%, rgba(99,102,241,0.16), transparent 55%), linear-gradient(150deg,#1e293b 0%,#0f1729 55%,#0b1020 100%)',
+      }}
+    >
+      {/* بدون attribute کنترل — کنترل واقعی فقط از ControlBar بیرون از این جعبه است */}
       <video
         ref={videoRef}
         src={videoUrl}
-        controls
         playsInline
         preload="metadata"
-        className="block max-h-[42vh] w-auto max-w-full sm:max-h-[70vh]"
+        className="absolute inset-0 h-full w-full object-contain"
       />
-      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
-      {/* دستگیره‌ی درگ کوچک، دور نقطه‌ی فعلی متن — بقیه‌ی ویدیو (کنترل‌های پخش native) باید
-          کلیک‌پذیر بماند */}
-      <div
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        className="absolute flex cursor-grab items-center justify-center active:cursor-grabbing"
-        style={{
-          left: `${handleX * 100}%`,
-          top: `${handleY * 100}%`,
-          width: '44%',
-          height: '18%',
-          transform: 'translate(-50%, -50%)',
-        }}
-        title="بکش تا موقعیت زیرنویس رو عوض کنی — هر جای ویدیو"
-      />
+      {editable && (
+        <>
+          <canvas
+            ref={canvasRef}
+            className="pointer-events-none absolute"
+            style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+          />
+          {/* دستگیره‌ی درگ — مستقیم روی خودِ زیرنویس، هم با موس هم با لمس (touch-action:none
+              جلوی تداخل با اسکرول صفحه‌ی موبایل موقع کشیدن را می‌گیرد) */}
+          <div
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            className="absolute flex cursor-grab items-center justify-center active:cursor-grabbing"
+            style={{
+              left: handleLeft,
+              top: handleTop,
+              width: handleBoxW,
+              height: handleBoxH,
+              transform: 'translate(-50%, -50%)',
+              touchAction: 'none',
+            }}
+            title="بکش تا موقعیت زیرنویس رو عوض کنی"
+          />
+        </>
+      )}
     </div>
   )
 }
