@@ -8,6 +8,7 @@ import { ChatPage } from '@/pages/chat/ChatPage'
 import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
 import { VideoStudioPage } from '@/pages/video-studio/VideoStudioPage'
+import { CaptionStudioPage } from '@/pages/caption-studio/CaptionStudioPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
 import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
@@ -121,6 +122,15 @@ export function AppRouter() {
       <Route
         path="/video/:id"
         element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoStudioPage /></ChatLayout></ProtectedRoute>}
+      />
+      {/* استودیوی زیرنویس خودکار — docs/PRD-video-auto-captions.md §۱۸، همان الگوی /video */}
+      <Route
+        path="/captions"
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><CaptionStudioPage /></ChatLayout></ProtectedRoute>}
+      />
+      <Route
+        path="/captions/:id"
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><CaptionStudioPage /></ChatLayout></ProtectedRoute>}
       />
       <Route
         path="/pricing"

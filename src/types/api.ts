@@ -509,6 +509,56 @@ export interface StudioProject {
   shots: StudioShot[]
 }
 
+// docs/PRD-video-auto-captions.md §۶ — استودیوی زیرنویس خودکار
+export type CaptionProjectStatus =
+  | 'UPLOADED'
+  | 'TRANSCRIBING'
+  | 'READY_FOR_EDIT'
+  | 'RENDERING'
+  | 'DONE'
+  | 'FAILED'
+
+export interface CaptionWord {
+  word: string
+  start: number
+  end: number
+  speaker: string | null
+}
+
+export interface CaptionSegment {
+  id: string
+  startMs: number
+  endMs: number
+  text: string
+  words: CaptionWord[]
+}
+
+export interface CaptionStyleOverrides {
+  fontFamily?: string
+  textColor?: string
+  highlightColor?: string
+  backgroundMode?: 'none' | 'translucent' | 'solid'
+  fontSizePx?: number
+  position?: 'top' | 'center' | 'bottom'
+}
+
+export interface CaptionProject {
+  id: string
+  userId: string
+  status: CaptionProjectStatus
+  sourceVideoKey: string
+  sourceDurationSec: number | null
+  asrModelName: string | null
+  transcriptWords: CaptionWord[] | null
+  segments: CaptionSegment[] | null
+  styleId: string | null
+  styleOverrides: CaptionStyleOverrides | null
+  renderedVideoKey: string | null
+  renderCreditCost: number | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface StudioMessage {
   id: string
   projectId: string

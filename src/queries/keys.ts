@@ -95,4 +95,7 @@ export const keys = {
     messages: (projectId: string) => ['video-studio', 'messages', projectId] as const,
     notifications: () => ['video-studio', 'notifications'] as const,
   },
+  captionStudio: {
+    detail: (id: string) => ['caption-studio', 'detail', id] as const,
+  },
 } as const

@@ -46,7 +46,7 @@ export function HubPage() {
       </div>
 
       {/* cards */}
-      <div className="relative flex flex-col items-center justify-center gap-5 px-6 pt-12 pb-16 sm:flex-row sm:gap-7 sm:pt-16">
+      <div className="relative flex flex-col flex-wrap items-center justify-center gap-5 px-6 pt-12 pb-16 sm:flex-row sm:gap-7 sm:pt-16">
         <HubCard
           title="تولید و ویرایش عکس"
           description="یه توصیف بنویس یا عکس آپلود کن؛ نتیجه رو در چند ثانیه ببین."
@@ -82,6 +82,18 @@ export function HubPage() {
           iconColor="#38bdf8"
           icon={<VideoIcon />}
           onClick={() => navigate('/video')}
+        />
+        <HubCard
+          title="زیرنویس خودکار ویدیو"
+          description="ویدیوت رو آپلود کن، زیرنویس خودکار با استایل دلخواه بگیر."
+          accentColor="#f59e0b"
+          borderColor="rgba(245,158,11,0.28)"
+          glowColor="rgba(245,158,11,0.07)"
+          gradientColor="rgba(245,158,11,0.10)"
+          iconBg="rgba(245,158,11,0.16)"
+          iconColor="#fbbf24"
+          icon={<CaptionsIcon />}
+          onClick={() => navigate('/captions')}
         />
       </div>
     </div>
@@ -154,6 +166,14 @@ function VideoIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <rect x="1.5" y="5.5" width="15" height="13" rx="2.5" /><polygon points="22.5 7.5 16.5 12 22.5 16.5 22.5 7.5" />
+    </svg>
+  )
+}
+
+function CaptionsIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4.5" width="20" height="15" rx="2.5" /><path d="M6.5 15h4M13 15h4.5M6.5 11.5h11" />
     </svg>
   )
 }
