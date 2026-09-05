@@ -1,12 +1,27 @@
 import { useNavigate } from 'react-router-dom'
+import { fa } from '@/locales/fa'
+import { track } from '@/lib/events'
 import logoUrl from '@/assets/brand/horizontal-dark.svg'
 
-// docs/PRD-openrouter-migration.md §۱۳-۱۴ — نقطه‌ی ورود جدید بعد از لاگین (به‌جای ریدایرکت
-// مستقیم به /chat). پیکسل‌به‌پیکسل مطابق آرتبورد Main.dc.html در دیزاین‌کنوس — شامل کارت
-// ویدیو که به فلوی چت‌محور واقعی استودیوی ویدیو لینک می‌شود (docs/PRD-video-studio-chat-flow.md،
+// docs/PRD-openrouter-migration.md §۱۳-۱۴ — نقطه‌ی ورود اصلی، هم برای کاربر لاگین‌کرده هم مهمان
+// (router/index.tsx: HomeRoute). پیکسل‌به‌پیکسل مطابق آرتبورد Main.dc.html در دیزاین‌کنوس — شامل
+// کارت ویدیو که به فلوی چت‌محور واقعی استودیوی ویدیو لینک می‌شود (docs/PRD-video-studio-chat-flow.md،
 // VideoStudioPage روی مسیر /video).
-export function HubPage() {
+export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const navigate = useNavigate()
+
+  // کاربر مهمان با کلیک روی هر کارت باید اول لاگین کند و بعد دقیقاً همان مقصد را ببیند —
+  // مسیر مقصد را قبل از رفتن به /login نگه می‌داریم (همان کلید و الگوی pendingReturnPath که
+  // برای بازگشت بعد از درگاه پرداخت در CallbackPage.tsx استفاده می‌شود)؛ OtpPage بعد از ورود
+  // موفق آن را می‌خواند و کاربر را به همان‌جا برمی‌گرداند.
+  function goToSection(path: string) {
+    if (!isLoggedIn) {
+      sessionStorage.setItem('nivo:pendingReturnPath', path)
+      navigate('/login')
+      return
+    }
+    navigate(path)
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: '#020C18', color: '#e2e8f0' }} dir="rtl">
@@ -31,8 +46,17 @@ export function HubPage() {
       {/* header */}
       <div className="relative flex items-center justify-between px-6 pt-8 sm:px-16">
         <div className="flex items-center gap-2.5">
-          <img src={logoUrl} alt="نیوو" className="h-8 w-auto" />
+          <img src={logoUrl} alt="نیوو" className="h-11 w-auto sm:h-14" />
         </div>
+        {!isLoggedIn && (
+          <button
+            type="button"
+            onClick={() => { track('login_nav_clicked'); navigate('/login') }}
+            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
+          >
+            {fa.anonChat.loginSignup}
+          </button>
+        )}
       </div>
 
       {/* hero copy */}
@@ -57,7 +81,7 @@ export function HubPage() {
           iconBg="rgba(16,185,129,0.14)"
           iconColor="#34d399"
           icon={<ImageIcon />}
-          onClick={() => navigate('/image')}
+          onClick={() => goToSection('/image')}
         />
         <HubCard
           title="چت با هوش مصنوعی"
@@ -69,7 +93,7 @@ export function HubPage() {
           iconBg="rgba(124,58,237,0.16)"
           iconColor="#a78bfa"
           icon={<ChatIcon />}
-          onClick={() => navigate('/chat')}
+          onClick={() => goToSection('/chat')}
         />
         <HubCard
           title="تولید ویدیو"
@@ -81,7 +105,7 @@ export function HubPage() {
           iconBg="rgba(14,165,233,0.16)"
           iconColor="#38bdf8"
           icon={<VideoIcon />}
-          onClick={() => navigate('/video')}
+          onClick={() => goToSection('/video')}
         />
         <HubCard
           title="زیرنویس خودکار ویدیو"
@@ -93,7 +117,7 @@ export function HubPage() {
           iconBg="rgba(245,158,11,0.16)"
           iconColor="#fbbf24"
           icon={<CaptionsIcon />}
-          onClick={() => navigate('/captions')}
+          onClick={() => goToSection('/captions')}
         />
       </div>
     </div>

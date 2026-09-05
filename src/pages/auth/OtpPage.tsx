@@ -63,9 +63,12 @@ export function OtpPage() {
       if (result.signupBonusCredits) {
         sessionStorage.setItem('nivo:signupBonusCredits', String(result.signupBonusCredits))
       }
-      // بعد از لاگین موفق کاربر باید به هاب برود (نه مستقیم /chat) — طبق HomeRoute در
-      // router/index.tsx، «/» برای کاربر لاگین‌کرده HubPage است
-      navigate('/', { replace: true })
+      // اگر کاربر از یک کارت هاب (یا فلوی مشابهی) به‌جای لاگین مستقیم فرستاده شده، مسیر مقصد
+      // در sessionStorage['nivo:pendingReturnPath'] نگه داشته شده (HubPage.tsx)؛ وگرنه طبق
+      // HomeRoute در router/index.tsx، «/» خودش هاب است
+      const pendingReturnPath = sessionStorage.getItem('nivo:pendingReturnPath')
+      sessionStorage.removeItem('nivo:pendingReturnPath')
+      navigate(pendingReturnPath ?? '/', { replace: true })
     } catch {
       track('otp_verify_failed', { reason: 'invalid_code' })
       setError(fa.common.error)

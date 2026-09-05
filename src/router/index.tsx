@@ -32,8 +32,6 @@ import { InvoicesPage } from '@/pages/settings/InvoicesPage'
 import { InvoiceDetailPage } from '@/pages/settings/InvoiceDetailPage'
 import { LandingPage } from '@/pages/landing/LandingPage'
 import { ContactPage } from '@/pages/contact/ContactPage'
-import { AnonChatLayout } from '@/components/layout/AnonChatLayout'
-import { AnonChatPage } from '@/pages/anon-chat/AnonChatPage'
 import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -48,16 +46,14 @@ function GuestRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// docs/PRD-openrouter-migration.md §۱۳-۱۴ — کاربر لاگین‌کرده که سر می‌زند به "/" حالا هاب
-// (کارت‌های بزرگ: عکس/چت/ویدیوی-به‌زودی) می‌بیند، نه ریدایرکت مستقیم به /chat. مسیرهای
-// /chat و /chat/:id خودشان دست‌نخورده و جدا مانده‌اند — کاربر لاگین‌کرده هنوز می‌تواند مستقیم
-// به آن‌ها لینک بگیرد/برود، فقط دیگر مقصد پیش‌فرض "/" نیستند.
-// کاربر مهمان همچنان در "/" با تجربه‌ی چت بدون ثبت‌نام (تبلیغات/لندینگ جدید) روبه‌رو می‌شود.
-// صرفاً وجود access_token در localStorage کافی نیست — ممکن است منقضی/نامعتبر باشد (مثلاً
-// از یک session قدیمی)، که قبلاً باعث می‌شد کاربر مهمان یک لحظه به /chat برود، آنجا درخواست
-// ۴۰۱ بخورد، و توسط اینترسپتور (api.ts) به‌جای دیدن تجربه‌ی مهمان به /login پرتاب شود. اینجا
-// با useMe() واقعاً اعتبار توکن چک می‌شود؛ تا وقتی مشخص نشده، یک صفحه‌ی خالی موقت (مثل الگوی
-// مشابه در LandingPage.tsx) نشان داده می‌شود تا از فلش نامناسب جلوگیری شود
+// "/" همیشه هاب است — چه کاربر لاگین‌کرده باشد چه مهمان (دیگر AnonChatPage/تجربه‌ی چت
+// بدون ثبت‌نام در اینجا نشان داده نمی‌شود). کارت‌ها خودشان (HubPage) بر اساس isLoggedIn
+// تصمیم می‌گیرند: کاربر مهمان با کلیک روی هر کارت، اول به /login فرستاده می‌شود (مسیر مقصد در
+// sessionStorage['nivo:pendingReturnPath'] ذخیره می‌شود، همان الگوی بازگشت بعد از درگاه پرداخت
+// در CallbackPage.tsx) و OtpPage بعد از ورود موفق او را به همان مقصد برمی‌گرداند.
+// صرفاً وجود access_token در localStorage کافی نیست — ممکن است منقضی/نامعتبر باشد، برای همین
+// useMe() واقعاً اعتبار توکن را چک می‌کند؛ تا وقتی مشخص نشده، یک صفحه‌ی خالی موقت نشان داده
+// می‌شود تا از فلش نامناسب (مثلاً نمایش کوتاه دکمه‌ی ورود به کاربر لاگین‌کرده) جلوگیری شود.
 // «/nivo-cal» یک مقصد ثابت نیست — بسته به وجود پروفایل تغذیه، یا صفحه‌ی اسکن فعلی (فاز ۱ + CTA
 // ساخت پروفایل) یا داشبورد روزانه‌ی جدید (فاز ۲) را نشان می‌دهد؛ همان الگوی HomeRoute بالا برای
 // شاخه‌زدن روی یک مسیر ثابت بر اساس یک query. لینک مستقیم به «/nivo-cal/scan» (مثل FAB داشبورد)
@@ -72,12 +68,7 @@ function HomeRoute() {
   const hasToken = !!localStorage.getItem('access_token')
   const { data: me, isLoading } = useMe()
   if (hasToken && isLoading) return <div className="min-h-screen bg-slate-900" />
-  if (me) return <HubPage />
-  return (
-    <AnonChatLayout>
-      <AnonChatPage />
-    </AnonChatLayout>
-  )
+  return <HubPage isLoggedIn={!!me} />
 }
 
 export function AppRouter() {
