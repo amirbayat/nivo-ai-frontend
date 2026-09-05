@@ -381,7 +381,7 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
-  const [playerVideoKey, setPlayerVideoKey] = useState<string | null>(null)
+  const [player, setPlayer] = useState<{ videoKey: string; previewImageKey: string | null } | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
 
@@ -557,7 +557,7 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
               stage={stage}
               selectCharacter={selectCharacter}
               regenerateCharacters={regenerateCharacters}
-              onOpenPlayer={setPlayerVideoKey}
+              onOpenPlayer={(videoKey, previewImageKey) => setPlayer({ videoKey, previewImageKey })}
               onRenderAll={() => void handleRenderAll()}
               renderAllPending={renderAllPending}
             />
@@ -571,7 +571,7 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
                 stage={stage}
                 selectCharacter={selectCharacter}
                 regenerateCharacters={regenerateCharacters}
-                onOpenPlayer={setPlayerVideoKey}
+                onOpenPlayer={(videoKey, previewImageKey) => setPlayer({ videoKey, previewImageKey })}
                 onRenderAll={() => void handleRenderAll()}
                 renderAllPending={renderAllPending}
               />
@@ -611,13 +611,13 @@ function VideoStudioWorkspace({ id }: { id?: string }) {
         </div>
       )}
 
-      {playerVideoKey && (
+      {player && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
-          onClick={() => setPlayerVideoKey(null)}
+          onClick={() => setPlayer(null)}
         >
           <div className="max-h-full max-w-full" onClick={e => e.stopPropagation()}>
-            <StudioVideo videoKey={playerVideoKey} className="max-h-[80vh] max-w-full rounded-2xl" />
+            <StudioVideo videoKey={player.videoKey} previewImageKey={player.previewImageKey} className="max-h-[80vh] max-w-full rounded-2xl" />
           </div>
         </div>
       )}
@@ -657,7 +657,7 @@ function GalleryBody({
   stage: VideoStudioStage
   selectCharacter: ReturnType<typeof useSelectCharacter>
   regenerateCharacters: ReturnType<typeof useRegenerateCharacters>
-  onOpenPlayer: (key: string) => void
+  onOpenPlayer: (key: string, previewImageKey: string | null) => void
   onRenderAll: () => void
   renderAllPending: boolean
 }) {

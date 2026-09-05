@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { clsx } from 'clsx'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
 import type { ModelCatalogEntry } from '@/queries/plans.queries'
 import type { StudioAspectRatio } from '@/types/api'
 import { getVideoPriceTier, VIDEO_PRICE_TIER_COLOR, VIDEO_PRICE_TIER_LABEL } from './curatedModels'
+import { VideoModelPickerModal } from './VideoModelPickerModal'
 
 // پیل کوچک ارزان/متوسط/گران — فقط برای مدل‌های VIDEO_GEN (دستور صریح کاربر: دسته‌بندی قیمتی
 // مدل‌های ویدیو، چون قیمت هر ثانیه‌شان تا ۱۰ برابر با هم فرق دارد و بدون این نشانه انتخاب کور است)
@@ -27,6 +28,9 @@ function VideoPriceBadge({ model }: { model: ModelCatalogEntry }) {
 // فیچر صفحه‌ی جدا برای هر مدل نمی‌خواهد)؛ روی موبایل همین کامپوننت به‌صورت یک لیست رادیویی
 // داخل مدال تمام‌صفحه‌ی VideoStudioSettingsModal دوباره استفاده می‌شود.
 
+// دستور صریح کاربر: دراپ‌دون کوچک قبلی (پنل absolute ریز) بد بود — حالا کلیک روی چیپ یک
+// مدال بزرگ (VideoModelPickerModal) باز می‌کند که کارت هر مدل با توضیح و امکاناتش را نشان
+// می‌دهد؛ روی موبایل تمام‌صفحه با اسلاید، روی دسکتاپ وسط‌صفحه با فید/اسکیل.
 export function ModelDropdownChip({
   label,
   models,
@@ -39,23 +43,13 @@ export function ModelDropdownChip({
   onSelect: (name: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
   const current = models.find(m => m.name === selectedName) ?? models[0]
 
-  useEffect(() => {
-    if (!open) return
-    function onDocClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
-  }, [open])
-
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(true)}
         className="flex items-center gap-2 rounded-full px-3.5 py-2 text-[12.5px]"
         style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#d1fae5' }}
       >
@@ -66,37 +60,14 @@ export function ModelDropdownChip({
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      {open && (
-        <div
-          className="absolute right-0 z-30 mt-2 max-h-72 w-64 overflow-y-auto rounded-2xl p-1.5"
-          style={{ background: '#0b1626', border: '1px solid rgba(148,163,184,0.22)', boxShadow: '0 12px 40px rgba(0,0,0,0.45)' }}
-        >
-          {models.map(m => (
-            <button
-              key={m.name}
-              type="button"
-              onClick={() => { onSelect(m.name); setOpen(false) }}
-              className={clsx(
-                'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-right text-[12.5px]',
-                m.name === selectedName ? 'bg-emerald-500/10 text-emerald-100' : 'text-slate-200 hover:bg-white/5',
-              )}
-            >
-              <ProviderIcon provider={m.provider} size={14} />
-              <span className="flex-1 truncate font-semibold">{m.displayName}</span>
-              <VideoPriceBadge model={m} />
-              {m.name === selectedName && (
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 text-emerald-500">
-                  <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </button>
-          ))}
-          {models.length === 0 && (
-            <p className="px-2.5 py-3 text-center text-[12px] text-slate-500">مدلی موجود نیست</p>
-          )}
-        </div>
-      )}
-    </div>
+      <VideoModelPickerModal
+        open={open}
+        onClose={() => setOpen(false)}
+        models={models}
+        selectedName={selectedName}
+        onSelect={onSelect}
+      />
+    </>
   )
 }
 

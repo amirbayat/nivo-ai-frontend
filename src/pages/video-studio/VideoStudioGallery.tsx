@@ -38,10 +38,11 @@ function StudioImage({ imgKey, className, alt }: { imgKey: string; className?: s
   return <img src={url} className={className} alt={alt} />
 }
 
-export function StudioVideo({ videoKey, className }: { videoKey: string; className?: string }) {
+export function StudioVideo({ videoKey, previewImageKey, className }: { videoKey: string; previewImageKey?: string | null; className?: string }) {
   const url = useAuthedImageUrl(assetSrc(videoKey))
+  const posterUrl = useAuthedImageUrl(previewImageKey ? assetSrc(previewImageKey) : '')
   if (!url) return <div className={clsx(className, 'flex items-center justify-center bg-slate-800/60 text-[11px] text-slate-500')}>در حال بارگذاری...</div>
-  return <video src={url} className={className} controls playsInline preload="metadata" />
+  return <video src={url} poster={posterUrl ?? undefined} className={className} controls playsInline preload="metadata" />
 }
 
 export function VideoStudioEmptyState({ compact }: { compact?: boolean }) {
@@ -143,7 +144,7 @@ function ShotCard({
   shot: StudioShot
   stage: VideoStudioStage
   compact?: boolean
-  onOpenPlayer: (videoKey: string) => void
+  onOpenPlayer: (videoKey: string, previewImageKey: string | null) => void
 }) {
   const qc = useQueryClient()
   const updateShot = useUpdateShot(projectId)
@@ -175,7 +176,7 @@ function ShotCard({
     >
       <div className="relative aspect-video w-full bg-slate-800/60">
         {effectiveStatus === 'SUCCEEDED' && shot.videoKey ? (
-          <button type="button" className="absolute inset-0" onClick={() => onOpenPlayer(shot.videoKey!)}>
+          <button type="button" className="absolute inset-0" onClick={() => onOpenPlayer(shot.videoKey!, shot.previewImageKey)}>
             {shot.previewImageKey && <StudioImage imgKey={shot.previewImageKey} className="size-full object-cover" alt={shot.title} />}
             <span className="absolute inset-0 flex items-center justify-center bg-black/25">
               <span className="flex size-11 items-center justify-center rounded-full bg-white/90 text-[#02170f]">
@@ -271,7 +272,7 @@ export function ShotGrid({
   shots: StudioShot[]
   stage: VideoStudioStage
   compact?: boolean
-  onOpenPlayer: (videoKey: string) => void
+  onOpenPlayer: (videoKey: string, previewImageKey: string | null) => void
 }) {
   const sorted = [...shots].sort((a, b) => a.order - b.order)
   return (
