@@ -421,8 +421,12 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
       {/* sm:justify-center — دو ستون دیگر روی دسکتاپ به سمت راست چسبیده نمی‌مانند، واقعاً
           وسط پهنای صفحه قرار می‌گیرند */}
       <div className="flex flex-col gap-5 sm:flex-row sm:justify-center">
-        <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl bg-black sm:mx-0">
-          {!videoUrl && <div className="flex aspect-video items-center justify-center text-[12px] text-slate-500">در حال بارگذاری ویدیو...</div>}
+        {/* w-fit (نه w-full) — عرض این جعبه دقیقاً با عرض واقعی رندرشده‌ی ویدیو (بعد از
+            محدودشدن با max-h) یکی می‌شود، نه یک عرض ثابت که برای ویدیوی عمودی روی موبایل
+            ارتفاع خیلی زیادی می‌ساخت. min-w برای حالت «در حال بارگذاری» که هنوز ویدیویی
+            برای اندازه‌گیری نیست */}
+        <div className="relative mx-auto w-fit min-w-[240px] max-w-full overflow-hidden rounded-2xl bg-black sm:mx-0">
+          {!videoUrl && <div className="flex aspect-video w-[280px] items-center justify-center text-[12px] text-slate-500">در حال بارگذاری ویدیو...</div>}
           {videoUrl && !isDone && (
             <VideoWithCaptionOverlay
               videoRef={videoRef}
@@ -434,14 +438,16 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
           )}
           {videoUrl && isDone && (
             // ویدیوی رندرشده از قبل زیرنویس سوزانده دارد (caption-render.processor.ts) —
-            // نیازی به overlay Canvas نیست. max-h-[65vh] — رفع باگ overflow ویدیوی بزرگ
-            // (مخصوصاً ویدیوهای عمودی) روی موبایل/صفحه‌های کوتاه
+            // نیازی به overlay Canvas نیست. max-h — رفع باگ overflow ویدیوی بزرگ (مخصوصاً
+            // ویدیوهای عمودی) روی موبایل/صفحه‌های کوتاه: چون این‌جا video خودش (نه یک div
+            // با aspect-ratio دستی) اندازه‌ی طبیعی‌اش را با max-height/width:auto محاسبه
+            // می‌کند، در همه‌ی مرورگرها (از جمله سافاری موبایل) درست کار می‌کند
             <video
               src={videoUrl}
               controls
               playsInline
               preload="metadata"
-              className="mx-auto block max-h-[65vh] w-auto max-w-full object-contain"
+              className="block max-h-[42vh] w-auto max-w-full object-contain sm:max-h-[70vh]"
             />
           )}
         </div>
@@ -974,7 +980,6 @@ function VideoWithCaptionOverlay({
   onDragPosition: (position: { x: number; y: number }) => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [aspect, setAspect] = useState<number | null>(null)
   const [dragPreviewPos, setDragPreviewPos] = useState<{ x: number; y: number } | null>(null)
   const segmentsRef = useRef(segments)
   segmentsRef.current = segments
@@ -1009,8 +1014,6 @@ function VideoWithCaptionOverlay({
     }
 
     function onLoadedMeta() {
-      if (!video) return
-      if (video.videoWidth && video.videoHeight) setAspect(video.videoWidth / video.videoHeight)
       raf = requestAnimationFrame(draw)
     }
 
@@ -1054,14 +1057,18 @@ function VideoWithCaptionOverlay({
   const { x: handleX, y: handleY } = resolvePositionRatio(styleOverrides, null)
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: aspect ?? 16 / 9, maxHeight: '65vh', width: 'auto', maxWidth: '100%', marginInline: 'auto' }}>
+    // width:fit-content — این جعبه دقیقاً به اندازه‌ی خودِ ویدیو (که پایین‌تر با
+    // max-height/width:auto اندازه‌ی طبیعی‌اش را حساب می‌کند) جمع می‌شود، نه یک اندازه‌ی
+    // ثابت که برای ویدیوی عمودی روی موبایل ارتفاع بیش‌ازحد می‌ساخت. canvas/دستگیره‌ی درگ
+    // چون absolute هستند در محاسبه‌ی این اندازه شرکت نمی‌کنند، پس همیشه دقیقاً روی ویدیو می‌افتند
+    <div className="relative w-fit max-w-full">
       <video
         ref={videoRef}
         src={videoUrl}
         controls
         playsInline
         preload="metadata"
-        className="absolute inset-0 h-full w-full"
+        className="block max-h-[42vh] w-auto max-w-full sm:max-h-[70vh]"
       />
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
       {/* دستگیره‌ی درگ کوچک، دور نقطه‌ی فعلی متن — بقیه‌ی ویدیو (کنترل‌های پخش native) باید
