@@ -540,6 +540,11 @@ export interface CaptionStyleOverrides {
   backgroundMode?: 'none' | 'translucent' | 'solid'
   fontSizePx?: number
   position?: 'top' | 'center' | 'bottom'
+  positionX?: number
+  positionY?: number
+  wordsPerLine?: number
+  linesPerCue?: number
+  styleId?: string
 }
 
 export interface CaptionProject {
@@ -548,6 +553,9 @@ export interface CaptionProject {
   status: CaptionProjectStatus
   sourceVideoKey: string
   sourceDurationSec: number | null
+  sourceWidth: number | null
+  sourceHeight: number | null
+  sourceDeletedAt: string | null
   asrModelName: string | null
   transcriptWords: CaptionWord[] | null
   segments: CaptionSegment[] | null

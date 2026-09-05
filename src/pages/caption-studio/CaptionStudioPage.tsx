@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   captionAssetSrc,
   downloadCaptionSubtitle,
+  downloadCaptionVideo,
   useCaptionProject,
   useCreateCaptionProject,
+  useDiscardCaptionSource,
   useRetryCaptionTranscription,
   useStartCaptionRender,
   useUpdateCaptionProject,
@@ -12,9 +14,8 @@ import {
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import type { CaptionProject, CaptionSegment, CaptionStyleOverrides, CaptionWord } from '@/types/api'
 
-// docs/PRD-video-auto-captions.md §۵.۲/۵.۳ — ادیت متن/زمان‌بندی + بازیابی localStorage اضافه
-// شد؛ پنل استایل (فونت/رنگ/پس‌زمینه/موقعیت + اعمال به همه) و درگ/ریسایز مستقیم روی ویدیو
-// هنوز فاز بعدی همین فیچرند.
+// docs/PRD-video-auto-captions.md §۵.۲/۵.۳ — ادیت متن/زمان‌بندی + بازیابی localStorage + جابجایی
+// آزاد زیرنویس با درگ + کلیک-برای-seek + گزینه‌ی رزولوشن خروجی، همه پیاده‌شده‌اند.
 export function CaptionStudioPage() {
   const { id } = useParams<{ id?: string }>()
   return <CaptionStudioWorkspace key={id ?? 'new'} id={id} />
@@ -24,13 +25,34 @@ function CaptionStudioWorkspace({ id }: { id?: string }) {
   const navigate = useNavigate()
   const { data: project, isLoading } = useCaptionProject(id)
 
-  if (!id) {
-    return <CaptionUploadForm onCreated={pid => navigate(`/captions/${pid}`)} />
-  }
-  if (isLoading || !project) {
-    return <CenteredMessage text="در حال بارگذاری پروژه..." />
-  }
-  return <CaptionProjectView project={project} />
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center px-5 pt-5 sm:px-10 sm:pt-7">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="flex size-10 shrink-0 items-center justify-center rounded-full"
+          style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+          aria-label="بازگشت به خانه"
+        >
+          {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+
+      {/* flex-1 overflow-y-auto — رفع باگ overflow: ChatLayout والد این صفحه به ارتفاع
+          viewport فیکس/overflow-hidden است، پس این سطح باید خودش اسکرول‌پذیر باشد
+          (الگوی VideoStudioPage.tsx/ImageStudioPage.tsx) وگرنه محتوای بلند (ویدیو + پنل
+          استایل + دکمه‌ی خروجی) از پایین صفحه بدون هیچ راه اسکرولی قطع می‌شود */}
+      <div className="flex flex-1 flex-col overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+        {!id && <CaptionUploadForm onCreated={pid => navigate(`/captions/${pid}`)} />}
+        {id && (isLoading || !project) && <CenteredMessage text="در حال بارگذاری پروژه..." />}
+        {id && project && <CaptionProjectView project={project} />}
+      </div>
+    </div>
+  )
 }
 
 function CenteredMessage({ text }: { text: string }) {
@@ -44,6 +66,7 @@ function CenteredMessage({ text }: { text: string }) {
 function CaptionUploadForm({ onCreated }: { onCreated: (id: string) => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<number | null>(null)
   const create = useCreateCaptionProject()
 
   async function handleFile(file: File) {
@@ -52,11 +75,14 @@ function CaptionUploadForm({ onCreated }: { onCreated: (id: string) => void }) {
       setError('فقط فایل MP4 یا MOV پشتیبانی می‌شود')
       return
     }
+    setProgress(0)
     try {
-      const project = await create.mutateAsync(file)
+      const project = await create.mutateAsync({ file, onUploadProgress: setProgress })
       onCreated(project.id)
     } catch {
       setError('آپلود ناموفق بود، دوباره امتحان کن')
+    } finally {
+      setProgress(null)
     }
   }
 
@@ -90,15 +116,30 @@ function CaptionUploadForm({ onCreated }: { onCreated: (id: string) => void }) {
         />
         <p className="text-[14px] font-semibold text-slate-200">ویدیوی خود را انتخاب کنید</p>
         <p className="text-[12px]" style={{ color: '#64748b' }}>MP4، MOV — حداکثر ۲۰ دقیقه</p>
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={create.isPending}
-          className="mt-2 rounded-full px-6 py-3 text-[14px] font-bold text-[#241000] transition-opacity disabled:opacity-50"
-          style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
-        >
-          {create.isPending ? 'در حال آپلود...' : 'انتخاب فایل'}
-        </button>
+        {progress === null && (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={create.isPending}
+            className="mt-2 rounded-full px-6 py-3 text-[14px] font-bold text-[#241000] transition-opacity disabled:opacity-50"
+            style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
+          >
+            انتخاب فایل
+          </button>
+        )}
+        {progress !== null && (
+          <div className="mt-2 flex w-full max-w-[220px] flex-col gap-1.5">
+            <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div
+                className="h-full rounded-full transition-[width]"
+                style={{ width: `${progress}%`, background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
+              />
+            </div>
+            <span className="text-[11px] font-semibold" style={{ color: '#f59e0b' }}>
+              در حال آپلود... {progress}٪
+            </span>
+          </div>
+        )}
       </div>
       {error && <p className="text-center text-[12px] text-red-400">{error}</p>}
     </div>
@@ -148,14 +189,13 @@ function FailedView({ projectId }: { projectId: string }) {
   )
 }
 
-// هر ۴ کلمه یک cue — دقیقاً هم‌الگوی buildDefaultSegments در caption-render.processor.ts
-// (وقتی کاربر هنوز segments ادیت‌شده‌ای نساخته)
-const WORDS_PER_CUE = 4
-
-function groupWordsIntoCues(words: CaptionWord[]): CaptionSegment[] {
+// دقیقاً هم‌الگوی buildDefaultSegments در ass-subtitle-builder.ts (وقتی کاربر هنوز
+// segments ادیت‌شده‌ای نساخته) — wordsPerLine/linesPerCue حالا از StylePanel قابل‌تغییرند
+function groupWordsIntoCues(words: CaptionWord[], wordsPerLine = 4, linesPerCue = 1): CaptionSegment[] {
+  const perCue = Math.max(1, wordsPerLine) * Math.max(1, linesPerCue)
   const segments: CaptionSegment[] = []
-  for (let i = 0; i < words.length; i += WORDS_PER_CUE) {
-    const group = words.slice(i, i + WORDS_PER_CUE)
+  for (let i = 0; i < words.length; i += perCue) {
+    const group = words.slice(i, i + perCue)
     if (group.length === 0) continue
     segments.push({
       id: `seg-${i}`,
@@ -209,9 +249,32 @@ const DEFAULT_STYLE_OVERRIDES: CaptionStyleOverrides = {
   backgroundMode: 'translucent',
   fontSizePx: 42,
   position: 'bottom',
+  positionX: 0.5,
+  positionY: 0.88,
+  wordsPerLine: 4,
+  linesPerCue: 1,
+  styleId: 'default',
 }
 
+// ۴ پریست — هم‌راستا با STYLE_PRESETS در ass-subtitle-builder.ts (بک‌اند). انتخاب یک پریست
+// این مقادیر را روی styleOverrides فعلی merge می‌کند؛ کاربر می‌تواند بعدش دستی override کند
+const STYLE_PRESETS = [
+  { id: 'default', label: 'پیش‌فرض', fontFamily: 'IRANYekanMsn', textColor: '#ffffff', highlightColor: '#10b981', backgroundMode: 'translucent' as const },
+  { id: 'boldOutline', label: 'کاراکاپ پررنگ', fontFamily: 'IRANYekanMsn ExtraBold', textColor: '#ffffff', highlightColor: '#fbbf24', backgroundMode: 'none' as const },
+  { id: 'neon', label: 'نئون', fontFamily: 'Vazirmatn', textColor: '#22d3ee', highlightColor: '#f472b6', backgroundMode: 'none' as const },
+  { id: 'speakerBox', label: 'باکس گوینده', fontFamily: 'IRANYekanMsn', textColor: '#ffffff', highlightColor: '#fbbf24', backgroundMode: 'solid' as const },
+]
+
 type EditorTab = 'text' | 'style' | 'export'
+
+// فقط رزولوشن‌های ≤ ابعاد واقعی سورس مجازند (بدون آپ‌اسکیل جعلی) — بخش تصمیم محصولی پلن.
+// height=undefined یعنی «کیفیت اصلی» (بدون اسکیل، رزولوشن سورس)
+const RESOLUTION_OPTIONS: { label: string; height: number | undefined }[] = [
+  { label: 'کیفیت اصلی', height: undefined },
+  { label: 'HD', height: 720 },
+  { label: 'Full HD', height: 1080 },
+  { label: '4K', height: 2160 },
+]
 
 function CaptionEditor({ project }: { project: CaptionProject }) {
   const isDone = project.status === 'DONE'
@@ -219,17 +282,37 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
   const videoUrl = useAuthedImageUrl(captionAssetSrc(videoKey))
   const startRender = useStartCaptionRender(project.id)
   const updateProject = useUpdateCaptionProject(project.id)
+  const discardSource = useDiscardCaptionSource(project.id)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
+  const initialStyle: CaptionStyleOverrides = { ...DEFAULT_STYLE_OVERRIDES, ...(project.styleOverrides ?? {}) }
   const [segments, setSegments] = useState<CaptionSegment[]>(
-    () => project.segments ?? groupWordsIntoCues(project.transcriptWords ?? []),
+    () => project.segments ?? groupWordsIntoCues(project.transcriptWords ?? [], initialStyle.wordsPerLine, initialStyle.linesPerCue),
   )
-  const [styleOverrides, setStyleOverrides] = useState<CaptionStyleOverrides>(
-    () => ({ ...DEFAULT_STYLE_OVERRIDES, ...(project.styleOverrides ?? {}) }),
-  )
+  const [styleOverrides, setStyleOverrides] = useState<CaptionStyleOverrides>(() => initialStyle)
   const [tab, setTab] = useState<EditorTab>('text')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [restoreOffer, setRestoreOffer] = useState<{ segments: CaptionSegment[]; styleOverrides: CaptionStyleOverrides } | null>(null)
+  const [currentSec, setCurrentSec] = useState(0)
+  const [targetHeight, setTargetHeight] = useState<number | undefined>(undefined)
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
   const didInit = useRef(false)
+
+  // برای هایلایت ردیف فعال در تب «متن» و کلیک-برای-seek — فقط وقتی ویدیوی درحال‌ادیت
+  // (نه ویدیوی نهایی رندرشده که ادیتور کنارش نیست) واقعاً mount شده
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || isDone) return
+    function onTimeUpdate() {
+      if (video) setCurrentSec(video.currentTime)
+    }
+    video.addEventListener('timeupdate', onTimeUpdate)
+    return () => video.removeEventListener('timeupdate', onTimeUpdate)
+  }, [videoUrl, isDone])
+
+  function seekTo(seg: CaptionSegment) {
+    if (videoRef.current) videoRef.current.currentTime = seg.startMs / 1000
+  }
 
   // بازیابی draft محلی — فقط یک‌بار، لحظه‌ی اول باز شدن صفحه
   useEffect(() => {
@@ -277,7 +360,42 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
     setSegments(prev => prev.filter(s => s.id !== id))
   }
 
+  function regenerateSegments(wordsPerLine: number, linesPerCue: number) {
+    setStyleOverrides(prev => ({ ...prev, wordsPerLine, linesPerCue }))
+    setSegments(groupWordsIntoCues(project.transcriptWords ?? [], wordsPerLine, linesPerCue))
+  }
+
+  function applyPreset(preset: (typeof STYLE_PRESETS)[number]) {
+    setStyleOverrides(prev => ({
+      ...prev,
+      styleId: preset.id,
+      fontFamily: preset.fontFamily,
+      textColor: preset.textColor,
+      highlightColor: preset.highlightColor,
+      backgroundMode: preset.backgroundMode,
+    }))
+  }
+
+  async function handleDownloadVideo() {
+    if (!project.renderedVideoKey) return
+    setDownloadProgress(0)
+    try {
+      await downloadCaptionVideo(project.renderedVideoKey, setDownloadProgress)
+    } finally {
+      setDownloadProgress(null)
+    }
+  }
+
+  function handleDiscardSource() {
+    if (!window.confirm('ویدیوی اصلی برای همیشه از سرور حذف می‌شود و دیگر امکان رندر دوباره نیست. مطمئنی؟')) return
+    discardSource.mutate()
+  }
+
   const editingSegment = segments.find(s => s.id === editingId) ?? null
+  const availableResolutions = RESOLUTION_OPTIONS.filter(
+    opt => opt.height === undefined || !project.sourceHeight || opt.height <= project.sourceHeight,
+  )
+  const sourceGone = !!project.sourceDeletedAt
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-5 py-6 sm:px-0">
@@ -300,21 +418,31 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
         </div>
       )}
 
-      <div className="flex flex-col gap-5 sm:flex-row">
+      {/* sm:justify-center — دو ستون دیگر روی دسکتاپ به سمت راست چسبیده نمی‌مانند، واقعاً
+          وسط پهنای صفحه قرار می‌گیرند */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:justify-center">
         <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl bg-black sm:mx-0">
           {!videoUrl && <div className="flex aspect-video items-center justify-center text-[12px] text-slate-500">در حال بارگذاری ویدیو...</div>}
           {videoUrl && !isDone && (
             <VideoWithCaptionOverlay
+              videoRef={videoRef}
               videoUrl={videoUrl}
               segments={segments}
               styleOverrides={styleOverrides}
-              onDragPosition={pos => setStyleOverrides(prev => ({ ...prev, position: pos }))}
+              onDragPosition={pos => setStyleOverrides(prev => ({ ...prev, positionX: pos.x, positionY: pos.y }))}
             />
           )}
           {videoUrl && isDone && (
             // ویدیوی رندرشده از قبل زیرنویس سوزانده دارد (caption-render.processor.ts) —
-            // نیازی به overlay Canvas نیست
-            <video src={videoUrl} controls playsInline preload="metadata" className="w-full" />
+            // نیازی به overlay Canvas نیست. max-h-[65vh] — رفع باگ overflow ویدیوی بزرگ
+            // (مخصوصاً ویدیوهای عمودی) روی موبایل/صفحه‌های کوتاه
+            <video
+              src={videoUrl}
+              controls
+              playsInline
+              preload="metadata"
+              className="mx-auto block max-h-[65vh] w-auto max-w-full object-contain"
+            />
           )}
         </div>
 
@@ -336,30 +464,53 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
 
             {tab === 'text' && (
               <div className="flex max-h-[360px] flex-col gap-2 overflow-y-auto">
-                {segments.map(seg => (
-                  <button
-                    key={seg.id}
-                    type="button"
-                    onClick={() => setEditingId(seg.id)}
-                    className="flex items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-right"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }}
-                  >
-                    <span className="flex flex-col gap-0.5">
-                      <span className="text-[9.5px]" style={{ color: '#64748b' }}>
-                        {(seg.startMs / 1000).toFixed(1)} - {(seg.endMs / 1000).toFixed(1)}
+                {segments.map(seg => {
+                  const active = currentSec * 1000 >= seg.startMs && currentSec * 1000 <= seg.endMs
+                  return (
+                    <div
+                      key={seg.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => seekTo(seg)}
+                      onKeyDown={e => { if (e.key === 'Enter') seekTo(seg) }}
+                      className="flex cursor-pointer items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-right transition-colors"
+                      style={
+                        active
+                          ? { background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.4)' }
+                          : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }
+                      }
+                    >
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-[9.5px]" style={{ color: active ? '#f59e0b' : '#64748b' }}>
+                          {(seg.startMs / 1000).toFixed(1)} - {(seg.endMs / 1000).toFixed(1)}
+                        </span>
+                        <span className="text-[12.5px] text-slate-200">{seg.text}</span>
                       </span>
-                      <span className="text-[12.5px] text-slate-200">{seg.text}</span>
-                    </span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ color: '#64748b', flexShrink: 0 }}>
-                      <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                    </svg>
-                  </button>
-                ))}
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setEditingId(seg.id) }}
+                        aria-label="ویرایش این زیرنویس"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-full"
+                        style={{ color: '#64748b' }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                          <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                        </svg>
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
             {tab === 'style' && (
-              <StylePanel value={styleOverrides} onChange={setStyleOverrides} />
+              <StylePanel
+                value={styleOverrides}
+                onChange={setStyleOverrides}
+                onWordsPerLineChange={n => regenerateSegments(n, styleOverrides.linesPerCue ?? 1)}
+                onLinesPerCueChange={n => regenerateSegments(styleOverrides.wordsPerLine ?? 4, n)}
+                onSelectPreset={applyPreset}
+              />
             )}
 
             {tab === 'export' && <ExportPanel projectId={project.id} />}
@@ -367,10 +518,30 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
         )}
       </div>
 
-      {!isDone && (
+      {!sourceGone && (
+        <div className="mx-auto flex flex-wrap items-center justify-center gap-1.5">
+          {availableResolutions.map(opt => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setTargetHeight(opt.height)}
+              className="rounded-full px-3.5 py-1.5 text-[11px] font-bold"
+              style={
+                targetHeight === opt.height
+                  ? { background: '#f59e0b', color: '#241000' }
+                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)', color: '#94a3b8' }
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!isDone && !sourceGone && (
         <button
           type="button"
-          onClick={() => startRender.mutate()}
+          onClick={() => startRender.mutate(targetHeight)}
           disabled={startRender.isPending}
           className="mx-auto rounded-full px-7 py-3 text-[14px] font-bold text-[#241000] disabled:opacity-50"
           style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
@@ -379,18 +550,48 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
         </button>
       )}
       {isDone && (
-        <button
-          type="button"
-          onClick={() => startRender.mutate()}
-          disabled={startRender.isPending}
-          className="mx-auto rounded-full px-6 py-2.5 text-[12.5px] font-semibold text-slate-300"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)' }}
-        >
-          {startRender.isPending ? 'در حال رندر دوباره...' : 'رندر دوباره'}
-        </button>
+        <div className="mx-auto flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadVideo}
+            disabled={downloadProgress !== null}
+            className="rounded-full px-6 py-2.5 text-[12.5px] font-bold text-[#241000] disabled:opacity-50"
+            style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }}
+          >
+            {downloadProgress !== null ? `در حال دانلود... ${downloadProgress}٪` : 'دانلود ویدیو'}
+          </button>
+          {!sourceGone && (
+            <button
+              type="button"
+              onClick={() => startRender.mutate(targetHeight)}
+              disabled={startRender.isPending}
+              className="rounded-full px-6 py-2.5 text-[12.5px] font-semibold text-slate-300"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)' }}
+            >
+              {startRender.isPending ? 'در حال رندر دوباره...' : 'رندر دوباره'}
+            </button>
+          )}
+        </div>
       )}
       {startRender.isError && (
         <p className="text-center text-[12px] text-red-400">شروع رندر ناموفق بود — اعتبار کافی نیست یا خطایی رخ داد</p>
+      )}
+
+      {!sourceGone && (project.status === 'READY_FOR_EDIT' || isDone) && (
+        <button
+          type="button"
+          onClick={handleDiscardSource}
+          disabled={discardSource.isPending}
+          className="mx-auto text-[11px] font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+          style={{ color: '#64748b' }}
+        >
+          پایان کار و آزادسازی فضا (حذف ویدیوی اصلی)
+        </button>
+      )}
+      {sourceGone && (
+        <p className="text-center text-[11px]" style={{ color: '#64748b' }}>
+          ویدیوی اصلی حذف شده — رندر دوباره ممکن نیست
+        </p>
       )}
 
       {editingSegment && (
@@ -511,11 +712,15 @@ function TextEditModal({
   )
 }
 
+// باید دقیقاً هم‌راستا با ALLOWED_FONTS در ass-subtitle-builder.ts (بک‌اند) باشد — فونتی که
+// اینجا نباشد رندر نهایی silently به پیش‌فرض برمی‌گردد
 const FONT_OPTIONS = [
   { value: 'IRANYekanMsn', label: 'ایران‌یکان' },
+  { value: 'IRANYekanMsn ExtraBold', label: 'ایران‌یکان اکسترابولد' },
+  { value: 'Vazirmatn', label: 'وزیرمتن' },
   { value: 'Tahoma', label: 'Tahoma' },
 ]
-const COLOR_OPTIONS = ['#ffffff', '#fbbf24', '#10b981', '#f472b6', '#60a5fa']
+const COLOR_OPTIONS = ['#ffffff', '#fbbf24', '#10b981', '#f472b6', '#60a5fa', '#22d3ee']
 const BACKGROUND_OPTIONS = [
   ['none', 'هیچ'],
   ['translucent', 'نیمه‌شفاف'],
@@ -526,6 +731,11 @@ const POSITION_OPTIONS = [
   ['center', 'وسط'],
   ['bottom', 'پایین'],
 ] as const
+const WORDS_PER_LINE_OPTIONS = [2, 3, 4, 5, 6, 8]
+const LINES_PER_CUE_OPTIONS = [
+  [1, 'یک خط'],
+  [2, 'دو خط'],
+] as const
 
 function chipStyle(active: boolean): React.CSSProperties {
   return active
@@ -535,13 +745,47 @@ function chipStyle(active: boolean): React.CSSProperties {
 
 // بخش ۵.۲/۸.۱ — این تنظیمات project-wide هستند (نه per-cue)، پس «اعمال به همه» عملاً تنها
 // حالت است — سوییچ ساختگی اضافه نشد، فقط یک یادداشت شفاف‌کننده در پایین پنل
-function StylePanel({ value, onChange }: { value: CaptionStyleOverrides; onChange: (v: CaptionStyleOverrides) => void }) {
+function StylePanel({
+  value,
+  onChange,
+  onWordsPerLineChange,
+  onLinesPerCueChange,
+  onSelectPreset,
+}: {
+  value: CaptionStyleOverrides
+  onChange: (v: CaptionStyleOverrides) => void
+  onWordsPerLineChange: (n: number) => void
+  onLinesPerCueChange: (n: number) => void
+  onSelectPreset: (preset: (typeof STYLE_PRESETS)[number]) => void
+}) {
   function set<K extends keyof CaptionStyleOverrides>(key: K, v: CaptionStyleOverrides[K]) {
     onChange({ ...value, [key]: v })
   }
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>قالب آماده</span>
+        <div className="grid grid-cols-2 gap-1.5">
+          {STYLE_PRESETS.map(preset => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onSelectPreset(preset)}
+              className="flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5"
+              style={
+                value.styleId === preset.id
+                  ? { background: 'rgba(245,158,11,0.14)', border: '1.5px solid #f59e0b' }
+                  : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }
+              }
+            >
+              <span className="text-[13px] font-bold" style={{ color: preset.highlightColor }}>Aa</span>
+              <span className="text-[10.5px] font-semibold text-slate-300">{preset.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>فونت</span>
         <div className="flex flex-wrap gap-1.5">
@@ -606,21 +850,60 @@ function StylePanel({ value, onChange }: { value: CaptionStyleOverrides; onChang
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>موقعیت روی ویدیو</span>
-        <div className="flex gap-1.5">
-          {POSITION_OPTIONS.map(([key, label]) => (
+        <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>کلمه در هر خط</span>
+        <div className="flex flex-wrap gap-1.5">
+          {WORDS_PER_LINE_OPTIONS.map(n => (
             <button
-              key={key}
+              key={n}
               type="button"
-              onClick={() => set('position', key)}
+              onClick={() => onWordsPerLineChange(n)}
+              className="size-8 rounded-full text-[11.5px] font-bold"
+              style={chipStyle((value.wordsPerLine ?? 4) === n)}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>تعداد خط هم‌زمان</span>
+        <div className="flex gap-1.5">
+          {LINES_PER_CUE_OPTIONS.map(([n, label]) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onLinesPerCueChange(n)}
               className="flex-1 rounded-xl py-2 text-[11px] font-semibold"
-              style={chipStyle(value.position === key)}
+              style={chipStyle((value.linesPerCue ?? 1) === n)}
             >
               {label}
             </button>
           ))}
         </div>
-        <span className="text-[10px]" style={{ color: '#64748b' }}>یا مستقیم روی ویدیو زیرنویس رو بکش</span>
+        <span className="text-[10px]" style={{ color: '#64748b' }}>تغییر این دو گزینه متن‌های ادیت‌شده‌ی فعلی را بازنویسی می‌کند</span>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>موقعیت روی ویدیو</span>
+        <div className="flex gap-1.5">
+          {POSITION_OPTIONS.map(([key, label]) => {
+            const presetY = key === 'top' ? 0.12 : key === 'center' ? 0.5 : 0.88
+            const active = value.position === key && value.positionX === 0.5 && value.positionY === presetY
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onChange({ ...value, position: key, positionX: 0.5, positionY: presetY })}
+                className="flex-1 rounded-xl py-2 text-[11px] font-semibold"
+                style={chipStyle(active)}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        <span className="text-[10px]" style={{ color: '#64748b' }}>یا مستقیم روی ویدیو زیرنویس رو بکش — هر جای ویدیو، نه فقط بالا/وسط/پایین</span>
       </div>
 
       <p className="text-[10px] leading-relaxed" style={{ color: '#64748b' }}>
@@ -674,30 +957,31 @@ function ExportPanel({ projectId }: { projectId: string }) {
 // پیکسل؛ رسم مستقیم روی canvas یعنی هیچ transcoding واقعی سمت کلاینت لازم نیست. segments
 // همان چیزی است که کاربر ادیت می‌کند — پیش‌نمایش بلافاصله بعد از هر ادیت به‌روز می‌شود.
 //
-// درگ روی خودِ زیرنویس: چون schema/رندر بک‌اند فقط ۳ موقعیت گسسته (بالا/وسط/پایین) پشتیبانی
-// می‌کند (نه مختصات پیوسته)، درگ به نزدیک‌ترین یک‌سوم صفحه «اسنپ» می‌شود — تجربه‌ی کشیدن واقعی،
-// خروجی همیشه چیزی که بک‌اند واقعاً می‌تواند بسوزاند (بخش ۵.۲).
+// درگ روی خودِ زیرنویس: کاملاً آزاد (هر نقطه‌ی ویدیو) — چون رندرر بک‌اند حالا از \pos(x,y)
+// آزاد استفاده می‌کند (نه فقط ۳ Alignment گسسته، ass-subtitle-builder.ts), مختصات پیوسته‌ی
+// همین‌جا مستقیم قابل‌رندر واقعی است، نه نیاز به اسنپ.
 function VideoWithCaptionOverlay({
+  videoRef,
   videoUrl,
   segments,
   styleOverrides,
   onDragPosition,
 }: {
+  videoRef: React.RefObject<HTMLVideoElement | null>
   videoUrl: string
   segments: CaptionSegment[]
   styleOverrides: CaptionStyleOverrides
-  onDragPosition: (position: 'top' | 'center' | 'bottom') => void
+  onDragPosition: (position: { x: number; y: number }) => void
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [aspect, setAspect] = useState<number | null>(null)
-  const [dragPreviewY, setDragPreviewY] = useState<number | null>(null)
+  const [dragPreviewPos, setDragPreviewPos] = useState<{ x: number; y: number } | null>(null)
   const segmentsRef = useRef(segments)
   segmentsRef.current = segments
   const styleRef = useRef(styleOverrides)
   styleRef.current = styleOverrides
-  const dragPreviewRef = useRef<number | null>(null)
-  dragPreviewRef.current = dragPreviewY
+  const dragPreviewRef = useRef<{ x: number; y: number } | null>(null)
+  dragPreviewRef.current = dragPreviewPos
 
   useEffect(() => {
     const video = videoRef.current
@@ -737,43 +1021,40 @@ function VideoWithCaptionOverlay({
       video.removeEventListener('loadedmetadata', onLoadedMeta)
       cancelAnimationFrame(raf)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function positionFromRatio(ratio: number): 'top' | 'center' | 'bottom' {
-    if (ratio < 1 / 3) return 'top'
-    if (ratio < 2 / 3) return 'center'
-    return 'bottom'
-  }
-
-  function ratioFromEvent(e: React.PointerEvent<HTMLDivElement>): number {
-    // مختصات نسبت به کل ویدیو محاسبه می‌شود (نه فقط دستگیره) تا درگ به بالا/پایین واقعاً جواب بدهد
+  function ratioFromEvent(e: React.PointerEvent<HTMLDivElement>): { x: number; y: number } {
+    // مختصات نسبت به کل ویدیو محاسبه می‌شود (نه فقط دستگیره) — pointer capture یعنی حتی
+    // اگر انگشت/موس از محدوده‌ی دستگیره‌ی کوچک بیرون برود، move/up باز هم دریافت می‌شود
     const container = e.currentTarget.parentElement as HTMLElement
     const rect = container.getBoundingClientRect()
-    return Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+    return {
+      x: Math.max(0.06, Math.min(0.94, (e.clientX - rect.left) / rect.width)),
+      y: Math.max(0.06, Math.min(0.94, (e.clientY - rect.top) / rect.height)),
+    }
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     e.currentTarget.setPointerCapture(e.pointerId)
-    setDragPreviewY(ratioFromEvent(e))
+    setDragPreviewPos(ratioFromEvent(e))
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (dragPreviewRef.current === null) return
-    setDragPreviewY(ratioFromEvent(e))
+    setDragPreviewPos(ratioFromEvent(e))
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     if (dragPreviewRef.current === null) return
-    onDragPosition(positionFromRatio(ratioFromEvent(e)))
-    setDragPreviewY(null)
+    onDragPosition(ratioFromEvent(e))
+    setDragPreviewPos(null)
   }
 
-  // فقط یک نوار باریک دور محل فعلی زیرنویس قابل‌درگ است — بقیه‌ی ویدیو (از جمله کنترل‌های
-  // پخش native) باید کلیک‌پذیر بماند، پس خودِ canvas عمداً pointer-events-none است
-  const handleTop = styleOverrides.position === 'top' ? '6%' : styleOverrides.position === 'center' ? '40%' : '74%'
+  const { x: handleX, y: handleY } = resolvePositionRatio(styleOverrides, null)
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: aspect ?? 16 / 9 }}>
+    <div className="relative w-full" style={{ aspectRatio: aspect ?? 16 / 9, maxHeight: '65vh', width: 'auto', maxWidth: '100%', marginInline: 'auto' }}>
       <video
         ref={videoRef}
         src={videoUrl}
@@ -783,13 +1064,21 @@ function VideoWithCaptionOverlay({
         className="absolute inset-0 h-full w-full"
       />
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+      {/* دستگیره‌ی درگ کوچک، دور نقطه‌ی فعلی متن — بقیه‌ی ویدیو (کنترل‌های پخش native) باید
+          کلیک‌پذیر بماند */}
       <div
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        className="absolute inset-x-0 flex cursor-grab items-center justify-center active:cursor-grabbing"
-        style={{ top: handleTop, height: '20%' }}
-        title="بکش تا موقعیت زیرنویس رو عوض کنی"
+        className="absolute flex cursor-grab items-center justify-center active:cursor-grabbing"
+        style={{
+          left: `${handleX * 100}%`,
+          top: `${handleY * 100}%`,
+          width: '44%',
+          height: '18%',
+          transform: 'translate(-50%, -50%)',
+        }}
+        title="بکش تا موقعیت زیرنویس رو عوض کنی — هر جای ویدیو"
       />
     </div>
   )
@@ -801,11 +1090,27 @@ function fontSizeFor(overrides: CaptionStyleOverrides, canvasHeight: number): nu
   return overrides.fontSizePx ?? Math.round(canvasHeight * 0.045)
 }
 
-function baselineYFor(position: CaptionStyleOverrides['position'], canvasHeight: number, dragPreviewRatio: number | null): number {
-  if (dragPreviewRatio !== null) return canvasHeight * dragPreviewRatio
-  if (position === 'top') return canvasHeight * 0.16
-  if (position === 'center') return canvasHeight * 0.5
-  return canvasHeight * 0.88
+// هم‌راستا با resolvePositionRatio در ass-subtitle-builder.ts (بک‌اند) — جابجایی آزاد
+// (positionX/Y) وقتی ست شده باشد اولویت دارد، وگرنه fallback سه‌حالت قدیمی
+function resolvePositionRatio(
+  style: CaptionStyleOverrides,
+  dragPreview: { x: number; y: number } | null,
+): { x: number; y: number } {
+  if (dragPreview) return dragPreview
+  const clamp = (v: number) => Math.min(0.94, Math.max(0.06, v))
+  if (typeof style.positionX === 'number' && typeof style.positionY === 'number') {
+    return { x: clamp(style.positionX), y: clamp(style.positionY) }
+  }
+  const y = style.position === 'top' ? 0.12 : style.position === 'center' ? 0.5 : 0.88
+  return { x: 0.5, y }
+}
+
+// «IRANYekanMsn ExtraBold»/«Vazirmatn» به‌عنوان family مستقل توی CSS این پروژه ثبت نشده‌اند
+// (فقط برای رندرر بک‌اند/libass معنا دارند) — برای پیش‌نمایش canvas به نزدیک‌ترین family
+// واقعاً لود‌شده در مرورگر برمی‌گردیم تا حداقل گلیف فارسی درست نمایش داده شود
+function canvasFontFamily(fontFamily: string | undefined): string {
+  const base = fontFamily === 'IRANYekanMsn ExtraBold' || fontFamily === 'Vazirmatn' ? 'IRANYekanMsn' : fontFamily || 'IRANYekanMsn'
+  return `${base}, IRANYekanMsn, Tahoma, sans-serif`
 }
 
 function drawCue(
@@ -815,43 +1120,58 @@ function drawCue(
   segment: CaptionSegment,
   currentTimeSec: number,
   style: CaptionStyleOverrides,
-  dragPreviewRatio: number | null,
+  dragPreviewPos: { x: number; y: number } | null,
 ) {
   const words = segment.words.length > 0 ? segment.words : [{ word: segment.text, start: segment.startMs / 1000, end: segment.endMs / 1000, speaker: null }]
 
   const fontSize = fontSizeFor(style, canvasHeight)
-  const fontFamily = style.fontFamily ?? 'IRANYekanMsn'
-  ctx.font = `bold ${fontSize}px ${fontFamily}, Tahoma, sans-serif`
+  ctx.font = `bold ${fontSize}px ${canvasFontFamily(style.fontFamily)}`
   ctx.direction = 'rtl'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'alphabetic'
 
-  const spaceWidth = ctx.measureText(' ').width
-  const widths = words.map(w => ctx.measureText(w.word).width)
-  const totalWidth = widths.reduce((a, b) => a + b, 0) + spaceWidth * (words.length - 1)
+  // «تعداد کلمه در هر خط» / «تعداد خط» — همون منطق joinWordsForDisplay بک‌اند، فقط این‌جا
+  // خط‌ها واقعاً روی canvas چیده می‌شوند (نه \N متنی)
+  const wordsPerLine = Math.max(1, style.wordsPerLine ?? 4)
+  const lines: (typeof words)[] = []
+  for (let i = 0; i < words.length; i += wordsPerLine) lines.push(words.slice(i, i + wordsPerLine))
 
-  const centerX = canvasWidth / 2
-  const baselineY = baselineYFor(style.position, canvasHeight, dragPreviewRatio)
+  const spaceWidth = ctx.measureText(' ').width
+  const lineMetrics = lines.map(line => {
+    const widths = line.map(w => ctx.measureText(w.word).width)
+    const total = widths.reduce((a, b) => a + b, 0) + spaceWidth * (line.length - 1)
+    return { widths, total }
+  })
+  const maxLineWidth = Math.max(...lineMetrics.map(l => l.total))
+  const lineHeight = fontSize * 1.35
+  const blockHeight = lines.length * lineHeight
+
+  const { x: posXRatio, y: posYRatio } = resolvePositionRatio(style, dragPreviewPos)
+  const centerX = posXRatio * canvasWidth
+  const centerY = posYRatio * canvasHeight
+  const firstBaselineY = centerY - blockHeight / 2 + lineHeight * 0.78
   const padding = fontSize * 0.6
 
-  // پس‌زمینه‌ی نیمه‌شفاف پشت کل خط (یک جعبه‌ی پیوسته، نه جدا-جدا مثل رندر فعلی ffmpeg —
-  // بخش ۵.۱ توضیح می‌دهد چرا ASS اینجا با canvas یکی نیست، فقط برای پیش‌نمایش)
+  // پس‌زمینه‌ی نیمه‌شفاف پشت کل بلوک (همه‌ی خط‌ها) — یک جعبه‌ی پیوسته، نه جدا-جدا مثل رندر
+  // فعلی ffmpeg (بخش ۵.۱ توضیح می‌دهد چرا ASS اینجا با canvas یکی نیست، فقط برای پیش‌نمایش)
   const backgroundMode = style.backgroundMode ?? 'translucent'
   if (backgroundMode !== 'none') {
     ctx.fillStyle = backgroundMode === 'solid' ? 'rgba(2,6,23,0.92)' : 'rgba(2,6,23,0.55)'
-    const boxHeight = fontSize * 1.6
-    roundRect(ctx, centerX - totalWidth / 2 - padding, baselineY - fontSize * 1.05, totalWidth + padding * 2, boxHeight, 14)
+    roundRect(ctx, centerX - maxLineWidth / 2 - padding, centerY - blockHeight / 2 - padding * 0.4, maxLineWidth + padding * 2, blockHeight + padding * 0.8, 14)
     ctx.fill()
   }
 
   const textColor = style.textColor ?? '#ffffff'
   const highlightColor = style.highlightColor ?? '#10b981'
-  let cursorX = centerX + totalWidth / 2
-  words.forEach((w, i) => {
-    const active = currentTimeSec >= w.start && currentTimeSec <= w.end
-    ctx.fillStyle = active ? highlightColor : textColor
-    ctx.fillText(w.word, cursorX, baselineY)
-    cursorX -= widths[i] + spaceWidth
+  lines.forEach((line, li) => {
+    const baselineY = firstBaselineY + li * lineHeight
+    let cursorX = centerX + lineMetrics[li].total / 2
+    line.forEach((w, i) => {
+      const active = currentTimeSec >= w.start && currentTimeSec <= w.end
+      ctx.fillStyle = active ? highlightColor : textColor
+      ctx.fillText(w.word, cursorX, baselineY)
+      cursorX -= lineMetrics[li].widths[i] + spaceWidth
+    })
   })
 }
 

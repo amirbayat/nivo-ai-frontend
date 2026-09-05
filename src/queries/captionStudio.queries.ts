@@ -23,16 +23,20 @@ export function useCaptionProject(id?: string) {
 }
 
 // آپلود ویدیو multipart — تنها نقطه‌ی این پروژه که واقعاً FormData می‌فرستد (نه data-URL
-// base64 مثل عکس‌های موجود)، چون فایل ویدیو می‌تواند صدها مگابایت باشد
+// base64 مثل عکس‌های موجود)، چون فایل ویدیو می‌تواند صدها مگابایت باشد. onUploadProgress
+// اختیاری برای نوار پراگرس واقعی (نه فقط متن «در حال آپلود...») در CaptionUploadForm
 export function useCreateCaptionProject() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (file: File) => {
+    mutationFn: ({ file, onUploadProgress }: { file: File; onUploadProgress?: (percent: number) => void }) => {
       const form = new FormData()
       form.append('file', file)
       return api
         .post<CaptionProject>('/caption-studio/projects', form, {
           headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: e => {
+            if (onUploadProgress && e.total) onUploadProgress(Math.round((e.loaded / e.total) * 100))
+          },
         })
         .then(r => r.data)
     },
@@ -58,10 +62,21 @@ export function useRetryCaptionTranscription(id: string) {
   })
 }
 
+// targetHeight اختیاری — گزینه‌ی رزولوشن خروجی (HD/Full HD/4K)، فقط تا سقف project.sourceHeight
 export function useStartCaptionRender(id: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.post<CaptionProject>(`/caption-studio/projects/${id}/render`).then(r => r.data),
+    mutationFn: (targetHeight?: number) =>
+      api.post<CaptionProject>(`/caption-studio/projects/${id}/render`, { targetHeight }).then(r => r.data),
+    onSuccess: data => qc.setQueryData(keys.captionStudio.detail(id), data),
+  })
+}
+
+// «پایان کار و آزادسازی فضا» — حذف فوری و غیرقابل‌بازگشت سورس/دیباگ‌آدیو (بخش ۱ پلن)
+export function useDiscardCaptionSource(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<CaptionProject>(`/caption-studio/projects/${id}/discard-source`).then(r => r.data),
     onSuccess: data => qc.setQueryData(keys.captionStudio.detail(id), data),
   })
 }
@@ -83,6 +98,29 @@ export async function downloadCaptionSubtitle(projectId: string, format: 'srt' |
   const a = document.createElement('a')
   a.href = url
   a.download = `captions.${format}`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+// دانلود ویدیوی نهایی (رندرشده، پشت JwtGuard مثل export بالا) — قبل این تابع هیچ راه صریحی
+// برای دانلود ویدیوی نهایی نبود (فقط <video controls> که دانلودش وابسته به مرورگر بود).
+// onProgress برای نوار پراگرس درصدی حین دانلود فایل حجیم ویدیو
+export async function downloadCaptionVideo(
+  renderedVideoKey: string,
+  onProgress?: (percent: number) => void,
+) {
+  const res = await api.get(captionAssetSrc(renderedVideoKey), {
+    responseType: 'blob',
+    onDownloadProgress: e => {
+      if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100))
+    },
+  })
+  const url = URL.createObjectURL(res.data as Blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'nivo-captions.mp4'
   document.body.appendChild(a)
   a.click()
   a.remove()
