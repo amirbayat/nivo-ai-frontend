@@ -1,9 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { clsx } from 'clsx'
 import { resizeImage } from '@/components/chat/MessageInput'
 import { useModelCatalog } from '@/queries/plans.queries'
 import { useGenerateSimpleVideo, useUploadVideoStudioImage } from '@/queries/videoStudio.queries'
 import type { StudioAspectRatio } from '@/types/api'
 import { AspectRatioSegmented, ModelDropdownChip } from './ModelPickers'
+import { MediaPickerModal } from './MediaPickerModal'
 
 // فاز اول ساده‌شده‌ی استودیوی ویدیو (دستور صریح کاربر ۱۴۰۵-۰۶-۱۳): به‌جای چت آزاد و تشخیص
 // intent (که با خطای provider ناپایدار بود)، یک فرم قطعی — متن + عکس اختیاری + مدل + سایز →
@@ -17,6 +19,8 @@ export function SimpleVideoForm({ onCreated }: { onCreated: (projectId: string) 
   const [image, setImage] = useState<string | null>(null)
   const [videoModelId, setVideoModelId] = useState<string | null>(null)
   const [videoAspectRatio, setVideoAspectRatio] = useState<StudioAspectRatio>('16:9')
+  const [videoDurationSec, setVideoDurationSec] = useState<number | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -25,6 +29,18 @@ export function SimpleVideoForm({ onCreated }: { onCreated: (projectId: string) 
   const busy = uploadImage.isPending || generate.isPending
 
   const selectedModelName = videoModelId ?? videoModels[0]?.name ?? null
+  const selectedModel = videoModels.find(m => m.name === selectedModelName)
+  const supportedDurations = selectedModel?.videoGenSupportedDurationsSec ?? []
+
+  // وقتی مدل عوض می‌شود، اگر طول مدت انتخاب‌شده‌ی قبلی دیگر جزو گزینه‌های مدل تازه نباشد
+  // (یا هنوز چیزی انتخاب نشده)، به اولین مقدار پشتیبانی‌شده‌ی همین مدل برمی‌گردیم — دقیقاً
+  // همان رفتار قبلی سرور (fallback به [0]) وقتی کاربر خودش چیزی مشخص نکرده
+  useEffect(() => {
+    if (supportedDurations.length && (videoDurationSec === null || !supportedDurations.includes(videoDurationSec))) {
+      setVideoDurationSec(supportedDurations[0])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModelName])
 
   async function handleFile(file: File) {
     if (!file.type.startsWith('image/')) return
@@ -54,6 +70,7 @@ export function SimpleVideoForm({ onCreated }: { onCreated: (projectId: string) 
         imageKey,
         videoModelId: selectedModelName,
         videoAspectRatio,
+        ...(videoDurationSec != null ? { videoDurationSec } : {}),
       })
       onCreated(result.projectId)
     } catch {
@@ -114,17 +131,39 @@ export function SimpleVideoForm({ onCreated }: { onCreated: (projectId: string) 
             <span className="text-[12px] text-slate-400">این عکس به‌عنوان مرجع تصویری ویدیو استفاده می‌شود</span>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-slate-400"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
-            </svg>
-            افزودن عکس (اختیاری)
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-slate-400"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+              </svg>
+              افزودن عکس (اختیاری)
+            </button>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-slate-400"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.2)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+              </svg>
+              انتخاب از تولیدات قبلی
+            </button>
+          </div>
+        )}
+        {pickerOpen && (
+          <MediaPickerModal
+            onClose={() => setPickerOpen(false)}
+            onSelect={dataUrl => {
+              setImage(dataUrl)
+              setPickerOpen(false)
+            }}
+          />
         )}
 
         <div className="flex flex-wrap items-center gap-2.5">
@@ -135,6 +174,23 @@ export function SimpleVideoForm({ onCreated }: { onCreated: (projectId: string) 
             onSelect={setVideoModelId}
           />
           <AspectRatioSegmented value={videoAspectRatio} onChange={setVideoAspectRatio} size="sm" />
+          {supportedDurations.length > 1 && (
+            <div className="flex items-center gap-1 rounded-full p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.18)' }}>
+              {supportedDurations.map(sec => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => setVideoDurationSec(sec)}
+                  className={clsx(
+                    'rounded-full px-2.5 py-1.5 text-[12px] font-semibold transition-colors',
+                    videoDurationSec === sec ? 'bg-emerald-500 text-[#02170f]' : 'text-slate-400 hover:text-slate-200',
+                  )}
+                >
+                  {sec}s
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && <p className="text-[12px] text-red-400">{error}</p>}

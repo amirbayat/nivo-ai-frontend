@@ -4,7 +4,7 @@ import { clsx } from 'clsx'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
 import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
-import { useChatStore } from '@/store/chat.store'
+import { useChatStore, type ImageAspectRatio } from '@/store/chat.store'
 import { useToastStore } from '@/store/toast.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -40,7 +40,13 @@ export function StudioComposer({
   onRetryCreative,
   walletBalanceToman,
 }: {
-  onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
+  onSend: (
+    content: string,
+    images?: string[],
+    imageModel?: string,
+    preserveFace?: boolean,
+    imageAspectRatio?: ImageAspectRatio,
+  ) => void
   disabled?: boolean
   sending?: boolean
   // وقتی یک سبک از کتابخانه‌ی پرامپت‌های آماده انتخاب شده باشد، composer به‌جای onSend معمولی
@@ -86,6 +92,8 @@ export function StudioComposer({
   const setImages = useChatStore(s => s.setStudioDraftImages)
   const preserveFace = useChatStore(s => s.studioDraftPreserveFace)
   const setPreserveFace = useChatStore(s => s.setStudioDraftPreserveFace)
+  const aspectRatio = useChatStore(s => s.studioDraftAspectRatio)
+  const setAspectRatio = useChatStore(s => s.setStudioDraftAspectRatio)
   const resetStudioDraft = useChatStore(s => s.resetStudioDraft)
   const [isFocused, setIsFocused] = useState(false)
   const [creativeImageError, setCreativeImageError] = useState<string | null>(null)
@@ -153,7 +161,7 @@ export function StudioComposer({
     }
     // چند خروجی هم‌زمان هنوز سمت بک‌اند پشتیبانی نمی‌شود (docs/EXECUTION-PLAN.md، سوال باز) —
     // فعلاً همیشه دقیقاً ۱ خروجی ساخته می‌شود، بدون هیچ گزینه‌ای در UI (چون چیزی برای انتخاب نیست)
-    onSend(value.trim(), images.length ? images : undefined, pinnedModel?.name, preserveFace)
+    onSend(value.trim(), images.length ? images : undefined, pinnedModel?.name, preserveFace, aspectRatio ?? undefined)
     resetStudioDraft()
     closeMobileModal()
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -444,6 +452,32 @@ export function StudioComposer({
               <span>حفظ چهره</span>
             </label>
           )}
+
+          {/* نسبت تصویر — اختیاری، نخواستن (پیش‌فرض «خودکار») یعنی رفتار قبلی، بدون override
+              روی سایز مدل انتخابی. برخلاف preserveFace، همیشه در دسترس است چون هم برای تولید
+              از صفر هم برای ویرایش معنا دارد. */}
+          <div className="mt-1 mb-2 flex items-center gap-1.5 self-start rounded-full p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.18)' }}>
+            {(
+              [
+                { value: null, label: 'خودکار' },
+                { value: '1:1' as const, label: '۱:۱' },
+                { value: '16:9' as const, label: '۱۶:۹' },
+                { value: '9:16' as const, label: '۹:۱۶' },
+              ]
+            ).map(opt => (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => setAspectRatio(opt.value)}
+                className={clsx(
+                  'rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors',
+                  aspectRatio === opt.value ? 'bg-emerald-500 text-[#02170f]' : 'text-slate-400 hover:text-slate-200',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
           <div className="mt-4 flex flex-col gap-2.5 border-t pt-4" style={{ borderColor: 'rgba(148,163,184,0.14)' }}>
             <div className="flex gap-2">

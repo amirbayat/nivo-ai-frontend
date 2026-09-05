@@ -32,6 +32,7 @@ interface PendingMessage {
   images?: string[]
   imageModel?: string
   preserveFace?: boolean
+  imageAspectRatio?: '1:1' | '16:9' | '9:16'
 }
 
 // حالت «بدون گفتگو»ی سبک انتخاب‌شده از کتابخانه‌ی پرامپت‌های آماده — دقیقاً معادل PendingMessage
@@ -92,7 +93,7 @@ function StudioWorkspace({ id }: { id?: string }) {
     if (msg && id && !isLoading && data) {
       pendingRef.current = null
       window.history.replaceState({}, '')
-      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace)
+      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace, msg.imageAspectRatio)
     }
   }, [id, isLoading, data, sendMessage])
 
@@ -107,16 +108,17 @@ function StudioWorkspace({ id }: { id?: string }) {
     images?: string[],
     imageModel?: string,
     preserveFace?: boolean,
+    imageAspectRatio?: '1:1' | '16:9' | '9:16',
   ) => {
-    lastSendRef.current = { content, images, imageModel, preserveFace }
+    lastSendRef.current = { content, images, imageModel, preserveFace, imageAspectRatio }
     if (id) {
-      void sendMessage(content, images, imageModel, preserveFace)
+      void sendMessage(content, images, imageModel, preserveFace, imageAspectRatio)
       return
     }
     try {
       const conv = await createConv.mutateAsync({ model: 'optimal' })
       navigate(`/image/${conv.id}`, {
-        state: { initialMessage: { content, images, imageModel, preserveFace } },
+        state: { initialMessage: { content, images, imageModel, preserveFace, imageAspectRatio } },
         replace: true,
       })
     } catch {
@@ -126,7 +128,7 @@ function StudioWorkspace({ id }: { id?: string }) {
 
   function retrySend() {
     const last = lastSendRef.current
-    if (last) void handleSend(last.content, last.images, last.imageModel, last.preserveFace)
+    if (last) void handleSend(last.content, last.images, last.imageModel, last.preserveFace, last.imageAspectRatio)
   }
 
   // فقط تلاش تولید را دوباره می‌زند (بدون افزودن حباب پیام کاربر تازه) — برای دکمه‌ی «تلاش دوباره»

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { CreativePromptCatalogItem } from '@/types/api'
 
 export type ThinkingMode = 'fast' | 'smart'
+export type ImageAspectRatio = '1:1' | '16:9' | '9:16'
 
 interface ChatState {
   selectedConvId: string | null
@@ -31,6 +32,10 @@ interface ChatState {
   studioDraftValue: string
   studioDraftImages: string[]
   studioDraftPreserveFace: boolean
+  // انتخاب اختیاری نسبت تصویر — null یعنی «پیش‌فرض مدل» (رفتار قبلی، بدون override). برخلاف
+  // studioDraftImages، این یک «تنظیم» شبیه انتخاب مدل است، نه یک پیوست یک‌بارمصرف — پس در
+  // resetStudioDraft پاک نمی‌شود و بین پیام‌های پشت‌سرهم باقی می‌ماند
+  studioDraftAspectRatio: ImageAspectRatio | null
   setSelectedConvId: (id: string | null) => void
   setStreamingContent: (text: string) => void
   appendStreamingContent: (chunk: string) => void
@@ -48,6 +53,7 @@ interface ChatState {
   setStudioDraftValue: (value: string) => void
   setStudioDraftImages: (images: string[] | ((prev: string[]) => string[])) => void
   setStudioDraftPreserveFace: (v: boolean) => void
+  setStudioDraftAspectRatio: (v: ImageAspectRatio | null) => void
   resetStudioDraft: () => void
 }
 
@@ -77,6 +83,7 @@ export const useChatStore = create<ChatState>(set => ({
   studioDraftValue: '',
   studioDraftImages: [],
   studioDraftPreserveFace: true,
+  studioDraftAspectRatio: null,
 
   setSelectedConvId: id => set({ selectedConvId: id }),
   setStreamingContent: text => set({ streamingContent: text }),
@@ -103,5 +110,6 @@ export const useChatStore = create<ChatState>(set => ({
     studioDraftImages: typeof images === 'function' ? images(s.studioDraftImages) : images,
   })),
   setStudioDraftPreserveFace: v => set({ studioDraftPreserveFace: v }),
+  setStudioDraftAspectRatio: v => set({ studioDraftAspectRatio: v }),
   resetStudioDraft: () => set({ studioDraftValue: '', studioDraftImages: [], studioDraftPreserveFace: true }),
 }))

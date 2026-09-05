@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
-import type { StudioMessage, StudioProject, StudioShot, StudioShotVideoStatusResponse } from '@/types/api'
+import type { StudioMessage, StudioProject, StudioShot, StudioShotVideoStatusResponse, VideoNotification } from '@/types/api'
 
 // docs/PRD-video-studio-chat-flow.md — استودیوی ویدیو (فلوی چت‌محور، بدون wizard/استپر).
 // همه‌ی این هوک‌ها مستقیم روی /video-studio بک‌اند سوارند (nivo-ai-backend/src/modules/video-studio).
@@ -115,6 +115,7 @@ export interface GenerateSimpleVideoDto {
   videoModelId: string
   videoAspectRatio: string
   audioEnabled?: boolean
+  videoDurationSec?: number
 }
 
 export function useGenerateSimpleVideo() {
@@ -148,5 +149,25 @@ export function useShotVideoStatus(projectId: string, shotId: string, enabled: b
       const status = query.state.data?.videoStatus
       return status === 'SUCCEEDED' || status === 'FAILED' ? false : 5000
     },
+  })
+}
+
+// آیکون نوتیف هدر (وب) — جایگزین «فقط FCM موبایل» قبلی برای کاربران وب. پولینگ سراسری
+// (ChatLayout.tsx، نه فقط صفحه‌ی ویدیو استودیو) تا هرجای اپ که باشی، وقتی ویدیویی آماده شد بفهمی.
+export function useVideoNotifications() {
+  return useQuery({
+    queryKey: keys.videoStudio.notifications(),
+    queryFn: () => api.get<VideoNotification[]>('/video-studio/notifications').then(r => r.data),
+    refetchInterval: 25_000,
+    refetchOnWindowFocus: true,
+  })
+}
+
+export function useMarkNotificationsSeen() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (shotId?: string) =>
+      api.post('/video-studio/notifications/seen', shotId ? { shotId } : {}).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoStudio.notifications() }),
   })
 }

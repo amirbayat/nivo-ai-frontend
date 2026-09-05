@@ -332,6 +332,20 @@ export interface ConversationsPage {
   nextCursor: string | null
 }
 
+// «انتخاب از تولیدات قبلی» در استودیو ویدیو — imageUrl مسیر نسبی امن موجود است
+// (/conversations/:conversationId/images/:filename)، دقیقاً همان چیزی که useAuthedImageUrl می‌فهمد
+export interface MyImageItem {
+  messageId: string
+  conversationId: string
+  imageUrl: string
+  createdAt: string
+}
+
+export interface MyImagesPage {
+  items: MyImageItem[]
+  nextCursor: string | null
+}
+
 export interface UsageHistory {
   date: string
   freeTokensUsed: number
@@ -443,6 +457,16 @@ export type StudioProjectStatus = 'DRAFT' | 'CHARACTER_SELECTED' | 'STORYBOARD_R
 export type StudioShotVideoStatus = 'NOT_STARTED' | 'PENDING' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED'
 export type StudioModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type StudioAspectRatio = '1:1' | '16:9' | '9:16'
+
+export interface VideoNotification {
+  shotId: string
+  projectId: string
+  title: string
+  videoStatus: StudioShotVideoStatus
+  previewImageKey: string | null
+  completedAt: string
+  seen: boolean
+}
 
 export interface StudioCharacterOption {
   id: string

@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import { track } from '@/lib/events'
-import type { Conversation, ConversationDetail, ConversationsPage } from '@/types/api'
+import type { Conversation, ConversationDetail, ConversationsPage, MyImagesPage } from '@/types/api'
 
 export function useConversations(projectId?: string) {
   return useInfiniteQuery({
@@ -24,6 +24,20 @@ export function useImageStudioConversations() {
     queryFn: ({ pageParam }) =>
       api.get<ConversationsPage>('/conversations', {
         params: { cursor: pageParam, limit: 20, imageGenOnly: true },
+      }).then(r => r.data),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: last => last.nextCursor ?? undefined,
+  })
+}
+
+// «انتخاب از تولیدات قبلی» در استودیو ویدیو — همه‌ی عکس‌های تولیدشده‌ی کاربر در همه‌ی
+// مکالمات، فلت‌شده (بدون تفکیک مکالمه‌ای که این عکس در آن ساخته شده)
+export function useMyImages() {
+  return useInfiniteQuery({
+    queryKey: keys.conv.myImages(),
+    queryFn: ({ pageParam }) =>
+      api.get<MyImagesPage>('/conversations/images/mine', {
+        params: { cursor: pageParam, limit: 30 },
       }).then(r => r.data),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: last => last.nextCursor ?? undefined,

@@ -8,6 +8,7 @@ import { useMe } from "@/queries/auth.queries";
 import { useWallet } from "@/queries/usage.queries";
 import { useChatStore } from "@/store/chat.store";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
+import { NotificationBell } from "./NotificationBell";
 import { fa } from "@/locales/fa";
 import { track } from "@/lib/events";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
@@ -101,20 +102,23 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             className="w-28 h-auto"
           />
         </div>
-        <button
-          onClick={handleNew}
-          className="size-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-emerald-400 transition-colors"
-          title={fa.chat.newChat}
-        >
-          <svg viewBox="0 0 24 24" fill="none" className="size-4">
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button
+            onClick={handleNew}
+            className="size-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-emerald-400 transition-colors"
+            title={fa.chat.newChat}
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="size-4">
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="px-4 py-3 border-b border-slate-700/30">

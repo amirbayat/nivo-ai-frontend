@@ -19,7 +19,13 @@ export function useChat(conversationId: string) {
   } = useChatStore()
 
   const sendMessage = useCallback(
-    async (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => {
+    async (
+      content: string,
+      images?: string[],
+      imageModel?: string,
+      preserveFace?: boolean,
+      imageAspectRatio?: '1:1' | '16:9' | '9:16',
+    ) => {
       abortRef.current?.abort()
       const ctrl = new AbortController()
       abortRef.current = ctrl
@@ -75,6 +81,7 @@ export function useChat(conversationId: string) {
               ...(images?.length ? { images } : {}),
               // پیش‌فرض روشن است — فقط وقتی صریحاً خاموش شده باشد نیاز به فرستادن دارد
               ...(images?.length && preserveFace === false ? { preserveFace: false } : {}),
+              ...(imageAspectRatio ? { imageAspectRatio } : {}),
               thinkingMode,
             }),
           },

@@ -12,6 +12,8 @@ export const keys = {
     // docs/PRD-openrouter-migration.md §۱۴.۴ — ImageStudioHistory، جدا از list بالا تا با
     // invalidate شدن لیست عمومی چت قاطی نشود
     imageGenList: () => ['conversations', 'list', 'imageGenOnly'] as const,
+    // «انتخاب از تولیدات قبلی» در استودیو ویدیو — همه‌ی عکس‌های تولیدشده‌ی کاربر، فلت (بدون تفکیک مکالمه)
+    myImages: () => ['conversations', 'images', 'mine'] as const,
   },
   credits: {
     balance: () => ['credits', 'balance'] as const,
@@ -91,5 +93,6 @@ export const keys = {
     shotVideoStatus: (projectId: string, shotId: string) =>
       ['video-studio', 'shot-video-status', projectId, shotId] as const,
     messages: (projectId: string) => ['video-studio', 'messages', projectId] as const,
+    notifications: () => ['video-studio', 'notifications'] as const,
   },
 } as const
