@@ -394,9 +394,23 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
     setSegments(prev => prev.filter(s => s.id !== id))
   }
 
+  // قبلاً از project.transcriptWords (متن خام اولیه‌ی ASR) رگروپ می‌شد، یعنی حذف/ادیت
+  // دستی متن کاربر با هر تغییر «کلمه در هر خط» بی‌صدا پاک می‌شد. حالا از خودِ segments فعلی
+  // (که segmentهای حذف‌شده‌ی کاربر را دیگر ندارد) رگروپ می‌کنیم، و اگر متنی دستی ادیت شده
+  // باشد (که با تعداد کلمه‌ی جدید در هر خط قابل بازتوزیع نیست) قبلش تأیید می‌گیریم.
   function regenerateSegments(wordsPerLine: number, linesPerCue: number) {
+    const hasTextEdits = segments.some(
+      (s) => s.text.trim() !== s.words.map((w) => w.word.trim()).join(' ').trim(),
+    )
+    if (
+      hasTextEdits &&
+      !window.confirm('تغییر «کلمه در هر خط» متن‌هایی که دستی ادیت کرده‌اید را بازنویسی می‌کند. ادامه می‌دهید؟')
+    ) {
+      return
+    }
+    const words = segments.flatMap((s) => s.words)
     setStyleOverrides(prev => ({ ...prev, wordsPerLine, linesPerCue }))
-    setSegments(groupWordsIntoCues(project.transcriptWords ?? [], wordsPerLine, linesPerCue))
+    setSegments(groupWordsIntoCues(words, wordsPerLine, linesPerCue))
   }
 
   function applyPreset(preset: (typeof STYLE_PRESETS)[number]) {
@@ -933,7 +947,7 @@ const POSITION_OPTIONS = [
   ['center', 'وسط'],
   ['bottom', 'پایین'],
 ] as const
-const WORDS_PER_LINE_OPTIONS = [2, 3, 4, 5, 6, 8]
+const WORDS_PER_LINE_OPTIONS = [1, 2, 3, 4, 5, 6, 8]
 const LINES_PER_CUE_OPTIONS = [
   [1, 'یک خط'],
   [2, 'دو خط'],
