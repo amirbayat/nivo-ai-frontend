@@ -1,10 +1,19 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '@/store/chat.store'
 import { useMe } from '@/queries/auth.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
-import { COST_OPTIMIZED_MODE, COST_OPTIMIZED_DESCRIPTION, BEST_ANSWER_MODE, BEST_ANSWER_DESCRIPTION } from '@/lib/model-catalog'
+import {
+  COST_OPTIMIZED_MODE,
+  COST_OPTIMIZED_DESCRIPTION,
+  BEST_ANSWER_MODE,
+  BEST_ANSWER_DESCRIPTION,
+  tierDescription,
+  tierLabel,
+  TIER_COLOR,
+} from '@/lib/model-catalog'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
+import { ModelPickerModal, type ModelPickerItem } from '@/components/models/ModelPickerModal'
 import { track } from '@/lib/events'
 
 const STORAGE_KEY = 'nivo:selectedModel'
@@ -18,7 +27,7 @@ function shortName(model: string): string {
 
 function OptimalIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0">
       <path
         d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2z"
         fill="currentColor"
@@ -29,7 +38,7 @@ function OptimalIcon() {
 
 function CoinIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
       <path d="M12 7.5v9M9.5 9.5c0-1 1-1.5 2.5-1.5s2.5.6 2.5 1.4c0 1.9-5 .9-5 2.9 0 .9 1 1.6 2.5 1.6s2.5-.6 2.5-1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
@@ -48,7 +57,6 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
   const { data: catalog } = useModelCatalog()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
 
   // پیش‌فرض: فقط مدل‌های چت (نه IMAGE_GEN) — چون این دراپ‌داون قرار است برای پیام‌های متنی
   // استفاده شود. اما اگر یک سبک تصویری استودیو انتخاب شده باشد (selectedCreativePrompt)،
@@ -92,6 +100,20 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
   // سرویس مسیریاب مدل خودش بین مدل‌های مجاز پلن انتخاب می‌کند (docs/PRD-model-selection-modes.md)
   const options: string[] = [COST_OPTIMIZED_MODE, BEST_ANSWER_MODE, ...topModels]
 
+  // پیکربندی هر گزینه به شکل ModelPickerItem مشترک (همون کامپوننتی که مدال ویدیو استفاده می‌کند،
+  // طبق دستور کاربر: «برای عکس و متن هم عیناً همین شکلی بکن») — بج «سطح» از tier مدل ساخته می‌شود
+  const items: ModelPickerItem[] = options.map(model => {
+    const entry = catalog?.find(m => m.name === model)
+    return {
+      key: model,
+      icon: modeIcon(model) ?? <ProviderIcon provider={providerOf(model)} size={17} />,
+      name: displayName(model),
+      blurb: descriptionOf(model) ?? entry?.description ?? (entry ? tierDescription(entry.tier) : ''),
+      chips: entry?.badges ?? [],
+      tier: entry ? { label: tierLabel(entry.tier), ...TIER_COLOR[entry.tier] } : null,
+    }
+  })
+
   // pick active: selectedModel if valid, else fallback to currentModel or cost-optimized mode
   const active = (selectedModel && [...AUTO_MODES, ...allowedModels].includes(selectedModel))
     ? selectedModel
@@ -102,19 +124,10 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
     if (active && active !== selectedModel) setSelectedModel(active)
   }, [active, selectedModel, setSelectedModel])
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [])
-
   function select(model: string) {
     track('model_selected', { model, previousModel: selectedModel, source: 'header_dropdown' })
     setSelectedModel(model)
     localStorage.setItem(STORAGE_KEY, model)
-    setOpen(false)
   }
 
   function goToModelsPage() {
@@ -124,11 +137,11 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
   }
 
   return (
-    <div ref={ref} className="relative" dir="rtl">
+    <div dir="rtl">
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 rounded-full bg-purple-500/[0.08] border border-purple-400/25 px-3 py-1.5 hover:bg-purple-500/[0.13] transition-colors group"
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={open}
       >
         {modeIcon(active) ?? <ProviderIcon provider={providerOf(active)} />}
@@ -144,54 +157,24 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
         </svg>
       </button>
 
-      {/*
-        این دراپ‌داون داخل هدر چت با mr-auto به سمت چپ صفحه هل داده می‌شود (docs: چیدمان header چت) —
-        اگر با right-0 انکر شود، از همون سمت چپ که به آن نزدیک است باز می‌شود و از صفحه بیرون می‌زند.
-        با left-0 انکر می‌کنیم تا به سمت راست (جایی که فضای خالی هست) باز شود؛ عرض هم به viewport کلمپ می‌شود
-        تا در موبایل هم بیرون نزند.
-      */}
-      {open && (
-        <div dir="rtl" className="absolute top-full left-0 mt-1.5 z-50 w-[min(280px,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-800 shadow-xl overflow-x-hidden">
-          {options.map((model, idx) => (
-            <div key={model}>
-              {/* جداکننده‌ی بصری بین دو حالت خودکار و لیست انتخاب دستی مدل‌های مشخص */}
-              {idx === AUTO_MODES.length && (
-                <div className="border-t border-slate-700/70 px-3 pt-2 pb-1 text-[11px] font-medium text-slate-600">
-                  انتخاب دستی مدل
-                </div>
-              )}
-              <button
-                onClick={() => select(model)}
-                className={`w-full flex flex-col gap-1 px-3 py-2.5 text-right text-sm transition-colors
-                  ${model === active
-                    ? 'bg-slate-700 text-slate-200'
-                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
-                  }`}
-              >
-                <span className="flex w-full items-center gap-2">
-                  {modeIcon(model) ?? <ProviderIcon provider={providerOf(model)} />}
-                  {displayName(model)}
-                  {model === active && (
-                    <svg viewBox="0 0 12 12" fill="none" className="mr-auto w-3 h-3 text-emerald-500 shrink-0">
-                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </span>
-                {descriptionOf(model) && (
-                  <span dir="rtl" className="pr-5 text-[11px] leading-relaxed text-slate-500 text-right">{descriptionOf(model)}</span>
-                )}
-              </button>
-            </div>
-          ))}
-
+      <ModelPickerModal
+        open={open}
+        onClose={() => setOpen(false)}
+        items={items}
+        selectedKey={active}
+        onSelect={select}
+        title="انتخاب مدل"
+        subtitle="هر مدل رو با تخصص و قیمتش ببین و انتخاب کن"
+        footer={
           <button
+            type="button"
             onClick={goToModelsPage}
-            className="w-full border-t border-slate-700/70 px-3 py-2.5 text-right text-xs font-medium text-emerald-400 hover:bg-slate-700/50 transition-colors"
+            className="mt-3 w-full rounded-2xl border border-slate-700/60 py-2.5 text-center text-[12.5px] font-semibold text-emerald-400 hover:bg-slate-800/40"
           >
             {moreCount > 0 ? `مدل‌های بیشتر (${moreCount} مورد دیگر) ←` : 'مشاهده همه مدل‌ها ←'}
           </button>
-        </div>
-      )}
+        }
+      />
     </div>
   )
 }

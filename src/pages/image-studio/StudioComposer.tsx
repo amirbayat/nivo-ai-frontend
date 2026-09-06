@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
@@ -7,9 +6,10 @@ import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
 import { useChatStore, type ImageAspectRatio } from '@/store/chat.store'
 import { useToastStore } from '@/store/toast.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
-import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { resizeImage } from '@/components/chat/MessageInput'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
+import { ModelPickerModal, type ModelPickerItem } from '@/components/models/ModelPickerModal'
+import { imageQualityLabel, tierDescription, TIER_COLOR } from '@/lib/model-catalog'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import type { CreativePromptCatalogItem } from '@/types/api'
@@ -68,7 +68,6 @@ export function StudioComposer({
   // موجودی کیف‌پول (فقط پلن Pay-as-you-go) — null یعنی پلن این کاربر اصلاً کیف‌پول تومانی ندارد
   walletBalanceToman?: number | null
 }) {
-  const navigate = useNavigate()
   const { data: flags } = useFeatureFlags()
   const MAX_IMAGES = flags?.maxImagesPerMessage ?? 4
   const MAX_SIZE_BYTES = (flags?.maxImageSizeMb ?? 8) * 1024 * 1024
@@ -82,10 +81,11 @@ export function StudioComposer({
   // (یا مدل پیش‌فرض این پلن، اگر ادمین از صفحه‌ی پلن‌ها ستش کرده باشد)، نه یک نام هاردکد
   const modelLabel = pinnedModel?.displayName ?? imageGenModels[0]?.displayName ?? 'مدل پیش‌فرض'
 
-  // value/images/preserveFace عمداً در chat.store (نه useState محلی) نگه داشته می‌شوند — چیپ
-  // «تغییر مدل» به /models navigate می‌کند که این کامپوننت را unmount می‌کند؛ useState محلی با
-  // آن remount از دست می‌رفت (این دقیقاً باگی بود که کاربر گزارش داد: «مدل رو عوض می‌کنم، پرامپت
-  // بسته می‌شود»)
+  // value/images/preserveFace عمداً در chat.store (نه useState محلی) نگه داشته می‌شوند — قبلاً
+  // چیپ «تغییر مدل» به /models navigate می‌کرد که این کامپوننت را unmount می‌کرد و useState محلی
+  // را از دست می‌داد (باگی که کاربر گزارش داد: «مدل رو عوض می‌کنم، پرامپت بسته می‌شود»)؛ حالا که
+  // مدل از یک مدال (نه navigate) انتخاب می‌شود دیگر آن ریسک وجود ندارد، ولی state همچنان در
+  // store مانده تا رفتار یکسان بماند
   const value = useChatStore(s => s.studioDraftValue)
   const setValue = useChatStore(s => s.setStudioDraftValue)
   const images = useChatStore(s => s.studioDraftImages)
@@ -100,14 +100,12 @@ export function StudioComposer({
   // فقط روی موبایل معنا دارد (دسکتاپ همیشه باز است، پایین‌تر با sm: بازنویسی می‌شود) — با
   // انتخاب یک سبک تازه از کتابخانه، مدال خودکار باز می‌شود تا کاربر بلافاصله عکس مرجع را ببیند
   const [mobileExpanded, setMobileExpanded] = useState(false)
-  // فقط روی موبایل معنا دارد — کدام پنل داخل مدال تمام‌صفحه دیده می‌شود. زدن «تغییر مدل»
-  // به‌جای navigate به یک صفحه‌ی جدا (که پنل رو unmount می‌کرد)، همین‌جا به لیست مدل‌ها سوییچ
-  // می‌کند؛ خود مدال باز می‌ماند و چیزی از دست نمی‌رود
-  const [mobileView, setMobileView] = useState<'compose' | 'models'>('compose')
+  // مدال انتخاب مدل — روی هر دو دسکتاپ/موبایل همین مدال باز می‌شود (طبق دستور کاربر: «برای عکس
+  // و متن هم عیناً همین شکلی بکن» که در ویدیو ساخته شده)، نه navigate به یک صفحه‌ی جدا
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const isTouchDevice = useIsTouchDevice()
-  const isDesktop = useMediaQuery('(min-width: 640px)')
   const uploadDiscoveryImage = useUploadDiscoveryImage()
 
   useEffect(() => {
@@ -116,7 +114,6 @@ export function StudioComposer({
 
   function closeMobileModal() {
     setMobileExpanded(false)
-    setMobileView('compose')
   }
 
   function selectImageGenModel(model: string | null) {
@@ -124,8 +121,28 @@ export function StudioComposer({
     setSelectedImageGenModel(model)
     if (model) localStorage.setItem('nivo:selectedImageGenModel', model)
     else localStorage.removeItem('nivo:selectedImageGenModel')
-    setMobileView('compose')
   }
+
+  // آیتم‌های مدال مشترک انتخاب مدل — همون شکل کارت‌دار مدال ویدیو (ModelPickerModal.tsx)
+  const modelPickerItems: ModelPickerItem[] = [
+    {
+      key: '__auto__',
+      icon: (
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-400">
+          <path d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z" />
+        </svg>
+      ),
+      name: 'خودکار (پیش‌فرض)',
+      blurb: 'کیفیت/ابعاد بر اساس توصیف و اعتبار انتخاب می‌شود.',
+    },
+    ...imageGenModels.map(model => ({
+      key: model.name,
+      icon: <ProviderIcon provider={model.provider} size={17} />,
+      name: model.displayName,
+      blurb: model.description || tierDescription(model.tier),
+      tier: { label: imageQualityLabel(model.tier), ...TIER_COLOR[model.tier] },
+    })),
+  ]
 
   const canSend = selectedCreativePrompt
     ? !disabled && !sending && !generatingCreative && !uploadDiscoveryImage.isPending &&
@@ -269,14 +286,12 @@ export function StudioComposer({
           'sm:static sm:z-auto sm:inset-auto sm:flex sm:h-full sm:flex-1 sm:translate-y-0 sm:opacity-100 sm:pointer-events-auto sm:overflow-visible sm:bg-transparent sm:transition-none',
         )}
       >
-        {/* هدر مدال — فقط موبایل. عنوان بسته به پنل فعلی عوض می‌شود؛ ضربدر همیشه کل مدال را می‌بندد */}
+        {/* هدر مدال — فقط موبایل. ضربدر کل مدال را می‌بندد */}
         <div
           className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 px-4 pb-3 sm:hidden"
           style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}
         >
-          <span className="text-[14.5px] font-bold text-white">
-            {mobileView === 'models' ? 'انتخاب مدل تولید عکس' : 'ساخت عکس'}
-          </span>
+          <span className="text-[14.5px] font-bold text-white">ساخت عکس</span>
           <button
             type="button"
             onClick={closeMobileModal}
@@ -290,18 +305,10 @@ export function StudioComposer({
           </button>
         </div>
 
-        {/* دو پنل کنار هم (نوشتن پرامپت / انتخاب مدل) که با اسلاید افقی بین‌شون سوییچ می‌شه —
-            فقط روی موبایل؛ دسکتاپ با sm:contents از چیدمان کنار می‌ره و پنل مدل اصلاً دیده
-            نمی‌شه (دسکتاپ همچنان با چیپ «تغییر مدل» به /models می‌ره، بدون تغییر) */}
-        <div className="relative flex-1 overflow-hidden sm:contents">
-          <div
-            className={clsx(
-              'absolute inset-0 flex flex-col gap-4 overflow-y-auto px-4 pt-3 transition-transform duration-300 ease-out',
-              mobileView === 'models' ? '-translate-x-full' : 'translate-x-0',
-              'sm:static sm:inset-auto sm:flex sm:h-full sm:flex-1 sm:translate-x-0 sm:overflow-visible sm:px-0 sm:pt-0 sm:transition-none',
-            )}
-            style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
-          >
+        <div
+          className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 sm:h-full sm:px-0 sm:pt-0"
+          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+        >
         {walletBalanceToman !== null && walletBalanceToman !== undefined && (
           <div className="flex items-center justify-between gap-2 self-start rounded-full px-3.5 py-1.5 text-[12px]" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)', color: '#94a3b8' }}>
             <span>موجودی کیف‌پول:</span>
@@ -331,10 +338,10 @@ export function StudioComposer({
             </button>
           </div>
         ) : (
-          /* چیپ مدل — دسکتاپ: navigate به صفحه‌ی مدل‌ها (بدون تغییر). موبایل: همون مدال باز
-             می‌ماند، فقط به پنل «انتخاب مدل» سوییچ می‌کند (بدون navigate/unmount) */
+          /* چیپ مدل — روی هر دو دسکتاپ/موبایل مدال بزرگ کارت‌دار (ModelPickerModal مشترک، همون
+             چیزی که در ویدیو ساخته شد) را باز می‌کند، نه navigate به صفحه‌ی جدا */
           <button
-            onClick={() => (isDesktop ? navigate('/models?context=image-studio') : setMobileView('models'))}
+            onClick={() => setModelPickerOpen(true)}
             className="flex items-center gap-2.5 self-start rounded-full px-3.5 py-2 text-[13px]"
             style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#d1fae5' }}
           >
@@ -539,73 +546,18 @@ export function StudioComposer({
             )}
           </div>
         )}
-          </div>
-
-          {/* پنل انتخاب مدل — فقط موبایل (دسکتاپ هیچ‌وقت mobileView را عوض نمی‌کند) */}
-          <div
-            className={clsx(
-              'absolute inset-0 flex flex-col gap-2.5 overflow-y-auto px-4 pt-3 transition-transform duration-300 ease-out sm:hidden',
-              mobileView === 'models' ? 'translate-x-0' : 'translate-x-full',
-            )}
-            style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
-          >
-            {/* برگشت به پرامپت بدون انتخاب مدل تازه — chevron رو به راست، چون این حرکت
-                «بازگشت» است (CLAUDE.md: فلش بازگشت در RTL باید رو به راست باشد) */}
-            <button
-              type="button"
-              onClick={() => setMobileView('compose')}
-              className="flex items-center gap-1.5 self-start text-[12.5px] font-semibold text-slate-400"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-              بازگشت به پرامپت
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectImageGenModel(null)}
-              className={clsx(
-                'flex items-center gap-3 rounded-2xl border p-3.5 text-right',
-                selectedImageGenModel === null ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-slate-700/60 bg-slate-800/40',
-              )}
-            >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-emerald-400">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z" /></svg>
-              </span>
-              <span className="flex-1">
-                <span className="block text-[13px] font-bold text-slate-100">خودکار (پیش‌فرض)</span>
-                <span className="block text-[11px] text-slate-500">کیفیت/ابعاد بر اساس توصیف و اعتبار</span>
-              </span>
-              {selectedImageGenModel === null && (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-emerald-500"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              )}
-            </button>
-            {imageGenModels.map(model => (
-              <button
-                key={model.name}
-                type="button"
-                onClick={() => selectImageGenModel(model.name)}
-                className={clsx(
-                  'flex items-center gap-3 rounded-2xl border p-3.5 text-right',
-                  selectedImageGenModel === model.name ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-slate-700/60 bg-slate-800/40',
-                )}
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5">
-                  <ProviderIcon provider={model.provider} size={16} />
-                </span>
-                <span className="flex-1">
-                  <span className="block text-[13px] font-bold text-slate-100">{model.displayName}</span>
-                  {model.description && <span className="block text-[11px] text-slate-500">{model.description}</span>}
-                </span>
-                {selectedImageGenModel === model.name && (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-emerald-500"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                )}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
+
+      <ModelPickerModal
+        open={modelPickerOpen}
+        onClose={() => setModelPickerOpen(false)}
+        items={modelPickerItems}
+        selectedKey={selectedImageGenModel ?? '__auto__'}
+        onSelect={key => selectImageGenModel(key === '__auto__' ? null : key)}
+        title="انتخاب مدل تولید عکس"
+        subtitle="هر مدل رو با کیفیت و قیمتش ببین و انتخاب کن"
+      />
     </>
   )
 }

@@ -46,3 +46,12 @@ const IMAGE_QUALITY_LABELS: Record<ModelTier, string> = {
 export function imageQualityLabel(tier: ModelTier): string {
   return IMAGE_QUALITY_LABELS[tier] ?? tier
 }
+
+// همون پالت رنگی که برای بج قیمتی مدل‌های ویدیو استفاده می‌شود (curatedModels.ts، ارزان/متوسط/
+// گران) — این‌جا دوباره برای بج «سطح» مدل‌های چت/عکس در مدال انتخاب مدل مشترک استفاده می‌شود تا
+// زبان بصری هر سه (متن/عکس/ویدیو) یکسان بماند
+export const TIER_COLOR: Record<ModelTier, { bg: string; border: string; text: string }> = {
+  SIMPLE: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.35)', text: '#6ee7b7' },
+  MEDIUM: { bg: 'rgba(234,179,8,0.12)', border: 'rgba(234,179,8,0.35)', text: '#fde047' },
+  COMPLEX: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)', text: '#fca5a5' },
+}
