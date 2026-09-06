@@ -16,6 +16,16 @@ export function useKieVideoModels() {
   })
 }
 
+// مقادیر عمومی VideoEditConfig (فقط مدت ثابت تولید) — برای نمایش عدد واقعی به‌جای برچسب مبهم
+export function useVideoEditPublicConfig() {
+  return useQuery({
+    queryKey: keys.videoEdit.config(),
+    queryFn: () =>
+      api.get<{ isEnabled: boolean; generateFixedDurationSec: number }>('/video-edit/config').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
+}
+
 // آپلود multipart — دقیقاً الگوی useCreateCaptionProject (captionStudio.queries.ts)، چون
 // هم عکس هم ویدیو اینجا با magic-bytes سمت بک‌اند اعتبارسنجی می‌شوند، نه data-URL
 export function useUploadVideoEditImage() {

@@ -100,6 +100,7 @@ export const keys = {
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,
+    config: () => ['video-edit', 'config'] as const,
     jobs: () => ['video-edit', 'jobs'] as const,
     jobDetail: (id: string) => ['video-edit', 'jobs', id] as const,
   },

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import axios from 'axios'
 import { clsx } from 'clsx'
 import {
   useCreateVideoEditJob,
   useUploadVideoEditImage,
   useUploadVideoEditVideo,
+  useVideoEditPublicConfig,
 } from '@/queries/videoEdit.queries'
 import type { KieVideoModel } from '@/types/api'
 
@@ -13,6 +15,17 @@ import type { KieVideoModel } from '@/types/api'
 // طراحی/زبان بصری دقیقاً از آرتیفکت طراحی‌شده (کارت‌های گرد گرادیانی سبز/بنفش، دکمه‌ی گرادیانی).
 
 const ASPECT_RATIOS = ['16:9', '9:16'] as const
+
+// پیام واقعی بک‌اند (مثلاً «برای این کار ۵۶,۷۰۰ تومان لازم است...») را نشان می‌دهد، نه یک
+// متن ثابت — بک‌اند برای خطاهای ساختاریافته {message, code, ...} برمی‌گرداند (دقیقاً همون
+// الگوی extractErrorMessage در PromptExtractionCard.tsx/NivoCalPage.tsx)
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const message = (err.response?.data as { message?: string } | undefined)?.message
+    if (message) return message
+  }
+  return fallback
+}
 
 function fmtDur(sec: number) {
   const s = Math.round(sec)
@@ -139,14 +152,23 @@ function RatioSegmented({ value, onChange }: { value: '16:9' | '9:16'; onChange:
   )
 }
 
-function FixedChip({ children }: { children: React.ReactNode }) {
+function FixedChip({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div
       className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold"
       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)', color: '#94a3b8' }}
     >
+      {icon}
       {children}
     </div>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
   )
 }
 
@@ -157,6 +179,7 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
   const [ratio, setRatio] = useState<'16:9' | '9:16'>('16:9')
   const [error, setError] = useState<string | null>(null)
 
+  const { data: publicConfig } = useVideoEditPublicConfig()
   const uploadImage = useUploadVideoEditImage()
   const uploadVideo = useUploadVideoEditVideo()
   const createJob = useCreateVideoEditJob()
@@ -185,8 +208,8 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
       setImage(null)
       setVideo(null)
       onCreated()
-    } catch {
-      setError('ساخت ویدیو ناموفق بود، دوباره امتحان کن')
+    } catch (err) {
+      setError(extractErrorMessage(err, 'ساخت ویدیو ناموفق بود، دوباره امتحان کن'))
     }
   }
 
@@ -246,7 +269,11 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
 
       <div className="flex flex-wrap items-center gap-2">
         {model.supportsAspectRatio && <RatioSegmented value={ratio} onChange={setRatio} />}
-        {model.supportsDuration && <FixedChip>مدت ثابت</FixedChip>}
+        {model.supportsDuration && (
+          <FixedChip icon={<ClockIcon />}>
+            {publicConfig ? `${publicConfig.generateFixedDurationSec.toLocaleString('fa-IR')} ثانیه` : '…'}
+          </FixedChip>
+        )}
         <FixedChip>{model.resolutions[0] ?? '720p'}</FixedChip>
       </div>
 
@@ -265,12 +292,139 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
   )
 }
 
+// تریمر دو-دستگیره‌ی کشیدنی — دقیقاً مثل تایم‌لاین برش ویدیوی اپ‌های ادیت (کل بازه‌ی فایل +
+// یه بخش هایلایت‌شده‌ی قابل‌کشیدن). عمداً dir="ltr" است، مستقل از جهت RTL صفحه — یه تایم‌لاین
+// همیشه زمان را همون جهت متعارف (چپ→راست) نشون می‌ده، دقیقاً مثل نوار پخش خودِ ویدیو.
+function VideoWindowTrimmer({
+  durationSec,
+  maxWidth,
+  value,
+  onChange,
+}: {
+  durationSec: number
+  maxWidth: number
+  value: [number, number]
+  onChange: (next: [number, number]) => void
+}) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const dragKind = useRef<'start' | 'end' | 'region' | null>(null)
+  const dragOffsetSec = useRef(0)
+  const [start, end] = value
+  const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
+
+  function secAtClientX(clientX: number): number {
+    const el = trackRef.current
+    if (!el || durationSec <= 0) return 0
+    const rect = el.getBoundingClientRect()
+    const ratio = clamp((clientX - rect.left) / rect.width, 0, 1)
+    return ratio * durationSec
+  }
+
+  function onMove(e: React.PointerEvent) {
+    if (!dragKind.current) return
+    const sec = secAtClientX(e.clientX)
+    if (dragKind.current === 'start') {
+      const next = clamp(sec, Math.max(0, end - maxWidth), end - 1)
+      onChange([next, end])
+    } else if (dragKind.current === 'end') {
+      const next = clamp(sec, start + 1, Math.min(durationSec, start + maxWidth))
+      onChange([start, next])
+    } else {
+      const width = end - start
+      const next = clamp(sec - dragOffsetSec.current, 0, durationSec - width)
+      onChange([next, next + width])
+    }
+  }
+
+  function beginDrag(kind: 'start' | 'end' | 'region') {
+    return (e: React.PointerEvent) => {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      dragKind.current = kind
+      if (kind === 'region') dragOffsetSec.current = secAtClientX(e.clientX) - start
+    }
+  }
+
+  function endDrag(e: React.PointerEvent) {
+    e.currentTarget.releasePointerCapture(e.pointerId)
+    dragKind.current = null
+  }
+
+  const startPct = durationSec > 0 ? (start / durationSec) * 100 : 0
+  const endPct = durationSec > 0 ? (end / durationSec) * 100 : 0
+  const atMaxWidth = end - start >= maxWidth - 0.05
+
+  function applyPreset(preset: 'first' | 'middle' | 'last') {
+    const width = Math.min(maxWidth, durationSec)
+    if (preset === 'first') onChange([0, width])
+    else if (preset === 'last') onChange([durationSec - width, durationSec])
+    else {
+      const mid = durationSec / 2
+      onChange([clamp(mid - width / 2, 0, durationSec - width), clamp(mid + width / 2, width, durationSec)])
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5" dir="ltr">
+      <div className="flex items-center justify-between text-[11px] font-bold" style={{ color: '#e2e8f0' }}>
+        <span style={{ color: '#fb7185' }} className="tabular-nums">
+          {fmtDur(start)} – {fmtDur(end)}
+        </span>
+        <span style={{ color: '#94a3b8' }}>{fmtDur(end - start)} از {fmtDur(durationSec)} انتخاب شده</span>
+      </div>
+
+      <div ref={trackRef} className="relative h-9 select-none" onPointerMove={onMove}>
+        {/* ریل کامل ویدیو */}
+        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full" style={{ background: 'rgba(148,163,184,0.20)' }} />
+        {/* بازه‌ی انتخاب‌شده — خودش هم قابل‌کشیدنه (جابه‌جایی کل پنجره) */}
+        <div
+          onPointerDown={beginDrag('region')}
+          onPointerUp={endDrag}
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 cursor-grab rounded-full active:cursor-grabbing"
+          style={{ left: `${startPct}%`, width: `${endPct - startPct}%`, background: 'linear-gradient(90deg,#f43f5e,#fb7185)' }}
+        />
+        {/* دستگیره‌ی شروع */}
+        <button
+          type="button"
+          aria-label="شروع بازه"
+          onPointerDown={beginDrag('start')}
+          onPointerUp={endDrag}
+          className="absolute top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 shadow"
+          style={{ left: `${startPct}%`, background: '#fff', borderColor: '#fb7185' }}
+        />
+        {/* دستگیره‌ی پایان */}
+        <button
+          type="button"
+          aria-label="پایان بازه"
+          onPointerDown={beginDrag('end')}
+          onPointerUp={endDrag}
+          className="absolute top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 shadow"
+          style={{ left: `${endPct}%`, background: '#fff', borderColor: '#fb7185' }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1.5">
+          <button type="button" onClick={() => applyPreset('first')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+            ابتدای ویدیو
+          </button>
+          <button type="button" onClick={() => applyPreset('middle')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+            وسط ویدیو
+          </button>
+          <button type="button" onClick={() => applyPreset('last')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+            انتهای ویدیو
+          </button>
+        </div>
+        {atMaxWidth && <span className="text-[10px] font-bold" style={{ color: '#fbbf24' }}>حداکثر پهنای بازه ({maxWidth}ث)</span>}
+      </div>
+    </div>
+  )
+}
+
 export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCreated: () => void }) {
   const [prompt, setPrompt] = useState('')
   const [source, setSource] = useState<{ file: File; previewUrl: string; durationSec: number } | null>(null)
   const [windowRange, setWindowRange] = useState<[number, number]>([0, 8])
   const [error, setError] = useState<string | null>(null)
-  const videoElRef = useRef<HTMLVideoElement>(null)
 
   const uploadVideo = useUploadVideoEditVideo()
   const createJob = useCreateVideoEditJob()
@@ -290,8 +444,8 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
       setSource({ file, previewUrl: URL.createObjectURL(file), durationSec })
       // کلید آپلودشده را روی همون فایل نگه می‌داریم تا submit دوباره آپلود نکند
       ;(file as unknown as { __uploadedKey?: string }).__uploadedKey = key
-    } catch {
-      setError('آپلود ویدیو ناموفق بود — فرمت باید mp4/mov باشد')
+    } catch (err) {
+      setError(extractErrorMessage(err, 'آپلود ویدیو ناموفق بود — فرمت باید mp4/mov باشد'))
     }
   }
 
@@ -315,8 +469,8 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
       setPrompt('')
       setSource(null)
       onCreated()
-    } catch {
-      setError('ویرایش ویدیو ناموفق بود، دوباره امتحان کن')
+    } catch (err) {
+      setError(extractErrorMessage(err, 'ویرایش ویدیو ناموفق بود، دوباره امتحان کن'))
     }
   }
 
@@ -343,36 +497,9 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
       </div>
 
       {source && (
-        <div className="flex flex-col gap-2 rounded-2xl p-3" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)' }}>
-          <video ref={videoElRef} src={source.previewUrl} muted className="hidden" />
-          <div className="flex items-center justify-between text-[11px] font-bold" style={{ color: '#e2e8f0' }}>
-            <span>بازه‌ی ویرایش</span>
-            <span style={{ color: '#fb7185' }}>{fmtDur(windowRange[0])} – {fmtDur(windowRange[1])} (از {fmtDur(source.durationSec)})</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={source.durationSec}
-            step={0.5}
-            value={windowRange[0]}
-            onChange={e => {
-              const start = Number(e.target.value)
-              const end = Math.min(source.durationSec, Math.max(start + 1, Math.min(windowRange[1], start + maxWidth)))
-              setWindowRange([start, end])
-            }}
-          />
-          <input
-            type="range"
-            min={0}
-            max={source.durationSec}
-            step={0.5}
-            value={windowRange[1]}
-            onChange={e => {
-              const end = Number(e.target.value)
-              const start = Math.max(0, Math.min(windowRange[0], end - 1), end - maxWidth)
-              setWindowRange([start, end])
-            }}
-          />
+        <div className="flex flex-col gap-1" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 16, padding: '12px 14px' }}>
+          <FieldLabel>کدوم بخش ویدیو ویرایش بشه؟</FieldLabel>
+          <VideoWindowTrimmer durationSec={source.durationSec} maxWidth={maxWidth} value={windowRange} onChange={setWindowRange} />
         </div>
       )}
 
