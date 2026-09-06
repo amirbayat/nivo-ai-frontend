@@ -386,6 +386,26 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
     setRestoreOffer(null)
   }
 
+  // قبلاً دکمه‌ی رندر مستقیم startRender.mutate را صدا می‌زد، بدون صبر برای autosave
+  // دیبانس‌شده (۲ ثانیه) — اگر کاربر بلافاصله بعد از ادیت متن روی «خروجی نهایی» می‌زد،
+  // رندر با segments قدیمی (هنوز روی سرور ذخیره‌نشده) صف می‌شد. حالا قبل از رندر، تایمر
+  // debounce را flush و منتظر تکمیل واقعی PATCH می‌مانیم تا مطمئن شویم رندر از روی
+  // آخرین متن ادیت‌شده انجام می‌شود.
+  async function handleRenderClick() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    try {
+      await updateProject.mutateAsync({ segments, styleOverrides })
+      clearDraft(project.id)
+    } catch {
+      window.alert('ذخیره‌ی آخرین ادیت‌ها با خطا مواجه شد؛ برای اطمینان از درستی رندر، دوباره تلاش کن.')
+      return
+    }
+    startRender.mutate(targetHeight)
+  }
+
   function updateSegment(updated: CaptionSegment) {
     setSegments(prev => prev.map(s => (s.id === updated.id ? updated : s)).sort((a, b) => a.startMs - b.startMs))
   }
@@ -490,8 +510,8 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
         availableResolutions={availableResolutions}
         targetHeight={targetHeight}
         onTargetHeightChange={setTargetHeight}
-        onRender={() => startRender.mutate(targetHeight)}
-        renderPending={startRender.isPending}
+        onRender={handleRenderClick}
+        renderPending={startRender.isPending || updateProject.isPending}
         renderError={startRender.isError}
         onDownloadVideo={handleDownloadVideo}
         downloadProgress={downloadProgress}
@@ -1343,7 +1363,7 @@ function VideoStage({
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const tMs = video.currentTime * 1000
       const list = segmentsRef.current ?? []
-      const seg = list.find(s => tMs >= s.startMs && tMs <= s.endMs) ?? list[0]
+      const seg = list.find(s => tMs >= s.startMs && tMs <= s.endMs)
       if (seg && styleRef.current) {
         drawCue(ctx, canvas.width, canvas.height, seg, video.currentTime, styleRef.current, dragPreviewRef.current)
       }
