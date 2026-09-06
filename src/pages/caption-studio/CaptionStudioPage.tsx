@@ -842,26 +842,76 @@ function ControlBar({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement |
   )
 }
 
+// طول‌ترین زیردنباله‌ی مشترک (LCS) بین کلمه‌های قدیم/جدید — جفت‌های (oldIdx,newIdx) کلمه‌هایی
+// که عیناً یکی‌اند و ترتیبشان حفظ شده را برمی‌گرداند. اینها «لنگر»هایی می‌شوند که تایمینگ
+// اصلی ASR‌شان دست‌نخورده می‌ماند؛ کلمه‌های بین دو لنگر (یا قبل از اولی/بعد از آخری) یعنی
+// همان‌هایی که واقعاً کاربر عوض/اضافه/حذف کرده.
+function lcsAlignIndices(oldWords: string[], newWords: string[]): Array<[number, number]> {
+  const n = oldWords.length
+  const m = newWords.length
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0))
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = oldWords[i] === newWords[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
+    }
+  }
+  const pairs: Array<[number, number]> = []
+  let i = 0
+  let j = 0
+  while (i < n && j < m) {
+    if (oldWords[i] === newWords[j]) {
+      pairs.push([i, j])
+      i++
+      j++
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      i++
+    } else {
+      j++
+    }
+  }
+  return pairs
+}
+
 // هم پیش‌نمایش canvas (drawCue) هم رندر نهایی (ass-subtitle-builder.ts در بک‌اند) متن را از
 // segment.words می‌خوانند، نه segment.text — قبلاً این مودال فقط .text را عوض می‌کرد و
-// .words دست‌نخورده (با کلمه‌ی قدیمی ASR) می‌ماند، یعنی نه پیش‌نمایش نه رندر نهایی اصلاً
-// متوجه ادیت نمی‌شدند. اگر تعداد کلمه‌ها عوض نشده باشد (رایج‌ترین حالت: تصحیح یک کلمه‌ی
-// اشتباه‌تشخیص‌داده‌شده)، تایمینگ اصلی هر کلمه (از ASR) حفظ می‌شود — فقط خودِ کلمه عوض
-// می‌شود، پس هایلایت کلمه‌به‌کلمه دقیقاً هم‌گام می‌ماند. اگر تعداد کلمه عوض شده باشد (کلمه
-// اضافه/حذف شده)، تایمینگ دقیق ASR دیگر قابل‌نگاشت نیست؛ بازه‌ی segment مساوی بین کلمه‌های
-// جدید تقسیم می‌شود تا هایلایت حداقل به‌جای از کار افتادن، تقریبی و هم‌گام با طول segment بماند.
+// .words دست‌نخورده (با کلمه‌های قدیمی ASR) می‌ماند، یعنی نه پیش‌نمایش نه رندر نهایی اصلاً
+// متوجه ادیت نمی‌شدند. این‌جا با LCS، کلمه‌هایی از متن جدید که عیناً در متن قدیم هم بوده‌اند
+// (یعنی کاربر دست نزده) لنگر می‌شوند و تایمینگ دقیق ASR‌شان را نگه می‌دارند — فقط بازه‌ی
+// کلمه‌هایی که واقعاً عوض/اضافه/حذف شده‌اند (بین دو لنگر، یا قبل از اولی/بعد از آخری) با
+// تقسیم مساوی همان بازه تخمین زده می‌شود؛ نه کل segment. برای رایج‌ترین حالت (تصحیح یک کلمه،
+// بدون تغییر تعداد) این عملاً همان بازه‌ی دقیق ASR همان کلمه را بازسازی می‌کند.
 function remapWords(text: string, original: CaptionWord[], startMs: number, endMs: number): CaptionWord[] {
-  const newWords = text.trim().split(/\s+/).filter(Boolean)
-  if (newWords.length === original.length) {
-    return newWords.map((word, i) => ({ ...original[i], word }))
+  const newWordsText = text.trim().split(/\s+/).filter(Boolean)
+  const oldWordsText = original.map(w => w.word)
+  const anchors = lcsAlignIndices(oldWordsText, newWordsText)
+  const result: CaptionWord[] = new Array(newWordsText.length)
+  for (const [oldIdx, newIdx] of anchors) {
+    result[newIdx] = { ...original[oldIdx], word: newWordsText[newIdx] }
   }
-  const perWordMs = (endMs - startMs) / Math.max(1, newWords.length)
-  return newWords.map((word, i) => ({
-    word,
-    start: (startMs + i * perWordMs) / 1000,
-    end: (startMs + (i + 1) * perWordMs) / 1000,
-    speaker: null,
-  }))
+  let prevEndSec = startMs / 1000
+  for (let newIdx = 0; newIdx < newWordsText.length; ) {
+    if (result[newIdx]) {
+      prevEndSec = result[newIdx].end
+      newIdx++
+      continue
+    }
+    let runEnd = newIdx
+    while (runEnd < newWordsText.length && !result[runEnd]) runEnd++
+    const nextAnchorStartSec = runEnd < newWordsText.length ? result[runEnd].start : endMs / 1000
+    const runLen = runEnd - newIdx
+    const perWordSec = Math.max(0, nextAnchorStartSec - prevEndSec) / runLen
+    for (let k = 0; k < runLen; k++) {
+      result[newIdx + k] = {
+        word: newWordsText[newIdx + k],
+        start: prevEndSec + k * perWordSec,
+        end: prevEndSec + (k + 1) * perWordSec,
+        speaker: null,
+      }
+    }
+    prevEndSec = nextAnchorStartSec
+    newIdx = runEnd
+  }
+  return result
 }
 
 function TextEditModal({
