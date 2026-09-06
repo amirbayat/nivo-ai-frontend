@@ -1589,7 +1589,7 @@ function drawCue(
 
   const spaceWidth = ctx.measureText(' ').width
   const lineMetrics = lines.map(line => {
-    const widths = line.map(w => ctx.measureText(w.word).width)
+    const widths = line.map(w => ctx.measureText(w.word.trim()).width)
     const total = widths.reduce((a, b) => a + b, 0) + spaceWidth * (line.length - 1)
     return { widths, total }
   })
@@ -1620,7 +1620,7 @@ function drawCue(
     line.forEach((w, i) => {
       const active = currentTimeSec >= w.start && currentTimeSec <= w.end
       ctx.fillStyle = active ? highlightColor : textColor
-      ctx.fillText(w.word, cursorX, baselineY)
+      ctx.fillText(w.word.trim(), cursorX, baselineY)
       cursorX -= lineMetrics[li].widths[i] + spaceWidth
     })
   })
