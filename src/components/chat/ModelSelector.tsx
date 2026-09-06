@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '@/store/chat.store'
-import { useMe } from '@/queries/auth.queries'
 import { useModelCatalog } from '@/queries/plans.queries'
 import {
   COST_OPTIMIZED_MODE,
@@ -17,7 +16,11 @@ import { ModelPickerModal, type ModelPickerItem } from '@/components/models/Mode
 import { track } from '@/lib/events'
 
 const STORAGE_KEY = 'nivo:selectedModel'
-const TOP_N = 4
+// دستور صریح کاربر: مدال باید ۳۲ مدل نشون بده، با ترتیبی که ادمین مشخص می‌کنه — این همون
+// sortOrder موجود روی هر مدل است (ModelsPage.tsx در ادمین، فیلد عددی ساده)؛ endpoint
+// /plans/model-catalog از قبل با orderBy sortOrder:asc برمی‌گرده (plans.service.ts)، پس
+// slice(0, LIMIT) روی allowedModels دقیقاً همون ترتیب ادمین را منعکس می‌کند
+const MODEL_PICKER_LIMIT = 32
 // docs/PRD-model-selection-modes.md — این دو سنتینل «خودکار» هستند؛ بقیه‌ی مقادیر یک نام مدل واقعی است (انتخاب دستی)
 const AUTO_MODES = [COST_OPTIMIZED_MODE, BEST_ANSWER_MODE]
 
@@ -53,31 +56,31 @@ function modeIcon(model: string) {
 
 export function ModelSelector({ currentModel }: { currentModel?: string }) {
   const { selectedModel, setSelectedModel, selectedCreativePrompt } = useChatStore()
-  const { data: me } = useMe()
   const { data: catalog } = useModelCatalog()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
 
-  // پیش‌فرض: فقط مدل‌های چت (نه IMAGE_GEN) — چون این دراپ‌داون قرار است برای پیام‌های متنی
-  // استفاده شود. اما اگر یک سبک تصویری استودیو انتخاب شده باشد (selectedCreativePrompt)،
+  // پیش‌فرض: فقط مدل‌های چت (نه IMAGE_GEN/VIDEO_GEN) — چون این دراپ‌داون قرار است برای پیام‌های
+  // متنی استفاده شود. اما اگر یک سبک تصویری استودیو انتخاب شده باشد (selectedCreativePrompt)،
   // برعکس می‌شود: فقط مدل‌های تولید عکس قابل‌انتخاب‌اند — همان مدلی که به generate() می‌رود
   const wantsImageGen = selectedCreativePrompt?.outputType === 'IMAGE'
   const matchesRequiredType = (name: string) => {
     const m = catalog?.find(m => m.name === name)
     if (!m) return false
     // مدل‌های تولید عکس یا modelType=IMAGE_GEN اختصاصی‌اند یا (دسته‌ی رایج‌تر در پروداکشن)
-    // یک مدل چت چندمنظوره با supportsImageGen=true (مثل gpt-5-image/Nano Banana)
-    return wantsImageGen ? (m.modelType === 'IMAGE_GEN' || m.supportsImageGen) : m.modelType !== 'IMAGE_GEN'
+    // یک مدل چت چندمنظوره با supportsImageGen=true (مثل gpt-5-image/Nano Banana). قبلاً شرط
+    // else فقط IMAGE_GEN را کنار می‌گذاشت (`!== 'IMAGE_GEN'`) — یعنی مدل‌های VIDEO_GEN
+    // (Veo/Kling/Seedance/...) هم به‌اشتباه در این دراپ‌داون متنی ظاهر می‌شدند؛ با گسترش لیست
+    // به ۳۲ مدل (MODEL_PICKER_LIMIT) این باگ آشکار شد — الان صراحتاً فقط modelType==='CHAT'
+    return wantsImageGen ? (m.modelType === 'IMAGE_GEN' || m.supportsImageGen) : m.modelType === 'CHAT'
   }
   // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود — کل
   // کاتالوگ فعال در دسترس است، فقط بر اساس outputType سبک استودیو (اگر انتخاب شده) فیلتر می‌شود]
+  // catalog از سرور با orderBy sortOrder:asc می‌آید (plans.service.ts) — یعنی همین‌جا هم به
+  // همون ترتیب است، بدون نیاز به sort دوباره در فرانت
   const catalogModelNames = (catalog ?? []).map(m => m.name)
   const allowedModels: string[] = catalogModelNames.filter(matchesRequiredType)
-  const featuredModels = wantsImageGen
-    ? undefined
-    : me?.plan?.featuredModels?.filter(matchesRequiredType)
-  // اگر پلن مدل‌های ویژه تنظیم نکرده باشد، fallback به ۴ تای اول allowedModels (رفتار قبلی)
-  const topModels = featuredModels?.length ? featuredModels : allowedModels.slice(0, TOP_N)
+  const topModels = allowedModels.slice(0, MODEL_PICKER_LIMIT)
   const moreCount = allowedModels.length - topModels.length
 
   function displayName(model: string): string {
