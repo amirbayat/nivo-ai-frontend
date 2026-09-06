@@ -842,6 +842,28 @@ function ControlBar({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement |
   )
 }
 
+// هم پیش‌نمایش canvas (drawCue) هم رندر نهایی (ass-subtitle-builder.ts در بک‌اند) متن را از
+// segment.words می‌خوانند، نه segment.text — قبلاً این مودال فقط .text را عوض می‌کرد و
+// .words دست‌نخورده (با کلمه‌ی قدیمی ASR) می‌ماند، یعنی نه پیش‌نمایش نه رندر نهایی اصلاً
+// متوجه ادیت نمی‌شدند. اگر تعداد کلمه‌ها عوض نشده باشد (رایج‌ترین حالت: تصحیح یک کلمه‌ی
+// اشتباه‌تشخیص‌داده‌شده)، تایمینگ اصلی هر کلمه (از ASR) حفظ می‌شود — فقط خودِ کلمه عوض
+// می‌شود، پس هایلایت کلمه‌به‌کلمه دقیقاً هم‌گام می‌ماند. اگر تعداد کلمه عوض شده باشد (کلمه
+// اضافه/حذف شده)، تایمینگ دقیق ASR دیگر قابل‌نگاشت نیست؛ بازه‌ی segment مساوی بین کلمه‌های
+// جدید تقسیم می‌شود تا هایلایت حداقل به‌جای از کار افتادن، تقریبی و هم‌گام با طول segment بماند.
+function remapWords(text: string, original: CaptionWord[], startMs: number, endMs: number): CaptionWord[] {
+  const newWords = text.trim().split(/\s+/).filter(Boolean)
+  if (newWords.length === original.length) {
+    return newWords.map((word, i) => ({ ...original[i], word }))
+  }
+  const perWordMs = (endMs - startMs) / Math.max(1, newWords.length)
+  return newWords.map((word, i) => ({
+    word,
+    start: (startMs + i * perWordMs) / 1000,
+    end: (startMs + (i + 1) * perWordMs) / 1000,
+    speaker: null,
+  }))
+}
+
 function TextEditModal({
   segment,
   onSave,
@@ -861,7 +883,9 @@ function TextEditModal({
     const startMs = Math.round(Number(startSec) * 1000)
     const endMs = Math.round(Number(endSec) * 1000)
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs || !text.trim()) return
-    onSave({ ...segment, text: text.trim(), startMs, endMs })
+    const trimmed = text.trim()
+    const words = remapWords(trimmed, segment.words, startMs, endMs)
+    onSave({ ...segment, text: trimmed, startMs, endMs, words })
     onClose()
   }
 
