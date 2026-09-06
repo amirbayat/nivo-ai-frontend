@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useCreditsBalance } from '@/queries/credits.queries'
+import { useMe } from '@/queries/auth.queries'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 
@@ -12,6 +13,7 @@ const LOW_BALANCE_THRESHOLD = 20
 export function MessageLimitBanner() {
   const navigate = useNavigate()
   const { data: balance } = useCreditsBalance()
+  const { data: me } = useMe()
 
   if (!balance) return null
 
@@ -19,6 +21,11 @@ export function MessageLimitBanner() {
   const isLow = !isExhausted && balance.credits <= LOW_BALANCE_THRESHOLD
 
   if (!isExhausted && !isLow) return null
+
+  // فقط PAYG: بک‌اند وقتی موجودی صفر/منفی است دیگر چت را بلاک نمی‌کند، فقط مدل را بی‌صدا
+  // روی gpt-5.4-nano قفل می‌کند (chat.service.ts — forcedNanoMode). پلن‌های غیر-PAYG این
+  // رفتار را ندارند، پس همان پیام قدیمی «اعتبار تمام شده» برایشان درست‌تر است.
+  const isForcedNano = isExhausted && Boolean(me?.plan?.isPayAsYouGo)
 
   function goToPricing() {
     track('usage_limit_upgrade_clicked', { limitType: isExhausted ? 'credit_exhausted' : 'credit_low' })
@@ -40,7 +47,11 @@ export function MessageLimitBanner() {
 
         <div className="flex-1 min-w-0">
           <p className={clsx('text-sm font-medium', isExhausted ? 'text-red-400' : 'text-amber-400')}>
-            {isExhausted ? fa.chat.creditExhausted : fa.chat.creditLowWarning(balance.credits)}
+            {isForcedNano
+              ? fa.chat.creditExhaustedForcedNano
+              : isExhausted
+                ? fa.chat.creditExhausted
+                : fa.chat.creditLowWarning(balance.credits)}
           </p>
         </div>
 
