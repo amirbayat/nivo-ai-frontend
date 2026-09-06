@@ -90,7 +90,8 @@ export function PricingPage() {
           <p className="mb-6 text-center text-sm text-red-400">{error}</p>
         )}
 
-        <div className="grid gap-6 md:grid-cols-3" role="list" aria-label="بسته‌های اعتباری">
+        <div className="grid gap-6 md:grid-cols-4" role="list" aria-label="بسته‌های اعتباری">
+          <FreeMessagesCard />
           {fixedPackages.map((pkg) => (
             <PackageCard
               key={pkg.id}
@@ -298,6 +299,46 @@ function PackageCard({
       >
         {loading ? fa.credits.buying : fa.credits.buyButton}
       </button>
+    </div>
+  );
+}
+
+// کارت استاتیک — بدون قیمت/دکمه‌ی خرید، فقط برای نشون‌دادن سهمیه‌ی رایگان روزانه‌ی چت متنی
+// (کاملاً مستقل از بسته‌های واقعی؛ به هیچ query/purchase-flow وصل نیست)
+function FreeMessagesCard() {
+  return (
+    <div
+      className="relative flex flex-col rounded-3xl border border-slate-700/60 bg-slate-800/20 p-7"
+      aria-disabled="true"
+    >
+      <span className="absolute -top-3.5 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-slate-600 px-4 py-1 text-xs font-bold text-white">
+        {fa.credits.freeBadge}
+      </span>
+
+      <div className="flex items-center gap-3.5">
+        <div className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-slate-400/15">
+          <ChatStatIcon className="text-slate-400" />
+        </div>
+        <h3 className="text-lg font-extrabold text-slate-100">{fa.credits.freeTitle}</h3>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-[32px] font-extrabold text-slate-100">{fa.credits.freeBadge}</span>
+      </div>
+      <p className="mt-1 text-xs text-slate-600">{fa.credits.freeSubtitle}</p>
+
+      <div className="my-6 h-px bg-slate-700/50" />
+
+      <div className="flex items-center gap-2.5">
+        <div className="flex flex-1 items-center gap-2 rounded-2xl px-3 py-2.5 bg-white/[0.03]">
+          <ChatStatIcon className="text-slate-400" />
+          <span className="text-[13px] font-semibold text-slate-300">{fa.credits.freeStat}</span>
+        </div>
+      </div>
+
+      <div className="mt-6 select-none rounded-xl border border-slate-700 py-3 text-center text-sm font-semibold text-slate-500">
+        {fa.credits.freeNotBuyable}
+      </div>
     </div>
   );
 }

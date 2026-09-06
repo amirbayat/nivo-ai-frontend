@@ -76,6 +76,12 @@ export const fa = {
     welcomeTitle: '🎉 خوش اومدی به نیوو AI',
     welcomeMessage: (credits: number) => `${credits.toLocaleString('fa-IR')} نیوو رایگان به‌عنوان هدیه‌ی خوش‌آمدگویی به حسابت اضافه شد — همین الان می‌تونی چت کنی یا از استودیوی محتوا استفاده کنی.`,
     welcomeCta: 'شروع کنم',
+    // کارت استاتیک «رایگان» کنار بسته‌های خرید — فقط نمایشی، قابل انتخاب/خرید نیست
+    freeBadge: 'رایگان',
+    freeTitle: 'چت متنی',
+    freeSubtitle: 'همیشه، برای همه‌ی کاربران',
+    freeStat: '۵۰ پیام متنی در روز',
+    freeNotBuyable: 'نیازی به خرید نداره',
   },
   discover: {
     title: 'استودیوی محتوا',
