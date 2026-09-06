@@ -561,6 +561,7 @@ export interface CaptionProject {
   segments: CaptionSegment[] | null
   styleId: string | null
   styleOverrides: CaptionStyleOverrides | null
+  renderProgress: number
   renderedVideoKey: string | null
   renderCreditCost: number | null
   createdAt: string

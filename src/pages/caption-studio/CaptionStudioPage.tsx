@@ -151,7 +151,7 @@ function CaptionProjectView({ project }: { project: CaptionProject }) {
     return <ProcessingView label="در حال تشخیص گفتار..." />
   }
   if (project.status === 'RENDERING') {
-    return <ProcessingView label="در حال رندر نهایی..." />
+    return <ProcessingView label="در حال رندر نهایی..." percent={project.renderProgress} />
   }
   if (project.status === 'FAILED') {
     return <FailedView projectId={project.id} />
@@ -159,14 +159,25 @@ function CaptionProjectView({ project }: { project: CaptionProject }) {
   return <CaptionEditor project={project} />
 }
 
-function ProcessingView({ label }: { label: string }) {
+function ProcessingView({ label, percent }: { label: string; percent?: number }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3">
       <svg className="size-6 animate-spin" viewBox="0 0 24 24" fill="none" style={{ color: '#f59e0b' }}>
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
       </svg>
-      <p className="text-[13px] font-semibold text-slate-300">{label}</p>
+      <p className="text-[13px] font-semibold text-slate-300">
+        {label}
+        {typeof percent === 'number' && percent > 0 ? ` ${percent}٪` : ''}
+      </p>
+      {typeof percent === 'number' && percent > 0 && (
+        <div className="h-1.5 w-48 overflow-hidden rounded-full" style={{ background: 'rgba(148,163,184,0.18)' }}>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${percent}%`, background: '#f59e0b' }}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -408,6 +419,23 @@ function CaptionEditor({ project }: { project: CaptionProject }) {
       setDownloadProgress(null)
     }
   }
+
+  // دانلود خودکار همین که رندر تمام شد — یک‌بار به‌ازای هر renderedVideoKey (نه هر بار که
+  // کاربر دوباره صفحه‌ی همین پروژه‌ی تمام‌شده را باز می‌کند). کلید در localStorage نگه داشته
+  // می‌شود چون CaptionEditor خودش با هر تغییر status دوباره mount می‌شود (ref کافی نیست).
+  useEffect(() => {
+    if (!isDone || !project.renderedVideoKey) return
+    const storageKey = `caption-auto-dl-${project.id}`
+    try {
+      if (localStorage.getItem(storageKey) === project.renderedVideoKey) return
+      localStorage.setItem(storageKey, project.renderedVideoKey)
+    } catch {
+      // localStorage غیرفعال — به‌جای بلوکه‌شدن، فقط از auto-download صرف‌نظر می‌کنیم
+      return
+    }
+    handleDownloadVideo()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDone, project.renderedVideoKey])
 
   function handleDiscardSource() {
     if (!window.confirm('ویدیوی اصلی برای همیشه از سرور حذف می‌شود و دیگر امکان رندر دوباره نیست. مطمئنی؟')) return
@@ -837,25 +865,25 @@ function TextEditModal({
         />
 
         <div className="flex items-center gap-3">
-          <label className="flex flex-1 flex-col gap-1 text-[10.5px]" style={{ color: '#64748b' }}>
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-[10.5px]" style={{ color: '#64748b' }}>
             شروع (ثانیه)
             <input
               type="number"
               step="0.1"
               value={startSec}
               onChange={e => setStartSec(e.target.value)}
-              className="rounded-xl bg-black/20 px-3 py-2 text-[13px] text-white"
+              className="w-full min-w-0 rounded-xl bg-black/20 px-3 py-2 text-[13px] text-white"
               style={{ border: '1px solid rgba(148,163,184,0.2)' }}
             />
           </label>
-          <label className="flex flex-1 flex-col gap-1 text-[10.5px]" style={{ color: '#64748b' }}>
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-[10.5px]" style={{ color: '#64748b' }}>
             پایان (ثانیه)
             <input
               type="number"
               step="0.1"
               value={endSec}
               onChange={e => setEndSec(e.target.value)}
-              className="rounded-xl bg-black/20 px-3 py-2 text-[13px] text-white"
+              className="w-full min-w-0 rounded-xl bg-black/20 px-3 py-2 text-[13px] text-white"
               style={{ border: '1px solid rgba(148,163,184,0.2)' }}
             />
           </label>
