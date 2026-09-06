@@ -98,4 +98,9 @@ export const keys = {
   captionStudio: {
     detail: (id: string) => ['caption-studio', 'detail', id] as const,
   },
+  videoEdit: {
+    models: () => ['video-edit', 'models'] as const,
+    jobs: () => ['video-edit', 'jobs'] as const,
+    jobDetail: (id: string) => ['video-edit', 'jobs', id] as const,
+  },
 } as const

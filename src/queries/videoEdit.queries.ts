@@ -1,0 +1,83 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+import { keys } from '@/queries/keys'
+import type { KieVideoModel, VideoEditJob, VideoEditMode } from '@/types/api'
+
+// docs/PRD-video-edit-omni-kie.md — «ویرایش ویدیو» با Kie.ai، کاملاً جدا از videoStudio.queries.ts
+// (OpenRouter). همه‌ی این هوک‌ها مستقیم روی /video-edit بک‌اند سوارند.
+
+const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING'])
+
+export function useKieVideoModels() {
+  return useQuery({
+    queryKey: keys.videoEdit.models(),
+    queryFn: () => api.get<KieVideoModel[]>('/video-edit/models').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
+}
+
+// آپلود multipart — دقیقاً الگوی useCreateCaptionProject (captionStudio.queries.ts)، چون
+// هم عکس هم ویدیو اینجا با magic-bytes سمت بک‌اند اعتبارسنجی می‌شوند، نه data-URL
+export function useUploadVideoEditImage() {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api
+        .post<{ key: string }>('/video-edit/upload-image', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
+    },
+  })
+}
+
+export function useUploadVideoEditVideo() {
+  return useMutation({
+    mutationFn: ({ file, onUploadProgress }: { file: File; onUploadProgress?: (percent: number) => void }) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api
+        .post<{ key: string; durationSec: number }>('/video-edit/upload-video', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: e => {
+            if (onUploadProgress && e.total) onUploadProgress(Math.round((e.loaded / e.total) * 100))
+          },
+        })
+        .then(r => r.data)
+    },
+  })
+}
+
+export interface CreateVideoEditJobDto {
+  mode: VideoEditMode
+  kieVideoModelId: string
+  prompt: string
+  referenceImageKeys?: string[]
+  videoKey?: string
+  videoWindowStartSec?: number
+  videoWindowEndSec?: number
+  aspectRatio?: '16:9' | '9:16'
+}
+
+export function useCreateVideoEditJob() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: CreateVideoEditJobDto) =>
+      api.post<VideoEditJob>('/video-edit/jobs', dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoEdit.jobs() }),
+  })
+}
+
+// پولینگ داخلی خودش را دارد: تا وقتی حداقل یک جاب PENDING/PROCESSING باشد هر ۵ ثانیه دوباره
+// می‌خواند — دقیقاً همون الگوی useCaptionProject (وضعیت نهایی = توقف پولینگ)
+export function useVideoEditJobs() {
+  return useQuery({
+    queryKey: keys.videoEdit.jobs(),
+    queryFn: () => api.get<VideoEditJob[]>('/video-edit/jobs').then(r => r.data),
+    refetchInterval: query => {
+      const jobs = query.state.data ?? []
+      return jobs.some(j => ACTIVE_STATUSES.has(j.status)) ? 5000 : false
+    },
+  })
+}

@@ -9,6 +9,7 @@ import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
 import { VideoStudioPage } from '@/pages/video-studio/VideoStudioPage'
 import { CaptionStudioPage } from '@/pages/caption-studio/CaptionStudioPage'
+import { VideoEditPage } from '@/pages/video-edit/VideoEditPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
 import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
@@ -122,6 +123,11 @@ export function AppRouter() {
       <Route
         path="/captions/:id"
         element={<ProtectedRoute><ChatLayout collapsedByDefault><CaptionStudioPage /></ChatLayout></ProtectedRoute>}
+      />
+      {/* ویرایش ویدیو با Kie.ai — docs/PRD-video-edit-omni-kie.md، تک‌صفحه (گالری+فرم)، بدون :id */}
+      <Route
+        path="/video-edit"
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoEditPage /></ChatLayout></ProtectedRoute>}
       />
       <Route
         path="/pricing"

@@ -119,6 +119,18 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           icon={<CaptionsIcon />}
           onClick={() => goToSection('/captions')}
         />
+        <HubCard
+          title="ویرایش ویدیو"
+          description="یه ویدیو بده، با یه پرامپت ساده ویرایشش کن؛ یا از پرامپت/عکس یه ویدیوی تازه بساز."
+          accentColor="#fb7185"
+          borderColor="rgba(244,63,94,0.28)"
+          glowColor="rgba(244,63,94,0.07)"
+          gradientColor="rgba(244,63,94,0.10)"
+          iconBg="rgba(244,63,94,0.16)"
+          iconColor="#fb7185"
+          icon={<VideoEditIcon />}
+          onClick={() => goToSection('/video-edit')}
+        />
       </div>
     </div>
   )
@@ -198,6 +210,14 @@ function CaptionsIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="4.5" width="20" height="15" rx="2.5" /><path d="M6.5 15h4M13 15h4.5M6.5 11.5h11" />
+    </svg>
+  )
+}
+
+function VideoEditIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 7h-9M14 17H5M17 3l4 4-4 4M7 13l-4 4 4 4" />
     </svg>
   )
 }

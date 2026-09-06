@@ -593,3 +593,67 @@ export interface VideoStudioConfig {
   updatedAt: string
 }
 
+// docs/PRD-video-edit-omni-kie.md — «ویرایش ویدیو» با Kie.ai، کاملاً جدا از استودیوی ویدیوی بالا
+export type KieVideoCategory =
+  | 'GENERATE'
+  | 'EDIT'
+  | 'UPSCALE'
+  | 'LIPSYNC'
+  | 'DUBBING'
+  | 'MOTION_TRANSFER'
+  | 'EXTEND'
+  | 'OTHER'
+
+export interface KieVideoModel {
+  id: string
+  slug: string
+  displayName: string
+  category: KieVideoCategory
+  isActive: boolean
+  sortOrder: number
+  supportsImages: boolean
+  maxImages: number | null
+  supportsVideo: boolean
+  maxVideoDurationSec: number | null
+  maxVideoWindowSec: number | null
+  supportsAspectRatio: boolean
+  supportsDuration: boolean
+  resolutions: string[]
+  pricePerSecondUsdConfirmed: number | null
+  pricingNote: string | null
+}
+
+export type VideoEditMode = 'GENERATE' | 'EDIT'
+export type VideoJobStatus = 'PENDING' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED'
+
+export interface VideoEditJob {
+  id: string
+  userId: string
+  kieVideoModelId: string
+  kieVideoModel?: KieVideoModel
+  mode: VideoEditMode
+  prompt: string
+  referenceImageKeys: string[]
+  videoKey: string | null
+  videoWindowStartSec: number | null
+  videoWindowEndSec: number | null
+  aspectRatio: string | null
+  resolution: string
+  status: VideoJobStatus
+  kieTaskId: string | null
+  resultVideoKey: string | null
+  errorMessage: string | null
+  creditsConsumedRaw: number | null
+  creditCost: number | null
+  createdAt: string
+  completedAt: string | null
+}
+
+export interface VideoEditConfig {
+  isEnabled: boolean
+  generateFixedDurationSec: number
+  maxConcurrentJobsPerUser: number
+  maxJobsPerDayPerUser: number | null
+  updatedAt: string
+}
+
