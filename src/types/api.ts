@@ -605,8 +605,11 @@ export type KieVideoCategory =
   | 'EXTEND'
   | 'OTHER'
 
+export type VideoModelProvider = 'KIE' | 'OPENROUTER'
+
 export interface KieVideoModel {
   id: string
+  provider: VideoModelProvider
   slug: string
   displayName: string
   category: KieVideoCategory

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useKieVideoModels, useVideoEditJobs } from '@/queries/videoEdit.queries'
@@ -17,13 +17,22 @@ export function VideoEditPage() {
   const { data: jobs } = useVideoEditJobs()
   const [tab, setTab] = useState<Tab>('generate')
   const [mobileFormOpen, setMobileFormOpen] = useState(false)
+  const [selectedModelId, setSelectedModelId] = useState<string | undefined>(undefined)
 
-  const model = models?.[0] // فعلاً فقط Omni seed شده — چند‌مدلی که کاتالوگ بزرگ‌تر شد، اینجا یک انتخابگر واقعی جایگزین می‌شود
+  // انتخابگر واقعی مدل — کاتالوگ دیگر فقط یک ردیف (Omni/Kie) نیست، مدل‌های OpenRouter هم دارد
+  const model = models?.find(m => m.id === selectedModelId) ?? models?.[0]
+  // مسیر EDIT (صحنه‌حفظ‌کننده با پنجره‌ی start/end) فقط برای Kie تایید و پیاده شده — برای مدل‌های
+  // OpenRouter بک‌اند این حالت را رد می‌کند (video-edit.service.ts/validateAgainstMode)
+  const editModeSupported = model?.provider !== 'OPENROUTER'
+
+  useEffect(() => {
+    if (!editModeSupported && tab === 'edit') setTab('generate')
+  }, [editModeSupported, tab])
 
   const formPanel = (
     <div className="flex flex-1 flex-col overflow-y-auto px-1 pb-6">
       <div className="px-1 pb-1 pt-0.5">
-        <p className="text-[12px] font-bold" style={{ color: '#34d399' }}>Gemini Omni</p>
+        <p className="text-[12px] font-bold" style={{ color: '#34d399' }}>{model?.displayName ?? '...'}</p>
         <h1 className="mt-1.5 text-[16.5px] font-extrabold text-white" style={{ textWrap: 'balance' }}>
           {tab === 'generate' ? 'از پرامپت، عکس یا ویدیو یه ویدیوی تازه بساز' : 'ویدیوی خودتو با یه پرامپت ویرایش کن'}
         </h1>
@@ -33,6 +42,22 @@ export function VideoEditPage() {
             : 'بقیه‌ی صحنه دست‌نخورده می‌مونه، فقط چیزی که می‌خوای عوض بشه'}
         </p>
       </div>
+
+      {models && models.length > 1 && (
+        <div className="mt-3">
+          <label className="mb-1 block text-[11.5px] font-bold" style={{ color: '#64748b' }}>مدل</label>
+          <select
+            value={model?.id}
+            onChange={e => setSelectedModelId(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-[13px] font-bold text-white"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
+          >
+            {models.map(m => (
+              <option key={m.id} value={m.id} style={{ background: '#020C18' }}>{m.displayName}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="mt-4 flex gap-1.5 rounded-full p-[5px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
         <button
@@ -46,17 +71,19 @@ export function VideoEditPage() {
         >
           تولید ویدیو
         </button>
-        <button
-          type="button"
-          onClick={() => setTab('edit')}
-          className={clsx('flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-bold')}
-          style={{
-            background: tab === 'edit' ? 'linear-gradient(90deg,#f43f5e,#fb7185)' : 'transparent',
-            color: tab === 'edit' ? '#2b0410' : '#94a3b8',
-          }}
-        >
-          ادیت ویدیو
-        </button>
+        {editModeSupported && (
+          <button
+            type="button"
+            onClick={() => setTab('edit')}
+            className={clsx('flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-bold')}
+            style={{
+              background: tab === 'edit' ? 'linear-gradient(90deg,#f43f5e,#fb7185)' : 'transparent',
+              color: tab === 'edit' ? '#2b0410' : '#94a3b8',
+            }}
+          >
+            ادیت ویدیو
+          </button>
+        )}
       </div>
 
       <div className="mt-3.5">
