@@ -3,8 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useGenerateCreative } from '@/queries/discovery.queries'
-import { useMe } from '@/queries/auth.queries'
-import { useWallet } from '@/queries/usage.queries'
 import { useFeatureFlags } from '@/queries/config.queries'
 import { useChat } from '@/hooks/useChat'
 import { fetchImageAsDataUrl } from '@/hooks/useAuthedImageUrl'
@@ -62,12 +60,6 @@ function StudioWorkspace({ id }: { id?: string }) {
   const { data, isLoading } = useConversation(id ?? '')
   const { sendMessage } = useChat(id ?? '')
   const generateCreative = useGenerateCreative()
-  // «میزان اعتبار رو بنویس توی بخش تولید عکس» — دقیقاً همون Wallet که تولید عکس واقعی
-  // (هم مسیر معمولی، هم debitWallet نهایی) ازش کسر می‌کنه؛ فقط برای پلن Pay-as-you-go نشون
-  // داده می‌شه، دقیقاً هم‌الگوی Sidebar.tsx
-  const { data: me } = useMe()
-  const isPayAsYouGo = Boolean(me?.plan?.isPayAsYouGo)
-  const { data: wallet } = useWallet(isPayAsYouGo)
 
   const pendingRef = useRef<PendingMessage | null>(
     (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage ?? null,
@@ -391,7 +383,6 @@ function StudioWorkspace({ id }: { id?: string }) {
               generatingCreative={generateCreative.isPending}
               creativeError={creativeError}
               onRetryCreative={retryGenerateCreative}
-              walletBalanceToman={isPayAsYouGo ? (wallet?.balanceToman ?? 0) : null}
             />
           </div>
         </div>

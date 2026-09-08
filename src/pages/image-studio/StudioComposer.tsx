@@ -38,7 +38,6 @@ export function StudioComposer({
   generatingCreative,
   creativeError,
   onRetryCreative,
-  walletBalanceToman,
 }: {
   onSend: (
     content: string,
@@ -65,8 +64,6 @@ export function StudioComposer({
   generatingCreative?: boolean
   creativeError?: string | null
   onRetryCreative?: () => void
-  // موجودی کیف‌پول (فقط پلن Pay-as-you-go) — null یعنی پلن این کاربر اصلاً کیف‌پول تومانی ندارد
-  walletBalanceToman?: number | null
 }) {
   const { data: flags } = useFeatureFlags()
   const MAX_IMAGES = flags?.maxImagesPerMessage ?? 4
@@ -309,15 +306,6 @@ export function StudioComposer({
           className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 sm:h-full sm:px-0 sm:pt-0"
           style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
         >
-        {walletBalanceToman !== null && walletBalanceToman !== undefined && (
-          <div className="flex items-center justify-between gap-2 self-start rounded-full px-3.5 py-1.5 text-[12px]" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)', color: '#94a3b8' }}>
-            <span>موجودی کیف‌پول:</span>
-            <span className="font-semibold" dir="ltr" style={{ color: '#a7f3d0' }}>
-              {walletBalanceToman.toLocaleString('fa-IR')} تومان
-            </span>
-          </div>
-        )}
-
         {selectedCreativePrompt ? (
           /* چیپ سبک انتخاب‌شده — جایگزین چیپ مدل، چون مدل تولید این حالت خودکار/سرور-محور است */
           <div
