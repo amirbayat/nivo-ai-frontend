@@ -68,6 +68,7 @@ export interface CreateVideoEditJobDto {
   videoWindowStartSec?: number
   videoWindowEndSec?: number
   aspectRatio?: '16:9' | '9:16'
+  resolution?: string
 }
 
 export function useCreateVideoEditJob() {

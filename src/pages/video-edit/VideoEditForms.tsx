@@ -152,6 +152,35 @@ function RatioSegmented({ value, onChange }: { value: '16:9' | '9:16'; onChange:
   )
 }
 
+// وقتی مدل فقط یک رزولوشن دارد (اکثر مدل‌های Kie) یک FixedChip ساده کافی‌ست؛ وقتی چندتا دارد
+// (اکثر مدل‌های OpenRouter، مثلاً Seedance 2.0: 480p/720p/1080p/4K) کاربر واقعاً انتخاب می‌کند
+function ResolutionPicker({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[]
+  value: string
+  onChange: (v: string) => void
+}) {
+  if (options.length <= 1) return <FixedChip>{options[0] ?? '720p'}</FixedChip>
+  return (
+    <div className="flex items-center gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
+      {options.map(r => (
+        <button
+          key={r}
+          type="button"
+          onClick={() => onChange(r)}
+          className={clsx('rounded-full px-2.5 py-1.5 text-[11.5px] font-bold', value === r ? 'text-[#02170f]' : '')}
+          style={{ background: value === r ? '#10b981' : 'transparent', color: value === r ? '#02170f' : '#94a3b8' }}
+        >
+          {r}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function FixedChip({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div
@@ -177,6 +206,7 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
   const [image, setImage] = useState<{ file: File; previewUrl: string; key?: string } | null>(null)
   const [video, setVideo] = useState<{ file: File; previewUrl: string; key?: string } | null>(null)
   const [ratio, setRatio] = useState<'16:9' | '9:16'>('16:9')
+  const [resolution, setResolution] = useState(model.resolutions[0] ?? '720p')
   const [error, setError] = useState<string | null>(null)
 
   const { data: publicConfig } = useVideoEditPublicConfig()
@@ -184,6 +214,12 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
   const uploadVideo = useUploadVideoEditVideo()
   const createJob = useCreateVideoEditJob()
   const busy = uploadImage.isPending || uploadVideo.isPending || createJob.isPending
+
+  // اگه کاربر از انتخابگر مدل (VideoEditPage.tsx) به مدلی با رزولوشن‌های متفاوت سوییچ کند، مقدار
+  // قبلی ممکن است دیگر جزو model.resolutions نباشد — سرور آن را رد می‌کند، پس اینجا ریست می‌شود
+  useEffect(() => {
+    setResolution(model.resolutions[0] ?? '720p')
+  }, [model.id])
 
   async function submit() {
     if (!prompt.trim() || busy) return
@@ -203,6 +239,7 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
         videoWindowStartSec: video ? 0 : undefined,
         videoWindowEndSec: video ? Math.min(3, model.maxVideoWindowSec ?? 3) : undefined,
         aspectRatio: ratio,
+        resolution,
       })
       setPrompt('')
       setImage(null)
@@ -263,18 +300,23 @@ export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; 
       {video && model.maxVideoWindowSec && (
         <Caveat tone="warn">
           فقط <b>{model.maxVideoWindowSec} ثانیه‌ی اول</b> این ویدیو به‌عنوان مرجعِ حرکت/سبک استفاده می‌شه — یه ویدیوی
-          <b> تازه</b> ساخته می‌شه، نه ویرایش این یکی. برای ویرایش خودِ ویدیو، از تب «ادیت» استفاده کن.
+          <b> تازه</b> ساخته می‌شه، نه ویرایش این یکی. برای ویرایش خودِ ویدیو، از تب «ادیت» استفاده کن. همچنین وقتی
+          ویدیوی مرجع می‌دی، مدت زمان خروجی رو نمی‌شه انتخاب کرد — از همون ویدیوی مرجع تبعیت می‌کنه.
         </Caveat>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
         {model.supportsAspectRatio && <RatioSegmented value={ratio} onChange={setRatio} />}
-        {model.supportsDuration && (
+        {/* وقتی ویدیوی مرجع داده شده، مدت زمان خروجی از خودِ ویدیو تبعیت می‌کنه (نه مقدار ثابت
+            تولید) — چه برای Kie (video_list باعث نادیده‌گرفتن duration می‌شه) چه برای OpenRouter
+            (duration باید -1 فرستاده بشه، video-edit.processor.ts/buildOpenRouterInput) — پس
+            نشون‌دادن مدت ثابت اینجا گمراه‌کننده‌ست */}
+        {model.supportsDuration && !video && (
           <FixedChip icon={<ClockIcon />}>
             {publicConfig ? `${publicConfig.generateFixedDurationSec.toLocaleString('fa-IR')} ثانیه` : '…'}
           </FixedChip>
         )}
-        <FixedChip>{model.resolutions[0] ?? '720p'}</FixedChip>
+        <ResolutionPicker options={model.resolutions} value={resolution} onChange={setResolution} />
       </div>
 
       {error && <p className="text-[12px] text-red-400">{error}</p>}
@@ -424,6 +466,7 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
   const [prompt, setPrompt] = useState('')
   const [source, setSource] = useState<{ file: File; previewUrl: string; durationSec: number } | null>(null)
   const [windowRange, setWindowRange] = useState<[number, number]>([0, 8])
+  const [resolution, setResolution] = useState(model.resolutions[0] ?? '720p')
   const [error, setError] = useState<string | null>(null)
 
   const uploadVideo = useUploadVideoEditVideo()
@@ -436,6 +479,10 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
     const end = Math.min(source.durationSec, maxWidth)
     setWindowRange([0, end])
   }, [source, maxWidth])
+
+  useEffect(() => {
+    setResolution(model.resolutions[0] ?? '720p')
+  }, [model.id])
 
   async function pickFile(file: File) {
     setError(null)
@@ -465,6 +512,7 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
         videoKey: key,
         videoWindowStartSec: windowRange[0],
         videoWindowEndSec: windowRange[1],
+        resolution,
       })
       setPrompt('')
       setSource(null)
@@ -520,7 +568,7 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
       </Caveat>
 
       <div className="flex flex-wrap items-center gap-2">
-        <FixedChip>{model.resolutions[0] ?? '720p'}</FixedChip>
+        <ResolutionPicker options={model.resolutions} value={resolution} onChange={setResolution} />
       </div>
 
       {error && <p className="text-[12px] text-red-400">{error}</p>}
