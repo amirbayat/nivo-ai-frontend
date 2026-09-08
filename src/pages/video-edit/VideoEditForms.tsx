@@ -7,7 +7,7 @@ import {
   useUploadVideoEditVideo,
   useVideoEditPublicConfig,
 } from '@/queries/videoEdit.queries'
-import type { KieVideoModel, VideoEditJob } from '@/types/api'
+import type { KieVideoModel, VideoEditJob, VideoEditMode } from '@/types/api'
 
 // بازطراحی ۱۴۰۵/۰۶/۱۷ — طبق آرتیفکت جدید: یک فرم واحد (نه دو تب جدا)، چون تفاوت GENERATE/EDIT
 // دیگر یک انتخاب سطح صفحه نیست، یک toggle درون همون attachment ویدیوست («به‌عنوان مرجع» در
@@ -358,10 +358,17 @@ function VideoWindowTrimmer({
 export function VideoEditForm({
   model,
   sessionId,
+  onSubmitStart,
+  onSubmitEnd,
   onCreated,
 }: {
   model: KieVideoModel
   sessionId?: string
+  // فوراً (پیش از هر آپلود/درخواست) صدا زده می‌شود تا فراخوان بتونه بلافاصله یه کارت «در حال
+  // پردازش» نشون بده — دقیقاً الگوی onCreativeSubmitStart در ImageStudioPage.tsx، نه صبر برای
+  // رفت‌وبرگشت شبکه
+  onSubmitStart?: (info: { prompt: string; mode: VideoEditMode }) => void
+  onSubmitEnd?: () => void
   onCreated: (job: VideoEditJob) => void
 }) {
   const [prompt, setPrompt] = useState('')
@@ -380,11 +387,15 @@ export function VideoEditForm({
   const busy = uploadImage.isPending || uploadVideo.isPending || createJob.isPending
 
   // فقط مدل‌هایی که واقعاً تایید شده «فقط این بخش رو عوض کن، بقیه دست‌نخورده» را انجام می‌دهند
-  // (Omni، Wan-VideoEdit) — بقیه (Seedance/Wan-R2V/Wan-V2V و مدل‌های OpenRouter) فقط
-  // GENERATE-with-reference دارند (تحقیق ۱۴۰۵/۰۶/۱۷)
+  // این کار را می‌کنند (Omni، Seedance با duration:-1 روی Kie مستقیم، Wan-VideoEdit) — بقیه
+  // (Wan-R2V/Wan-V2V و مدل‌های OpenRouter) فقط GENERATE-with-reference دارند (تحقیق ۱۴۰۵/۰۶/۱۷)
   const editEligible = model.supportsScenePreservingEdit
   const isEdit = mode === 'edit' && !!video && editEligible
   const maxWidth = model.maxVideoWindowSec ?? 10
+  // فقط Omni واقعاً «یه بازه‌ی دلخواه از یه فایل طولانی‌تر» را پشتیبانی می‌کند (video_list با
+  // start/end)؛ Seedance/Wan-VideoEdit کل کلیپ آپلودشده را ویرایش می‌کنند (بدون trim دلخواه) —
+  // نشون‌دادن اسلایدر تریم برای آن‌ها گمراه‌کننده است، چون هرچی انتخاب کنی نادیده گرفته می‌شود
+  const hasWindowTrim = model.maxVideoWindowSec != null
 
   // سوییچ مدل از انتخابگر → همه‌چیز مختص مدل قبلی (رزولوشن/toggle ادیت) ریست می‌شود
   useEffect(() => {
@@ -393,8 +404,9 @@ export function VideoEditForm({
   }, [model.id])
 
   useEffect(() => {
-    if (mode === 'edit' && video) setWindowRange([0, Math.min(video.durationSec, maxWidth)])
-  }, [mode, video, maxWidth])
+    if (mode !== 'edit' || !video) return
+    setWindowRange(hasWindowTrim ? [0, Math.min(video.durationSec, maxWidth)] : [0, video.durationSec])
+  }, [mode, video, maxWidth, hasWindowTrim])
 
   async function pickVideo(file: File) {
     setError(null)
@@ -415,6 +427,9 @@ export function VideoEditForm({
     if (!prompt.trim() || busy) return
     if (isEdit && !video) return
     setError(null)
+    // پیش از هر await/آپلود — تا فراخوان بلافاصله (بدون هیچ تاخیری) یه کارت «در حال پردازش»
+    // نشون بده، دقیقاً مثل رفتار تولید عکس/ویدیو
+    onSubmitStart?.({ prompt: prompt.trim(), mode: isEdit ? 'EDIT' : 'GENERATE' })
     try {
       let referenceImageKeys: string[] | undefined
       if (image && !isEdit) referenceImageKeys = [(await uploadImage.mutateAsync(image.file)).key]
@@ -447,6 +462,8 @@ export function VideoEditForm({
           isEdit ? 'ویرایش ویدیو ناموفق بود، دوباره امتحان کن' : 'ساخت ویدیو ناموفق بود، دوباره امتحان کن',
         ),
       )
+    } finally {
+      onSubmitEnd?.()
     }
   }
 
@@ -517,10 +534,16 @@ export function VideoEditForm({
       {video && isEdit && (
         <div className="flex flex-col gap-1" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 16, padding: '12px 14px' }}>
           <div className="flex items-center justify-between">
-            <FieldLabel>کدوم بخش ویدیو ویرایش بشه؟</FieldLabel>
+            <FieldLabel>{hasWindowTrim ? 'کدوم بخش ویدیو ویرایش بشه؟' : 'ویدیوی ویرایش'}</FieldLabel>
             <button type="button" onClick={clearVideo} className="text-[11px] font-bold" style={{ color: '#94a3b8' }}>حذف</button>
           </div>
-          <VideoWindowTrimmer durationSec={video.durationSec} maxWidth={maxWidth} value={windowRange} onChange={setWindowRange} />
+          {hasWindowTrim ? (
+            <VideoWindowTrimmer durationSec={video.durationSec} maxWidth={maxWidth} value={windowRange} onChange={setWindowRange} />
+          ) : (
+            <p className="text-[11.5px] leading-relaxed" style={{ color: '#94a3b8' }}>
+              کل این کلیپ ({fmtDur(video.durationSec)}) ویرایش می‌شه — این مدل نمی‌تونه فقط یه بخش خاص از یه ویدیوی طولانی‌تر رو انتخاب کنه.
+            </p>
+          )}
         </div>
       )}
 

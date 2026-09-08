@@ -5,112 +5,33 @@ import { useKieVideoModels, useVideoEditSessions } from '@/queries/videoEdit.que
 import { useCreditsBalance } from '@/queries/credits.queries'
 import { VideoEditForm } from './VideoEditForms'
 import { VideoEditGallery } from './VideoEditGallery'
-import type { KieVideoModel } from '@/types/api'
-
-const PROVIDER_LABEL: Record<KieVideoModel['provider'], string> = { KIE: 'Kie.ai', OPENROUTER: 'OpenRouter' }
+import { VideoEditModelPickerModal } from './VideoEditModelPickerModal'
+import type { KieVideoModel, VideoEditMode, VideoEditJob } from '@/types/api'
 
 // بازطراحی ۱۴۰۵/۰۶/۱۷ (طبق آرتیفکت جدید) — دیگر دو تب «تولید»/«ادیت» جدا نیست؛ یک فرم واحد
 // (VideoEditForm) که toggle مرجع/ادیت درون خودش دارد. تغییرات اصلی نسبت به قبل:
-//  ۱) انتخابگر مدل حالا یک کارت غنی (provider + قابلیت‌ها) با لیست باز‌شونده است، نه <select>.
+//  ۱) انتخابگر مدل حالا همون مدال مشترک (ModelPickerModal) است که تولید عکس/ویدیو استفاده
+//     می‌کنند (دستور کاربر: نه دراپ‌دون کوچک) — یک چیپ که کلیک‌کردنش مدال باز می‌کند. provider
+//     (Kie/OpenRouter) عمداً به کاربر نشان داده نمی‌شود — یک جزئیات پیاده‌سازی داخلی است.
 //  ۲) مفهوم تازه‌ی «Session»: هر بار «شروع جدید» یعنی یک session تازه؛ گالری فقط کارهای همون
 //     session فعال را نشان می‌دهد (نه کل تاریخچه‌ی کاربر)، و یک drawer برای سوییچ بین جلسات هست.
-function ModelPicker({
-  models,
-  model,
-  onPick,
-}: {
-  models: KieVideoModel[]
-  model: KieVideoModel | undefined
-  onPick: (id: string) => void
-}) {
-  const [open, setOpen] = useState(false)
+function ModelTriggerChip({ model, onOpen }: { model: KieVideoModel | undefined; onOpen: () => void }) {
   if (!model) return null
-
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="flex w-full items-center justify-between gap-2.5 rounded-2xl px-3.5 py-3 text-right"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
-      >
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            className="flex size-8 shrink-0 items-center justify-center rounded-full"
-            style={{ background: model.provider === 'OPENROUTER' ? 'rgba(147,51,234,0.14)' : 'rgba(59,130,246,0.14)' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={model.provider === 'OPENROUTER' ? '#d8b4fe' : '#93c5fd'}>
-              <path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z" />
-            </svg>
-          </span>
-          <span className="flex min-w-0 flex-col items-start">
-            <span className="truncate text-[13.5px] font-bold text-white">{model.displayName}</span>
-            <span className="text-[10.5px]" style={{ color: '#64748b' }}>{PROVIDER_LABEL[model.provider]}</span>
-          </span>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" className={clsx('shrink-0 transition-transform', open && 'rotate-180')}>
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="flex flex-col gap-2 rounded-2xl p-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(148,163,184,0.14)' }}>
-          {models.map(m => {
-            const selected = m.id === model.id
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => {
-                  onPick(m.id)
-                  setOpen(false)
-                }}
-                className="flex flex-col gap-2 rounded-2xl p-3 text-right"
-                style={{
-                  background: selected ? 'rgba(16,185,129,0.08)' : 'transparent',
-                  border: selected ? '1.5px solid rgba(16,185,129,0.55)' : '1px solid rgba(148,163,184,0.16)',
-                }}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[13px] font-bold text-white">{m.displayName}</span>
-                    <span
-                      className="shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-bold"
-                      style={{
-                        background: m.provider === 'OPENROUTER' ? 'rgba(147,51,234,0.14)' : 'rgba(59,130,246,0.14)',
-                        color: m.provider === 'OPENROUTER' ? '#d8b4fe' : '#93c5fd',
-                      }}
-                    >
-                      {PROVIDER_LABEL[m.provider]}
-                    </span>
-                  </div>
-                  {selected && (
-                    <span className="flex size-[18px] shrink-0 items-center justify-center rounded-full" style={{ background: '#10b981', color: '#02170f' }}>
-                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 8l3.5 3.5L13 4.5" /></svg>
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {m.supportsImages && (
-                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', color: '#cbd5e1' }}>
-                      عکس (تا {m.maxImages ?? '?'})
-                    </span>
-                  )}
-                  {m.supportsVideo && (
-                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', color: '#cbd5e1' }}>
-                      {m.supportsScenePreservingEdit ? 'ویدیوی مرجع/ادیت' : 'ویدیوی مرجع'}
-                    </span>
-                  )}
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', color: '#cbd5e1' }}>
-                    {m.resolutions.join(' / ')}
-                  </span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center justify-between gap-2.5 rounded-2xl px-3.5 py-3 text-right"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
+    >
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full" style={{ background: 'rgba(16,185,129,0.14)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#6ee7b7"><path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z" /></svg>
+        </span>
+        <span className="truncate text-[13.5px] font-bold text-white">{model.displayName}</span>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2"><polyline points="6 9 12 15 18 9" /></svg>
+    </button>
   )
 }
 
@@ -206,13 +127,44 @@ export function VideoEditPage() {
   const { data: balance } = useCreditsBalance()
   const [mobileFormOpen, setMobileFormOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const [selectedModelId, setSelectedModelId] = useState<string | undefined>(undefined)
   // undefined = «جلسه‌ی تازه» (هنوز در دیتابیس ساخته نشده — سرور اولین job را که بسازیم می‌سازدش)
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>(undefined)
+  // فوراً (قبل از هر آپلود/درخواست شبکه) پر می‌شود تا یه کارت «در حال پردازش» بلافاصله توی
+  // گالری دیده بشه — دقیقاً همون الگوی ImageStudioPage.tsx (creatingSubmitting/isPending
+  // به‌عنوان اولین آیتم گرید)، نه صبر برای رفت‌وبرگشت شبکه + رفرش session
+  const [pendingSubmit, setPendingSubmit] = useState<{ prompt: string; mode: VideoEditMode } | null>(null)
 
   const model = models?.find(m => m.id === selectedModelId) ?? models?.[0]
   const activeSession = sessions?.find(s => s.id === activeSessionId)
-  const activeJobs = activeSession?.jobs ?? []
+  const activeJobs: VideoEditJob[] = pendingSubmit
+    ? [
+        {
+          id: '__pending__',
+          userId: '',
+          sessionId: activeSessionId ?? '',
+          kieVideoModelId: model?.id ?? '',
+          mode: pendingSubmit.mode,
+          prompt: pendingSubmit.prompt,
+          referenceImageKeys: [],
+          videoKey: null,
+          videoWindowStartSec: null,
+          videoWindowEndSec: null,
+          aspectRatio: null,
+          resolution: '',
+          status: 'PROCESSING',
+          kieTaskId: null,
+          resultVideoKey: null,
+          errorMessage: null,
+          creditsConsumedRaw: null,
+          creditCost: null,
+          createdAt: new Date().toISOString(),
+          completedAt: null,
+        },
+        ...(activeSession?.jobs ?? []),
+      ]
+    : (activeSession?.jobs ?? [])
 
   // اگه session فعال از لیست حذف/عوض شده باشه (مثلاً رفرش صفحه با یک session قدیمی که دیگه
   // معتبر نیست)، برنگرد به یه چیز نامعتبر — بذار همون «جلسه‌ی تازه» بمونه
@@ -231,9 +183,9 @@ export function VideoEditPage() {
         </h1>
       </div>
 
-      {models && models.length > 1 && model && (
+      {models && models.length > 1 && (
         <div className="mt-3.5">
-          <ModelPicker models={models} model={model} onPick={setSelectedModelId} />
+          <ModelTriggerChip model={model} onOpen={() => setModelPickerOpen(true)} />
         </div>
       )}
 
@@ -244,6 +196,8 @@ export function VideoEditPage() {
           <VideoEditForm
             model={model}
             sessionId={activeSessionId}
+            onSubmitStart={info => setPendingSubmit(info)}
+            onSubmitEnd={() => setPendingSubmit(null)}
             onCreated={job => {
               setActiveSessionId(job.sessionId)
               setMobileFormOpen(false)
@@ -293,7 +247,10 @@ export function VideoEditPage() {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>
           </button>
           <button
-            onClick={() => setActiveSessionId(undefined)}
+            onClick={() => {
+              setActiveSessionId(undefined)
+              setPendingSubmit(null)
+            }}
             title="ویرایش جدید"
             className="flex size-9 shrink-0 items-center justify-center rounded-full"
             style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.32)', color: '#6ee7b7' }}
@@ -373,13 +330,25 @@ export function VideoEditPage() {
         activeSessionId={activeSessionId}
         onPick={id => {
           setActiveSessionId(id)
+          setPendingSubmit(null)
           setHistoryOpen(false)
         }}
         onStartNew={() => {
           setActiveSessionId(undefined)
+          setPendingSubmit(null)
           setHistoryOpen(false)
         }}
       />
+
+      {models && (
+        <VideoEditModelPickerModal
+          open={modelPickerOpen}
+          onClose={() => setModelPickerOpen(false)}
+          models={models}
+          selectedId={model?.id ?? null}
+          onSelect={setSelectedModelId}
+        />
+      )}
     </div>
   )
 }
