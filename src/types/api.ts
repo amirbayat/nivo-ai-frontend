@@ -606,6 +606,7 @@ export type KieVideoCategory =
   | 'OTHER'
 
 export type VideoModelProvider = 'KIE' | 'OPENROUTER'
+export type KieInputSchema = 'OMNI' | 'SEEDANCE' | 'WAN_V2V' | 'WAN_R2V' | 'WAN_VIDEO_EDIT'
 
 export interface KieVideoModel {
   id: string
@@ -625,6 +626,9 @@ export interface KieVideoModel {
   resolutions: string[]
   pricePerSecondUsdConfirmed: number | null
   pricingNote: string | null
+  kieInputSchema: KieInputSchema
+  supportsScenePreservingEdit: boolean
+  fixedDurations: number[]
 }
 
 export type VideoEditMode = 'GENERATE' | 'EDIT'
@@ -633,6 +637,7 @@ export type VideoJobStatus = 'PENDING' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED'
 export interface VideoEditJob {
   id: string
   userId: string
+  sessionId: string
   kieVideoModelId: string
   kieVideoModel?: KieVideoModel
   mode: VideoEditMode
@@ -651,6 +656,14 @@ export interface VideoEditJob {
   creditCost: number | null
   createdAt: string
   completedAt: string | null
+}
+
+export interface VideoEditSession {
+  id: string
+  userId: string
+  title: string | null
+  createdAt: string
+  jobs: VideoEditJob[]
 }
 
 export interface VideoEditConfig {

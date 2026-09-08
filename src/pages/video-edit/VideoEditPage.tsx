@@ -1,107 +1,263 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
-import { useKieVideoModels, useVideoEditJobs } from '@/queries/videoEdit.queries'
-import { GenerateVideoForm, EditVideoForm } from './VideoEditForms'
+import { useKieVideoModels, useVideoEditSessions } from '@/queries/videoEdit.queries'
+import { useCreditsBalance } from '@/queries/credits.queries'
+import { VideoEditForm } from './VideoEditForms'
 import { VideoEditGallery } from './VideoEditGallery'
+import type { KieVideoModel } from '@/types/api'
 
-type Tab = 'generate' | 'edit'
+const PROVIDER_LABEL: Record<KieVideoModel['provider'], string> = { KIE: 'Kie.ai', OPENROUTER: 'OpenRouter' }
 
-// docs/PRD-video-edit-omni-kie.md بخش ۸.۳ — دقیقاً الگوی چیدمانی VideoStudioPage.tsx:
-// دسکتاپ = دو ستون (فرم راست ثابت / گالری چپ بزرگ) هر دو همیشه روی صفحه؛ موبایل = صفحه‌ی
-// پایه فقط گالری + نوار جمع‌شده‌ی پایین که با تپ‌کردن یک مدال تمام‌صفحه (فرم) باز می‌کند
-// (همون مکانیزم MobileChatModal، اینجا بدون چت چون این فیچر گفتگومحور نیست).
+// بازطراحی ۱۴۰۵/۰۶/۱۷ (طبق آرتیفکت جدید) — دیگر دو تب «تولید»/«ادیت» جدا نیست؛ یک فرم واحد
+// (VideoEditForm) که toggle مرجع/ادیت درون خودش دارد. تغییرات اصلی نسبت به قبل:
+//  ۱) انتخابگر مدل حالا یک کارت غنی (provider + قابلیت‌ها) با لیست باز‌شونده است، نه <select>.
+//  ۲) مفهوم تازه‌ی «Session»: هر بار «شروع جدید» یعنی یک session تازه؛ گالری فقط کارهای همون
+//     session فعال را نشان می‌دهد (نه کل تاریخچه‌ی کاربر)، و یک drawer برای سوییچ بین جلسات هست.
+function ModelPicker({
+  models,
+  model,
+  onPick,
+}: {
+  models: KieVideoModel[]
+  model: KieVideoModel | undefined
+  onPick: (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  if (!model) return null
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex w-full items-center justify-between gap-2.5 rounded-2xl px-3.5 py-3 text-right"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
+      >
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            className="flex size-8 shrink-0 items-center justify-center rounded-full"
+            style={{ background: model.provider === 'OPENROUTER' ? 'rgba(147,51,234,0.14)' : 'rgba(59,130,246,0.14)' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={model.provider === 'OPENROUTER' ? '#d8b4fe' : '#93c5fd'}>
+              <path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z" />
+            </svg>
+          </span>
+          <span className="flex min-w-0 flex-col items-start">
+            <span className="truncate text-[13.5px] font-bold text-white">{model.displayName}</span>
+            <span className="text-[10.5px]" style={{ color: '#64748b' }}>{PROVIDER_LABEL[model.provider]}</span>
+          </span>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" className={clsx('shrink-0 transition-transform', open && 'rotate-180')}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="flex flex-col gap-2 rounded-2xl p-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(148,163,184,0.14)' }}>
+          {models.map(m => {
+            const selected = m.id === model.id
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  onPick(m.id)
+                  setOpen(false)
+                }}
+                className="flex flex-col gap-2 rounded-2xl p-3 text-right"
+                style={{
+                  background: selected ? 'rgba(16,185,129,0.08)' : 'transparent',
+                  border: selected ? '1.5px solid rgba(16,185,129,0.55)' : '1px solid rgba(148,163,184,0.16)',
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-[13px] font-bold text-white">{m.displayName}</span>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-bold"
+                      style={{
+                        background: m.provider === 'OPENROUTER' ? 'rgba(147,51,234,0.14)' : 'rgba(59,130,246,0.14)',
+                        color: m.provider === 'OPENROUTER' ? '#d8b4fe' : '#93c5fd',
+                      }}
+                    >
+                      {PROVIDER_LABEL[m.provider]}
+                    </span>
+                  </div>
+                  {selected && (
+                    <span className="flex size-[18px] shrink-0 items-center justify-center rounded-full" style={{ background: '#10b981', color: '#02170f' }}>
+                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 8l3.5 3.5L13 4.5" /></svg>
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {m.supportsImages && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', color: '#cbd5e1' }}>
+                      عکس (تا {m.maxImages ?? '?'})
+                    </span>
+                  )}
+                  {m.supportsVideo && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', color: '#cbd5e1' }}>
+                      {m.supportsScenePreservingEdit ? 'ویدیوی مرجع/ادیت' : 'ویدیوی مرجع'}
+                    </span>
+                  )}
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', color: '#cbd5e1' }}>
+                    {m.resolutions.join(' / ')}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SessionHistoryDrawer({
+  open,
+  onClose,
+  sessions,
+  activeSessionId,
+  onPick,
+  onStartNew,
+}: {
+  open: boolean
+  onClose: () => void
+  sessions: { id: string; title: string | null; createdAt: string; jobs: unknown[] }[]
+  activeSessionId: string | undefined
+  onPick: (id: string) => void
+  onStartNew: () => void
+}) {
+  return (
+    <div className={clsx('absolute inset-0 z-[60]', !open && 'pointer-events-none')}>
+      <div
+        onClick={onClose}
+        className={clsx('absolute inset-0 bg-black/60 transition-opacity', open ? 'opacity-100' : 'opacity-0')}
+      />
+      <div
+        className={clsx(
+          'absolute inset-y-0 right-0 flex w-[340px] max-w-[85vw] flex-col overflow-hidden transition-transform duration-200',
+          open ? 'translate-x-0' : 'translate-x-full',
+        )}
+        style={{ background: '#080f1e', borderLeft: '1px solid rgba(148,163,184,0.16)' }}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3.5 pt-5" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
+          <span className="text-[14px] font-bold text-white">تاریخچه‌ی ویرایش ویدیو</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex size-7 items-center justify-center rounded-full text-slate-300"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)' }}
+            aria-label="بستن"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <div className="shrink-0 p-3.5 pb-1">
+          <button
+            type="button"
+            onClick={onStartNew}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[12.5px] font-bold"
+            style={{ background: 'rgba(16,185,129,0.10)', border: '1.5px dashed rgba(16,185,129,0.35)', color: '#6ee7b7' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
+            شروع ویرایش جدید
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2.5">
+          {sessions.map(s => {
+            const active = s.id === activeSessionId
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onPick(s.id)}
+                className="flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-right"
+                style={{ background: active ? 'rgba(16,185,129,0.08)' : 'transparent' }}
+              >
+                <span className="flex min-w-0 flex-col items-start">
+                  <span className="truncate text-[12.5px] font-semibold" style={{ color: active ? '#d1fae5' : '#e2e8f0', maxWidth: 220 }}>
+                    {s.title ?? 'بدون عنوان'}
+                  </span>
+                  <span className="mt-0.5 text-[10.5px]" style={{ color: '#64748b' }}>
+                    {new Date(s.createdAt).toLocaleDateString('fa-IR')}
+                  </span>
+                </span>
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  style={{ background: 'rgba(56,189,248,0.14)', color: '#7dd3fc' }}
+                >
+                  {s.jobs.length} کار
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function VideoEditPage() {
   const navigate = useNavigate()
   const { data: models } = useKieVideoModels()
-  const { data: jobs } = useVideoEditJobs()
-  const [tab, setTab] = useState<Tab>('generate')
+  const { data: sessions } = useVideoEditSessions()
+  const { data: balance } = useCreditsBalance()
   const [mobileFormOpen, setMobileFormOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [selectedModelId, setSelectedModelId] = useState<string | undefined>(undefined)
+  // undefined = «جلسه‌ی تازه» (هنوز در دیتابیس ساخته نشده — سرور اولین job را که بسازیم می‌سازدش)
+  const [activeSessionId, setActiveSessionId] = useState<string | undefined>(undefined)
 
-  // انتخابگر واقعی مدل — کاتالوگ دیگر فقط یک ردیف (Omni/Kie) نیست، مدل‌های OpenRouter هم دارد
   const model = models?.find(m => m.id === selectedModelId) ?? models?.[0]
-  // مسیر EDIT (صحنه‌حفظ‌کننده با پنجره‌ی start/end) فقط برای Kie تایید و پیاده شده — برای مدل‌های
-  // OpenRouter بک‌اند این حالت را رد می‌کند (video-edit.service.ts/validateAgainstMode)
-  const editModeSupported = model?.provider !== 'OPENROUTER'
+  const activeSession = sessions?.find(s => s.id === activeSessionId)
+  const activeJobs = activeSession?.jobs ?? []
 
+  // اگه session فعال از لیست حذف/عوض شده باشه (مثلاً رفرش صفحه با یک session قدیمی که دیگه
+  // معتبر نیست)، برنگرد به یه چیز نامعتبر — بذار همون «جلسه‌ی تازه» بمونه
   useEffect(() => {
-    if (!editModeSupported && tab === 'edit') setTab('generate')
-  }, [editModeSupported, tab])
+    if (activeSessionId && sessions && !sessions.some(s => s.id === activeSessionId)) {
+      setActiveSessionId(undefined)
+    }
+  }, [sessions, activeSessionId])
 
   const formPanel = (
     <div className="flex flex-1 flex-col overflow-y-auto px-1 pb-6">
       <div className="px-1 pb-1 pt-0.5">
         <p className="text-[12px] font-bold" style={{ color: '#34d399' }}>{model?.displayName ?? '...'}</p>
         <h1 className="mt-1.5 text-[16.5px] font-extrabold text-white" style={{ textWrap: 'balance' }}>
-          {tab === 'generate' ? 'از پرامپت، عکس یا ویدیو یه ویدیوی تازه بساز' : 'ویدیوی خودتو با یه پرامپت ویرایش کن'}
+          از پرامپت، عکس یا ویدیو یه ویدیوی تازه بساز یا خودش رو ویرایش کن
         </h1>
-        <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: '#64748b' }}>
-          {tab === 'generate'
-            ? 'هرچی داری اضافه کن — همه اختیاری‌اند به‌جز پرامپت'
-            : 'بقیه‌ی صحنه دست‌نخورده می‌مونه، فقط چیزی که می‌خوای عوض بشه'}
-        </p>
       </div>
 
-      {models && models.length > 1 && (
-        <div className="mt-3">
-          <label className="mb-1 block text-[11.5px] font-bold" style={{ color: '#64748b' }}>مدل</label>
-          <select
-            value={model?.id}
-            onChange={e => setSelectedModelId(e.target.value)}
-            className="w-full rounded-xl px-3 py-2 text-[13px] font-bold text-white"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
-          >
-            {models.map(m => (
-              <option key={m.id} value={m.id} style={{ background: '#020C18' }}>{m.displayName}</option>
-            ))}
-          </select>
+      {models && models.length > 1 && model && (
+        <div className="mt-3.5">
+          <ModelPicker models={models} model={model} onPick={setSelectedModelId} />
         </div>
       )}
-
-      <div className="mt-4 flex gap-1.5 rounded-full p-[5px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
-        <button
-          type="button"
-          onClick={() => setTab('generate')}
-          className={clsx('flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-bold')}
-          style={{
-            background: tab === 'generate' ? 'linear-gradient(90deg,#10b981,#34d399)' : 'transparent',
-            color: tab === 'generate' ? '#02170f' : '#94a3b8',
-          }}
-        >
-          تولید ویدیو
-        </button>
-        {editModeSupported && (
-          <button
-            type="button"
-            onClick={() => setTab('edit')}
-            className={clsx('flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-bold')}
-            style={{
-              background: tab === 'edit' ? 'linear-gradient(90deg,#f43f5e,#fb7185)' : 'transparent',
-              color: tab === 'edit' ? '#2b0410' : '#94a3b8',
-            }}
-          >
-            ادیت ویدیو
-          </button>
-        )}
-      </div>
 
       <div className="mt-3.5">
         {!model ? (
           <p className="px-1 py-8 text-center text-[13px]" style={{ color: '#64748b' }}>در حال بارگذاری مدل‌ها...</p>
-        ) : tab === 'generate' ? (
-          <GenerateVideoForm model={model} onCreated={() => setMobileFormOpen(false)} />
         ) : (
-          <EditVideoForm model={model} onCreated={() => setMobileFormOpen(false)} />
+          <VideoEditForm
+            model={model}
+            sessionId={activeSessionId}
+            onCreated={job => {
+              setActiveSessionId(job.sessionId)
+              setMobileFormOpen(false)
+            }}
+          />
         )}
       </div>
     </div>
   )
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
+    <div className="relative flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
       <div className="flex shrink-0 items-center justify-between px-5 pt-5 sm:px-10 sm:pt-7">
-        <div className="flex items-center gap-3.5">
+        <div className="flex min-w-0 items-center gap-3.5">
           <button
             onClick={() => navigate('/')}
             className="flex size-10 shrink-0 items-center justify-center rounded-full"
@@ -113,7 +269,37 @@ export function VideoEditPage() {
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-          <span className="text-[17px] font-bold text-white">ویرایش ویدیو</span>
+          <div className="flex min-w-0 flex-col">
+            <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>ویرایش ویدیو</span>
+            <span className="truncate text-[16px] font-bold text-white" style={{ maxWidth: 260 }}>
+              {activeSession?.title ?? 'جلسه‌ی تازه'}
+            </span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2.5">
+          {balance && (
+            <div className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] sm:flex" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.30)' }}>
+              <span style={{ color: '#94a3b8' }}>اعتبار شما:</span>
+              <span className="font-bold" style={{ color: '#6ee7b7' }}>{balance.credits.toLocaleString('fa-IR')}</span>
+              <span style={{ color: '#94a3b8' }}>نیوو</span>
+            </div>
+          )}
+          <button
+            onClick={() => setHistoryOpen(true)}
+            title="تاریخچه‌ی جلسه‌ها"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)', color: '#cbd5e1' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>
+          </button>
+          <button
+            onClick={() => setActiveSessionId(undefined)}
+            title="ویرایش جدید"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full"
+            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.32)', color: '#6ee7b7' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
         </div>
       </div>
 
@@ -125,14 +311,14 @@ export function VideoEditPage() {
 
         {/* ── دسکتاپ: پنل گالری (چپ) ── */}
         <div className="order-1 hidden flex-1 flex-col overflow-y-auto px-5 pb-6 sm:order-2 sm:flex sm:px-10">
-          <p className="mb-4 text-[13px]" style={{ color: '#64748b' }}>گالری تولید/ادیت‌های تو</p>
-          <VideoEditGallery jobs={jobs ?? []} />
+          <p className="mb-4 text-[13px]" style={{ color: '#64748b' }}>کارهای این جلسه</p>
+          <VideoEditGallery jobs={activeJobs} />
         </div>
 
         {/* ── موبایل: صفحه‌ی پایه = گالری + نوار جمع‌شده ── */}
         <div className="flex flex-1 flex-col overflow-hidden sm:hidden">
           <div className="flex-1 overflow-y-auto px-4 pb-3">
-            <VideoEditGallery jobs={jobs ?? []} />
+            <VideoEditGallery jobs={activeJobs} />
           </div>
           <div className="shrink-0 px-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
             <button
@@ -179,6 +365,21 @@ export function VideoEditPage() {
           <div className="flex-1 overflow-y-auto px-4 pb-4">{formPanel}</div>
         </div>
       </div>
+
+      <SessionHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        sessions={sessions ?? []}
+        activeSessionId={activeSessionId}
+        onPick={id => {
+          setActiveSessionId(id)
+          setHistoryOpen(false)
+        }}
+        onStartNew={() => {
+          setActiveSessionId(undefined)
+          setHistoryOpen(false)
+        }}
+      />
     </div>
   )
 }

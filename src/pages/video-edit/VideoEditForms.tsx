@@ -7,12 +7,13 @@ import {
   useUploadVideoEditVideo,
   useVideoEditPublicConfig,
 } from '@/queries/videoEdit.queries'
-import type { KieVideoModel } from '@/types/api'
+import type { KieVideoModel, VideoEditJob } from '@/types/api'
 
-// docs/PRD-video-edit-omni-kie.md بخش ۲ — GENERATE و EDIT یک endpoint واحد Kie می‌زنند، ولی
-// دو فرم کاملاً جدا هستند (نه فیلدهای شرطی در یک فرم مشترک) چون قرارداد ورودی بنیادین فرق
-// دارد: GENERATE پرامپت+عکس/ویدیوی مرجع اختیاری می‌گیرد، EDIT فقط دقیقاً یک ویدیو+پرامپت.
-// طراحی/زبان بصری دقیقاً از آرتیفکت طراحی‌شده (کارت‌های گرد گرادیانی سبز/بنفش، دکمه‌ی گرادیانی).
+// بازطراحی ۱۴۰۵/۰۶/۱۷ — طبق آرتیفکت جدید: یک فرم واحد (نه دو تب جدا)، چون تفاوت GENERATE/EDIT
+// دیگر یک انتخاب سطح صفحه نیست، یک toggle درون همون attachment ویدیوست («به‌عنوان مرجع» در
+// برابر «ویرایش همین ویدیو») — و فقط وقتی مدل واقعاً edit صحنه‌حفظ‌کننده دارد
+// (model.supportsScenePreservingEdit) اصلاً نشان داده می‌شود؛ وگرنه یک caveat زرد توضیح می‌دهد
+// چرا این مدل فقط می‌تواند از ویدیو به‌عنوان الهام/سبک استفاده کند، نه ویرایش واقعی.
 
 const ASPECT_RATIOS = ['16:9', '9:16'] as const
 
@@ -201,134 +202,26 @@ function ClockIcon() {
   )
 }
 
-export function GenerateVideoForm({ model, onCreated }: { model: KieVideoModel; onCreated: () => void }) {
-  const [prompt, setPrompt] = useState('')
-  const [image, setImage] = useState<{ file: File; previewUrl: string; key?: string } | null>(null)
-  const [video, setVideo] = useState<{ file: File; previewUrl: string; key?: string } | null>(null)
-  const [ratio, setRatio] = useState<'16:9' | '9:16'>('16:9')
-  const [resolution, setResolution] = useState(model.resolutions[0] ?? '720p')
-  const [error, setError] = useState<string | null>(null)
-
-  const { data: publicConfig } = useVideoEditPublicConfig()
-  const uploadImage = useUploadVideoEditImage()
-  const uploadVideo = useUploadVideoEditVideo()
-  const createJob = useCreateVideoEditJob()
-  const busy = uploadImage.isPending || uploadVideo.isPending || createJob.isPending
-
-  // اگه کاربر از انتخابگر مدل (VideoEditPage.tsx) به مدلی با رزولوشن‌های متفاوت سوییچ کند، مقدار
-  // قبلی ممکن است دیگر جزو model.resolutions نباشد — سرور آن را رد می‌کند، پس اینجا ریست می‌شود
-  useEffect(() => {
-    setResolution(model.resolutions[0] ?? '720p')
-  }, [model.id])
-
-  async function submit() {
-    if (!prompt.trim() || busy) return
-    setError(null)
-    try {
-      let referenceImageKeys: string[] | undefined
-      let videoKey: string | undefined
-      if (image) referenceImageKeys = [(await uploadImage.mutateAsync(image.file)).key]
-      if (video) videoKey = (await uploadVideo.mutateAsync({ file: video.file })).key
-
-      await createJob.mutateAsync({
-        mode: 'GENERATE',
-        kieVideoModelId: model.id,
-        prompt: prompt.trim(),
-        referenceImageKeys,
-        videoKey,
-        videoWindowStartSec: video ? 0 : undefined,
-        videoWindowEndSec: video ? Math.min(3, model.maxVideoWindowSec ?? 3) : undefined,
-        aspectRatio: ratio,
-        resolution,
-      })
-      setPrompt('')
-      setImage(null)
-      setVideo(null)
-      onCreated()
-    } catch (err) {
-      setError(extractErrorMessage(err, 'ساخت ویدیو ناموفق بود، دوباره امتحان کن'))
-    }
-  }
-
+// toggle درون‌فرم «به‌عنوان مرجع» / «ویرایش همین ویدیو» — فقط وقتی ویدیو ضمیمه شده و مدل
+// واقعاً edit صحنه‌حفظ‌کننده دارد نشان داده می‌شود (دقیقاً showModeToggle در artifact)
+function ModeToggle({ mode, onChange }: { mode: 'reference' | 'edit'; onChange: (m: 'reference' | 'edit') => void }) {
   return (
-    <div
-      className="flex flex-col gap-3.5 rounded-[24px] p-[18px]"
-      style={{
-        background: 'linear-gradient(165deg, rgba(16,185,129,0.10) 0%, rgba(147,51,234,0.05) 55%, rgba(255,255,255,0.02) 100%)',
-        border: '1.5px solid rgba(16,185,129,0.30)',
-      }}
-    >
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>پرامپت</FieldLabel>
-        <textarea
-          value={prompt}
-          onChange={e => setPrompt(e.target.value)}
-          rows={4}
-          placeholder="مثلاً: یه فضانورد که کنار یه دریاچه‌ی نئونی قدم می‌زنه، سینمایی و آروم"
-          className="w-full resize-none rounded-2xl p-3.5 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
-          style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
-        />
-      </div>
-
-      {(model.supportsImages || model.supportsVideo) && (
-        <div className="grid grid-cols-2 gap-2.5">
-          {model.supportsImages && (
-            <DropWell
-              accent="emerald"
-              accept="image/*"
-              label="افزودن عکس (اختیاری)"
-              hint="سوژه/سبک از این عکس"
-              preview={image ? { kind: 'image', src: image.previewUrl, sizeLabel: `${Math.round(image.file.size / 1024)} KB` } : null}
-              onPick={file => setImage({ file, previewUrl: URL.createObjectURL(file) })}
-              onClear={() => setImage(null)}
-            />
-          )}
-          {model.supportsVideo && (
-            <DropWell
-              accent="emerald"
-              accept="video/mp4,video/quicktime"
-              label="افزودن ویدیو (اختیاری)"
-              hint="حرکت/سبک از این ویدیو"
-              preview={video ? { kind: 'video', src: video.previewUrl, sizeLabel: `${Math.round(video.file.size / 1024)} KB` } : null}
-              onPick={file => setVideo({ file, previewUrl: URL.createObjectURL(file) })}
-              onClear={() => setVideo(null)}
-            />
-          )}
-        </div>
-      )}
-
-      {video && model.maxVideoWindowSec && (
-        <Caveat tone="warn">
-          فقط <b>{model.maxVideoWindowSec} ثانیه‌ی اول</b> این ویدیو به‌عنوان مرجعِ حرکت/سبک استفاده می‌شه — یه ویدیوی
-          <b> تازه</b> ساخته می‌شه، نه ویرایش این یکی. برای ویرایش خودِ ویدیو، از تب «ادیت» استفاده کن. همچنین وقتی
-          ویدیوی مرجع می‌دی، مدت زمان خروجی رو نمی‌شه انتخاب کرد — از همون ویدیوی مرجع تبعیت می‌کنه.
-        </Caveat>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        {model.supportsAspectRatio && <RatioSegmented value={ratio} onChange={setRatio} />}
-        {/* وقتی ویدیوی مرجع داده شده، مدت زمان خروجی از خودِ ویدیو تبعیت می‌کنه (نه مقدار ثابت
-            تولید) — چه برای Kie (video_list باعث نادیده‌گرفتن duration می‌شه) چه برای OpenRouter
-            (duration باید -1 فرستاده بشه، video-edit.processor.ts/buildOpenRouterInput) — پس
-            نشون‌دادن مدت ثابت اینجا گمراه‌کننده‌ست */}
-        {model.supportsDuration && !video && (
-          <FixedChip icon={<ClockIcon />}>
-            {publicConfig ? `${publicConfig.generateFixedDurationSec.toLocaleString('fa-IR')} ثانیه` : '…'}
-          </FixedChip>
-        )}
-        <ResolutionPicker options={model.resolutions} value={resolution} onChange={setResolution} />
-      </div>
-
-      {error && <p className="text-[12px] text-red-400">{error}</p>}
-
+    <div className="flex gap-1.5 rounded-full p-[3px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
       <button
         type="button"
-        onClick={() => void submit()}
-        disabled={!prompt.trim() || busy}
-        className="w-full rounded-full py-3.5 text-[14.5px] font-bold text-[#02170f] transition-opacity disabled:opacity-50"
-        style={{ background: 'linear-gradient(90deg,#10b981,#34d399)' }}
+        onClick={() => onChange('reference')}
+        className="flex-1 rounded-full py-2 text-[11.5px] font-bold"
+        style={{ background: mode === 'reference' ? '#10b981' : 'transparent', color: mode === 'reference' ? '#02170f' : '#94a3b8' }}
       >
-        {busy ? 'در حال ساخت...' : 'بساز ویدیو'}
+        به‌عنوان مرجع
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('edit')}
+        className="flex-1 rounded-full py-2 text-[11.5px] font-bold"
+        style={{ background: mode === 'edit' ? '#f43f5e' : 'transparent', color: mode === 'edit' ? '#2b0410' : '#94a3b8' }}
+      >
+        ویرایش همین ویدیو
       </button>
     </div>
   )
@@ -462,63 +355,98 @@ function VideoWindowTrimmer({
   )
 }
 
-export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCreated: () => void }) {
+export function VideoEditForm({
+  model,
+  sessionId,
+  onCreated,
+}: {
+  model: KieVideoModel
+  sessionId?: string
+  onCreated: (job: VideoEditJob) => void
+}) {
   const [prompt, setPrompt] = useState('')
-  const [source, setSource] = useState<{ file: File; previewUrl: string; durationSec: number } | null>(null)
-  const [windowRange, setWindowRange] = useState<[number, number]>([0, 8])
+  const [image, setImage] = useState<{ file: File; previewUrl: string } | null>(null)
+  const [video, setVideo] = useState<{ file: File; previewUrl: string; key: string; durationSec: number } | null>(null)
+  const [mode, setMode] = useState<'reference' | 'edit'>('reference')
+  const [ratio, setRatio] = useState<'16:9' | '9:16'>('16:9')
   const [resolution, setResolution] = useState(model.resolutions[0] ?? '720p')
+  const [windowRange, setWindowRange] = useState<[number, number]>([0, 8])
   const [error, setError] = useState<string | null>(null)
 
+  const { data: publicConfig } = useVideoEditPublicConfig()
+  const uploadImage = useUploadVideoEditImage()
   const uploadVideo = useUploadVideoEditVideo()
   const createJob = useCreateVideoEditJob()
-  const busy = uploadVideo.isPending || createJob.isPending
+  const busy = uploadImage.isPending || uploadVideo.isPending || createJob.isPending
+
+  // فقط مدل‌هایی که واقعاً تایید شده «فقط این بخش رو عوض کن، بقیه دست‌نخورده» را انجام می‌دهند
+  // (Omni، Wan-VideoEdit) — بقیه (Seedance/Wan-R2V/Wan-V2V و مدل‌های OpenRouter) فقط
+  // GENERATE-with-reference دارند (تحقیق ۱۴۰۵/۰۶/۱۷)
+  const editEligible = model.supportsScenePreservingEdit
+  const isEdit = mode === 'edit' && !!video && editEligible
   const maxWidth = model.maxVideoWindowSec ?? 10
 
-  useEffect(() => {
-    if (!source) return
-    const end = Math.min(source.durationSec, maxWidth)
-    setWindowRange([0, end])
-  }, [source, maxWidth])
-
+  // سوییچ مدل از انتخابگر → همه‌چیز مختص مدل قبلی (رزولوشن/toggle ادیت) ریست می‌شود
   useEffect(() => {
     setResolution(model.resolutions[0] ?? '720p')
+    setMode('reference')
   }, [model.id])
 
-  async function pickFile(file: File) {
+  useEffect(() => {
+    if (mode === 'edit' && video) setWindowRange([0, Math.min(video.durationSec, maxWidth)])
+  }, [mode, video, maxWidth])
+
+  async function pickVideo(file: File) {
     setError(null)
     try {
       const { key, durationSec } = await uploadVideo.mutateAsync({ file })
-      setSource({ file, previewUrl: URL.createObjectURL(file), durationSec })
-      // کلید آپلودشده را روی همون فایل نگه می‌داریم تا submit دوباره آپلود نکند
-      ;(file as unknown as { __uploadedKey?: string }).__uploadedKey = key
+      setVideo({ file, previewUrl: URL.createObjectURL(file), key, durationSec })
     } catch (err) {
       setError(extractErrorMessage(err, 'آپلود ویدیو ناموفق بود — فرمت باید mp4/mov باشد'))
     }
   }
 
+  function clearVideo() {
+    setVideo(null)
+    setMode('reference')
+  }
+
   async function submit() {
-    if (!prompt.trim() || !source || busy) return
+    if (!prompt.trim() || busy) return
+    if (isEdit && !video) return
     setError(null)
-    const key = (source.file as unknown as { __uploadedKey?: string }).__uploadedKey
-    if (!key) {
-      setError('آپلود هنوز کامل نشده، کمی صبر کن')
-      return
-    }
     try {
-      await createJob.mutateAsync({
-        mode: 'EDIT',
+      let referenceImageKeys: string[] | undefined
+      if (image && !isEdit) referenceImageKeys = [(await uploadImage.mutateAsync(image.file)).key]
+
+      const job = await createJob.mutateAsync({
+        sessionId,
+        mode: isEdit ? 'EDIT' : 'GENERATE',
         kieVideoModelId: model.id,
         prompt: prompt.trim(),
-        videoKey: key,
-        videoWindowStartSec: windowRange[0],
-        videoWindowEndSec: windowRange[1],
+        referenceImageKeys,
+        videoKey: video?.key,
+        videoWindowStartSec: video ? (isEdit ? windowRange[0] : 0) : undefined,
+        videoWindowEndSec: video
+          ? isEdit
+            ? windowRange[1]
+            : Math.min(3, maxWidth)
+          : undefined,
+        aspectRatio: isEdit ? undefined : ratio,
         resolution,
       })
       setPrompt('')
-      setSource(null)
-      onCreated()
+      setImage(null)
+      setVideo(null)
+      setMode('reference')
+      onCreated(job)
     } catch (err) {
-      setError(extractErrorMessage(err, 'ویرایش ویدیو ناموفق بود، دوباره امتحان کن'))
+      setError(
+        extractErrorMessage(
+          err,
+          isEdit ? 'ویرایش ویدیو ناموفق بود، دوباره امتحان کن' : 'ساخت ویدیو ناموفق بود، دوباره امتحان کن',
+        ),
+      )
     }
   }
 
@@ -526,49 +454,113 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
     <div
       className="flex flex-col gap-3.5 rounded-[24px] p-[18px]"
       style={{
-        background: 'linear-gradient(165deg, rgba(244,63,94,0.10) 0%, rgba(147,51,234,0.05) 55%, rgba(255,255,255,0.02) 100%)',
-        border: '1.5px solid rgba(244,63,94,0.30)',
+        background: isEdit
+          ? 'linear-gradient(165deg, rgba(244,63,94,0.10) 0%, rgba(147,51,234,0.05) 55%, rgba(255,255,255,0.02) 100%)'
+          : 'linear-gradient(165deg, rgba(16,185,129,0.10) 0%, rgba(147,51,234,0.05) 55%, rgba(255,255,255,0.02) 100%)',
+        border: isEdit ? '1.5px solid rgba(244,63,94,0.30)' : '1.5px solid rgba(16,185,129,0.30)',
       }}
     >
       <div className="flex flex-col gap-1.5">
-        <FieldLabel>ویدیوی مبدأ</FieldLabel>
-        <DropWell
-          wide
-          accent="rose"
-          accept="video/mp4,video/quicktime"
-          label={uploadVideo.isPending ? 'در حال آپلود...' : 'ویدیوت رو انتخاب کن'}
-          hint={`حداکثر ${maxWidth} ثانیه از یک فایل تا ۳۰ ثانیه — mp4 یا mov`}
-          preview={source ? { kind: 'video', src: source.previewUrl, sizeLabel: fmtDur(source.durationSec) } : null}
-          onPick={file => void pickFile(file)}
-          onClear={() => setSource(null)}
-        />
-      </div>
-
-      {source && (
-        <div className="flex flex-col gap-1" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 16, padding: '12px 14px' }}>
-          <FieldLabel>کدوم بخش ویدیو ویرایش بشه؟</FieldLabel>
-          <VideoWindowTrimmer durationSec={source.durationSec} maxWidth={maxWidth} value={windowRange} onChange={setWindowRange} />
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>چی می‌خوای عوض بشه؟</FieldLabel>
+        <FieldLabel>{isEdit ? 'چی می‌خوای عوض بشه؟' : 'چی می‌خوای بسازی؟'}</FieldLabel>
         <textarea
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
-          rows={3}
-          placeholder="مثلاً: پس‌زمینه رو به یه غروب پاییزی کنار دریا تغییر بده، بقیه رو دست‌نزن"
+          rows={isEdit ? 3 : 4}
+          placeholder={
+            isEdit
+              ? 'مثلاً: پس‌زمینه رو به یه غروب پاییزی کنار دریا تغییر بده، بقیه رو دست‌نزن'
+              : 'مثلاً: یه فضانورد که کنار یه دریاچه‌ی نئونی قدم می‌زنه، سینمایی و آروم'
+          }
           className="w-full resize-none rounded-2xl p-3.5 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
           style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
         />
       </div>
 
-      <Caveat tone="ok">
-        بقیه‌ی صحنه — حرکت دوربین، شخصیت، زمان‌بندی — دست‌نخورده می‌مونه؛ فقط همونی که تو پرامپت خواستی عوض می‌شه.
-      </Caveat>
+      {(model.supportsImages || model.supportsVideo) && (
+        <div className="grid gap-2.5" style={{ gridTemplateColumns: model.supportsImages && !isEdit && model.supportsVideo ? '1fr 1fr' : '1fr' }}>
+          {model.supportsImages && !isEdit && (
+            <DropWell
+              accent="emerald"
+              accept="image/*"
+              label="افزودن عکس (اختیاری)"
+              hint="سوژه/سبک از این عکس"
+              preview={image ? { kind: 'image', src: image.previewUrl, sizeLabel: `${Math.round(image.file.size / 1024)} KB` } : null}
+              onPick={file => setImage({ file, previewUrl: URL.createObjectURL(file) })}
+              onClear={() => setImage(null)}
+            />
+          )}
+          {model.supportsVideo && !video && (
+            <DropWell
+              accent={isEdit ? 'rose' : 'emerald'}
+              accept="video/mp4,video/quicktime"
+              label={uploadVideo.isPending ? 'در حال آپلود...' : 'افزودن ویدیو'}
+              hint={editEligible ? 'به‌عنوان مرجع یا برای ویرایش' : 'حرکت/سبک از این ویدیو'}
+              preview={null}
+              onPick={file => void pickVideo(file)}
+              onClear={clearVideo}
+            />
+          )}
+          {video && !isEdit && (
+            <DropWell
+              accent="emerald"
+              accept="video/mp4,video/quicktime"
+              label=""
+              hint=""
+              preview={{ kind: 'video', src: video.previewUrl, sizeLabel: fmtDur(video.durationSec) }}
+              onPick={() => {}}
+              onClear={clearVideo}
+            />
+          )}
+        </div>
+      )}
+
+      {video && isEdit && (
+        <div className="flex flex-col gap-1" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 16, padding: '12px 14px' }}>
+          <div className="flex items-center justify-between">
+            <FieldLabel>کدوم بخش ویدیو ویرایش بشه؟</FieldLabel>
+            <button type="button" onClick={clearVideo} className="text-[11px] font-bold" style={{ color: '#94a3b8' }}>حذف</button>
+          </div>
+          <VideoWindowTrimmer durationSec={video.durationSec} maxWidth={maxWidth} value={windowRange} onChange={setWindowRange} />
+        </div>
+      )}
+
+      {video && editEligible && (
+        <ModeToggle mode={mode} onChange={setMode} />
+      )}
+
+      {video && !editEligible && (
+        <Caveat tone="warn">
+          این مدل نمی‌تونه صحنه رو حفظ کنه — این ویدیو فقط به‌عنوان مرجعِ حرکت/سبک استفاده می‌شه و یه ویدیوی
+          کاملاً تازه ساخته می‌شه، نه ویرایش همین یکی.
+        </Caveat>
+      )}
+
+      {video && editEligible && !isEdit && (
+        <Caveat tone="ok">
+          می‌خوای فقط یه بخش خاص از همین ویدیو رو عوض کنی، نه اینکه یکی جدید بسازی؟ «ویرایش همین ویدیو» رو بزن.
+        </Caveat>
+      )}
+
+      {isEdit && (
+        <Caveat tone="ok">
+          بقیه‌ی صحنه — حرکت دوربین، شخصیت، زمان‌بندی — دست‌نخورده می‌مونه؛ فقط همونی که تو پرامپت خواستی عوض می‌شه.
+        </Caveat>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <ResolutionPicker options={model.resolutions} value={resolution} onChange={setResolution} />
+        {model.supportsAspectRatio && !isEdit && <RatioSegmented value={ratio} onChange={setRatio} />}
+        {/* وقتی ویدیوی مرجع داده شده، مدت زمان خروجی از خودِ ویدیو تبعیت می‌کنه (نه مقدار ثابت
+            تولید) — پس نشون‌دادن مدت ثابت اینجا گمراه‌کننده‌ست */}
+        {model.supportsDuration && !video && !isEdit && (
+          <FixedChip icon={<ClockIcon />}>
+            {model.fixedDurations.length > 0
+              ? `${model.fixedDurations.join(' یا ')} ثانیه`
+              : publicConfig
+                ? `${publicConfig.generateFixedDurationSec.toLocaleString('fa-IR')} ثانیه`
+                : '…'}
+          </FixedChip>
+        )}
+        {!isEdit && <ResolutionPicker options={model.resolutions} value={resolution} onChange={setResolution} />}
       </div>
 
       {error && <p className="text-[12px] text-red-400">{error}</p>}
@@ -576,11 +568,14 @@ export function EditVideoForm({ model, onCreated }: { model: KieVideoModel; onCr
       <button
         type="button"
         onClick={() => void submit()}
-        disabled={!prompt.trim() || !source || busy}
+        disabled={!prompt.trim() || busy || (isEdit && !video)}
         className="w-full rounded-full py-3.5 text-[14.5px] font-bold transition-opacity disabled:opacity-50"
-        style={{ background: 'linear-gradient(90deg,#f43f5e,#fb7185)', color: '#2b0410' }}
+        style={{
+          background: isEdit ? 'linear-gradient(90deg,#f43f5e,#fb7185)' : 'linear-gradient(90deg,#10b981,#34d399)',
+          color: isEdit ? '#2b0410' : '#02170f',
+        }}
       >
-        {busy ? 'در حال ویرایش...' : 'ویرایش کن'}
+        {busy ? (isEdit ? 'در حال ویرایش...' : 'در حال ساخت...') : isEdit ? 'ویرایش کن' : 'بساز ویدیو'}
       </button>
     </div>
   )

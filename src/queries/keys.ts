@@ -103,5 +103,6 @@ export const keys = {
     config: () => ['video-edit', 'config'] as const,
     jobs: () => ['video-edit', 'jobs'] as const,
     jobDetail: (id: string) => ['video-edit', 'jobs', id] as const,
+    sessions: () => ['video-edit', 'sessions'] as const,
   },
 } as const

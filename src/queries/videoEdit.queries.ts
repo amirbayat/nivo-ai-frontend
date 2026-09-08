@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
-import type { KieVideoModel, VideoEditJob, VideoEditMode } from '@/types/api'
+import type { KieVideoModel, VideoEditJob, VideoEditMode, VideoEditSession } from '@/types/api'
 
 // docs/PRD-video-edit-omni-kie.md — «ویرایش ویدیو» با Kie.ai، کاملاً جدا از videoStudio.queries.ts
 // (OpenRouter). همه‌ی این هوک‌ها مستقیم روی /video-edit بک‌اند سوارند.
@@ -60,6 +60,7 @@ export function useUploadVideoEditVideo() {
 }
 
 export interface CreateVideoEditJobDto {
+  sessionId?: string // نیامدنش یعنی سرور خودش یک session تازه‌ی بی‌عنوان می‌سازد
   mode: VideoEditMode
   kieVideoModelId: string
   prompt: string
@@ -76,19 +77,31 @@ export function useCreateVideoEditJob() {
   return useMutation({
     mutationFn: (dto: CreateVideoEditJobDto) =>
       api.post<VideoEditJob>('/video-edit/jobs', dto).then(r => r.data),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoEdit.jobs() }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoEdit.sessions() }),
   })
 }
 
+// بازطراحی ۱۴۰۵/۰۶/۱۷ — «Session»: تاریخچه‌ی جلسه‌ها، هرکدام با jobs تودرتو (برای drawer
+// تاریخچه هم گالری «کارهای این جلسه»، بدون نیاز به endpoint جدا برای هرکدام).
 // پولینگ داخلی خودش را دارد: تا وقتی حداقل یک جاب PENDING/PROCESSING باشد هر ۵ ثانیه دوباره
 // می‌خواند — دقیقاً همون الگوی useCaptionProject (وضعیت نهایی = توقف پولینگ)
-export function useVideoEditJobs() {
+export function useVideoEditSessions() {
   return useQuery({
-    queryKey: keys.videoEdit.jobs(),
-    queryFn: () => api.get<VideoEditJob[]>('/video-edit/jobs').then(r => r.data),
+    queryKey: keys.videoEdit.sessions(),
+    queryFn: () => api.get<VideoEditSession[]>('/video-edit/sessions').then(r => r.data),
     refetchInterval: query => {
-      const jobs = query.state.data ?? []
-      return jobs.some(j => ACTIVE_STATUSES.has(j.status)) ? 5000 : false
+      const sessions = query.state.data ?? []
+      const hasActive = sessions.some(s => s.jobs.some(j => ACTIVE_STATUSES.has(j.status)))
+      return hasActive ? 5000 : false
     },
+  })
+}
+
+export function useCreateVideoEditSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (title?: string) =>
+      api.post<VideoEditSession>('/video-edit/sessions', { title }).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoEdit.sessions() }),
   })
 }
