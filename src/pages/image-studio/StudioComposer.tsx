@@ -74,9 +74,12 @@ export function StudioComposer({
   const setSelectedImageGenModel = useChatStore(s => s.setSelectedImageGenModel)
   const imageGenModels = useMemo(() => (catalog ?? []).filter(m => m.supportsImageGen), [catalog])
   const pinnedModel = imageGenModels.find(m => m.name === selectedImageGenModel)
-  // imageGenModels از همان ترتیب sortOrder سرور می‌آید — اولین مورد یعنی «دیفالت» واقعی
-  // (یا مدل پیش‌فرض این پلن، اگر ادمین از صفحه‌ی پلن‌ها ستش کرده باشد)، نه یک نام هاردکد
-  const modelLabel = pinnedModel?.displayName ?? imageGenModels[0]?.displayName ?? 'مدل پیش‌فرض'
+  // imageGenModels from catalog sortOrder — first row is the real default
+  const defaultImageGenModel = imageGenModels[0]
+  const modelLabel = pinnedModel?.displayName ?? defaultImageGenModel?.displayName ?? 'مدل پیش‌فرض'
+  const generateCreditCost = selectedCreativePrompt
+    ? selectedCreativePrompt.creditCost
+    : (pinnedModel ?? defaultImageGenModel)?.estimatedImageGenCreditCost ?? null
 
   // value/images/preserveFace عمداً در chat.store (نه useState محلی) نگه داشته می‌شوند — قبلاً
   // چیپ «تغییر مدل» به /models navigate می‌کرد که این کامپوننت را unmount می‌کرد و useState محلی
@@ -104,6 +107,14 @@ export function StudioComposer({
   const fileRef = useRef<HTMLInputElement>(null)
   const isTouchDevice = useIsTouchDevice()
   const uploadDiscoveryImage = useUploadDiscoveryImage()
+  const generateButtonLabel =
+    generatingCreative || uploadDiscoveryImage.isPending
+      ? fa.discover.generating
+      : generateCreditCost != null
+        ? selectedCreativePrompt
+          ? `ساخت عکس · ${fa.discover.creditCost(generateCreditCost)}`
+          : `ساخت عکس · حدود ${fa.discover.creditCost(generateCreditCost)}`
+        : 'ساخت عکس'
 
   useEffect(() => {
     if (selectedCreativePrompt) setMobileExpanded(true)
@@ -138,6 +149,9 @@ export function StudioComposer({
       name: model.displayName,
       blurb: model.description || tierDescription(model.tier),
       tier: { label: imageQualityLabel(model.tier), ...TIER_COLOR[model.tier] },
+      chips: model.estimatedImageGenCreditCost != null
+        ? [`حدود ${fa.discover.creditCost(model.estimatedImageGenCreditCost)}`]
+        : undefined,
     })),
   ]
 
@@ -515,7 +529,7 @@ export function StudioComposer({
                   : { background: 'rgba(16,185,129,0.35)', color: 'rgba(2,23,15,0.6)' }
               }
             >
-              {generatingCreative || uploadDiscoveryImage.isPending ? fa.discover.generating : 'ساخت عکس'}
+              {generateButtonLabel}
             </button>
           </div>
         </div>

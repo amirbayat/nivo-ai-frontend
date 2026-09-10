@@ -39,9 +39,8 @@ export interface ModelCatalogEntry {
   videoGenAudioMultiplier: number | null
   // دستور صریح کاربر — ادمین از پنل مدل‌ها مشخص می‌کند کدام مدل CHAT/IMAGE_GEN توی استودیوی ویدیو نشان داده شود
   videoStudioEligible: boolean
-  // docs/PRD-image-gen-pricing-and-credit-fix.md بخش D — تخمین خودکار «نیوو» هر تولید (میانگین
-  // هزینه‌ی واقعی مصرف اخیر). فقط نمایشی — در تصمیم‌گیری preflight دخالتی ندارد. null یعنی هنوز
-  // داده‌ی کافی نیست
+  // Live نیوو estimate derived from estimatedImageGenCostUsd at catalog read
+  // (FX + IMAGE markup + tomanPerCredit). Display-only. null = not enough data.
   estimatedImageGenCreditCost: number | null
 }
 

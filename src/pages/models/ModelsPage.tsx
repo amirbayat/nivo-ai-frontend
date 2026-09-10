@@ -9,6 +9,7 @@ import {
 } from '@/lib/model-catalog'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
 import { track } from '@/lib/events'
+import { fa } from '@/locales/fa'
 
 const STORAGE_KEY = 'nivo:selectedModel'
 const IMAGE_GEN_STORAGE_KEY = 'nivo:selectedImageGenModel'
@@ -354,6 +355,11 @@ export function ModelsPage() {
             <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
               {model.description || imageQualityLabel(model.tier)}
             </p>
+            {model.estimatedImageGenCreditCost != null && (
+              <p className="mt-1.5 text-xs font-medium text-emerald-400/90">
+                {`حدود ${fa.discover.creditCost(model.estimatedImageGenCreditCost)}`}
+              </p>
+            )}
           </div>
         </div>
       )
@@ -386,6 +392,11 @@ export function ModelsPage() {
           <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
             {model.description || imageQualityLabel(model.tier)}
           </p>
+          {model.estimatedImageGenCreditCost != null && (
+            <p className="mt-1.5 text-xs font-medium text-emerald-400/90">
+              {`حدود ${fa.discover.creditCost(model.estimatedImageGenCreditCost)}`}
+            </p>
+          )}
         </div>
         {isActive && <Check />}
       </div>
