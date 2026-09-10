@@ -184,10 +184,15 @@ export interface VideoFieldValue {
   windowEndSec?: number
 }
 
+// دقیقاً یکی از imageKeys/videoKey باید پر باشد (element_input_urls واقعی Kie: یا ۲-۴ عکس یا
+// ۱ ویدیو، هرگز هردو)؛ audioKey مستقل و اختیاری کنار هرکدام است (element_input_audio_urls)
 export interface ElementMemberValue {
   name: string
-  imageKey?: string
+  description: string
+  imageKeys?: string[]
   videoKey?: string
+  videoWindowStartSec?: number
+  videoWindowEndSec?: number
   audioKey?: string
 }
 

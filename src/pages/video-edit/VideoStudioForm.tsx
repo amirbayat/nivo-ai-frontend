@@ -93,6 +93,31 @@ function validateValues(schema: InputFieldsSchema, values: FieldValues): Validat
         }
         for (const member of arr) {
           if (!member.name) return { fieldKey: field.key, message: `نام همه‌ی عناصر «${field.label}» اجباری است` }
+          if (!member.description) return { fieldKey: field.key, message: `توضیح همه‌ی عناصر «${field.label}» اجباری است` }
+          const hasImages = (member.imageKeys?.length ?? 0) > 0
+          const hasVideo = !!member.videoKey
+          if (hasImages === hasVideo) {
+            return { fieldKey: field.key, message: `عنصر «${member.name}» باید دقیقاً یکی از تصویر یا ویدیو را داشته باشد` }
+          }
+          if (hasImages && field.memberShape.imageField) {
+            const { minCount, maxCount } = field.memberShape.imageField
+            const n = member.imageKeys!.length
+            if (minCount != null && n < minCount) {
+              return { fieldKey: field.key, message: `عنصر «${member.name}» به حداقل ${minCount} عکس نیاز دارد` }
+            }
+            if (maxCount != null && n > maxCount) {
+              return { fieldKey: field.key, message: `عنصر «${member.name}» حداکثر ${maxCount} عکس می‌پذیرد` }
+            }
+          }
+          if (hasVideo) {
+            if (member.videoWindowStartSec == null || member.videoWindowEndSec == null) {
+              return { fieldKey: field.key, message: `پنجره‌ی ویدیوی عنصر «${member.name}» اجباری است` }
+            }
+            const widthMs = Math.round((member.videoWindowEndSec - member.videoWindowStartSec) * 1000)
+            if (widthMs < 3000 || widthMs > 8000) {
+              return { fieldKey: field.key, message: `طول ویدیوی عنصر «${member.name}» باید بین ۳ تا ۸ ثانیه باشد` }
+            }
+          }
         }
         break
       }

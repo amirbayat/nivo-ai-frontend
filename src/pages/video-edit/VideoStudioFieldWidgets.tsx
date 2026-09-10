@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import axios from 'axios'
-import { DropWell, FieldLabel } from './VideoEditForms'
-import type { ElementGroupField, ElementMemberValue, ShotValue } from '@/types/inputFields'
+import { DropWell, FieldLabel, VideoWindowTrimmer } from './VideoEditForms'
+import type { ElementMemberValue, ShotValue } from '@/types/inputFields'
 
 // ویجت‌های عمومی تازه — فقط برای الگوهایی که در VideoEditForms.tsx معادل نداشتند (رجوع کن به
 // اون فایل برای بقیه: DropWell/ResolutionPicker/VideoWindowTrimmer/FieldLabel/Caveat/...)
@@ -357,11 +357,34 @@ export function ShotListEditor({
 }
 
 // ============================== elementGroup ==============================
+// element_input_urls واقعی Kie یا ۲-۴ عکس است یا ۱ ویدیو (هرگز هردو) — پس UI این دو را متقابلاً
+// منحصر نشون می‌ده؛ element_input_audio_urls مستقل و اختیاری کنار هرکدام است.
 
-export interface ElementMediaSlot {
+export interface ElementImageSlot {
   accept: string
   uploading: boolean
-  preview: { kind: 'image' | 'video'; src: string } | null
+  previews: string[]
+  minCount?: number
+  maxCount?: number
+  onPick: (file: File) => void
+  onRemoveAt: (imgIndex: number) => void
+}
+
+export interface ElementVideoSlot {
+  accept: string
+  uploading: boolean
+  preview: { src: string; durationSec: number } | null
+  windowStartSec?: number
+  windowEndSec?: number
+  maxWindowSec: number
+  onPick: (file: File) => void
+  onClear: () => void
+  onWindowChange: (startSec: number, endSec: number) => void
+}
+
+export interface ElementAudioSlot {
+  accept: string
+  uploading: boolean
   fileName: string | null
   onPick: (file: File) => void
   onClear: () => void
@@ -380,10 +403,15 @@ function ElementCard({
   member: ElementMemberValue
   onChange: (next: Partial<ElementMemberValue>) => void
   onRemove: () => void
-  image?: ElementMediaSlot
-  video?: ElementMediaSlot
-  audio?: ElementMediaSlot
+  image?: ElementImageSlot
+  video?: ElementVideoSlot
+  audio?: ElementAudioSlot
 }) {
+  const hasImages = (member.imageKeys?.length ?? 0) > 0
+  const hasVideo = !!member.videoKey
+  const showImage = !!image && !hasVideo
+  const showVideo = !!video && !hasImages
+
   return (
     <div className="flex flex-col gap-2.5 rounded-2xl p-3" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)' }}>
       <div className="flex items-center justify-between gap-2">
@@ -396,39 +424,79 @@ function ElementCard({
         />
         <button type="button" onClick={onRemove} className="text-[11px] font-bold" style={{ color: '#fb7185' }}>حذف</button>
       </div>
+      <input
+        value={member.description ?? ''}
+        onChange={e => onChange({ description: e.target.value })}
+        placeholder="توضیح کوتاه این عنصر (مثلاً «دختر جوان با لباس قرمز»)"
+        className="rounded-xl p-2 text-[12px] text-slate-100 placeholder:text-slate-600 focus:outline-none"
+        style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
+      />
+      {!hasImages && !hasVideo && (
+        <span className="text-[10.5px]" style={{ color: '#64748b' }}>
+          یا چند عکس مرجع ({image?.minCount ?? 2}-{image?.maxCount ?? 4} تا) یا یک ویدیوی مرجع انتخاب کن — هر دو با هم مجاز نیست
+        </span>
+      )}
       <div className="grid grid-cols-2 gap-2">
-        {image && (
-          <DropWell
-            accent="emerald"
-            accept={image.accept}
-            label={image.uploading ? 'در حال آپلود...' : 'عکس'}
-            hint="تصویر این عنصر"
-            preview={image.preview ? { kind: 'image', src: image.preview.src, sizeLabel: '✓ آپلود شد' } : null}
-            onPick={image.onPick}
-            onClear={image.onClear}
-          />
+        {showImage && (
+          <div className="col-span-2 grid grid-cols-3 gap-2">
+            {(member.imageKeys ?? []).map((_, i) => (
+              <DropWell
+                key={i}
+                accent="emerald"
+                accept={image!.accept}
+                label=""
+                hint=""
+                preview={{ kind: 'image', src: image!.previews[i] ?? '', sizeLabel: '✓ آپلود شد' }}
+                onPick={() => {}}
+                onClear={() => image!.onRemoveAt(i)}
+              />
+            ))}
+            {(image!.maxCount == null || (member.imageKeys?.length ?? 0) < image!.maxCount) && (
+              <DropWell
+                accent="emerald"
+                accept={image!.accept}
+                label={image!.uploading ? 'در حال آپلود...' : 'افزودن عکس'}
+                hint={`${image!.minCount ?? 0}-${image!.maxCount ?? ''} عکس`}
+                preview={null}
+                onPick={image!.onPick}
+                onClear={() => {}}
+              />
+            )}
+          </div>
         )}
-        {video && (
-          <DropWell
-            accent="emerald"
-            accept={video.accept}
-            label={video.uploading ? 'در حال آپلود...' : 'ویدیو'}
-            hint="ویدیوی این عنصر"
-            preview={video.preview ? { kind: 'video', src: video.preview.src, sizeLabel: '✓ آپلود شد' } : null}
-            onPick={video.onPick}
-            onClear={video.onClear}
-          />
+        {showVideo && (
+          <div className="col-span-2 flex flex-col gap-2">
+            <DropWell
+              accent="emerald"
+              accept={video!.accept}
+              label={video!.uploading ? 'در حال آپلود...' : 'ویدیوی مرجع'}
+              hint="۳ تا ۸ ثانیه"
+              preview={video!.preview ? { kind: 'video', src: video!.preview.src, sizeLabel: fmtDur(video!.preview.durationSec) } : null}
+              onPick={video!.onPick}
+              onClear={video!.onClear}
+            />
+            {video!.preview && (
+              <VideoWindowTrimmer
+                durationSec={video!.preview.durationSec}
+                maxWidth={video!.maxWindowSec}
+                value={[video!.windowStartSec ?? 0, video!.windowEndSec ?? Math.min(video!.preview.durationSec, video!.maxWindowSec)]}
+                onChange={([s, e]) => video!.onWindowChange(s, e)}
+              />
+            )}
+          </div>
         )}
         {audio && (
-          <AudioDropWell
-            label={audio.uploading ? 'در حال آپلود...' : 'صدا'}
-            hint="صدای این عنصر"
-            fileName={audio.fileName}
-            uploading={audio.uploading}
-            onPick={audio.onPick}
-            onClear={audio.onClear}
-            accept={audio.accept}
-          />
+          <div className="col-span-2">
+            <AudioDropWell
+              label={audio.uploading ? 'در حال آپلود...' : 'صدا (اختیاری)'}
+              hint="صدای این عنصر"
+              fileName={audio.fileName}
+              uploading={audio.uploading}
+              onPick={audio.onPick}
+              onClear={audio.onClear}
+              accept={audio.accept}
+            />
+          </div>
         )}
       </div>
     </div>
@@ -450,12 +518,11 @@ export function ElementListEditor({
   onChange: (next: ElementMemberValue[]) => void
   minCount: number
   maxCount: number
-  memberShape?: ElementGroupField['memberShape']
-  mediaSlots: (index: number) => { image?: ElementMediaSlot; video?: ElementMediaSlot; audio?: ElementMediaSlot }
+  mediaSlots: (index: number) => { image?: ElementImageSlot; video?: ElementVideoSlot; audio?: ElementAudioSlot }
 }) {
   function addMember() {
     if (members.length >= maxCount) return
-    onChange([...members, { name: '' }])
+    onChange([...members, { name: '', description: '' }])
   }
 
   return (

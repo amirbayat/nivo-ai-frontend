@@ -19,6 +19,43 @@ const STATUS_BADGE: Record<VideoEditJob['status'], { text: string; bg: string; c
   FAILED: { text: 'خطا', bg: 'rgba(248,113,113,0.9)', color: '#2b0505' },
 }
 
+// پراگرس واقعی (گام ۵): kieState آخرین state خام provider است (وضعیت‌های مشترک Kie/Veo/Runway/
+// OpenRouter نرمالایز شده در بک‌اند به همین ۵ مقدار — video-edit.processor.ts). به‌جای درصد
+// جعلی، یک stepper مرحله‌محور نشون داده می‌شه؛ progressPercent چون هیچ provider واقعاً برنمی‌گردونه
+// عمداً استفاده نمی‌شه (فیک‌کردنش دقیقاً همون چیزیه که این گام قرار بود حذفش کنه).
+const KIE_STATE_STEPS = [
+  { key: 'waiting', label: 'در صف' },
+  { key: 'queuing', label: 'آماده‌سازی' },
+  { key: 'generating', label: 'در حال تولید' },
+  { key: 'success', label: 'کامل' },
+] as const
+
+function kieStateStepIndex(kieState: string | null): number {
+  if (!kieState) return 0
+  const idx = KIE_STATE_STEPS.findIndex(s => s.key === kieState)
+  return idx === -1 ? 0 : idx
+}
+
+function ProgressStepper({ kieState }: { kieState: string | null }) {
+  const activeIndex = kieStateStepIndex(kieState)
+  return (
+    <div className="flex w-full max-w-[220px] flex-col items-center gap-1.5">
+      <div className="flex w-full items-center gap-1">
+        {KIE_STATE_STEPS.slice(0, 3).map((step, i) => (
+          <div
+            key={step.key}
+            className="h-1 flex-1 rounded-full transition-colors"
+            style={{ background: i <= activeIndex ? '#38bdf8' : 'rgba(148,163,184,0.25)' }}
+          />
+        ))}
+      </div>
+      <span className="text-[10.5px] font-semibold" style={{ color: '#94a3b8' }}>
+        {KIE_STATE_STEPS[Math.min(activeIndex, 2)].label}
+      </span>
+    </div>
+  )
+}
+
 function ModeBadge({ mode }: { mode: VideoEditJob['mode'] }) {
   const isEdit = mode === 'EDIT'
   return (
@@ -63,8 +100,13 @@ function JobCard({ job }: { job: VideoEditJob }) {
             </button>
           )
         ) : (
-          <div className={clsx('flex size-full flex-col items-center justify-center gap-2', isBusy && 'bg-black/40')}>
-            {isBusy && <div className="size-7 animate-spin rounded-full border-2 border-slate-300/30" style={{ borderTopColor: '#38bdf8' }} />}
+          <div className={clsx('flex size-full flex-col items-center justify-center gap-2.5', isBusy && 'bg-black/40')}>
+            {isBusy && (
+              <>
+                <div className="size-7 animate-spin rounded-full border-2 border-slate-300/30" style={{ borderTopColor: '#38bdf8' }} />
+                {job.status === 'PROCESSING' && <ProgressStepper kieState={job.kieState} />}
+              </>
+            )}
             {job.status === 'FAILED' && (
               <span className="px-4 text-center text-[11px] text-red-300">{job.errorMessage ?? 'پردازش ناموفق بود'}</span>
             )}

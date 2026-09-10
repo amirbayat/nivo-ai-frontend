@@ -9,7 +9,9 @@ import {
   ShotListEditor,
   extractErrorMessage,
   fmtDur,
-  type ElementMediaSlot,
+  type ElementAudioSlot,
+  type ElementImageSlot,
+  type ElementVideoSlot,
 } from './VideoStudioFieldWidgets'
 import { evaluateCondition, isFieldRequired, isFieldVisible } from './fieldConditions'
 import { useUploadVideoEditAudio, useUploadVideoEditImage, useUploadVideoEditVideo } from '@/queries/videoEdit.queries'
@@ -659,7 +661,9 @@ function ElementGroupFieldWidget({
   const uploadImage = useUploadVideoEditImage()
   const uploadVideo = useUploadVideoEditVideo()
   const uploadAudio = useUploadVideoEditAudio()
-  const [previews, setPreviews] = useState<Record<number, { image?: string; video?: string; audioName?: string }>>({})
+  const [imagePreviews, setImagePreviews] = useState<Record<number, string[]>>({})
+  const [videoPreviews, setVideoPreviews] = useState<Record<number, { src: string; durationSec: number }>>({})
+  const [audioNames, setAudioNames] = useState<Record<number, string>>({})
 
   useEffect(() => {
     setBusy(uploadImage.isPending || uploadVideo.isPending || uploadAudio.isPending)
@@ -671,49 +675,66 @@ function ElementGroupFieldWidget({
 
   async function pickImage(i: number, file: File) {
     const { key } = await uploadImage.mutateAsync(file)
-    updateMember(i, { imageKey: key })
-    setPreviews(prev => ({ ...prev, [i]: { ...prev[i], image: URL.createObjectURL(file) } }))
+    updateMember(i, { imageKeys: [...(value[i].imageKeys ?? []), key] })
+    setImagePreviews(prev => ({ ...prev, [i]: [...(prev[i] ?? []), URL.createObjectURL(file)] }))
+  }
+  function removeImageAt(i: number, imgIndex: number) {
+    const nextKeys = (value[i].imageKeys ?? []).filter((_, idx) => idx !== imgIndex)
+    updateMember(i, { imageKeys: nextKeys.length ? nextKeys : undefined })
+    setImagePreviews(prev => ({ ...prev, [i]: (prev[i] ?? []).filter((_, idx) => idx !== imgIndex) }))
   }
   async function pickVideo(i: number, file: File) {
-    const { key } = await uploadVideo.mutateAsync({ file })
-    updateMember(i, { videoKey: key })
-    setPreviews(prev => ({ ...prev, [i]: { ...prev[i], video: URL.createObjectURL(file) } }))
+    const { key, durationSec } = await uploadVideo.mutateAsync({ file })
+    const maxWindow = field.memberShape.videoField?.maxDurationSec ?? 8
+    const end = Math.min(durationSec, maxWindow)
+    updateMember(i, { videoKey: key, videoWindowStartSec: 0, videoWindowEndSec: end })
+    setVideoPreviews(prev => ({ ...prev, [i]: { src: URL.createObjectURL(file), durationSec } }))
+  }
+  function clearVideo(i: number) {
+    updateMember(i, { videoKey: undefined, videoWindowStartSec: undefined, videoWindowEndSec: undefined })
+    setVideoPreviews(prev => {
+      const next = { ...prev }
+      delete next[i]
+      return next
+    })
   }
   async function pickAudio(i: number, file: File) {
     const { key } = await uploadAudio.mutateAsync(file)
     updateMember(i, { audioKey: key })
-    setPreviews(prev => ({ ...prev, [i]: { ...prev[i], audioName: file.name } }))
+    setAudioNames(prev => ({ ...prev, [i]: file.name }))
   }
 
-  function mediaSlots(i: number): { image?: ElementMediaSlot; video?: ElementMediaSlot; audio?: ElementMediaSlot } {
-    const p = previews[i]
+  function mediaSlots(i: number): { image?: ElementImageSlot; video?: ElementVideoSlot; audio?: ElementAudioSlot } {
     return {
       image: field.memberShape.imageField
         ? {
             accept: (field.memberShape.imageField.accept ?? ['image/*']).join(','),
             uploading: uploadImage.isPending,
-            preview: p?.image ? { kind: 'image', src: p.image } : null,
-            fileName: null,
+            previews: imagePreviews[i] ?? [],
+            minCount: field.memberShape.imageField.minCount,
+            maxCount: field.memberShape.imageField.maxCount,
             onPick: file => void pickImage(i, file),
-            onClear: () => updateMember(i, { imageKey: undefined }),
+            onRemoveAt: imgIndex => removeImageAt(i, imgIndex),
           }
         : undefined,
       video: field.memberShape.videoField
         ? {
             accept: (field.memberShape.videoField.accept ?? ['video/*']).join(','),
             uploading: uploadVideo.isPending,
-            preview: p?.video ? { kind: 'video', src: p.video } : null,
-            fileName: null,
+            preview: videoPreviews[i] ?? null,
+            windowStartSec: value[i].videoWindowStartSec,
+            windowEndSec: value[i].videoWindowEndSec,
+            maxWindowSec: field.memberShape.videoField.maxDurationSec ?? 8,
             onPick: file => void pickVideo(i, file),
-            onClear: () => updateMember(i, { videoKey: undefined }),
+            onClear: () => clearVideo(i),
+            onWindowChange: (s, e) => updateMember(i, { videoWindowStartSec: s, videoWindowEndSec: e }),
           }
         : undefined,
       audio: field.memberShape.audioField
         ? {
             accept: (field.memberShape.audioField.accept ?? ['audio/*']).join(','),
             uploading: uploadAudio.isPending,
-            preview: null,
-            fileName: p?.audioName ?? null,
+            fileName: audioNames[i] ?? null,
             onPick: file => void pickAudio(i, file),
             onClear: () => updateMember(i, { audioKey: undefined }),
           }
