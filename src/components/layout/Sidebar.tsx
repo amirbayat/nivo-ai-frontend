@@ -123,15 +123,6 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         <PlanUpgradeBadge />
       </div>
 
-      <div className="px-4 py-3 border-b border-slate-700/30">
-        <button
-          onClick={() => { track("projects_nav_clicked"); navigate("/projects"); onNavigate?.(); }}
-          className="flex w-full items-center justify-center rounded-xl border border-slate-700/60 px-2.5 py-2 text-center text-xs text-slate-400 hover:border-slate-600 hover:bg-slate-800/40 hover:text-slate-200 transition-colors"
-        >
-          {fa.projects.title}
-        </button>
-      </div>
-
       {/* conversations */}
       <div className="flex-1 overflow-y-auto py-2 px-2">
         {conversations.length === 0 && (
