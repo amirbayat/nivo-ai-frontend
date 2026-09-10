@@ -1,3 +1,5 @@
+import type { InputFieldsSchema, FieldValues } from './inputFields'
+
 export interface User {
   id: string
   phone: string
@@ -562,6 +564,9 @@ export interface KieVideoModel {
   kieInputSchema: KieInputSchema
   supportsScenePreservingEdit: boolean
   fixedDurations: number[]
+  // معماری data-driven (بخش ۳ پلن استودیوی ویدیو) — null یعنی این مدل هنوز روی معماری قدیمی
+  // enum-dispatch است (فرم VideoEditForm)؛ غیر-null یعنی VideoStudioForm عمومی رندرش می‌کند
+  inputFields: InputFieldsSchema | null
 }
 
 export type VideoEditMode = 'GENERATE' | 'EDIT'
@@ -587,6 +592,13 @@ export interface VideoEditJob {
   errorMessage: string | null
   creditsConsumedRaw: number | null
   creditCost: number | null
+  // معماری data-driven — values-by-field-key که VideoStudioForm ساخته؛ null برای جاب‌های
+  // مدل‌های قدیمی (ستون‌های flat بالا معتبرند)
+  valuesJson: FieldValues | null
+  // پراگرس واقعی (نه فیک) — kieState آخرین state خام provider؛ progressPercent فقط وقتی
+  // provider واقعاً عدد بدهد پر می‌شود (اکثر مدل‌های Kie نمی‌دهند)
+  kieState: string | null
+  progressPercent: number | null
   createdAt: string
   completedAt: string | null
 }

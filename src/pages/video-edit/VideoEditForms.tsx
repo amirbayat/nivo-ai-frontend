@@ -35,11 +35,11 @@ function fmtDur(sec: number) {
   return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+export function FieldLabel({ children }: { children: React.ReactNode }) {
   return <div className="text-[12px] font-bold" style={{ color: '#cbd5e1' }}>{children}</div>
 }
 
-function Caveat({ tone = 'warn', children }: { tone?: 'warn' | 'ok' | 'err'; children: React.ReactNode }) {
+export function Caveat({ tone = 'warn', children }: { tone?: 'warn' | 'ok' | 'err'; children: React.ReactNode }) {
   const palette = {
     warn: { bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', color: '#fcd34d' },
     ok: { bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.28)', color: '#6ee7b7' },
@@ -55,7 +55,7 @@ function Caveat({ tone = 'warn', children }: { tone?: 'warn' | 'ok' | 'err'; chi
   )
 }
 
-function DropWell({
+export function DropWell({
   wide,
   accent,
   label,
@@ -135,7 +135,7 @@ function DropWell({
   )
 }
 
-function RatioSegmented({ value, onChange }: { value: '16:9' | '9:16'; onChange: (v: '16:9' | '9:16') => void }) {
+export function RatioSegmented({ value, onChange }: { value: '16:9' | '9:16'; onChange: (v: '16:9' | '9:16') => void }) {
   return (
     <div className="flex items-center gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
       {ASPECT_RATIOS.map(r => (
@@ -155,7 +155,7 @@ function RatioSegmented({ value, onChange }: { value: '16:9' | '9:16'; onChange:
 
 // وقتی مدل فقط یک رزولوشن دارد (اکثر مدل‌های Kie) یک FixedChip ساده کافی‌ست؛ وقتی چندتا دارد
 // (اکثر مدل‌های OpenRouter، مثلاً Seedance 2.0: 480p/720p/1080p/4K) کاربر واقعاً انتخاب می‌کند
-function ResolutionPicker({
+export function ResolutionPicker({
   options,
   value,
   onChange,
@@ -182,7 +182,7 @@ function ResolutionPicker({
   )
 }
 
-function FixedChip({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
+export function FixedChip({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div
       className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold"
@@ -194,7 +194,7 @@ function FixedChip({ icon, children }: { icon?: React.ReactNode; children: React
   )
 }
 
-function ClockIcon() {
+export function ClockIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -230,7 +230,7 @@ function ModeToggle({ mode, onChange }: { mode: 'reference' | 'edit'; onChange: 
 // تریمر دو-دستگیره‌ی کشیدنی — دقیقاً مثل تایم‌لاین برش ویدیوی اپ‌های ادیت (کل بازه‌ی فایل +
 // یه بخش هایلایت‌شده‌ی قابل‌کشیدن). عمداً dir="ltr" است، مستقل از جهت RTL صفحه — یه تایم‌لاین
 // همیشه زمان را همون جهت متعارف (چپ→راست) نشون می‌ده، دقیقاً مثل نوار پخش خودِ ویدیو.
-function VideoWindowTrimmer({
+export function VideoWindowTrimmer({
   durationSec,
   maxWidth,
   value,

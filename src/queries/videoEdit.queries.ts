@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import type { KieVideoModel, VideoEditJob, VideoEditMode, VideoEditSession } from '@/types/api'
+import type { FieldValues } from '@/types/inputFields'
 
 // docs/PRD-video-edit-omni-kie.md — «ویرایش ویدیو» با Kie.ai، کاملاً جدا از videoStudio.queries.ts
 // (OpenRouter). همه‌ی این هوک‌ها مستقیم روی /video-edit بک‌اند سوارند.
@@ -59,6 +60,21 @@ export function useUploadVideoEditVideo() {
   })
 }
 
+// معماری data-driven — فیلدهای audio (بخش ۳.۴ پلن: صدای مرجع/درایوینگ آواتار)
+export function useUploadVideoEditAudio() {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api
+        .post<{ key: string }>('/video-edit/upload-audio', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
+    },
+  })
+}
+
 export interface CreateVideoEditJobDto {
   sessionId?: string // نیامدنش یعنی سرور خودش یک session تازه‌ی بی‌عنوان می‌سازد
   mode: VideoEditMode
@@ -70,6 +86,10 @@ export interface CreateVideoEditJobDto {
   videoWindowEndSec?: number
   aspectRatio?: '16:9' | '9:16'
   resolution?: string
+  // معماری data-driven — فقط برای مدل‌هایی که kieVideoModel.inputFields غیر-null دارند
+  // (VideoStudioForm)؛ فیلدهای بالا (referenceImageKeys/videoKey/...) برای این مدل‌ها نادیده
+  // گرفته می‌شوند، فقط این استفاده می‌شود
+  valuesJson?: FieldValues
 }
 
 export function useCreateVideoEditJob() {

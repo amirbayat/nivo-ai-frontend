@@ -4,6 +4,7 @@ import { clsx } from 'clsx'
 import { useKieVideoModels, useVideoEditSessions } from '@/queries/videoEdit.queries'
 import { useCreditsBalance } from '@/queries/credits.queries'
 import { VideoEditForm } from './VideoEditForms'
+import { VideoStudioForm } from './VideoStudioForm'
 import { VideoEditGallery } from './VideoEditGallery'
 import { VideoEditModelPickerModal } from './VideoEditModelPickerModal'
 import type { KieVideoModel, VideoEditMode, VideoEditJob } from '@/types/api'
@@ -159,6 +160,9 @@ export function VideoStudioPage() {
           errorMessage: null,
           creditsConsumedRaw: null,
           creditCost: null,
+          valuesJson: null,
+          kieState: null,
+          progressPercent: null,
           createdAt: new Date().toISOString(),
           completedAt: null,
         },
@@ -192,6 +196,17 @@ export function VideoStudioPage() {
       <div className="mt-3.5">
         {!model ? (
           <p className="px-1 py-8 text-center text-[13px]" style={{ color: '#64748b' }}>در حال بارگذاری مدل‌ها...</p>
+        ) : model.inputFields ? (
+          <VideoStudioForm
+            model={model}
+            sessionId={activeSessionId}
+            onSubmitStart={info => setPendingSubmit(info)}
+            onSubmitEnd={() => setPendingSubmit(null)}
+            onCreated={job => {
+              setActiveSessionId(job.sessionId)
+              setMobileFormOpen(false)
+            }}
+          />
         ) : (
           <VideoEditForm
             model={model}
