@@ -7,6 +7,7 @@ import { useChatStore } from '@/store/chat.store'
 import { useToastStore } from '@/store/toast.store'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { useUploadDiscoveryImage } from '@/queries/discovery.queries'
+import { useCreditsBalance } from '@/queries/credits.queries'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
@@ -128,6 +129,9 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     return (catalog ?? []).filter(m => m.supportsImageGen)
   }, [catalog])
   const pinnedImageGenModel = imageGenModels.find(m => m.name === selectedImageGenModel)
+  // docs/PRD-image-gen-pricing-and-credit-fix.md بخش D/E — فقط نمایشی، در تصمیم‌گیری preflight
+  // بک‌اند دخالتی ندارد (بخش ۲.۴). در حالت «auto» (بدون مدل پین‌شده) هیچ عددی نشون داده نمی‌شه
+  const { data: creditsBalance } = useCreditsBalance()
 
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
@@ -457,6 +461,20 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
             />
           </svg>
           <span>{`اگر بخوای این عکس(ها) رو ویرایش/ترکیب کنم، با مدل «${pinnedImageGenModel.displayName}» انجام می‌شه`}</span>
+          {pinnedImageGenModel.estimatedImageGenCreditCost != null && (
+            <span className="text-fuchsia-300/60">{`(~${fa.discover.creditCost(pinnedImageGenModel.estimatedImageGenCreditCost)})`}</span>
+          )}
+        </div>
+      )}
+
+      {/* بخش E — فقط هشدار، دکمه‌ی ارسال بلاک نمی‌شود (بخش ۲.۴: preflight بک‌اند عمداً فقط
+          balance<=0 چک می‌کند، این هشدار صرفاً یک لایه‌ی UI مجزاست) */}
+      {!selectedCreativePrompt && images.length > 0 && pinnedImageGenModel &&
+        pinnedImageGenModel.estimatedImageGenCreditCost != null &&
+        creditsBalance != null &&
+        pinnedImageGenModel.estimatedImageGenCreditCost > creditsBalance.credits && (
+        <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-amber-400/90">
+          <span>{`⚠️ این تولید ممکنه بیشتر از موجودی فعلی‌ات (${fa.discover.creditCost(creditsBalance.credits)}) هزینه داشته باشه`}</span>
         </div>
       )}
 
