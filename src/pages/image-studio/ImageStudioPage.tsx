@@ -108,7 +108,7 @@ function StudioWorkspace({ id }: { id?: string }) {
       return
     }
     try {
-      const conv = await createConv.mutateAsync({ model: 'optimal' })
+      const conv = await createConv.mutateAsync({ model: 'cost_optimized' })
       navigate(`/image/${conv.id}`, {
         state: { initialMessage: { content, images, imageModel, preserveFace, imageAspectRatio } },
         replace: true,
@@ -197,7 +197,7 @@ function StudioWorkspace({ id }: { id?: string }) {
       return
     }
     try {
-      const conv = await createConv.mutateAsync({ model: 'optimal' })
+      const conv = await createConv.mutateAsync({ model: 'cost_optimized' })
       navigate(`/image/${conv.id}`, {
         state: { initialCreative: { promptId, userInput, inputImageKeys, imagePreviews, preserveFace } },
         replace: true,

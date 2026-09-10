@@ -5,8 +5,6 @@ import { useModelCatalog } from '@/queries/plans.queries'
 import {
   COST_OPTIMIZED_MODE,
   COST_OPTIMIZED_DESCRIPTION,
-  BEST_ANSWER_MODE,
-  BEST_ANSWER_DESCRIPTION,
   tierDescription,
   tierLabel,
   TIER_COLOR,
@@ -20,23 +18,12 @@ const STORAGE_KEY = 'nivo:selectedModel'
 // sortOrder موجود روی هر مدل است (ModelsPage.tsx در ادمین، فیلد عددی ساده)؛ endpoint
 // /plans/model-catalog از قبل با orderBy sortOrder:asc برمی‌گرده (plans.service.ts)، پس
 // slice(0, LIMIT) روی allowedModels دقیقاً همون ترتیب ادمین را منعکس می‌کند
-const MODEL_PICKER_LIMIT = 32
-// docs/PRD-model-selection-modes.md — این دو سنتینل «خودکار» هستند؛ بقیه‌ی مقادیر یک نام مدل واقعی است (انتخاب دستی)
-const AUTO_MODES = [COST_OPTIMIZED_MODE, BEST_ANSWER_MODE]
+const MODEL_PICKER_LIMIT = 16
+// docs/PRD-model-selection-modes.md — تنها سنتینل «خودکار»؛ بقیه‌ی مقادیر یک نام مدل واقعی است (انتخاب دستی)
+const AUTO_MODES = [COST_OPTIMIZED_MODE]
 
 function shortName(model: string): string {
   return model.includes('/') ? model.split('/')[1] : model
-}
-
-function OptimalIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0">
-      <path
-        d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2z"
-        fill="currentColor"
-      />
-    </svg>
-  )
 }
 
 function CoinIcon() {
@@ -50,7 +37,6 @@ function CoinIcon() {
 
 function modeIcon(model: string) {
   if (model === COST_OPTIMIZED_MODE) return <CoinIcon />
-  if (model === BEST_ANSWER_MODE) return <OptimalIcon />
   return null
 }
 
@@ -84,14 +70,12 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
   const moreCount = allowedModels.length - topModels.length
 
   function displayName(model: string): string {
-    if (model === COST_OPTIMIZED_MODE) return 'مصرف بهینه'
-    if (model === BEST_ANSWER_MODE) return 'بهترین پاسخ'
+    if (model === COST_OPTIMIZED_MODE) return 'خودکار'
     return catalog?.find(m => m.name === model)?.displayName ?? shortName(model)
   }
 
   function descriptionOf(model: string): string | null {
     if (model === COST_OPTIMIZED_MODE) return COST_OPTIMIZED_DESCRIPTION
-    if (model === BEST_ANSWER_MODE) return BEST_ANSWER_DESCRIPTION
     return null
   }
 
@@ -99,9 +83,9 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
     return catalog?.find(m => m.name === model)?.provider ?? 'openai'
   }
 
-  // دو حالت خودکار (مصرف بهینه / بهترین پاسخ) همیشه به‌عنوان اولین گزینه‌ها در دسترس هستند —
+  // حالت خودکار (مصرف بهینه) همیشه به‌عنوان اولین گزینه در دسترس است —
   // سرویس مسیریاب مدل خودش بین مدل‌های مجاز پلن انتخاب می‌کند (docs/PRD-model-selection-modes.md)
-  const options: string[] = [COST_OPTIMIZED_MODE, BEST_ANSWER_MODE, ...topModels]
+  const options: string[] = [COST_OPTIMIZED_MODE, ...topModels]
 
   // پیکربندی هر گزینه به شکل ModelPickerItem مشترک (همون کامپوننتی که مدال ویدیو استفاده می‌کند،
   // طبق دستور کاربر: «برای عکس و متن هم عیناً همین شکلی بکن») — بج «سطح» از tier مدل ساخته می‌شود

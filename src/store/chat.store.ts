@@ -14,6 +14,12 @@ interface ChatState {
   // پیش‌نمایش تدریجی واقعی (نه انیمیشن تزئینی) — provider تا ۲ نسخه‌ی جزئی و واضح‌ترشونده
   // قبل از تصویر نهایی می‌فرستد؛ null یعنی هنوز هیچ پیش‌نمایشی نرسیده (فقط shimmer نشون بده)
   generatingImagePreview: string | null
+  // docs/PRD-chat-models-web-search-and-files.md §۳.۳ — منابع پیام در حال استریم (قبل از این‌که
+  // invalidate/refetch پایان پیام، citations واقعی را از DB برگرداند)؛ در MessageBubble برای
+  // پیام‌های قبلی از Message.citations خود API استفاده می‌شود، این فقط برای «همین لحظه»‌ی استریم است
+  streamingSources: { url: string; title: string }[] | null
+  // toggle روشن بوده ولی مدل نهایی جستجوی وب را پشتیبانی نکرد — یک اطلاع کوتاه، نه خطا
+  webSearchUnavailable: boolean
   chatError: string | null
   chatErrorCode: string | null
   selectedModel: string | null
@@ -23,6 +29,9 @@ interface ChatState {
   selectedImageGenModel: string | null
   // دراپ‌دون «سریع/هوشمند» کنار دکمه‌ی ارسال — فقط روی reasoning effort اثر دارد، نه انتخاب مدل
   thinkingMode: ThinkingMode
+  // توگل globe «جستجوی وب» کنار دکمه‌ی ارسال — پیش‌فرض خاموش، در localStorage پایدار می‌ماند
+  // (سطح مرورگر، نه سطح مکالمه در DB — docs/PRD-chat-models-web-search-and-files.md §۳.۱)
+  webSearchEnabled: boolean
   // سبک انتخاب‌شده از استودیوی محتوا (DiscoverPage) — تا برگشت به چت حفظ می‌شود؛ MessageInput
   // با وجود این مقدار به‌جای ارسال پیام معمولی، generate آن سبک را صدا می‌زند (docs/PRD-discovery-and-credits.md)
   selectedCreativePrompt: CreativePromptCatalogItem | null
@@ -44,11 +53,14 @@ interface ChatState {
   appendReasoningText: (chunk: string) => void
   setIsGeneratingImage: (v: boolean) => void
   setGeneratingImagePreview: (image: string | null) => void
+  setStreamingSources: (sources: { url: string; title: string }[] | null) => void
+  setWebSearchUnavailable: (v: boolean) => void
   resetStreaming: () => void
   setChatError: (msg: string | null, code?: string | null) => void
   setSelectedModel: (model: string) => void
   setSelectedImageGenModel: (model: string | null) => void
   setThinkingMode: (mode: ThinkingMode) => void
+  setWebSearchEnabled: (v: boolean) => void
   setSelectedCreativePrompt: (prompt: CreativePromptCatalogItem | null) => void
   setStudioDraftValue: (value: string) => void
   setStudioDraftImages: (images: string[] | ((prev: string[]) => string[])) => void
@@ -65,20 +77,23 @@ export const useChatStore = create<ChatState>(set => ({
   reasoningText: '',
   isGeneratingImage: false,
   generatingImagePreview: null,
+  streamingSources: null,
+  webSearchUnavailable: false,
   chatError: null,
   chatErrorCode: null,
-  // پیش‌فرض جدید «مصرف بهینه» (۱۴۰۵/۰۶) — کاربری که هنوز چیزی انتخاب نکرده روی این حالت می‌افتد
-  // 'optimal' مقدار قدیمی سنتینل «خودکار» است (قبل از معرفی دو حالت مصرف‌بهینه/بهترین‌پاسخ) —
-  // معادل 'best_answer' فعلی در نظر گرفته می‌شود تا کاربرهای قدیمی رفتار قبلی رو حفظ کنن
+  // پیش‌فرض «مصرف بهینه» — تنها حالت خودکار چت (۱۴۰۵/۰۶/۱۹: حالت «بهترین پاسخ» حذف شد).
+  // 'optimal' و 'best_answer' مقادیر قدیمی سنتینل «خودکار» هستند (از قبل از حذف این حالت) —
+  // هر دو به 'cost_optimized' map می‌شوند تا کاربرهای قدیمی روی یک حالت واقعاً فعال بیفتند
   selectedModel: typeof window !== 'undefined'
     ? (() => {
         const stored = localStorage.getItem('nivo:selectedModel')
-        return stored === 'optimal' ? 'best_answer' : (stored ?? 'cost_optimized')
+        return stored === 'optimal' || stored === 'best_answer' ? 'cost_optimized' : (stored ?? 'cost_optimized')
       })()
     : 'cost_optimized',
   selectedImageGenModel: typeof window !== 'undefined' ? localStorage.getItem('nivo:selectedImageGenModel') : null,
   thinkingMode:
     (typeof window !== 'undefined' ? (localStorage.getItem('nivo:thinkingMode') as ThinkingMode | null) : null) ?? 'smart',
+  webSearchEnabled: typeof window !== 'undefined' && localStorage.getItem('nivo:webSearchEnabled') === 'true',
   selectedCreativePrompt: null,
   studioDraftValue: '',
   studioDraftImages: [],
@@ -93,9 +108,12 @@ export const useChatStore = create<ChatState>(set => ({
   appendReasoningText: chunk => set(s => ({ reasoningText: s.reasoningText + chunk })),
   setIsGeneratingImage: v => set({ isGeneratingImage: v }),
   setGeneratingImagePreview: image => set({ generatingImagePreview: image }),
+  setStreamingSources: sources => set({ streamingSources: sources }),
+  setWebSearchUnavailable: v => set({ webSearchUnavailable: v }),
   resetStreaming: () => set({
     streamingContent: '', isStreaming: false, isReasoning: false, reasoningText: '',
     isGeneratingImage: false, generatingImagePreview: null,
+    streamingSources: null, webSearchUnavailable: false,
   }),
   setChatError: (msg, code = null) => set({ chatError: msg, chatErrorCode: code }),
   setSelectedModel: model => set({ selectedModel: model }),
@@ -103,6 +121,10 @@ export const useChatStore = create<ChatState>(set => ({
   setThinkingMode: mode => {
     localStorage.setItem('nivo:thinkingMode', mode)
     set({ thinkingMode: mode })
+  },
+  setWebSearchEnabled: v => {
+    localStorage.setItem('nivo:webSearchEnabled', String(v))
+    set({ webSearchEnabled: v })
   },
   setSelectedCreativePrompt: prompt => set({ selectedCreativePrompt: prompt }),
   setStudioDraftValue: value => set({ studioDraftValue: value }),

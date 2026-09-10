@@ -29,7 +29,7 @@ export function StudioLinkPage() {
       navigate("/", { replace: true });
       return;
     }
-    createConversation.mutate({ model: "optimal" }, {
+    createConversation.mutate({ model: "cost_optimized" }, {
       onSuccess: (conv) => navigate(`/chat/${conv.id}`, { replace: true }),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

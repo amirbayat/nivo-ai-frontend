@@ -11,6 +11,7 @@ import { GiftBanner } from '@/components/chat/GiftBanner'
 import { OutageBanner } from '@/components/chat/OutageBanner'
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget'
 import { ModelSelector } from '@/components/chat/ModelSelector'
+import { WalletBalanceBadge } from '@/components/chat/WalletBalanceBadge'
 import { ChatHeroComposer } from './ChatHeroComposer'
 import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
 import { fa } from '@/locales/fa'
@@ -40,7 +41,7 @@ export function ChatPage() {
     preserveFace?: boolean,
   ) => {
     try {
-      const conv = await createConv.mutateAsync({ model: 'optimal', projectId })
+      const conv = await createConv.mutateAsync({ model: 'cost_optimized', projectId })
       navigate(`/chat/${conv.id}`, {
         state: { initialMessage: { content, images, imageModel, preserveFace } },
         replace: true,
@@ -166,6 +167,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
           {data.title ?? fa.chat.untitled}
         </h2>
         <div className="mr-auto flex items-center gap-2 shrink-0">
+          <WalletBalanceBadge />
           <ModelSelector currentModel={data.model} />
           <FeedbackWidget />
         </div>
@@ -247,6 +249,7 @@ function EmptyState({ onSend, isCreating }: {
         </button>
         <h2 className="truncate text-sm font-medium text-slate-200">{fa.chat.untitled}</h2>
         <div className="mr-auto flex items-center gap-2 shrink-0">
+          <WalletBalanceBadge />
           <ModelSelector />
           <FeedbackWidget />
         </div>

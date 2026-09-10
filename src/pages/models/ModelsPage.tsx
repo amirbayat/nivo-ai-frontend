@@ -4,15 +4,30 @@ import { clsx } from 'clsx'
 import { useModelCatalog, type ModelCatalogEntry } from '@/queries/plans.queries'
 import { useChatStore } from '@/store/chat.store'
 import {
-  COST_OPTIMIZED_MODE, COST_OPTIMIZED_DESCRIPTION, BEST_ANSWER_MODE, BEST_ANSWER_DESCRIPTION,
-  tierDescription, tierLabel, imageQualityLabel, type ModelTier,
+  COST_OPTIMIZED_MODE, COST_OPTIMIZED_DESCRIPTION,
+  tierDescription, imageQualityLabel, type ModelTier,
 } from '@/lib/model-catalog'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
 import { track } from '@/lib/events'
 
 const STORAGE_KEY = 'nivo:selectedModel'
 const IMAGE_GEN_STORAGE_KEY = 'nivo:selectedImageGenModel'
-const TIER_ORDER: ModelTier[] = ['COMPLEX', 'MEDIUM', 'SIMPLE']
+
+// docs/PRD-chat-models-web-search-and-files.md §۲.۳ — گروه‌بندی اصلی لیست چت بر اساس برند
+// (provider واقعی روی AiModel)، نه سطح داخلی SIMPLE/MEDIUM/COMPLEX — چون کاربر ایرانی دنبال
+// «GPT» یا «جمینای» می‌گرده، نه یک سطح انتزاعی. چیپ‌های QUICK_PICKS همچنان روی tier کار می‌کنند
+// (فیلتر ثانویه، نه محور اصلی). هر provider جدید که به کاتالوگ اضافه شود (مثلاً anthropic)
+// خودکار یک گروه جدید می‌شود — نیازی به تغییر کد نیست، فقط به لیست PROVIDER_ORDER زیر اضافه شود
+// تا ترتیب/برچسبش مشخص باشد؛ provider هایی که در این لیست نیستند زیر «سایر» جمع می‌شوند
+const PROVIDER_ORDER: string[] = ['openai', 'google', 'anthropic', 'x-ai', 'deepseek']
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: 'OpenAI',
+  google: 'Google',
+  anthropic: 'Anthropic',
+  'x-ai': 'xAI',
+  deepseek: 'DeepSeek',
+}
+const OTHER_PROVIDER_LABEL = 'سایر'
 
 // docs/PRD-openrouter-migration.md §۱۳.۴/۱۴.۴ — فیلترهای صفحه‌ی انتخاب مدل. ترند/محبوب از
 // AiModel.badges می‌آیند (متن آزاد ادمین)، ارزان/گران از قیمت واقعی محاسبه می‌شود (نسبت به
@@ -67,14 +82,6 @@ function Dots({ n, className }: { n: number; className?: string }) {
   return <span className={clsx('tracking-widest', className)}>{'●'.repeat(filled)}{'○'.repeat(5 - filled)}</span>
 }
 
-function OptimalIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-emerald-400 shrink-0">
-      <path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2z" fill="currentColor" />
-    </svg>
-  )
-}
-
 function CoinIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
@@ -122,6 +129,26 @@ function ModelBadges({ badges }: { badges: string[] }) {
         </span>
       ))}
     </>
+  )
+}
+
+// docs/PRD-chat-models-web-search-and-files.md §۲.۳ — pill قابلیت از فیلد واقعی supportsVision
+// (نه ادعای بدون‌پشتوانه). Pill «استدلال» عمداً اضافه نشده — هیچ فیلد per-model برای آن نیست
+// (ThinkingModeToggle سطح Plan است، نه مدل).
+function VisionPill() {
+  return (
+    <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[11px] text-violet-300">
+      فهم عکس
+    </span>
+  )
+}
+
+// §۳.۵ — از فیلد واقعی supportsWebSearch (فاز ۳ همین پلن)
+function WebSearchPill() {
+  return (
+    <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[11px] text-cyan-300">
+      جستجوی وب
+    </span>
   )
 }
 
@@ -240,6 +267,8 @@ export function ModelsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-bold text-slate-100">{model.displayName}</h3>
             <ModelBadges badges={model.badges} />
+            {model.supportsVision && <VisionPill />}
+            {model.supportsWebSearch && <WebSearchPill />}
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
             {model.description || tierDescription(model.tier)}
@@ -419,51 +448,30 @@ export function ModelsPage() {
 
         {!imageOnlyMode && (
           <div className="space-y-4">
-            {/* دو حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md)؛ حین
-                جستجو مخفی می‌شن چون این‌ها مدل مشخصی نیستن که با متن جستجو مچ بشن */}
+            {/* حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md)؛ حین
+                جستجو مخفی می‌شه چون مدل مشخصی نیست که با متن جستجو مچ بشه */}
             {!searchQuery && (
-              <>
-                <button
-                  onClick={() => select(COST_OPTIMIZED_MODE)}
-                  className={clsx(
-                    'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-                    selectedModel === COST_OPTIMIZED_MODE
-                      ? 'border-amber-500/60 bg-amber-500/5'
-                      : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
-                  )}
-                >
-                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-                    <CoinIcon />
+              <button
+                onClick={() => select(COST_OPTIMIZED_MODE)}
+                className={clsx(
+                  'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
+                  selectedModel === COST_OPTIMIZED_MODE
+                    ? 'border-amber-500/60 bg-amber-500/5'
+                    : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
+                )}
+              >
+                <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                  <CoinIcon />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-100">خودکار</h3>
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-400">پیشنهادی</span>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-100">مصرف بهینه</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{COST_OPTIMIZED_DESCRIPTION}</p>
-                  </div>
-                  {selectedModel === COST_OPTIMIZED_MODE && <Check />}
-                </button>
-
-                <button
-                  onClick={() => select(BEST_ANSWER_MODE)}
-                  className={clsx(
-                    'flex w-full items-start gap-4 rounded-2xl border p-5 text-right transition-all',
-                    selectedModel === BEST_ANSWER_MODE
-                      ? 'border-emerald-500/60 bg-emerald-500/5'
-                      : 'border-slate-700/60 bg-slate-800/40 hover:border-slate-600',
-                  )}
-                >
-                  <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-                    <OptimalIcon />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-slate-100">بهترین پاسخ</h3>
-                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-400">پیشنهادی</span>
-                    </div>
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{BEST_ANSWER_DESCRIPTION}</p>
-                  </div>
-                  {selectedModel === BEST_ANSWER_MODE && <Check />}
-                </button>
-              </>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{COST_OPTIMIZED_DESCRIPTION}</p>
+                </div>
+                {selectedModel === COST_OPTIMIZED_MODE && <Check />}
+              </button>
             )}
 
             {showChatModels && (
@@ -481,12 +489,18 @@ export function ModelsPage() {
                 ) : chatModels.length === 0 && searchQuery ? (
                   <p className="py-6 text-center text-sm text-slate-500">موردی برای «{search.trim()}» پیدا نشد</p>
                 ) : (
-                  TIER_ORDER.map(tier => {
-                    const models = chatModels.filter(m => m.tier === tier)
+                  [
+                    ...PROVIDER_ORDER,
+                    ...(chatModels.some(m => !PROVIDER_ORDER.includes(m.provider)) ? ['__other__'] : []),
+                  ].map(providerKey => {
+                    const models = providerKey === '__other__'
+                      ? chatModels.filter(m => !PROVIDER_ORDER.includes(m.provider))
+                      : chatModels.filter(m => m.provider === providerKey)
                     if (!models.length) return null
+                    const label = providerKey === '__other__' ? OTHER_PROVIDER_LABEL : (PROVIDER_LABELS[providerKey] ?? providerKey)
                     return (
-                      <div key={tier} className="space-y-3 pt-2">
-                        <p className="text-xs font-medium text-slate-500">سطح {tierLabel(tier)}</p>
+                      <div key={providerKey} className="space-y-3 pt-2">
+                        <p className="text-xs font-medium text-slate-500">{label}</p>
                         {models.map(model => <ModelCard key={model.name} model={model} />)}
                       </div>
                     )

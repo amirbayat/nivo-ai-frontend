@@ -21,6 +21,8 @@ export interface ModelCatalogEntry {
   tier: 'SIMPLE' | 'MEDIUM' | 'COMPLEX'
   supportsVision: boolean
   supportsImageGen: boolean
+  // docs/PRD-chat-models-web-search-and-files.md §۳.۵
+  supportsWebSearch: boolean
   sortOrder: number
   // docs/PRD-openrouter-migration.md §۱۳.۴/۱۴.۴ — صفحه‌ی انتخاب مدل بازطراحی‌شده
   description: string | null

@@ -51,9 +51,18 @@ export const fa = {
     // روی gpt-5.4-nano قفل می‌شود؛ این پیام همان‌جا (بنر بالای اینپوت) به کاربر توضیح می‌دهد
     creditExhaustedForcedNano:
       'به‌دلیل عدم اعتبار کافی، پاسخ‌ها با مدل GPT-5.4 Nano داده می‌شود. برای استفاده از مدل انتخابی خودتان، نیوو شارژ کنید.',
+    webSearchUnavailableNotice: 'این مدل جستجوی وب را پشتیبانی نمی‌کند — پاسخ بدون جستجو ادامه یافت',
     imageProcessFailed: (n: number) =>
       n === 1 ? 'یکی از عکس‌ها قابل پردازش نبود و اضافه نشد' : `${n.toLocaleString('fa-IR')} تا از عکس‌ها قابل پردازش نبودند و اضافه نشدند`,
     retry: 'تلاش دوباره',
+  },
+  // docs/PRD-chat-files-and-pdf.md بخش ۳.۴ — پیوست فایل غیرعکس در چت
+  chatFiles: {
+    attachLabel: 'پیوست عکس یا فایل',
+    tooLargeToast: (maxMb: number) =>
+      `حجم فایل نباید بیشتر از ${maxMb.toLocaleString('fa-IR')} مگابایت باشد`,
+    tooManyToast: (max: number) => `حداکثر ${max.toLocaleString('fa-IR')} فایل در هر پیام`,
+    remove: 'حذف فایل',
   },
   credits: {
     title: 'شارژ اعتبار نیوو',

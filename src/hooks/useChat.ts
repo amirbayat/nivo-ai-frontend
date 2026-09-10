@@ -15,7 +15,8 @@ export function useChat(conversationId: string) {
   const {
     appendStreamingContent, setIsStreaming, setIsReasoning, appendReasoningText,
     resetStreaming, setChatError, selectedModel, setIsGeneratingImage,
-    setGeneratingImagePreview, thinkingMode,
+    setGeneratingImagePreview, thinkingMode, webSearchEnabled,
+    setStreamingSources, setWebSearchUnavailable,
   } = useChatStore()
 
   const sendMessage = useCallback(
@@ -25,6 +26,7 @@ export function useChat(conversationId: string) {
       imageModel?: string,
       preserveFace?: boolean,
       imageAspectRatio?: '1:1' | '16:9' | '9:16',
+      files?: { data: string; filename: string }[],
     ) => {
       abortRef.current?.abort()
       const ctrl = new AbortController()
@@ -45,9 +47,13 @@ export function useChat(conversationId: string) {
         thinkingMode,
         contentLength: content.length,
         imageCount: images?.length ?? 0,
+        fileCount: files?.length ?? 0,
+        webSearch: webSearchEnabled,
       })
 
-      // Optimistic: add user message to cache immediately so it shows before the stream starts
+      // Optimistic: add user message to cache immediately so it shows before the stream starts.
+      // فایل‌های پیوست‌شده هنوز key واقعی MinIO ندارند (بعد از آپلود سمت سرور مشخص می‌شود) —
+      // چیپ فقط بر اساس filename نشان داده می‌شود تا invalidate پایان استریم واقعی‌اش را جایگزین کند
       qc.setQueryData<ConversationDetail>(keys.conv.detail(conversationId), old => {
         if (!old) return old
         const optimistic: Message = {
@@ -56,6 +62,9 @@ export function useChat(conversationId: string) {
           role: 'USER',
           content,
           images: images ?? null,
+          attachments: files?.length
+            ? files.map(f => ({ key: '', filename: f.filename, mime: '' }))
+            : null,
           tokensInput: 0,
           tokensOutput: 0,
           createdAt: new Date().toISOString(),
@@ -82,6 +91,8 @@ export function useChat(conversationId: string) {
               // پیش‌فرض روشن است — فقط وقتی صریحاً خاموش شده باشد نیاز به فرستادن دارد
               ...(images?.length && preserveFace === false ? { preserveFace: false } : {}),
               ...(imageAspectRatio ? { imageAspectRatio } : {}),
+              ...(files?.length ? { files } : {}),
+              ...(webSearchEnabled ? { webSearch: true } : {}),
               thinkingMode,
             }),
           },
@@ -134,6 +145,7 @@ export function useChat(conversationId: string) {
                 reasoningChunk?: string
                 image?: string
                 messageId?: string
+                sources?: { url: string; title: string }[]
               }
               if (parsed.chunk) appendStreamingContent(parsed.chunk)
               if (parsed.error) setChatError(parsed.error, parsed.code ?? null)
@@ -155,6 +167,16 @@ export function useChat(conversationId: string) {
               // متن واقعی استدلال (اگر مدل/Liara آن را برگرداند) — کم‌رنگ بالای پاسخ نشان داده می‌شود
               if (parsed.info === 'reasoning-chunk' && parsed.reasoningChunk) {
                 appendReasoningText(parsed.reasoningChunk)
+              }
+              // docs/PRD-chat-models-web-search-and-files.md §۳.۳ — منابع جستجوی وب، بعد از
+              // پایان پاسخ می‌رسد (نه چانک‌به‌چانک)؛ MessageBubble پیام‌های قبلی از خود
+              // Message.citations استفاده می‌کند (بعد از invalidate در finally پایین‌تر)
+              if (parsed.info === 'sources' && parsed.sources) {
+                setStreamingSources(parsed.sources)
+              }
+              // toggle روشن بوده ولی مدل نهایی جستجوی وب را پشتیبانی نکرد
+              if (parsed.info === 'web-search-unavailable') {
+                setWebSearchUnavailable(true)
               }
               // docs/PRD-chat-images.md بخش ۵.۵ — تولید عکس یک‌جا می‌آید (نه چانک‌به‌چانک)؛
               // بلافاصله در کش نشانده می‌شود تا کاربر منتظر invalidate/refetch نماند
@@ -227,7 +249,7 @@ export function useChat(conversationId: string) {
         void qc.invalidateQueries({ queryKey: keys.credits.balance() })
       }
     },
-    [conversationId, qc, selectedModel, appendStreamingContent, setIsStreaming, resetStreaming],
+    [conversationId, qc, selectedModel, webSearchEnabled, appendStreamingContent, setIsStreaming, resetStreaming],
   )
 
   const abort = useCallback(() => {

@@ -10,7 +10,18 @@ import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { ImageLightbox, downloadImage } from '@/components/ui/ImageLightbox'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
-import type { Message } from '@/types/api'
+import type { Message, ChatAttachment, ChatCitation } from '@/types/api'
+
+// docs/PRD-chat-files-and-pdf.md بخش ۳.۱ — Message.content شامل متن خام کاربر + بلوک‌های
+// «--- فایل: name --- ... --- پایان فایل ---» تزریق‌شده‌ی سرور است (chat.service.ts، تا تاریخچه‌ی
+// مکالمه محتوای فایل را حفظ کند). نمایش این بلوک خام توی حباب زشت است — کاربر فقط چیپ فایل
+// (FileChip پایین‌تر) را می‌بیند، نه متن استخراج‌شده‌ی کامل. marker دقیقاً باید با
+// formatExtractedFileBlock سمت سرور یکی باشد.
+const FILE_BLOCK_MARKER = '\n\n--- فایل: '
+function stripFileBlocks(content: string): string {
+  const idx = content.indexOf(FILE_BLOCK_MARKER)
+  return idx === -1 ? content : content.slice(0, idx)
+}
 
 function LinkNewTab({ href, children }: { href?: string; children?: React.ReactNode }) {
   return (
@@ -48,7 +59,7 @@ interface MessageListProps {
 export function MessageList({ messages, extraContent }: MessageListProps) {
   const {
     streamingContent, isStreaming, isReasoning, reasoningText, chatError, chatErrorCode, isGeneratingImage,
-    generatingImagePreview,
+    generatingImagePreview, streamingSources, webSearchUnavailable,
   } = useChatStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
@@ -67,6 +78,8 @@ export function MessageList({ messages, extraContent }: MessageListProps) {
           role={msg.role}
           content={msg.content}
           images={msg.images}
+          attachments={msg.attachments}
+          citations={msg.citations}
           feedback={msg.feedback}
           onImageClick={setLightboxSrc}
         />
@@ -81,7 +94,13 @@ export function MessageList({ messages, extraContent }: MessageListProps) {
       )}
 
       {!isGeneratingImage && isStreaming && streamingContent && (
-        <MessageBubble role="ASSISTANT" content={streamingContent} streaming />
+        <MessageBubble role="ASSISTANT" content={streamingContent} citations={streamingSources} streaming />
+      )}
+
+      {/* docs/PRD-chat-models-web-search-and-files.md §۳.۵ — toggle روشن بود ولی مدل نهایی
+          پشتیبانی نکرد؛ یک اطلاع کوتاه، نه خطای سرخ‌رنگ */}
+      {!isGeneratingImage && isStreaming && webSearchUnavailable && (
+        <p className="pr-11 text-xs text-amber-400/80">{fa.chat.webSearchUnavailableNotice}</p>
       )}
 
       {!isGeneratingImage && isStreaming && !streamingContent && !reasoningText && isReasoning && (
@@ -240,11 +259,64 @@ export function ChatErrorBox({ message, code, onRetry }: { message: string; code
 // disableFeedback: برای پیام‌های مصنوعی/محلی (مثل پیام‌های سبک‌های دیسکاوری داخل چت —
 // ChatPage.tsx) که id واقعی Message ندارند؛ حتی اگر id ساختگی پاس داده شود، نباید ردیف
 // پسندیدن/نپسندیدن نشان داده شود چون messageId واقعی برای ثبت فیدبک وجود ندارد
+// چیپ فایل غیرعکس پیوست‌شده — دقیقاً همون استایل چیپ پیش‌نمایش MessageInput.tsx، این‌بار
+// فقط-خواندنی داخل حباب پیام (docs/PRD-chat-files-and-pdf.md بخش ۳.۴)
+function FileChip({ filename }: { filename: string }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.08] px-2 py-1">
+      <svg viewBox="0 0 24 24" fill="none" className="size-3.5 shrink-0 text-emerald-300">
+        <path
+          d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+      <span className="max-w-[10rem] truncate text-xs text-emerald-100">{filename}</span>
+    </div>
+  )
+}
+
+// چیپ‌های منبع زیر پاسخ — docs/PRD-chat-models-web-search-and-files.md §۳.۳ (دامنه + عنوان)
+function SourceChips({ sources }: { sources: ChatCitation[] }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {sources.map((s, i) => {
+        let domain = s.url
+        try { domain = new URL(s.url).hostname.replace(/^www\./, '') } catch { /* ignore */ }
+        return (
+          <a
+            key={i}
+            href={s.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex max-w-[13rem] items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] px-2.5 py-1 text-[11px] text-cyan-200 hover:bg-cyan-500/[0.14] transition-colors"
+            title={s.title}
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="size-3 shrink-0">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
+            <span className="truncate">{domain}</span>
+          </a>
+        )
+      })}
+    </div>
+  )
+}
+
 export function MessageBubble({
   id,
   role,
   content,
   images,
+  attachments,
+  citations,
   feedback,
   streaming,
   disableFeedback,
@@ -254,12 +326,15 @@ export function MessageBubble({
   role: Message['role']
   content: string
   images?: string[] | null
+  attachments?: ChatAttachment[] | null
+  citations?: ChatCitation[] | null
   feedback?: Message['feedback']
   streaming?: boolean
   disableFeedback?: boolean
   onImageClick?: (src: string) => void
 }) {
   const isUser = role === 'USER'
+  const displayContent = isUser ? stripFileBlocks(content) : content
 
   return (
     <div>
@@ -296,7 +371,12 @@ export function MessageBubble({
                 ))}
               </div>
             )}
-            {content}
+            {attachments && attachments.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {attachments.map((a, i) => <FileChip key={i} filename={a.filename} />)}
+              </div>
+            )}
+            {displayContent}
             {streaming && <span className="inline-block w-0.5 h-4 bg-emerald-400 animate-pulse mr-0.5" />}
           </div>
         ) : (
@@ -336,13 +416,14 @@ export function MessageBubble({
                 {content}
               </ReactMarkdown>
             )}
+            {citations && citations.length > 0 && <SourceChips sources={citations} />}
           </div>
         )}
       </div>
 
       {!streaming && content && (
         <div className={clsx('mt-1.5 flex items-center gap-1', isUser ? 'justify-start pl-11' : 'pr-11')}>
-          <MessageCopyButton text={content} role={role} />
+          <MessageCopyButton text={displayContent} role={role} />
         </div>
       )}
 

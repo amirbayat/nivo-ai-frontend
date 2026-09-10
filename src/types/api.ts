@@ -303,12 +303,28 @@ export interface Conversation {
   imageGenCount: number
 }
 
+export interface ChatCitation {
+  url: string
+  title: string
+}
+
+export interface ChatAttachment {
+  key: string
+  filename: string
+  mime: string
+}
+
 export interface Message {
   id: string
   conversationId: string
   role: 'USER' | 'ASSISTANT' | 'SYSTEM'
   content: string
   images?: string[] | null
+  // docs/PRD-chat-models-web-search-and-files.md §۳.۳ — فقط روی پیام‌های ASSISTANT‌ای پر می‌شود
+  // که جستجوی وب واقعاً نتیجه داشته
+  citations?: ChatCitation[] | null
+  // docs/PRD-chat-files-and-pdf.md بخش ۶ — فایل‌های غیرعکس پیوست‌شده به پیام USER
+  attachments?: ChatAttachment[] | null
   tokensInput: number
   tokensOutput: number
   createdAt: string

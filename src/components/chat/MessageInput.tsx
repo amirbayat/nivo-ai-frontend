@@ -11,6 +11,30 @@ import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import { ThinkingModeToggle } from './ThinkingModeToggle'
+import { WebSearchToggle } from './WebSearchToggle'
+
+// docs/PRD-chat-files-and-pdf.md بخش ۳.۴ — پسوندهای غیرعکس مجاز، دقیقاً معادل whitelist سمت
+// سرور (chat-file.validator.ts) — این‌جا فقط برای تشخیص «عکس یا سند» در handleFiles و ساخت
+// accept سمت کلاینت است؛ اعتبارسنجی واقعی (magic bytes) همیشه دوباره سمت سرور انجام می‌شود
+const DOC_EXTENSIONS = [
+  'pdf', 'docx', 'xlsx', 'txt', 'md', 'csv', 'js', 'jsx', 'ts', 'tsx', 'py',
+  'json', 'html', 'css', 'java', 'c', 'cpp', 'go', 'rb', 'php', 'sh', 'yaml', 'yml', 'xml', 'sql',
+]
+const DOC_ACCEPT = DOC_EXTENSIONS.map(e => `.${e}`).join(',')
+
+function extOf(filename: string): string {
+  const dot = filename.lastIndexOf('.')
+  return dot === -1 ? '' : filename.slice(dot + 1).toLowerCase()
+}
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('file read failed'))
+    reader.readAsDataURL(file)
+  })
+}
 
 // عکس‌های آیفون معمولاً با فرمت HEIC/HEIF می‌آیند که مرورگرهای کرومیوم/فایرفاکس (و مدل‌های
 // هوش مصنوعی سمت سرور) قادر به decode آن نیستند — بدون این تبدیل، <img>.onerror سایلنت این
@@ -59,7 +83,17 @@ export function resizeImage(file: File): Promise<string> {
 }
 
 interface MessageInputProps {
-  onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
+  // ترتیب پارامترها دقیقاً باید با sendMessage (useChat.ts) یکی باشد چون onSend مستقیم همان
+  // تابع است (ChatPage.tsx: onSend={sendMessage}) — imageAspectRatio اینجا استفاده نمی‌شود
+  // (مخصوص StudioComposer.tsx) ولی جایگاهش باید حفظ شود تا files در پارامتر درست بنشیند
+  onSend: (
+    content: string,
+    images?: string[],
+    imageModel?: string,
+    preserveFace?: boolean,
+    imageAspectRatio?: '1:1' | '16:9' | '9:16',
+    files?: { data: string; filename: string }[],
+  ) => void
   disabled?: boolean
   // برخلاف disabled، فقط دکمه‌ی ارسال (و Enter) را غیرفعال می‌کند — کاربر همچنان می‌تواند
   // در حین تولید پاسخ هوش مصنوعی تایپ کند و پیام بعدی‌اش را آماده کند
@@ -76,6 +110,8 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const { data: flags } = useFeatureFlags()
   const MAX_IMAGES = flags?.maxImagesPerMessage ?? 4
   const MAX_SIZE_BYTES = (flags?.maxImageSizeMb ?? 8) * 1024 * 1024
+  const MAX_FILES = flags?.maxFilesPerMessage ?? 3
+  const MAX_FILE_SIZE_BYTES = (flags?.maxFileSizeMb ?? 10) * 1024 * 1024
 
   const { data: catalog } = useModelCatalog()
   const { selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt } = useChatStore()
@@ -95,6 +131,8 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
 
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
+  // docs/PRD-chat-files-and-pdf.md بخش ۳.۴ — پیوست فایل غیرعکس، مستقل از images بالا
+  const [files, setFiles] = useState<{ data: string; filename: string; size: number }[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const creativeFileRef = useRef<HTMLInputElement>(null)
@@ -173,16 +211,25 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
       return
     }
-    if (!trimmed && !images.length) return
+    if (!trimmed && !images.length && !files.length) return
     if (images.length) {
       track('image_gen_requested', { model: pinnedImageGenModel?.name, hasSourceImages: true })
     }
     // imageModel همیشه پاس داده می‌شود (چه عکسی ضمیمه باشد چه نه) — تشخیص اینکه این پیام واقعاً
     // باید عکس تولید/ویرایش کند یا صرفاً چت/تحلیل معمولی است، کاملاً سمت بک‌اند انجام می‌شود
-    // (classifyImageIntent در chat.service.ts)، نه اینجا
-    onSend(trimmed, images.length ? images : undefined, pinnedImageGenModel?.name, preserveFace)
+    // (classifyImageIntent در chat.service.ts)، نه اینجا. imageAspectRatio اینجا استفاده نمی‌شود
+    // (undefined)، فقط جایگاهش قبل از files حفظ می‌شود (توضیح بالای MessageInputProps.onSend)
+    onSend(
+      trimmed,
+      images.length ? images : undefined,
+      pinnedImageGenModel?.name,
+      preserveFace,
+      undefined,
+      files.length ? files.map(({ data, filename }) => ({ data, filename })) : undefined,
+    )
     setValue('')
     setImages([])
+    setFiles([])
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
@@ -207,33 +254,54 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     setTimeout(() => textareaRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }), 300)
   }
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files) return
-    const remaining = MAX_IMAGES - images.length
-    const toProcess = Array.from(files).slice(0, remaining)
-    const results: string[] = []
-    let failed = 0
-    for (const file of toProcess) {
-      // بعضی فایل‌منیجرهای اندروید برای HEIC فیلد type را خالی می‌فرستند — اسم فایل هم چک می‌شود
-      if (!file.type.startsWith('image/') && !/\.hei[cf]$/i.test(file.name)) continue
+  const handleFiles = async (fileList: FileList | null) => {
+    if (!fileList) return
+    const all = Array.from(fileList)
+    // بعضی فایل‌منیجرهای اندروید برای HEIC فیلد type را خالی می‌فرستند — اسم فایل هم چک می‌شود
+    const imageFiles = all.filter(f => f.type.startsWith('image/') || /\.hei[cf]$/i.test(f.name))
+    const docFiles = all.filter(f => !imageFiles.includes(f) && DOC_EXTENSIONS.includes(extOf(f.name)))
+
+    const remainingImages = MAX_IMAGES - images.length
+    const imagesToProcess = imageFiles.slice(0, remainingImages)
+    const imageResults: string[] = []
+    let failedImages = 0
+    for (const file of imagesToProcess) {
       if (file.size > MAX_SIZE_BYTES) continue
       try {
-        results.push(await resizeImage(file))
-      } catch { failed++ }
+        imageResults.push(await resizeImage(file))
+      } catch { failedImages++ }
     }
-    setImages(prev => [...prev, ...results].slice(0, MAX_IMAGES))
+    if (imageResults.length) setImages(prev => [...prev, ...imageResults].slice(0, MAX_IMAGES))
+
+    const remainingFiles = MAX_FILES - files.length
+    const docsToProcess = docFiles.slice(0, remainingFiles)
+    const fileResults: { data: string; filename: string; size: number }[] = []
+    let oversized = 0
+    for (const file of docsToProcess) {
+      if (file.size > MAX_FILE_SIZE_BYTES) { oversized++; continue }
+      try {
+        fileResults.push({ data: await readAsDataUrl(file), filename: file.name, size: file.size })
+      } catch { oversized++ }
+    }
+    if (fileResults.length) setFiles(prev => [...prev, ...fileResults].slice(0, MAX_FILES))
+
     if (fileRef.current) fileRef.current.value = ''
-    if (failed > 0) useToastStore.getState().addToast(fa.chat.imageProcessFailed(failed))
+    if (failedImages > 0) useToastStore.getState().addToast(fa.chat.imageProcessFailed(failedImages))
+    if (oversized > 0) useToastStore.getState().addToast(fa.chatFiles.tooLargeToast(flags?.maxFileSizeMb ?? 10))
   }
 
   const removeImage = (idx: number) => {
     setImages(prev => prev.filter((_, i) => i !== idx))
   }
 
+  const removeFile = (idx: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== idx))
+  }
+
   const canSend = selectedCreativePrompt
     ? !disabled && !sending && !generatingCreative && !uploadDiscoveryImage.isPending &&
       (!selectedCreativePrompt.requiresUserImage || Boolean(creativeImageKey))
-    : (value.trim() || images.length > 0) && !disabled && !sending
+    : (value.trim() || images.length > 0 || files.length > 0) && !disabled && !sending
 
   return (
     <div className="border-t border-slate-700/30 p-4">
@@ -413,6 +481,37 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         </div>
       )}
 
+      {/* docs/PRD-chat-files-and-pdf.md بخش ۳.۴ — فایل غیرعکس به‌صورت چیپ آیکون‌دار (نه
+          thumbnail شکسته، چون نمی‌شود پیش‌نمایش مستقیم داد) */}
+      {!selectedCreativePrompt && files.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {files.map((f, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-800/60 px-2.5 py-1.5"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="size-4 shrink-0 text-cyan-400">
+                <path
+                  d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              </svg>
+              <span className="max-w-[9rem] truncate text-xs text-slate-300">{f.filename}</span>
+              <button
+                onClick={() => removeFile(idx)}
+                className="text-slate-500 hover:text-red-400 text-xs leading-none"
+                aria-label={fa.chatFiles.remove}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {!selectedCreativePrompt && images.length > 0 && (
         <label className="mb-2 flex items-center gap-2 text-xs text-slate-300">
           <button
@@ -447,7 +546,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept={`image/*,${DOC_ACCEPT}`}
           multiple
           className="hidden"
           onChange={e => void handleFiles(e.target.files)}
@@ -456,20 +555,19 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         {!selectedCreativePrompt && (
           <button
             type="button"
-            disabled={disabled || images.length >= MAX_IMAGES}
+            disabled={disabled || (images.length >= MAX_IMAGES && files.length >= MAX_FILES)}
             onClick={() => fileRef.current?.click()}
             className={clsx(
               'shrink-0 size-7 rounded-lg flex items-center justify-center transition-colors',
-              images.length >= MAX_IMAGES || disabled
+              (images.length >= MAX_IMAGES && files.length >= MAX_FILES) || disabled
                 ? 'text-slate-600 cursor-not-allowed'
                 : 'text-slate-400 hover:text-fuchsia-400 hover:bg-slate-700',
             )}
-            aria-label="پیوست عکس برای ویرایش/ترکیب"
+            aria-label={fa.chatFiles.attachLabel}
           >
+            {/* آیکون «+» عمومی — قبلاً فقط عکس بود، الان عکس + سند (docs/PRD-chat-files-and-pdf.md بخش ۳.۴) */}
             <svg viewBox="0 0 24 24" fill="none" className="size-5">
-              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
-              <path d="m3 15 5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
         )}
@@ -500,7 +598,12 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         {/* در حالت سبک دیسکاوری reasoning effort اثری ندارد — کاملاً جدا از streamText چت است.
             برای پیوست عکس معمولی، چون تشخیص تحلیل/ویرایش سمت بک‌اند است، ممکن است مسیر چت
             معمولی طی شود، پس thinkingMode همچنان معنا دارد و مخفی نمی‌شود */}
-        {!selectedCreativePrompt && <ThinkingModeToggle disabled={disabled} />}
+        {!selectedCreativePrompt && (
+          <div className="flex items-center gap-1">
+            <ThinkingModeToggle disabled={disabled} />
+            <WebSearchToggle disabled={disabled} />
+          </div>
+        )}
 
         <button
           onClick={submit}
