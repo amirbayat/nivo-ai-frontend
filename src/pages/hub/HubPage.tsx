@@ -3,10 +3,10 @@ import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import logoUrl from '@/assets/brand/horizontal-dark.svg'
 
-// docs/PRD-openrouter-migration.md §۱۳-۱۴ — نقطه‌ی ورود اصلی، هم برای کاربر لاگین‌کرده هم مهمان
-// (router/index.tsx: HomeRoute). پیکسل‌به‌پیکسل مطابق آرتبورد Main.dc.html در دیزاین‌کنوس — کارت
-// «استودیوی ویدیو» حالا به صفحه‌ی یکپارچه‌ی تولید+ویرایش ویدیو (VideoStudioPage، مبتنی بر
-// video-edit) روی مسیر /video لینک می‌شود؛ فلوی چت‌محور قدیمی (استودیوی ویدیوی جدا) حذف شده است.
+// Main entry for logged-in users and guests (router/index.tsx: HomeRoute).
+// Card order: video studio, image studio, chat, auto captions, Nivo Cal.
+// Video studio goes to VideoStudioPage at /video. Nivo Cal opens cal.nivoai.ir
+// (separate app, own auth) and does not send guests through this domain's /login.
 export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const navigate = useNavigate()
 
@@ -72,7 +72,19 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
       {/* cards */}
       <div className="relative flex flex-col flex-wrap items-center justify-center gap-5 px-6 pt-12 pb-16 sm:flex-row sm:gap-7 sm:pt-16">
         <HubCard
-          title="تولید و ویرایش عکس"
+          title="استودیو فیلم"
+          description="یه ویدیو از پرامپت و عکس بساز، یا یه ویدیوی موجود رو ویرایش کن — همه با یه فرم واحد."
+          accentColor="#fb7185"
+          borderColor="rgba(244,63,94,0.28)"
+          glowColor="rgba(244,63,94,0.07)"
+          gradientColor="rgba(244,63,94,0.10)"
+          iconBg="rgba(244,63,94,0.16)"
+          iconColor="#fb7185"
+          icon={<VideoEditIcon />}
+          onClick={() => goToSection('/video')}
+        />
+        <HubCard
+          title="استودیو عکس"
           description="یه توصیف بنویس یا عکس آپلود کن؛ نتیجه رو در چند ثانیه ببین."
           accentColor="#10b981"
           borderColor="rgba(16,185,129,0.30)"
@@ -84,7 +96,7 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           onClick={() => goToSection('/image')}
         />
         <HubCard
-          title="چت با هوش مصنوعی"
+          title="چت"
           description="سوال بپرس، متن بنویس یا با هم فکر کنیم — مثل یک دستیار متخصص."
           accentColor="#a78bfa"
           borderColor="rgba(124,58,237,0.28)"
@@ -96,7 +108,7 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           onClick={() => goToSection('/chat')}
         />
         <HubCard
-          title="زیرنویس خودکار ویدیو"
+          title="کپشن اتوماتیک"
           description="ویدیوت رو آپلود کن، زیرنویس خودکار با استایل دلخواه بگیر."
           accentColor="#f59e0b"
           borderColor="rgba(245,158,11,0.28)"
@@ -108,23 +120,24 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           onClick={() => goToSection('/captions')}
         />
         <HubCard
-          title="استودیوی ویدیو"
-          description="یه ویدیو از پرامپت و عکس بساز، یا یه ویدیوی موجود رو ویرایش کن — همه با یه فرم واحد."
-          accentColor="#fb7185"
-          borderColor="rgba(244,63,94,0.28)"
-          glowColor="rgba(244,63,94,0.07)"
-          gradientColor="rgba(244,63,94,0.10)"
-          iconBg="rgba(244,63,94,0.16)"
-          iconColor="#fb7185"
-          icon={<VideoEditIcon />}
-          onClick={() => goToSection('/video')}
+          title="نیوو کالری"
+          description="از غذات عکس بگیر تا کالری و مواد مغذیش رو دقیق ببینی."
+          accentColor="#22d3ee"
+          borderColor="rgba(6,182,212,0.28)"
+          glowColor="rgba(6,182,212,0.07)"
+          gradientColor="rgba(6,182,212,0.10)"
+          iconBg="rgba(6,182,212,0.16)"
+          iconColor="#22d3ee"
+          icon={<CalorieIcon />}
+          href="https://cal.nivoai.ir"
+          onClick={() => track('nivo_cal_nav_clicked')}
         />
       </div>
     </div>
   )
 }
 
-function HubCard({ title, description, accentColor, borderColor, glowColor, gradientColor, iconBg, iconColor, icon, onClick }: {
+function HubCard({ title, description, accentColor, borderColor, glowColor, gradientColor, iconBg, iconColor, icon, onClick, href }: {
   title: string
   description: string
   accentColor: string
@@ -135,20 +148,18 @@ function HubCard({ title, description, accentColor, borderColor, glowColor, grad
   iconColor: string
   icon: React.ReactNode
   onClick: () => void
+  href?: string
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex w-full flex-col gap-[18px] text-right transition-transform hover:-translate-y-0.5 sm:w-[360px]"
-      style={{
-        borderRadius: 28,
-        padding: '36px 30px',
-        background: `linear-gradient(180deg, ${gradientColor}, rgba(2,12,24,0))`,
-        border: `1px solid ${borderColor}`,
-        boxShadow: `0 0 50px ${glowColor}`,
-      }}
-    >
+  const className = 'group flex w-full flex-col gap-[18px] text-right transition-transform hover:-translate-y-0.5 sm:w-[360px]'
+  const style = {
+    borderRadius: 28,
+    padding: '36px 30px',
+    background: `linear-gradient(180deg, ${gradientColor}, rgba(2,12,24,0))`,
+    border: `1px solid ${borderColor}`,
+    boxShadow: `0 0 50px ${glowColor}`,
+  }
+  const body = (
+    <>
       <div
         className="flex items-center justify-center"
         style={{ width: 56, height: 56, borderRadius: 16, background: iconBg, color: iconColor }}
@@ -161,11 +172,24 @@ function HubCard({ title, description, accentColor, borderColor, glowColor, grad
       </div>
       <div className="mt-auto flex items-center gap-1.5 text-sm font-semibold" style={{ color: accentColor }}>
         شروع کن
-        {/* chevron-left — رفتن به جلو در RTL رو به چپ اشاره می‌کند (CLAUDE.md) */}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </div>
+    </>
+  )
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} className={className} style={style}>
+        {body}
+      </a>
+    )
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={className} style={style}>
+      {body}
     </button>
   )
 }
@@ -197,7 +221,17 @@ function CaptionsIcon() {
 function VideoEditIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 7h-9M14 17H5M17 3l4 4-4 4M7 13l-4 4 4 4" />
+      <rect x="3" y="5" width="15" height="14" rx="2.5" />
+      <path d="M18 9.5l3.5-2v9L18 14.5" />
+    </svg>
+  )
+}
+
+function CalorieIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 8a2 2 0 012-2h1.5l1-1.5h7l1 1.5H18a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" />
+      <circle cx="12" cy="12.5" r="3.2" />
     </svg>
   )
 }
