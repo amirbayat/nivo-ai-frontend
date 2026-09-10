@@ -2,7 +2,6 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { clsx } from "clsx";
 import { Sidebar } from "./Sidebar";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
-import { NotificationBell } from "./NotificationBell";
 import { WelcomeCreditsModal } from "./WelcomeCreditsModal";
 import { useVisualViewportHeight } from "@/hooks/useVisualViewportHeight";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
@@ -91,7 +90,6 @@ export function ChatLayout({ children, collapsedByDefault }: ChatLayoutProps) {
               className="w-28 h-auto"
             />
             <div className="ms-auto flex items-center gap-2">
-              <NotificationBell />
               <PlanUpgradeBadge />
             </div>
           </div>

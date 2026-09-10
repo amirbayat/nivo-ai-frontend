@@ -8,7 +8,6 @@ import { useMe } from "@/queries/auth.queries";
 import { useWallet } from "@/queries/usage.queries";
 import { useChatStore } from "@/store/chat.store";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
-import { NotificationBell } from "./NotificationBell";
 import { fa } from "@/locales/fa";
 import { track } from "@/lib/events";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
@@ -103,7 +102,6 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           />
         </div>
         <div className="flex items-center gap-1">
-          <NotificationBell />
           <button
             onClick={handleNew}
             className="size-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-emerald-400 transition-colors"

@@ -87,14 +87,6 @@ export const keys = {
   anonDiscovery: {
     status: () => ['anon-discovery', 'status'] as const,
   },
-  videoStudio: {
-    list: () => ['video-studio', 'list'] as const,
-    detail: (id: string) => ['video-studio', 'detail', id] as const,
-    shotVideoStatus: (projectId: string, shotId: string) =>
-      ['video-studio', 'shot-video-status', projectId, shotId] as const,
-    messages: (projectId: string) => ['video-studio', 'messages', projectId] as const,
-    notifications: () => ['video-studio', 'notifications'] as const,
-  },
   captionStudio: {
     detail: (id: string) => ['caption-studio', 'detail', id] as const,
   },

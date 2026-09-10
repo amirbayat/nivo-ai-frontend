@@ -7,9 +7,8 @@ import { OtpPage } from '@/pages/auth/OtpPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
-import { VideoStudioPage } from '@/pages/video-studio/VideoStudioPage'
 import { CaptionStudioPage } from '@/pages/caption-studio/CaptionStudioPage'
-import { VideoEditPage } from '@/pages/video-edit/VideoEditPage'
+import { VideoStudioPage } from '@/pages/video-edit/VideoStudioPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
 import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
@@ -106,15 +105,6 @@ export function AppRouter() {
         path="/image/:id"
         element={<ProtectedRoute><ChatLayout collapsedByDefault><ImageStudioPage /></ChatLayout></ProtectedRoute>}
       />
-      {/* استودیوی ویدیو — docs/PRD-video-studio-chat-flow.md، همان الگوی /image و /image/:id */}
-      <Route
-        path="/video"
-        element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoStudioPage /></ChatLayout></ProtectedRoute>}
-      />
-      <Route
-        path="/video/:id"
-        element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoStudioPage /></ChatLayout></ProtectedRoute>}
-      />
       {/* استودیوی زیرنویس خودکار — docs/PRD-video-auto-captions.md §۱۸، همان الگوی /video */}
       <Route
         path="/captions"
@@ -124,11 +114,15 @@ export function AppRouter() {
         path="/captions/:id"
         element={<ProtectedRoute><ChatLayout collapsedByDefault><CaptionStudioPage /></ChatLayout></ProtectedRoute>}
       />
-      {/* ویرایش ویدیو با Kie.ai — docs/PRD-video-edit-omni-kie.md، تک‌صفحه (گالری+فرم)، بدون :id */}
+      {/* استودیوی ویدیو (تولید + ویرایش، یک فرم واحد با Kie.ai) — docs/PRD-video-edit-omni-kie.md،
+          تک‌صفحه (گالری+فرم)، بدون :id — قبلاً روی /video-edit بود، حالا مسیر اصلی /video است
+          و مسیر قدیمی /video به فلوی چت‌محور اشاره داشت (حذف شد، آن فیچر جایگزین این شد) */}
       <Route
-        path="/video-edit"
-        element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoEditPage /></ChatLayout></ProtectedRoute>}
+        path="/video"
+        element={<ProtectedRoute><ChatLayout collapsedByDefault><VideoStudioPage /></ChatLayout></ProtectedRoute>}
       />
+      {/* بازگشت‌سازگار: بوکمارک/لینک قدیمی به /video-edit همچنان باید کار کند */}
+      <Route path="/video-edit" element={<Navigate to="/video" replace />} />
       <Route
         path="/pricing"
         element={<ProtectedRoute><PricingPage /></ProtectedRoute>}

@@ -468,63 +468,6 @@ export interface AnonConversationDetail extends AnonConversation {
   messages: AnonMessage[]
 }
 
-// ── استودیوی ویدیو (docs/PRD-video-studio-chat-flow.md) ──────────────────
-export type StudioProjectStatus = 'DRAFT' | 'CHARACTER_SELECTED' | 'STORYBOARD_READY' | 'COMPLETED'
-export type StudioShotVideoStatus = 'NOT_STARTED' | 'PENDING' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED'
-export type StudioModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
-export type StudioAspectRatio = '1:1' | '16:9' | '9:16'
-
-export interface VideoNotification {
-  shotId: string
-  projectId: string
-  title: string
-  videoStatus: StudioShotVideoStatus
-  previewImageKey: string | null
-  completedAt: string
-  seen: boolean
-}
-
-export interface StudioCharacterOption {
-  id: string
-  projectId: string
-  imageKey: string
-  selected: boolean
-  moderationStatus: StudioModerationStatus
-  createdAt: string
-}
-
-export interface StudioShot {
-  id: string
-  projectId: string
-  order: number
-  title: string
-  scenario: string
-  previewImageKey: string | null
-  audioEnabled: boolean
-  moderationStatus: StudioModerationStatus
-  videoStatus: StudioShotVideoStatus
-  videoJobId: string | null
-  videoKey: string | null
-  creditCost: number | null
-  createdAt: string
-}
-
-export interface StudioProject {
-  id: string
-  userId: string
-  initialPrompt: string
-  visualStyle: string | null
-  status: StudioProjectStatus
-  chatModelId: string | null
-  photoModelId: string | null
-  videoModelId: string | null
-  imageAspectRatio: string | null
-  videoAspectRatio: string | null
-  createdAt: string
-  characterOptions: StudioCharacterOption[]
-  shots: StudioShot[]
-}
-
 // docs/PRD-video-auto-captions.md §۶ — استودیوی زیرنویس خودکار
 export type CaptionProjectStatus =
   | 'UPLOADED'
@@ -584,33 +527,7 @@ export interface CaptionProject {
   updatedAt: string
 }
 
-export interface StudioMessage {
-  id: string
-  projectId: string
-  role: 'user' | 'assistant'
-  content: string
-  intent: 'generate_character' | 'regenerate_character' | 'generate_storyboard' | 'generate_quick_video' | 'general' | null
-  suggestedActions: string[]
-  createdAt: string
-}
-
-export interface StudioShotVideoStatusResponse {
-  videoStatus: StudioShotVideoStatus
-  videoKey: string | null
-  creditCost: number | null
-}
-
-export interface VideoStudioConfig {
-  id: string
-  characterOptionCount: number
-  maxCharacterRegeneratesPerProject: number
-  maxConcurrentVideoJobsPerUser: number
-  maxVideoGenPerDayPerUser: number | null
-  defaultAudioEnabled: boolean
-  updatedAt: string
-}
-
-// docs/PRD-video-edit-omni-kie.md — «ویرایش ویدیو» با Kie.ai، کاملاً جدا از استودیوی ویدیوی بالا
+// docs/PRD-video-edit-omni-kie.md — «استودیوی ویدیو» با Kie.ai
 export type KieVideoCategory =
   | 'GENERATE'
   | 'EDIT'
@@ -621,7 +538,7 @@ export type KieVideoCategory =
   | 'EXTEND'
   | 'OTHER'
 
-export type VideoModelProvider = 'KIE' | 'OPENROUTER'
+export type VideoModelProvider = 'KIE' | 'OPENROUTER' | 'VEO' | 'RUNWAY'
 export type KieInputSchema = 'OMNI' | 'SEEDANCE' | 'WAN_V2V' | 'WAN_R2V' | 'WAN_VIDEO_EDIT'
 
 export interface KieVideoModel {

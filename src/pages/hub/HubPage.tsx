@@ -4,9 +4,9 @@ import { track } from '@/lib/events'
 import logoUrl from '@/assets/brand/horizontal-dark.svg'
 
 // docs/PRD-openrouter-migration.md §۱۳-۱۴ — نقطه‌ی ورود اصلی، هم برای کاربر لاگین‌کرده هم مهمان
-// (router/index.tsx: HomeRoute). پیکسل‌به‌پیکسل مطابق آرتبورد Main.dc.html در دیزاین‌کنوس — شامل
-// کارت ویدیو که به فلوی چت‌محور واقعی استودیوی ویدیو لینک می‌شود (docs/PRD-video-studio-chat-flow.md،
-// VideoStudioPage روی مسیر /video).
+// (router/index.tsx: HomeRoute). پیکسل‌به‌پیکسل مطابق آرتبورد Main.dc.html در دیزاین‌کنوس — کارت
+// «استودیوی ویدیو» حالا به صفحه‌ی یکپارچه‌ی تولید+ویرایش ویدیو (VideoStudioPage، مبتنی بر
+// video-edit) روی مسیر /video لینک می‌شود؛ فلوی چت‌محور قدیمی (استودیوی ویدیوی جدا) حذف شده است.
 export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const navigate = useNavigate()
 
@@ -96,18 +96,6 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           onClick={() => goToSection('/chat')}
         />
         <HubCard
-          title="تولید ویدیو"
-          description="داستانتو بگو، کاراکتر بساز، استوری‌برد بچین و ویدیوی هر صحنه رو بگیر."
-          accentColor="#38bdf8"
-          borderColor="rgba(14,165,233,0.28)"
-          glowColor="rgba(14,165,233,0.07)"
-          gradientColor="rgba(14,165,233,0.10)"
-          iconBg="rgba(14,165,233,0.16)"
-          iconColor="#38bdf8"
-          icon={<VideoIcon />}
-          onClick={() => goToSection('/video')}
-        />
-        <HubCard
           title="زیرنویس خودکار ویدیو"
           description="ویدیوت رو آپلود کن، زیرنویس خودکار با استایل دلخواه بگیر."
           accentColor="#f59e0b"
@@ -120,8 +108,8 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           onClick={() => goToSection('/captions')}
         />
         <HubCard
-          title="ویرایش ویدیو"
-          description="یه ویدیو بده، با یه پرامپت ساده ویرایشش کن؛ یا از پرامپت/عکس یه ویدیوی تازه بساز."
+          title="استودیوی ویدیو"
+          description="یه ویدیو از پرامپت و عکس بساز، یا یه ویدیوی موجود رو ویرایش کن — همه با یه فرم واحد."
           accentColor="#fb7185"
           borderColor="rgba(244,63,94,0.28)"
           glowColor="rgba(244,63,94,0.07)"
@@ -129,7 +117,7 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           iconBg="rgba(244,63,94,0.16)"
           iconColor="#fb7185"
           icon={<VideoEditIcon />}
-          onClick={() => goToSection('/video-edit')}
+          onClick={() => goToSection('/video')}
         />
       </div>
     </div>
@@ -194,14 +182,6 @@ function ChatIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-4.5 7.4 8.5 8.5 0 0 1-8.9-.4L3 21l1.7-4.5a8.38 8.38 0 0 1-1.2-4.4 8.5 8.5 0 0 1 8.5-8.5h.3a8.48 8.48 0 0 1 8.5 8.4v.5z" />
-    </svg>
-  )
-}
-
-function VideoIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1.5" y="5.5" width="15" height="13" rx="2.5" /><polygon points="22.5 7.5 16.5 12 22.5 16.5 22.5 7.5" />
     </svg>
   )
 }

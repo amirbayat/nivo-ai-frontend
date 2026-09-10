@@ -120,7 +120,7 @@ function SessionHistoryDrawer({
   )
 }
 
-export function VideoEditPage() {
+export function VideoStudioPage() {
   const navigate = useNavigate()
   const { data: models } = useKieVideoModels()
   const { data: sessions } = useVideoEditSessions()
