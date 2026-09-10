@@ -53,12 +53,11 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
   const matchesRequiredType = (name: string) => {
     const m = catalog?.find(m => m.name === name)
     if (!m) return false
-    // مدل‌های تولید عکس یا modelType=IMAGE_GEN اختصاصی‌اند یا (دسته‌ی رایج‌تر در پروداکشن)
-    // یک مدل چت چندمنظوره با supportsImageGen=true (مثل gpt-5-image/Nano Banana). قبلاً شرط
-    // else فقط IMAGE_GEN را کنار می‌گذاشت (`!== 'IMAGE_GEN'`) — یعنی مدل‌های VIDEO_GEN
-    // (Veo/Kling/Seedance/...) هم به‌اشتباه در این دراپ‌داون متنی ظاهر می‌شدند؛ با گسترش لیست
-    // به ۳۲ مدل (MODEL_PICKER_LIMIT) این باگ آشکار شد — الان صراحتاً فقط modelType==='CHAT'
-    return wantsImageGen ? (m.modelType === 'IMAGE_GEN' || m.supportsImageGen) : m.modelType === 'CHAT'
+    // Image-gen rows are either modelType=IMAGE_GEN or CHAT + supportsImageGen
+    // (Nano Banana / gpt-image). Text picker must exclude the dual-use ones too.
+    return wantsImageGen
+      ? (m.modelType === 'IMAGE_GEN' || m.supportsImageGen)
+      : (m.modelType === 'CHAT' && !m.supportsImageGen)
   }
   // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود — کل
   // کاتالوگ فعال در دسترس است، فقط بر اساس outputType سبک استودیو (اگر انتخاب شده) فیلتر می‌شود]

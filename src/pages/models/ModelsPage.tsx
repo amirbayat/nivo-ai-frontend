@@ -19,15 +19,17 @@ const IMAGE_GEN_STORAGE_KEY = 'nivo:selectedImageGenModel'
 // (فیلتر ثانویه، نه محور اصلی). هر provider جدید که به کاتالوگ اضافه شود (مثلاً anthropic)
 // خودکار یک گروه جدید می‌شود — نیازی به تغییر کد نیست، فقط به لیست PROVIDER_ORDER زیر اضافه شود
 // تا ترتیب/برچسبش مشخص باشد؛ provider هایی که در این لیست نیستند زیر «سایر» جمع می‌شوند
-const PROVIDER_ORDER: string[] = ['openai', 'google', 'anthropic', 'x-ai', 'deepseek']
+const PROVIDER_ORDER: string[] = ['openai', 'google', 'anthropic', 'x-ai', 'deepseek', 'qwen']
 const PROVIDER_LABELS: Record<string, string> = {
   openai: 'OpenAI',
   google: 'Google',
   anthropic: 'Anthropic',
   'x-ai': 'xAI',
   deepseek: 'DeepSeek',
+  qwen: 'Qwen',
 }
 const OTHER_PROVIDER_LABEL = 'سایر'
+const OTHER_PROVIDER_KEY = '__other__'
 
 // docs/PRD-openrouter-migration.md §۱۳.۴/۱۴.۴ — فیلترهای صفحه‌ی انتخاب مدل. ترند/محبوب از
 // AiModel.badges می‌آیند (متن آزاد ادمین)، ارزان/گران از قیمت واقعی محاسبه می‌شود (نسبت به
@@ -167,6 +169,7 @@ export function ModelsPage() {
   const { data: catalog, isLoading } = useModelCatalog()
   const { selectedModel, setSelectedModel, selectedImageGenModel, setSelectedImageGenModel, selectedCreativePrompt } = useChatStore()
   const [filter, setFilter] = useState<CatalogFilter>('all')
+  const [providerFilter, setProviderFilter] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   // برخلاف filter (که لیست رو مخفی/نمایان می‌کنه)، activeTier فقط کارت‌های غیرمرتبط رو کم‌رنگ
   // می‌کنه — چون هدف «کمک به مقایسه» است، نه پنهان کردن گزینه‌ها
@@ -197,14 +200,39 @@ export function ModelsPage() {
     )
   }
 
+  const matchesProvider = (m: ModelCatalogEntry) => {
+    if (!providerFilter) return true
+    if (providerFilter === OTHER_PROVIDER_KEY) return !PROVIDER_ORDER.includes(m.provider)
+    return m.provider === providerFilter
+  }
+
+  const catalogProviders = useMemo(
+    () => new Set((catalog ?? []).map(m => m.provider)),
+    [catalog],
+  )
+  const hasOtherProviders = (catalog ?? []).some(m => !PROVIDER_ORDER.includes(m.provider))
+  const providerChips: { key: string | null; label: string }[] = [
+    { key: null, label: 'همه' },
+    ...PROVIDER_ORDER
+      .filter(p => catalogProviders.has(p))
+      .map(p => ({ key: p, label: PROVIDER_LABELS[p] ?? p })),
+    ...(hasOtherProviders ? [{ key: OTHER_PROVIDER_KEY, label: OTHER_PROVIDER_LABEL }] : []),
+  ]
+
   // [DISABLED ۱۴۰۵/۰۵/۳۰ — تصمیم محصول: هیچ پلنی دیگر به allowedModels محدود نمی‌شود، کل
   // کاتالوگ فعال برای همه در دسترس است (فقط بر اساس موجودی کیف‌پول محدود می‌شود، نه اینجا)]
-  const chatModels = (catalog ?? []).filter(m => m.modelType !== 'IMAGE_GEN').filter(matchesFilter).filter(matchesSearch)
-  // مدل‌های تولید عکس دو دسته‌اند: modelType=IMAGE_GEN (اختصاصی، مثل openai/gpt-image-2)، و
-  // مدل‌های چندمنظوره‌ی جدید (modelType=CHAT با supportsImageGen=true، مثل gpt-5-image/Nano
-  // Banana) — قبلاً فقط دسته‌ی اول چک می‌شد، بنابراین دسته‌ی دوم (که در پروداکشن تنها دسته‌ی
-  // موجود است) هیچ‌وقت اینجا دیده نمی‌شد
-  const imageGenModels = (catalog ?? []).filter(m => m.modelType === 'IMAGE_GEN' || m.supportsImageGen).filter(matchesFilter).filter(matchesSearch)
+  const chatModels = (catalog ?? [])
+    .filter(m => m.modelType === 'CHAT' && !m.supportsImageGen)
+    .filter(matchesFilter)
+    .filter(matchesSearch)
+    .filter(matchesProvider)
+  // Dual-use image models are modelType=CHAT + supportsImageGen (Nano Banana / gpt-image).
+  // Keep them only in this section — not in the text list above.
+  const imageGenModels = (catalog ?? [])
+    .filter(m => m.modelType === 'IMAGE_GEN' || m.supportsImageGen)
+    .filter(matchesFilter)
+    .filter(matchesSearch)
+    .filter(matchesProvider)
 
   // وقتی یک سبک استودیو انتخاب شده باشد، انتخاب مدل این صفحه باید بر اساس outputType همان
   // سبک فیلتر شود (سبک تصویری → فقط مدل‌های تولید عکس، سبک متنی → فقط مدل‌های چت) — همان‌طور
@@ -405,6 +433,24 @@ export function ModelsPage() {
           </div>
         </div>
 
+        <div className="mb-4 flex flex-wrap justify-center gap-2">
+          {providerChips.map(p => (
+            <button
+              key={p.key ?? 'all'}
+              type="button"
+              onClick={() => setProviderFilter(p.key)}
+              className={clsx(
+                'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
+                providerFilter === p.key
+                  ? 'border-sky-500/50 bg-sky-500/15 text-sky-300'
+                  : 'border-slate-700/60 text-slate-400 hover:border-slate-600',
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
         {!imageOnlyMode && (
           <div className="mb-4 flex flex-wrap justify-center gap-2">
             {FILTERS.map(f => (
@@ -450,7 +496,7 @@ export function ModelsPage() {
           <div className="space-y-4">
             {/* حالت خودکار — همیشه اول و در دسترس (docs/PRD-model-selection-modes.md)؛ حین
                 جستجو مخفی می‌شه چون مدل مشخصی نیست که با متن جستجو مچ بشه */}
-            {!searchQuery && (
+            {!searchQuery && !providerFilter && (
               <button
                 onClick={() => select(COST_OPTIMIZED_MODE)}
                 className={clsx(
@@ -488,19 +534,27 @@ export function ModelsPage() {
                   </div>
                 ) : chatModels.length === 0 && searchQuery ? (
                   <p className="py-6 text-center text-sm text-slate-500">موردی برای «{search.trim()}» پیدا نشد</p>
+                ) : chatModels.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-slate-500">مدلی با این فیلتر پیدا نشد</p>
                 ) : (
-                  [
-                    ...PROVIDER_ORDER,
-                    ...(chatModels.some(m => !PROVIDER_ORDER.includes(m.provider)) ? ['__other__'] : []),
-                  ].map(providerKey => {
-                    const models = providerKey === '__other__'
+                  (
+                    providerFilter
+                      ? [providerFilter]
+                      : [
+                          ...PROVIDER_ORDER,
+                          ...(chatModels.some(m => !PROVIDER_ORDER.includes(m.provider)) ? [OTHER_PROVIDER_KEY] : []),
+                        ]
+                  ).map(providerKey => {
+                    const models = providerKey === OTHER_PROVIDER_KEY
                       ? chatModels.filter(m => !PROVIDER_ORDER.includes(m.provider))
                       : chatModels.filter(m => m.provider === providerKey)
                     if (!models.length) return null
-                    const label = providerKey === '__other__' ? OTHER_PROVIDER_LABEL : (PROVIDER_LABELS[providerKey] ?? providerKey)
+                    const label = providerKey === OTHER_PROVIDER_KEY ? OTHER_PROVIDER_LABEL : (PROVIDER_LABELS[providerKey] ?? providerKey)
                     return (
                       <div key={providerKey} className="space-y-3 pt-2">
-                        <p className="text-xs font-medium text-slate-500">{label}</p>
+                        {!providerFilter && (
+                          <p className="text-xs font-medium text-slate-500">{label}</p>
+                        )}
                         {models.map(model => <ModelCard key={model.name} model={model} />)}
                       </div>
                     )

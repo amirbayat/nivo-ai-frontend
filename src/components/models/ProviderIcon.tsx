@@ -8,8 +8,10 @@ function OpenAISwirl({ px }: { px: number }) {
 
 const LETTER_BADGES: Record<string, { bg: string; fg: string; letter: string }> = {
   google: { bg: 'bg-blue-500/15', fg: 'text-blue-400', letter: 'G' },
+  anthropic: { bg: 'bg-orange-500/15', fg: 'text-orange-300', letter: 'A' },
   'x-ai': { bg: 'bg-slate-200/15', fg: 'text-slate-100', letter: 'X' },
   deepseek: { bg: 'bg-cyan-500/15', fg: 'text-cyan-400', letter: 'D' },
+  qwen: { bg: 'bg-violet-500/15', fg: 'text-violet-300', letter: 'Q' },
 }
 
 export function ProviderIcon({ provider, size = 14 }: { provider: string; size?: number }) {
