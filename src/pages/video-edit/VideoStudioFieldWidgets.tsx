@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type PointerEvent, type KeyboardEvent } from 'react'
 import axios from 'axios'
 import { DropWell, FieldLabel, VideoWindowTrimmer } from './VideoEditForms'
 import type { ElementMemberValue, ShotValue } from '@/types/inputFields'
@@ -93,13 +93,57 @@ export function DurationRangeSlider({
   max: number
   step?: number
 }) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
   const lo = Math.min(min, max)
   const hi = Math.max(min, max)
   const current = clampStepped(value, lo, hi, step)
   const pct = hi === lo ? 100 : ((current - lo) / (hi - lo)) * 100
 
+  function valueAtClientX(clientX: number): number {
+    const el = trackRef.current
+    if (!el || hi === lo) return lo
+    const rect = el.getBoundingClientRect()
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    return clampStepped(lo + ratio * (hi - lo), lo, hi, step)
+  }
+
+  function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragging.current = true
+    onChange(valueAtClientX(e.clientX))
+  }
+
+  function onPointerMove(e: PointerEvent<HTMLDivElement>) {
+    if (!dragging.current) return
+    onChange(valueAtClientX(e.clientX))
+  }
+
+  function onPointerUp(e: PointerEvent<HTMLDivElement>) {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    }
+    dragging.current = false
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      onChange(clampStepped(current + step, lo, hi, step))
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      onChange(clampStepped(current - step, lo, hi, step))
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      onChange(lo)
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      onChange(hi)
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <FieldLabel>
           {label}
@@ -110,25 +154,41 @@ export function DurationRangeSlider({
         </span>
       </div>
       {helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{helpText}</span>}
-      <div dir="ltr">
-        <input
-          type="range"
-          min={lo}
-          max={hi}
-          step={step}
-          value={current}
+      <div className="px-2.5" style={{ direction: 'ltr' }}>
+        <div
+          ref={trackRef}
+          className="relative h-8 cursor-ew-resize touch-none select-none outline-none focus-visible:rounded-full focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+          style={{ direction: 'ltr' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          onKeyDown={onKeyDown}
+          role="slider"
+          tabIndex={0}
           aria-label={label}
           aria-valuemin={lo}
           aria-valuemax={hi}
           aria-valuenow={current}
           aria-valuetext={`${current} ثانیه`}
-          onChange={e => onChange(clampStepped(Number(e.target.value), lo, hi, step))}
-          className="nivo-range-slider w-full cursor-pointer"
-          style={{
-            background: `linear-gradient(to right, #10b981 0%, #34d399 ${pct}%, rgba(148,163,184,0.22) ${pct}%, rgba(148,163,184,0.22) 100%)`,
-          }}
-        />
-        <div className="mt-1 flex items-center justify-between text-[10.5px] font-bold tabular-nums" style={{ color: '#64748b' }}>
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full"
+            style={{ background: 'rgba(148,163,184,0.22)' }}
+          />
+          <div
+            className="pointer-events-none absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full"
+            style={{ left: 0, width: `${pct}%`, background: 'linear-gradient(90deg,#10b981,#34d399)' }}
+          />
+          <div
+            className="pointer-events-none absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow"
+            style={{ left: `${pct}%`, background: '#fff', borderColor: '#10b981' }}
+          />
+        </div>
+        <div
+          className="mt-0.5 flex items-center justify-between text-[10.5px] font-bold tabular-nums"
+          style={{ direction: 'ltr', color: '#64748b' }}
+        >
           <span>{lo}ث</span>
           <span>{hi}ث</span>
         </div>
