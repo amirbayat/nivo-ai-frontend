@@ -32,7 +32,6 @@ export function StudioComposer({
   sending,
   selectedCreativePrompt,
   onClearCreativePrompt,
-  onOpenPromptLibrary,
   onGenerateCreative,
   onCreativeSubmitStart,
   onCreativeSubmitEnd,
@@ -224,7 +223,6 @@ export function StudioComposer({
     if (failed > 0) useToastStore.getState().addToast(fa.chat.imageProcessFailed(failed))
   }
 
-  const promptLibraryLabel = selectedCreativePrompt ? 'تغییر سبک' : 'پرامپت آماده'
   // خلاصه‌ی نوار جمع‌شده‌ی موبایل — همان چیزی که کاربر تایپ کرده، یا وضعیت سبک/پلیس‌هولدر
   const collapsedSummary =
     value || (selectedCreativePrompt ? `سبک: ${selectedCreativePrompt.title}` : 'چه تصویری می‌خوای بسازی؟')
