@@ -505,7 +505,8 @@ export function StudioComposer({
                 </svg>
                 افزودن عکس
               </button>
-              <button
+              {/* «پرامپت آماده» فعلاً کامنت شده — کار کاملی روش انجام نشده (درخواست کاربر) */}
+              {/* <button
                 type="button"
                 onClick={onOpenPromptLibrary}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold text-slate-100"
@@ -515,7 +516,7 @@ export function StudioComposer({
                   <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" />
                 </svg>
                 {promptLibraryLabel}
-              </button>
+              </button> */}
               <button
                 type="button"
                 onClick={() => setReviewOpen(true)}
