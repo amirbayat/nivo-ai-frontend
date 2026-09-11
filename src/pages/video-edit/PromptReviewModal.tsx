@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useVideoPromptReview, type PromptReviewReferenceAsset } from '@/queries/videoEdit.queries'
 import { extractErrorMessage } from './VideoStudioFieldWidgets'
 
@@ -48,6 +50,16 @@ function SendIcon({ className }: { className?: string }) {
 function toRawAssistantContent(m: Extract<ChatMsg, { role: 'assistant' }>): string {
   if (m.suggestedPrompt == null) return m.critique
   return `${m.critique}\n${SUGGESTION_MARKER}\n${m.suggestedPrompt}`
+}
+
+// پرامپت نهایی که در فیلد اصلی جای می‌گیرد باید متن ساده باشد — اگر مدل با وجود دستور سیستم‌پرامپت
+// باز هم تاکید مارک‌داون گذاشت، این‌جا پاک می‌شود تا `**`/`_` خام وارد پرامپت واقعی تولید ویدیو نشود
+function stripMarkdownEmphasis(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
 }
 
 export function PromptReviewModal({
@@ -185,16 +197,20 @@ export function PromptReviewModal({
             }
             return (
               <div key={i} className="flex flex-col gap-2.5">
-                <p className="text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">{m.critique}</p>
+                <div className="ai-content text-sm leading-relaxed text-slate-200">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.critique}</ReactMarkdown>
+                </div>
                 {m.suggestedPrompt && (
                   <div
                     className="flex flex-col gap-2.5 rounded-2xl p-4"
                     style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(167,139,250,0.35)' }}
                   >
                     <span className="text-[11px] font-bold" style={{ color: '#c4b5fd' }}>پیشنهاد پرامپت بهتر</span>
-                    <p className="text-sm leading-relaxed text-slate-100 whitespace-pre-wrap">{m.suggestedPrompt}</p>
+                    <div className="ai-content text-sm leading-relaxed text-slate-100">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.suggestedPrompt}</ReactMarkdown>
+                    </div>
                     <button
-                      onClick={() => apply(m.suggestedPrompt!)}
+                      onClick={() => apply(stripMarkdownEmphasis(m.suggestedPrompt!))}
                       className="self-start rounded-full px-4 py-2 text-[13px] font-bold"
                       style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: '#f5f3ff' }}
                     >
