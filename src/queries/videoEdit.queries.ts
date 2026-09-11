@@ -160,3 +160,17 @@ export function useCreateVideoEditSession() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoEdit.sessions() }),
   })
 }
+
+// docs/PRD-video-prompt-coach.md — «بررسی پرامپت»: stateless روی سرور، رایگان (بدون کسر
+// کیف‌پول)، کل تاریخچه‌ی مودال هر بار از کلاینت فرستاده می‌شود
+export type PromptReviewReferenceAsset = { type: 'image' | 'video' | 'audio'; key: string }
+
+export function useVideoPromptReview() {
+  return useMutation({
+    mutationFn: (payload: {
+      referenceAssets?: PromptReviewReferenceAsset[]
+      messages: { role: 'user' | 'assistant'; content: string }[]
+    }) =>
+      api.post<{ critique: string; suggestedPrompt: string | null }>('/video-edit/prompt-review', payload).then(r => r.data),
+  })
+}

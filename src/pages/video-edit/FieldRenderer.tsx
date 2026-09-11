@@ -44,21 +44,46 @@ function RequiredMark({ required }: { required: boolean }) {
 
 // ============================== text ==============================
 
+// docs/PRD-video-prompt-coach.md بخش ۴.۱ — آیکون sparkle بنفش، فقط روی فیلد mainPrompt
+function ReviewPromptButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="absolute flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold transition-opacity hover:opacity-90"
+      style={{ left: 10, bottom: 10, background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(167,139,250,0.30)', color: '#c4b5fd' }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" className="size-3.5">
+        <path
+          d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+      </svg>
+      بررسی پرامپت
+    </button>
+  )
+}
+
 function TextFieldWidget({
   field,
   value,
   onChange,
   required,
   invalid,
+  onReview,
 }: {
   field: TextField
   value: string | undefined
   onChange: (v: string) => void
   required: boolean
   invalid: boolean
+  onReview?: () => void
 }) {
   const val = value ?? ''
   const borderColor = invalid ? 'rgba(248,113,113,0.6)' : 'rgba(148,163,184,0.20)'
+  const showReview = onReview && field.semantic === 'mainPrompt'
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel>
@@ -67,15 +92,18 @@ function TextFieldWidget({
       </FieldLabel>
       {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
       {field.multiline ? (
-        <textarea
-          value={val}
-          onChange={e => onChange(e.target.value)}
-          maxLength={field.maxLength}
-          rows={4}
-          placeholder={field.placeholder}
-          className="w-full resize-none rounded-2xl p-3.5 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
-          style={{ background: 'rgba(0,0,0,0.20)', border: `1px solid ${borderColor}` }}
-        />
+        <div className="relative">
+          <textarea
+            value={val}
+            onChange={e => onChange(e.target.value)}
+            maxLength={field.maxLength}
+            rows={4}
+            placeholder={field.placeholder}
+            className="w-full resize-none rounded-2xl p-3.5 pb-11 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
+            style={{ background: 'rgba(0,0,0,0.20)', border: `1px solid ${borderColor}` }}
+          />
+          {showReview && <ReviewPromptButton onClick={onReview} />}
+        </div>
       ) : (
         <input
           value={val}
@@ -828,6 +856,7 @@ export function FieldRenderer({
   setFieldBusy,
   invalidFieldKey,
   schemaFields,
+  onReviewPrompt,
 }: {
   field: KieField
   values: FieldValues
@@ -835,6 +864,7 @@ export function FieldRenderer({
   setFieldBusy: (key: string, busy: boolean) => void
   invalidFieldKey: string | null
   schemaFields?: KieField[]
+  onReviewPrompt?: () => void
 }) {
   if (!isFieldVisible(field, values)) return null
   const invalid = invalidFieldKey === field.key
@@ -850,7 +880,16 @@ export function FieldRenderer({
 
   switch (field.type) {
     case 'text':
-      return <TextFieldWidget field={field} value={values[field.key] as string | undefined} onChange={v => setValue(field.key, v)} required={required} invalid={invalid} />
+      return (
+        <TextFieldWidget
+          field={field}
+          value={values[field.key] as string | undefined}
+          onChange={v => setValue(field.key, v)}
+          required={required}
+          invalid={invalid}
+          onReview={onReviewPrompt}
+        />
+      )
     case 'boolean':
       return <BooleanFieldWidget field={field} value={values[field.key] as boolean | undefined} onChange={v => setValue(field.key, v)} />
     case 'number':

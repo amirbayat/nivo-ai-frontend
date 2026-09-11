@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FieldRenderer } from './FieldRenderer'
+import { PromptReviewModal } from './PromptReviewModal'
+import { extractReferenceAssets } from './extractReferenceAssets'
 import { extractErrorMessage } from './VideoStudioFieldWidgets'
 import { evaluateCondition, isFieldRequired, isFieldVisible, isPresent } from './fieldConditions'
 import { useCreateVideoEditJob } from '@/queries/videoEdit.queries'
@@ -218,6 +220,7 @@ export function VideoStudioForm({
   const [busyFields, setBusyFields] = useState<Record<string, boolean>>({})
   const [invalidFieldKey, setInvalidFieldKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const createJob = useCreateVideoEditJob()
   const anyFieldBusy = Object.values(busyFields).some(Boolean)
@@ -322,6 +325,7 @@ export function VideoStudioForm({
               setFieldBusy={setFieldBusy}
               invalidFieldKey={invalidFieldKey}
               schemaFields={schema.fields}
+              onReviewPrompt={() => setReviewOpen(true)}
             />
           ))}
         </div>
@@ -342,6 +346,17 @@ export function VideoStudioForm({
             ? `بساز ویدیو · حدود ${fa.discover.creditCost(creditCost)}`
             : 'بساز ویدیو'}
       </button>
+
+      <PromptReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        initialPrompt={computePrompt(schema, values)}
+        initialReferenceAssets={extractReferenceAssets(schema, values)}
+        onApplyPrompt={p => {
+          const mainPromptField = schema.fields.find(f => f.type === 'text' && f.semantic === 'mainPrompt')
+          if (mainPromptField) setValue(mainPromptField.key, p)
+        }}
+      />
     </div>
   )
 }
