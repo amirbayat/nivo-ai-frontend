@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useKieVideoModels, useVideoEditSessions } from '@/queries/videoEdit.queries'
@@ -59,10 +59,10 @@ function SessionHistoryDrawer({
       />
       <div
         className={clsx(
-          'absolute inset-y-0 right-0 flex w-[340px] max-w-[85vw] flex-col overflow-hidden transition-transform duration-200',
-          open ? 'translate-x-0' : 'translate-x-full',
+          'absolute inset-y-0 left-0 flex w-[340px] max-w-[85vw] flex-col overflow-hidden transition-transform duration-200',
+          open ? 'translate-x-0' : '-translate-x-full',
         )}
-        style={{ background: '#080f1e', borderLeft: '1px solid rgba(148,163,184,0.16)' }}
+        style={{ background: '#080f1e', borderRight: '1px solid rgba(148,163,184,0.16)' }}
       >
         <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3.5 pt-5" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
           <span className="text-[14px] font-bold text-white">تاریخچه‌ی ویرایش ویدیو</span>
@@ -136,6 +136,7 @@ export function VideoStudioPage() {
   // گالری دیده بشه — دقیقاً همون الگوی ImageStudioPage.tsx (creatingSubmitting/isPending
   // به‌عنوان اولین آیتم گرید)، نه صبر برای رفت‌وبرگشت شبکه + رفرش session
   const [pendingSubmit, setPendingSubmit] = useState<{ prompt: string; mode: VideoEditMode } | null>(null)
+  const createdSessionRef = useRef<string | null>(null)
 
   const model = models?.find(m => m.id === selectedModelId) ?? models?.[0]
   const activeSession = sessions?.find(s => s.id === activeSessionId)
@@ -173,10 +174,17 @@ export function VideoStudioPage() {
   // اگه session فعال از لیست حذف/عوض شده باشه (مثلاً رفرش صفحه با یک session قدیمی که دیگه
   // معتبر نیست)، برنگرد به یه چیز نامعتبر — بذار همون «جلسه‌ی تازه» بمونه
   useEffect(() => {
-    if (activeSessionId && sessions && !sessions.some(s => s.id === activeSessionId)) {
-      setActiveSessionId(undefined)
-    }
+    if (!activeSessionId || !sessions) return
+    if (sessions.some(s => s.id === activeSessionId)) return
+    if (createdSessionRef.current === activeSessionId) return
+    setActiveSessionId(undefined)
   }, [sessions, activeSessionId])
+
+  useEffect(() => {
+    if (!pendingSubmit) return
+    const hasRealJob = activeSession?.jobs.some(j => j.id !== '__pending__')
+    if (hasRealJob) setPendingSubmit(null)
+  }, [activeSession, pendingSubmit])
 
   const formPanel = (
     <div className="flex flex-1 flex-col overflow-y-auto px-1 pb-6">
@@ -203,6 +211,7 @@ export function VideoStudioPage() {
             onSubmitStart={info => setPendingSubmit(info)}
             onSubmitEnd={() => setPendingSubmit(null)}
             onCreated={job => {
+              createdSessionRef.current = job.sessionId
               setActiveSessionId(job.sessionId)
               setMobileFormOpen(false)
             }}
@@ -214,6 +223,7 @@ export function VideoStudioPage() {
             onSubmitStart={info => setPendingSubmit(info)}
             onSubmitEnd={() => setPendingSubmit(null)}
             onCreated={job => {
+              createdSessionRef.current = job.sessionId
               setActiveSessionId(job.sessionId)
               setMobileFormOpen(false)
             }}
@@ -263,6 +273,7 @@ export function VideoStudioPage() {
           </button>
           <button
             onClick={() => {
+              createdSessionRef.current = null
               setActiveSessionId(undefined)
               setPendingSubmit(null)
             }}
@@ -344,11 +355,13 @@ export function VideoStudioPage() {
         sessions={sessions ?? []}
         activeSessionId={activeSessionId}
         onPick={id => {
+          createdSessionRef.current = null
           setActiveSessionId(id)
           setPendingSubmit(null)
           setHistoryOpen(false)
         }}
         onStartNew={() => {
+          createdSessionRef.current = null
           setActiveSessionId(undefined)
           setPendingSubmit(null)
           setHistoryOpen(false)

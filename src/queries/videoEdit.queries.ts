@@ -97,7 +97,38 @@ export function useCreateVideoEditJob() {
   return useMutation({
     mutationFn: (dto: CreateVideoEditJobDto) =>
       api.post<VideoEditJob>('/video-edit/jobs', dto).then(r => r.data),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.videoEdit.sessions() }),
+    onSuccess: job => {
+      qc.setQueryData<VideoEditSession[]>(keys.videoEdit.sessions(), old => {
+        if (!old) {
+          return [{
+            id: job.sessionId,
+            userId: job.userId,
+            title: job.prompt.slice(0, 40),
+            createdAt: job.createdAt,
+            jobs: [job],
+          }]
+        }
+        const idx = old.findIndex(s => s.id === job.sessionId)
+        if (idx >= 0) {
+          const session = old[idx]
+          if (session.jobs.some(j => j.id === job.id)) return old
+          const next = [...old]
+          next[idx] = { ...session, jobs: [job, ...session.jobs] }
+          return next
+        }
+        return [
+          {
+            id: job.sessionId,
+            userId: job.userId,
+            title: job.prompt.slice(0, 40),
+            createdAt: job.createdAt,
+            jobs: [job],
+          },
+          ...old,
+        ]
+      })
+      void qc.invalidateQueries({ queryKey: keys.videoEdit.sessions() })
+    },
   })
 }
 

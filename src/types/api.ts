@@ -561,6 +561,8 @@ export interface KieVideoModel {
   resolutions: string[]
   pricePerSecondUsdConfirmed: number | null
   pricingNote: string | null
+  estimatedCostPerSecondUsd?: number | null
+  estimatedCreditCostPerSecond?: number | null
   kieInputSchema: KieInputSchema
   supportsScenePreservingEdit: boolean
   fixedDurations: number[]

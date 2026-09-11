@@ -7,6 +7,7 @@ import {
   useUploadVideoEditVideo,
   useVideoEditPublicConfig,
 } from '@/queries/videoEdit.queries'
+import { fa } from '@/locales/fa'
 import type { KieVideoModel, VideoEditJob, VideoEditMode } from '@/types/api'
 
 // بازطراحی ۱۴۰۵/۰۶/۱۷ — طبق آرتیفکت جدید: یک فرم واحد (نه دو تب جدا)، چون تفاوت GENERATE/EDIT
@@ -392,6 +393,15 @@ export function VideoEditForm({
   const editEligible = model.supportsScenePreservingEdit
   const isEdit = mode === 'edit' && !!video && editEligible
   const maxWidth = model.maxVideoWindowSec ?? 10
+  const durationSec = video
+    ? isEdit
+      ? windowRange[1] - windowRange[0]
+      : Math.min(3, maxWidth)
+    : (model.fixedDurations[0] ?? publicConfig?.generateFixedDurationSec ?? 8)
+  const creditCost =
+    model.estimatedCreditCostPerSecond != null && durationSec > 0
+      ? Math.max(1, Math.round(model.estimatedCreditCostPerSecond * durationSec))
+      : null
   // فقط Omni واقعاً «یه بازه‌ی دلخواه از یه فایل طولانی‌تر» را پشتیبانی می‌کند (video_list با
   // start/end)؛ Seedance/Wan-VideoEdit کل کلیپ آپلودشده را ویرایش می‌کنند (بدون trim دلخواه) —
   // نشون‌دادن اسلایدر تریم برای آن‌ها گمراه‌کننده است، چون هرچی انتخاب کنی نادیده گرفته می‌شود
@@ -598,7 +608,11 @@ export function VideoEditForm({
           color: isEdit ? '#2b0410' : '#02170f',
         }}
       >
-        {busy ? (isEdit ? 'در حال ویرایش...' : 'در حال ساخت...') : isEdit ? 'ویرایش کن' : 'بساز ویدیو'}
+        {busy
+          ? (isEdit ? 'در حال ویرایش...' : 'در حال ساخت...')
+          : creditCost != null
+            ? `${isEdit ? 'ویرایش کن' : 'بساز ویدیو'} · حدود ${fa.discover.creditCost(creditCost)}`
+            : isEdit ? 'ویرایش کن' : 'بساز ویدیو'}
       </button>
     </div>
   )

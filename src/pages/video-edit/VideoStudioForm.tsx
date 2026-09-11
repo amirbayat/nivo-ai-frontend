@@ -3,6 +3,7 @@ import { FieldRenderer } from './FieldRenderer'
 import { extractErrorMessage } from './VideoStudioFieldWidgets'
 import { evaluateCondition, isFieldRequired, isFieldVisible, isPresent } from './fieldConditions'
 import { useCreateVideoEditJob } from '@/queries/videoEdit.queries'
+import { fa } from '@/locales/fa'
 import type { KieVideoModel, VideoEditJob, VideoEditMode } from '@/types/api'
 import type { ElementMemberValue, FieldValues, InputFieldsSchema, KieField, ShotValue, VideoFieldValue } from '@/types/inputFields'
 
@@ -152,6 +153,18 @@ function validateValues(schema: InputFieldsSchema, values: FieldValues): Validat
   return null
 }
 
+function resolveStudioDurationSec(schema: InputFieldsSchema, values: FieldValues): number {
+  const durationField = schema.fields.find(f => f.type === 'duration')
+  if (!durationField) return 4
+  const raw = values[durationField.key]
+  return typeof raw === 'number' ? raw : durationField.default
+}
+
+function videoCreditCost(perSecond: number | null | undefined, durationSec: number): number | null {
+  if (perSecond == null || durationSec <= 0) return null
+  return Math.max(1, Math.round(perSecond * durationSec))
+}
+
 function computePrompt(schema: InputFieldsSchema, values: FieldValues): string {
   const mainPromptField = schema.fields.find(f => f.type === 'text' && f.semantic === 'mainPrompt')
   if (mainPromptField) {
@@ -284,6 +297,8 @@ export function VideoStudioForm({
   }
 
   const groups = groupFields(schema)
+  const durationSec = resolveStudioDurationSec(schema, values)
+  const creditCost = videoCreditCost(model.estimatedCreditCostPerSecond, durationSec)
 
   return (
     <div
@@ -320,7 +335,11 @@ export function VideoStudioForm({
         className="w-full rounded-full py-3.5 text-[14.5px] font-bold transition-opacity disabled:opacity-50"
         style={{ background: 'linear-gradient(90deg,#10b981,#34d399)', color: '#02170f' }}
       >
-        {busy ? 'در حال ساخت...' : 'بساز ویدیو'}
+        {busy
+          ? 'در حال ساخت...'
+          : creditCost != null
+            ? `بساز ویدیو · حدود ${fa.discover.creditCost(creditCost)}`
+            : 'بساز ویدیو'}
       </button>
     </div>
   )
