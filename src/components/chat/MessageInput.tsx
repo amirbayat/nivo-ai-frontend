@@ -11,22 +11,13 @@ import { useCreditsBalance } from '@/queries/credits.queries'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
+import {
+  classifyAttachment,
+  composerAccept,
+  modelInputCaps,
+} from '@/lib/chat-attachments'
 import { ThinkingModeToggle } from './ThinkingModeToggle'
 import { WebSearchToggle } from './WebSearchToggle'
-
-// docs/PRD-chat-files-and-pdf.md بخش ۳.۴ — پسوندهای غیرعکس مجاز، دقیقاً معادل whitelist سمت
-// سرور (chat-file.validator.ts) — این‌جا فقط برای تشخیص «عکس یا سند» در handleFiles و ساخت
-// accept سمت کلاینت است؛ اعتبارسنجی واقعی (magic bytes) همیشه دوباره سمت سرور انجام می‌شود
-const DOC_EXTENSIONS = [
-  'pdf', 'docx', 'xlsx', 'txt', 'md', 'csv', 'js', 'jsx', 'ts', 'tsx', 'py',
-  'json', 'html', 'css', 'java', 'c', 'cpp', 'go', 'rb', 'php', 'sh', 'yaml', 'yml', 'xml', 'sql',
-]
-const DOC_ACCEPT = DOC_EXTENSIONS.map(e => `.${e}`).join(',')
-
-function extOf(filename: string): string {
-  const dot = filename.lastIndexOf('.')
-  return dot === -1 ? '' : filename.slice(dot + 1).toLowerCase()
-}
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -113,9 +104,15 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const MAX_SIZE_BYTES = (flags?.maxImageSizeMb ?? 8) * 1024 * 1024
   const MAX_FILES = flags?.maxFilesPerMessage ?? 3
   const MAX_FILE_SIZE_BYTES = (flags?.maxFileSizeMb ?? 10) * 1024 * 1024
+  const MAX_VIDEO_SIZE_BYTES = (flags?.maxVideoSizeMb ?? 12) * 1024 * 1024
+  const MAX_AUDIO_SIZE_BYTES = (flags?.maxAudioSizeMb ?? 10) * 1024 * 1024
 
   const { data: catalog } = useModelCatalog()
-  const { selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt } = useChatStore()
+  const { selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt, selectedModel } = useChatStore()
+  const inputCaps = useMemo(
+    () => modelInputCaps(selectedModel, catalog),
+    [selectedModel, catalog],
+  )
   const navigate = useNavigate()
   // مسیر نسبی (پرامپت‌های تازه‌استخراج‌شده‌ی خود کاربر) و URL مطلق (سبک‌های عمومیِ کاتالوگ) هر دو
   // با همین هوک کار می‌کنند — useAuthedImageUrl پشت سر هم آدرس عمومی یا احراز-هویت‌شده را می‌فچد
@@ -261,9 +258,11 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
   const handleFiles = async (fileList: FileList | null) => {
     if (!fileList) return
     const all = Array.from(fileList)
-    // بعضی فایل‌منیجرهای اندروید برای HEIC فیلد type را خالی می‌فرستند — اسم فایل هم چک می‌شود
-    const imageFiles = all.filter(f => f.type.startsWith('image/') || /\.hei[cf]$/i.test(f.name))
-    const docFiles = all.filter(f => !imageFiles.includes(f) && DOC_EXTENSIONS.includes(extOf(f.name)))
+    const imageFiles = all.filter(f => classifyAttachment(f) === 'image')
+    const docFiles = all.filter(f => classifyAttachment(f) === 'doc')
+    const videoFiles = all.filter(f => classifyAttachment(f) === 'video')
+    const audioFiles = all.filter(f => classifyAttachment(f) === 'audio')
+    const unknown = all.filter(f => classifyAttachment(f) === 'unknown')
 
     const remainingImages = MAX_IMAGES - images.length
     const imagesToProcess = imageFiles.slice(0, remainingImages)
@@ -278,20 +277,31 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
     if (imageResults.length) setImages(prev => [...prev, ...imageResults].slice(0, MAX_IMAGES))
 
     const remainingFiles = MAX_FILES - files.length
-    const docsToProcess = docFiles.slice(0, remainingFiles)
-    const fileResults: { data: string; filename: string; size: number }[] = []
+    const extraResults: { data: string; filename: string; size: number }[] = []
     let oversized = 0
-    for (const file of docsToProcess) {
-      if (file.size > MAX_FILE_SIZE_BYTES) { oversized++; continue }
+    let unsupported = 0
+
+    const pushFile = async (file: File, maxBytes: number, allowed: boolean) => {
+      if (!allowed) { unsupported++; return }
+      if (remainingFiles - extraResults.length <= 0) return
+      if (file.size > maxBytes) { oversized++; return }
       try {
-        fileResults.push({ data: await readAsDataUrl(file), filename: file.name, size: file.size })
+        extraResults.push({ data: await readAsDataUrl(file), filename: file.name, size: file.size })
       } catch { oversized++ }
     }
-    if (fileResults.length) setFiles(prev => [...prev, ...fileResults].slice(0, MAX_FILES))
+
+    for (const file of docFiles) await pushFile(file, MAX_FILE_SIZE_BYTES, true)
+    for (const file of videoFiles) await pushFile(file, MAX_VIDEO_SIZE_BYTES, inputCaps.video)
+    for (const file of audioFiles) await pushFile(file, MAX_AUDIO_SIZE_BYTES, inputCaps.audio)
+
+    if (extraResults.length) setFiles(prev => [...prev, ...extraResults].slice(0, MAX_FILES))
 
     if (fileRef.current) fileRef.current.value = ''
     if (failedImages > 0) useToastStore.getState().addToast(fa.chat.imageProcessFailed(failedImages))
     if (oversized > 0) useToastStore.getState().addToast(fa.chatFiles.tooLargeToast(flags?.maxFileSizeMb ?? 10))
+    if (unsupported > 0 || unknown.length > 0) {
+      useToastStore.getState().addToast(fa.chatFiles.unsupportedForModel)
+    }
   }
 
   const removeImage = (idx: number) => {
@@ -564,7 +574,7 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         <input
           ref={fileRef}
           type="file"
-          accept={`image/*,${DOC_ACCEPT}`}
+          accept={composerAccept(inputCaps)}
           multiple
           className="hidden"
           onChange={e => void handleFiles(e.target.files)}

@@ -11,6 +11,8 @@ interface FeatureFlags {
   // docs/PRD-chat-files-and-pdf.md بخش ۳
   maxFilesPerMessage: number
   maxFileSizeMb: number
+  maxVideoSizeMb: number
+  maxAudioSizeMb: number
 }
 
 export function useFeatureFlags() {
@@ -23,6 +25,7 @@ export function useFeatureFlags() {
       showDailyBudget: true, showMonthlyTokenUsage: true,
       maxImagesPerMessage: 4, maxImageSizeMb: 8,
       maxFilesPerMessage: 3, maxFileSizeMb: 10,
+      maxVideoSizeMb: 12, maxAudioSizeMb: 10,
     },
   })
 }

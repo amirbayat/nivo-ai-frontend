@@ -155,6 +155,22 @@ function WebSearchPill() {
   )
 }
 
+function VideoPill() {
+  return (
+    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-300">
+      فهم ویدیو
+    </span>
+  )
+}
+
+function FilePill() {
+  return (
+    <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] text-sky-300">
+      فایل
+    </span>
+  )
+}
+
 function ImageGenBadge() {
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-fuchsia-500/20 to-purple-600/20 px-2 py-0.5 text-[11px] font-medium text-fuchsia-300 ring-1 ring-fuchsia-500/30">
@@ -298,6 +314,8 @@ export function ModelsPage() {
             <ModelBadges badges={model.badges} />
             {model.supportsVision && <VisionPill />}
             {model.supportsWebSearch && <WebSearchPill />}
+            {model.supportsFileInput && <FilePill />}
+            {model.supportsVideoInput && <VideoPill />}
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
             {model.description || tierDescription(model.tier)}

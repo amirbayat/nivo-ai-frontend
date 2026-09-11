@@ -21,7 +21,10 @@ interface PendingMessage {
   images?: string[]
   imageModel?: string
   preserveFace?: boolean
+  files?: { data: string; filename: string }[]
 }
+
+let pendingFirstMessage: PendingMessage | null = null
 
 export function ChatPage() {
   const { id } = useParams<{ id?: string }>()
@@ -39,13 +42,12 @@ export function ChatPage() {
     images?: string[],
     imageModel?: string,
     preserveFace?: boolean,
+    files?: { data: string; filename: string }[],
   ) => {
     try {
+      pendingFirstMessage = { content, images, imageModel, preserveFace, files }
       const conv = await createConv.mutateAsync({ model: 'cost_optimized', projectId })
-      navigate(`/chat/${conv.id}`, {
-        state: { initialMessage: { content, images, imageModel, preserveFace } },
-        replace: true,
-      })
+      navigate(`/chat/${conv.id}`, { replace: true })
     } catch {
       // ignore — user can retype and retry
     }
@@ -76,15 +78,18 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
   const [creativeError, setCreativeError] = useState<string | null>(null)
 
   const pendingRef = useRef<PendingMessage | null>(
-    (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage ?? null,
+    pendingFirstMessage
+    ?? (location.state as { initialMessage?: PendingMessage } | null)?.initialMessage
+    ?? null,
   )
+  pendingFirstMessage = null
 
   useEffect(() => {
     const msg = pendingRef.current
     if (msg && !isLoading && data) {
       pendingRef.current = null
       window.history.replaceState({}, '')
-      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace)
+      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace, undefined, msg.files)
     }
   }, [isLoading, data, sendMessage])
 
@@ -224,7 +229,13 @@ function GeneratingCreativeBubble() {
 }
 
 function EmptyState({ onSend, isCreating }: {
-  onSend: (content: string, images?: string[], imageModel?: string, preserveFace?: boolean) => void
+  onSend: (
+    content: string,
+    images?: string[],
+    imageModel?: string,
+    preserveFace?: boolean,
+    files?: { data: string; filename: string }[],
+  ) => void
   isCreating: boolean
 }) {
   const navigate = useNavigate()

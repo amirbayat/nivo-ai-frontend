@@ -63,6 +63,7 @@ export const fa = {
       `حجم فایل نباید بیشتر از ${maxMb.toLocaleString('fa-IR')} مگابایت باشد`,
     tooManyToast: (max: number) => `حداکثر ${max.toLocaleString('fa-IR')} فایل در هر پیام`,
     remove: 'حذف فایل',
+    unsupportedForModel: 'این مدل این نوع فایل را نمی‌پذیرد — مدل دیگری انتخاب کن یا فایل دیگری بفرست',
   },
   credits: {
     title: 'شارژ اعتبار نیوو',

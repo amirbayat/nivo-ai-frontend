@@ -23,6 +23,9 @@ export interface ModelCatalogEntry {
   supportsImageGen: boolean
   // docs/PRD-chat-models-web-search-and-files.md §۳.۵
   supportsWebSearch: boolean
+  supportsFileInput: boolean
+  supportsVideoInput: boolean
+  supportsAudioInput: boolean
   sortOrder: number
   // docs/PRD-openrouter-migration.md §۱۳.۴/۱۴.۴ — صفحه‌ی انتخاب مدل بازطراحی‌شده
   description: string | null
