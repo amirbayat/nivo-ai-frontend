@@ -9,6 +9,7 @@ import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { resizeImage } from '@/components/chat/MessageInput'
 import { ProviderIcon } from '@/components/models/ProviderIcon'
 import { ModelPickerModal, type ModelPickerItem } from '@/components/models/ModelPickerModal'
+import { ImagePromptReviewModal } from './ImagePromptReviewModal'
 import { imageQualityLabel, tierDescription, TIER_COLOR } from '@/lib/model-catalog'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
@@ -103,6 +104,8 @@ export function StudioComposer({
   // مدال انتخاب مدل — روی هر دو دسکتاپ/موبایل همین مدال باز می‌شود (طبق دستور کاربر: «برای عکس
   // و متن هم عیناً همین شکلی بکن» که در ویدیو ساخته شده)، نه navigate به یک صفحه‌ی جدا
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
+  // مودال «بررسی پرامپت» (docs/PRD-image-prompt-coach.md)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const isTouchDevice = useIsTouchDevice()
@@ -513,6 +516,18 @@ export function StudioComposer({
                 </svg>
                 {promptLibraryLabel}
               </button>
+              <button
+                type="button"
+                onClick={() => setReviewOpen(true)}
+                disabled={!value.trim() && images.length === 0}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold disabled:opacity-40"
+                style={{ background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(167,139,250,0.30)', color: '#c4b5fd' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
+                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+                </svg>
+                بررسی پرامپت
+              </button>
             </div>
 
             <p className="text-center text-[11.5px]" style={{ color: '#64748b' }}>
@@ -550,6 +565,14 @@ export function StudioComposer({
         )}
         </div>
       </div>
+
+      <ImagePromptReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        initialPrompt={value}
+        initialReferenceImages={images}
+        onApplyPrompt={setValue}
+      />
 
       <ModelPickerModal
         open={modelPickerOpen}
