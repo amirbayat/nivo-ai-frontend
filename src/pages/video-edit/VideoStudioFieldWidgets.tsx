@@ -68,6 +68,75 @@ export function NumberField({
   )
 }
 
+function clampStepped(value: number, min: number, max: number, step: number): number {
+  const clamped = Math.min(max, Math.max(min, value))
+  const snapped = min + Math.round((clamped - min) / step) * step
+  return Math.min(max, Math.max(min, snapped))
+}
+
+export function DurationRangeSlider({
+  label,
+  helpText,
+  required,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+}: {
+  label: string
+  helpText?: string
+  required?: boolean
+  value: number
+  onChange: (v: number) => void
+  min: number
+  max: number
+  step?: number
+}) {
+  const lo = Math.min(min, max)
+  const hi = Math.max(min, max)
+  const current = clampStepped(value, lo, hi, step)
+  const pct = hi === lo ? 100 : ((current - lo) / (hi - lo)) * 100
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <FieldLabel>
+          {label}
+          {required && <span style={{ color: '#fb7185' }}> *</span>}
+        </FieldLabel>
+        <span className="text-[12px] font-bold tabular-nums" style={{ color: '#6ee7b7' }}>
+          {current} ثانیه
+        </span>
+      </div>
+      {helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{helpText}</span>}
+      <div dir="ltr">
+        <input
+          type="range"
+          min={lo}
+          max={hi}
+          step={step}
+          value={current}
+          aria-label={label}
+          aria-valuemin={lo}
+          aria-valuemax={hi}
+          aria-valuenow={current}
+          aria-valuetext={`${current} ثانیه`}
+          onChange={e => onChange(clampStepped(Number(e.target.value), lo, hi, step))}
+          className="nivo-range-slider w-full cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #10b981 0%, #34d399 ${pct}%, rgba(148,163,184,0.22) ${pct}%, rgba(148,163,184,0.22) 100%)`,
+          }}
+        />
+        <div className="mt-1 flex items-center justify-between text-[10.5px] font-bold tabular-nums" style={{ color: '#64748b' }}>
+          <span>{lo}ث</span>
+          <span>{hi}ث</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // معادل عمومی ResolutionPicker — همون زبان بصری، برای هر enum دلخواه (نه فقط رزولوشن)
 export function SegmentedPicker({
   options,
@@ -278,7 +347,15 @@ function ShotCard({
           </div>
         )}
       </div>
-      {durationField && (
+      {durationField && durationField.min != null && durationField.max != null ? (
+        <DurationRangeSlider
+          label="مدت این شات"
+          value={shot.durationSec ?? durationField.min}
+          onChange={v => onChange({ ...shot, durationSec: v })}
+          min={durationField.min}
+          max={durationField.max}
+        />
+      ) : durationField ? (
         <NumberField
           label="مدت این شات (ثانیه)"
           value={shot.durationSec}
@@ -286,7 +363,7 @@ function ShotCard({
           min={durationField.min}
           max={durationField.max}
         />
-      )}
+      ) : null}
     </div>
   )
 }
@@ -316,7 +393,13 @@ export function ShotListEditor({
 }) {
   function addShot() {
     if (shots.length >= maxShots) return
-    onChange([...shots, { prompt: '' }])
+    onChange([
+      ...shots,
+      {
+        prompt: '',
+        ...(durationField?.min != null ? { durationSec: durationField.min } : {}),
+      },
+    ])
   }
 
   return (

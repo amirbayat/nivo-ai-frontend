@@ -177,3 +177,58 @@ body {
   padding-right: 0.75em; margin: 0.75em 0;
   color: #94a3b8;
 }
+
+/* Single-thumb range (video duration, same idea as a price filter slider).
+   Native input stays for a11y/touch; the track fill is an inline gradient on the element.
+   dir="ltr" is set on the wrapper — WebKit range thumbs reverse under RTL. */
+.nivo-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  outline: none;
+  margin: 10px 0 2px;
+}
+.nivo-range-slider:focus-visible {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.28);
+}
+.nivo-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #10b981;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+.nivo-range-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #10b981;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+.nivo-range-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+.nivo-range-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+}
+.nivo-range-slider::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #10b981, #34d399);
+}
+@media (max-width: 767px) {
+  input.nivo-range-slider {
+    font-size: 16px !important;
+  }
+}

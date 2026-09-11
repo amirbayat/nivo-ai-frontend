@@ -4,6 +4,7 @@ import {
   AudioDropWell,
   AudioOutputToggleChip,
   ElementListEditor,
+  DurationRangeSlider,
   NumberField,
   SegmentedPicker,
   ShotListEditor,
@@ -197,13 +198,25 @@ function DurationFieldWidget({
 
   // وقتی مخفی می‌شه چیزی برای انتخاب کاربر نیست — بک‌اند خودش سنتینل/امیت را اعمال می‌کند، پس
   // نباید یه عدد ساختگی توی values بمونه
+  const rangeMin = field.range?.min
+  const rangeMax = field.range?.max
+
   useEffect(() => {
     if (hidden) {
       if (raw !== undefined) onChange(undefined)
-    } else if (typeof raw !== 'number') {
-      onChange(field.default)
+      return
     }
-  }, [hidden, raw, field.default])
+    if (typeof raw !== 'number') {
+      onChange(field.default)
+      return
+    }
+    if (rangeMin != null && rangeMax != null) {
+      const lo = Math.min(rangeMin, rangeMax)
+      const hi = Math.max(rangeMin, rangeMax)
+      const clamped = Math.min(hi, Math.max(lo, raw))
+      if (clamped !== raw) onChange(clamped)
+    }
+  }, [hidden, raw, field.default, rangeMin, rangeMax])
 
   if (hidden) return null
   const value = typeof raw === 'number' ? raw : field.default
@@ -222,14 +235,26 @@ function DurationFieldWidget({
     )
   }
 
+  if (rangeMin != null && rangeMax != null) {
+    return (
+      <DurationRangeSlider
+        label={field.label}
+        helpText={field.helpText}
+        required={field.required}
+        value={value}
+        onChange={onChange}
+        min={rangeMin}
+        max={rangeMax}
+      />
+    )
+  }
+
   return (
     <NumberField
       label={field.label}
       helpText={field.helpText}
       value={value}
       onChange={onChange}
-      min={field.range?.min}
-      max={field.range?.max}
     />
   )
 }
