@@ -321,6 +321,7 @@ export function VideoStudioForm({
               setValue={setValue}
               setFieldBusy={setFieldBusy}
               invalidFieldKey={invalidFieldKey}
+              schemaFields={schema.fields}
             />
           ))}
         </div>

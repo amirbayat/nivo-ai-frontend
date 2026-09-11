@@ -15,6 +15,7 @@ import {
 } from './VideoStudioFieldWidgets'
 import { evaluateCondition, isFieldRequired, isFieldVisible } from './fieldConditions'
 import { useUploadVideoEditAudio, useUploadVideoEditImage, useUploadVideoEditVideo } from '@/queries/videoEdit.queries'
+import { clampAspectRatioToOptions } from '@/lib/aspectRatio'
 import type {
   AudioField,
   BooleanField,
@@ -383,12 +384,14 @@ function VideoFieldWidget({
   onChange,
   setBusy,
   invalid,
+  onDetectedAspectRatio,
 }: {
   field: VideoField
   value: VideoFieldValue | undefined
   onChange: (v: VideoFieldValue | undefined) => void
   setBusy: (b: boolean) => void
   invalid: boolean
+  onDetectedAspectRatio?: (ratio: string) => void
 }) {
   const uploadVideo = useUploadVideoEditVideo()
   const [preview, setPreview] = useState<{ src: string; durationSec: number } | null>(null)
@@ -399,7 +402,7 @@ function VideoFieldWidget({
   async function pick(file: File) {
     setError(null)
     try {
-      const { key, durationSec } = await uploadVideo.mutateAsync({ file })
+      const { key, durationSec, aspectRatio } = await uploadVideo.mutateAsync({ file })
       setPreview({ src: URL.createObjectURL(file), durationSec })
       if (field.trim?.enabled) {
         const end = Math.min(durationSec, field.trim.maxWindowSec)
@@ -407,6 +410,7 @@ function VideoFieldWidget({
       } else {
         onChange({ key })
       }
+      if (aspectRatio) onDetectedAspectRatio?.(aspectRatio)
     } catch (err) {
       setError(extractErrorMessage(err, 'آپلود ویدیو ناموفق بود'))
     }
@@ -798,16 +802,26 @@ export function FieldRenderer({
   setValue,
   setFieldBusy,
   invalidFieldKey,
+  schemaFields,
 }: {
   field: KieField
   values: FieldValues
   setValue: (key: string, value: unknown) => void
   setFieldBusy: (key: string, busy: boolean) => void
   invalidFieldKey: string | null
+  schemaFields?: KieField[]
 }) {
   if (!isFieldVisible(field, values)) return null
   const invalid = invalidFieldKey === field.key
   const required = isFieldRequired(field, values)
+  const aspectField = schemaFields?.find(
+    (f): f is EnumField => f.type === 'enum' && f.semantic === 'aspectRatio',
+  )
+
+  function applyDetectedAspectRatio(detected: string) {
+    if (!aspectField) return
+    setValue(aspectField.key, clampAspectRatioToOptions(detected, aspectField.options.map(o => o.value)))
+  }
 
   switch (field.type) {
     case 'text':
@@ -825,7 +839,16 @@ export function FieldRenderer({
     case 'imageArray':
       return <ImageArrayFieldWidget field={field} value={(values[field.key] as string[] | undefined) ?? []} onChange={v => setValue(field.key, v)} setBusy={b => setFieldBusy(field.key, b)} />
     case 'video':
-      return <VideoFieldWidget field={field} value={values[field.key] as VideoFieldValue | undefined} onChange={v => setValue(field.key, v)} setBusy={b => setFieldBusy(field.key, b)} invalid={invalid} />
+      return (
+        <VideoFieldWidget
+          field={field}
+          value={values[field.key] as VideoFieldValue | undefined}
+          onChange={v => setValue(field.key, v)}
+          setBusy={b => setFieldBusy(field.key, b)}
+          invalid={invalid}
+          onDetectedAspectRatio={applyDetectedAspectRatio}
+        />
+      )
     case 'videoArray':
       return <VideoArrayFieldWidget field={field} value={(values[field.key] as string[] | undefined) ?? []} onChange={v => setValue(field.key, v)} setBusy={b => setFieldBusy(field.key, b)} />
     case 'audio':

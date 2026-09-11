@@ -421,8 +421,9 @@ export function VideoEditForm({
   async function pickVideo(file: File) {
     setError(null)
     try {
-      const { key, durationSec } = await uploadVideo.mutateAsync({ file })
+      const { key, durationSec, aspectRatio } = await uploadVideo.mutateAsync({ file })
       setVideo({ file, previewUrl: URL.createObjectURL(file), key, durationSec })
+      if (aspectRatio === '9:16' || aspectRatio === '16:9') setRatio(aspectRatio)
     } catch (err) {
       setError(extractErrorMessage(err, 'آپلود ویدیو ناموفق بود — فرمت باید mp4/mov باشد'))
     }
@@ -457,7 +458,7 @@ export function VideoEditForm({
             ? windowRange[1]
             : Math.min(3, maxWidth)
           : undefined,
-        aspectRatio: isEdit ? undefined : ratio,
+        aspectRatio: ratio,
         resolution,
       })
       setPrompt('')
@@ -581,7 +582,7 @@ export function VideoEditForm({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        {model.supportsAspectRatio && !isEdit && <RatioSegmented value={ratio} onChange={setRatio} />}
+        {model.supportsAspectRatio && <RatioSegmented value={ratio} onChange={setRatio} />}
         {/* وقتی ویدیوی مرجع داده شده، مدت زمان خروجی از خودِ ویدیو تبعیت می‌کنه (نه مقدار ثابت
             تولید) — پس نشون‌دادن مدت ثابت اینجا گمراه‌کننده‌ست */}
         {model.supportsDuration && !video && !isEdit && (

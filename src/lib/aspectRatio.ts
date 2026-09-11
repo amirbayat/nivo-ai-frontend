@@ -11,3 +11,17 @@ export function parseAspectRatio(input: string | null | undefined, fallback = 1)
   if (!w || !h) return fallback
   return w / h
 }
+
+export function snapDisplayAspectRatio(width: number, height: number): '9:16' | '16:9' | '1:1' {
+  if (height > width) return '9:16'
+  if (width > height) return '16:9'
+  return '1:1'
+}
+
+export function clampAspectRatioToOptions(detected: string, options: string[]): string {
+  if (options.length === 0) return detected
+  if (options.includes(detected)) return detected
+  if (options.includes('16:9')) return '16:9'
+  if (options.includes('9:16')) return '9:16'
+  return options[0]
+}

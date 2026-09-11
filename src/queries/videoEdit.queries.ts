@@ -49,12 +49,16 @@ export function useUploadVideoEditVideo() {
       const form = new FormData()
       form.append('file', file)
       return api
-        .post<{ key: string; durationSec: number }>('/video-edit/upload-video', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          onUploadProgress: e => {
-            if (onUploadProgress && e.total) onUploadProgress(Math.round((e.loaded / e.total) * 100))
+        .post<{ key: string; durationSec: number; width: number; height: number; aspectRatio: string }>(
+          '/video-edit/upload-video',
+          form,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: e => {
+              if (onUploadProgress && e.total) onUploadProgress(Math.round((e.loaded / e.total) * 100))
+            },
           },
-        })
+        )
         .then(r => r.data)
     },
   })
