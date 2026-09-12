@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
 import logoUrl from '@/assets/brand/horizontal-dark.svg'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 
 // Main entry for logged-in users and guests (router/index.tsx: HomeRoute).
 // Card order: video studio, image studio, chat, auto captions, Nivo Cal.
@@ -133,6 +134,8 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           onClick={() => track('nivo_cal_nav_clicked')}
         />
       </div>
+
+      <SiteFooter pricingHref="/landing#pricing" />
     </div>
   )
 }
