@@ -12,6 +12,6 @@ export function useImagePromptReview() {
       referenceImages?: string[]
       messages: { role: 'user' | 'assistant'; content: string }[]
     }) =>
-      api.post<{ critique: string; suggestedPrompt: string | null }>('/chat/prompt-review', payload).then(r => r.data),
+      api.post<{ critique: string; suggestedPrompt: string | null; expectedOutput: string | null }>('/chat/prompt-review', payload).then(r => r.data),
   })
 }

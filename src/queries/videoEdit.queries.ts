@@ -171,6 +171,6 @@ export function useVideoPromptReview() {
       referenceAssets?: PromptReviewReferenceAsset[]
       messages: { role: 'user' | 'assistant'; content: string }[]
     }) =>
-      api.post<{ critique: string; suggestedPrompt: string | null }>('/video-edit/prompt-review', payload).then(r => r.data),
+      api.post<{ critique: string; suggestedPrompt: string | null; expectedOutput: string | null }>('/video-edit/prompt-review', payload).then(r => r.data),
   })
 }

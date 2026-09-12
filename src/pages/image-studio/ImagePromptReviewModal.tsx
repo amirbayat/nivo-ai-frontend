@@ -10,10 +10,11 @@ import { extractErrorMessage } from '../video-edit/VideoStudioFieldWidgets'
 // (هیچ رکورد جدیدی در دیتابیس ساخته نمی‌شود).
 
 const SUGGESTION_MARKER = '---پیشنهاد نهایی---'
+const EXPECTED_OUTPUT_MARKER = '---خروجی مورد انتظار---'
 
 type ChatMsg =
   | { role: 'user'; text: string }
-  | { role: 'assistant'; critique: string; suggestedPrompt: string | null }
+  | { role: 'assistant'; critique: string; suggestedPrompt: string | null; expectedOutput: string | null }
   | { role: 'error'; text: string }
 
 function SparkleIcon({ className }: { className?: string }) {
@@ -49,7 +50,11 @@ function SendIcon({ className }: { className?: string }) {
 // به‌عنوان تاریخچه به بک‌اند برمی‌گردد، دقیقاً همان چیزی باشد که مدل قبلاً نوشته بود
 function toRawAssistantContent(m: Extract<ChatMsg, { role: 'assistant' }>): string {
   if (m.suggestedPrompt == null) return m.critique
-  return `${m.critique}\n${SUGGESTION_MARKER}\n${m.suggestedPrompt}`
+  let out = `${m.critique}\n${SUGGESTION_MARKER}\n${m.suggestedPrompt}`
+  if (m.expectedOutput != null) {
+    out += `\n${EXPECTED_OUTPUT_MARKER}\n${m.expectedOutput}`
+  }
+  return out
 }
 
 // پرامپت نهایی که در فیلد اصلی جای می‌گیرد باید متن ساده باشد — اگر مدل با وجود دستور سیستم‌پرامپت
@@ -95,7 +100,7 @@ export function ImagePromptReviewModal({
       { referenceImages, messages: payloadMessages },
       {
         onSuccess: res => {
-          setMessages(prev => [...prev, { role: 'assistant', critique: res.critique, suggestedPrompt: res.suggestedPrompt }])
+          setMessages(prev => [...prev, { role: 'assistant', critique: res.critique, suggestedPrompt: res.suggestedPrompt, expectedOutput: res.expectedOutput }])
         },
         onError: err => {
           setMessages(prev => [...prev, { role: 'error', text: extractErrorMessage(err, 'بررسی پرامپت الان جواب نداد، دوباره امتحان کن') }])
@@ -216,6 +221,17 @@ export function ImagePromptReviewModal({
                     >
                       استفاده از این پرامپت
                     </button>
+                  </div>
+                )}
+                {m.suggestedPrompt && m.expectedOutput && (
+                  <div
+                    className="flex flex-col gap-2 rounded-2xl p-4"
+                    style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(125,211,252,0.30)' }}
+                  >
+                    <span className="text-[11px] font-bold" style={{ color: '#7dd3fc' }}>خروجی مورد انتظار</span>
+                    <div className="ai-content text-sm leading-relaxed text-slate-200">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.expectedOutput}</ReactMarkdown>
+                    </div>
                   </div>
                 )}
               </div>
