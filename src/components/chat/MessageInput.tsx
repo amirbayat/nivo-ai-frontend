@@ -90,6 +90,8 @@ interface MessageInputProps {
   // برخلاف disabled، فقط دکمه‌ی ارسال (و Enter) را غیرفعال می‌کند — کاربر همچنان می‌تواند
   // در حین تولید پاسخ هوش مصنوعی تایپ کند و پیام بعدی‌اش را آماده کند
   sending?: boolean
+  // وقتی ست باشد و sending=true، دکمه‌ی ارسال به دکمه‌ی «توقف تولید پاسخ» تبدیل می‌شود
+  onStop?: () => void
   // وقتی selectedCreativePrompt (store) ست باشد، submit به‌جای onSend این را صدا می‌زند —
   // مسیر تولید دیسکاوری کاملاً جدا از استریم چت است (ChatPage.tsx: handleGenerateCreative).
   // imagePreviews (data URL) صرفاً برای نمایش فوری عکس کاربر به‌عنوان پیام واقعی توی خود
@@ -98,7 +100,7 @@ interface MessageInputProps {
   generatingCreative?: boolean
 }
 
-export function MessageInput({ onSend, disabled, sending, onGenerateCreative, generatingCreative }: MessageInputProps) {
+export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCreative, generatingCreative }: MessageInputProps) {
   const { data: flags } = useFeatureFlags()
   const MAX_IMAGES = flags?.maxImagesPerMessage ?? 4
   const MAX_SIZE_BYTES = (flags?.maxImageSizeMb ?? 8) * 1024 * 1024
@@ -634,18 +636,27 @@ export function MessageInput({ onSend, disabled, sending, onGenerateCreative, ge
         )}
 
         <button
-          onClick={submit}
-          disabled={!canSend}
+          onClick={sending ? onStop : submit}
+          disabled={sending ? !onStop : !canSend}
           className={clsx(
             'shrink-0 size-9 rounded-xl flex items-center justify-center transition-all',
-            canSend
-              ? 'bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:bg-emerald-600 active:scale-95'
-              : 'bg-slate-700 text-slate-500 cursor-not-allowed',
+            sending
+              ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 active:scale-95'
+              : canSend
+                ? 'bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:bg-emerald-600 active:scale-95'
+                : 'bg-slate-700 text-slate-500 cursor-not-allowed',
           )}
+          aria-label={sending ? 'توقف تولید پاسخ' : 'ارسال'}
         >
-          <svg viewBox="0 0 24 24" fill="none" className="size-4 rotate-180">
-            <path d="M12 4l8 8-8 8M4 12h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {sending ? (
+            <svg viewBox="0 0 24 24" fill="none" className="size-3.5">
+              <rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" className="size-4 rotate-180">
+              <path d="M12 4l8 8-8 8M4 12h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
         </button>
       </div>
 

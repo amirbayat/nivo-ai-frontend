@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { keys } from '@/queries/keys'
+import type { ConversationDetail } from '@/types/api'
 import { useConversation, useCreateConversation } from '@/queries/conversation.queries'
 import { useGenerateCreative } from '@/queries/discovery.queries'
 import { useChat } from '@/hooks/useChat'
@@ -69,7 +72,8 @@ export function ChatPage() {
 
 function ActiveChat({ conversationId, isStreaming }: { conversationId: string; isStreaming: boolean }) {
   const { data, isLoading } = useConversation(conversationId)
-  const { sendMessage } = useChat(conversationId)
+  const { sendMessage, abort } = useChat(conversationId)
+  const qc = useQueryClient()
   const navigate = useNavigate()
   const location = useLocation()
   const { selectedCreativePrompt, selectedModel } = useChatStore()
@@ -133,6 +137,19 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
     )
   }
 
+  // ویرایش‌وارسال‌مجدد پیام کاربر (MessageList.tsx) — پیام‌های بعد از این را از کش local هم
+  // حذف می‌کنیم (خوش‌بینانه)؛ sendMessage خودش پیام کاربر تازه را optimistic اضافه می‌کند و
+  // در finally بلوکش invalidate می‌زند تا تاریخچه‌ی واقعیِ truncate/regenerate-شده جایگزین شود
+  function handleEditMessage(messageId: string, newContent: string) {
+    if (!newContent.trim() || isStreaming) return
+    const idx = data?.messages.findIndex(m => m.id === messageId) ?? -1
+    if (idx === -1) return
+    qc.setQueryData<ConversationDetail>(keys.conv.detail(conversationId), old =>
+      old ? { ...old, messages: old.messages.slice(0, idx) } : old,
+    )
+    void sendMessage(newContent, undefined, undefined, undefined, undefined, undefined, messageId)
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -180,6 +197,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
 
       <MessageList
         messages={data.messages}
+        onEditMessage={handleEditMessage}
         extraContent={onImageClick =>
           virtualMessages.length > 0 || creativeError ? (
             <>
@@ -205,6 +223,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
       <MessageInput
         onSend={sendMessage}
         sending={isStreaming}
+        onStop={abort}
         onGenerateCreative={handleGenerateCreative}
         generatingCreative={generateCreative.isPending}
       />

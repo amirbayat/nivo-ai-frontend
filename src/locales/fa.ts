@@ -52,6 +52,7 @@ export const fa = {
     creditExhaustedForcedNano:
       'به‌دلیل عدم اعتبار کافی، پاسخ‌ها با مدل GPT-5.4 Nano داده می‌شود. برای استفاده از مدل انتخابی خودتان، نیوو شارژ کنید.',
     webSearchUnavailableNotice: 'این مدل جستجوی وب را پشتیبانی نمی‌کند — پاسخ بدون جستجو ادامه یافت',
+    responseInterruptedNotice: 'پاسخ متوقف شد',
     imageProcessFailed: (n: number) =>
       n === 1 ? 'یکی از عکس‌ها قابل پردازش نبود و اضافه نشد' : `${n.toLocaleString('fa-IR')} تا از عکس‌ها قابل پردازش نبودند و اضافه نشدند`,
     retry: 'تلاش دوباره',

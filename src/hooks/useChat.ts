@@ -27,6 +27,9 @@ export function useChat(conversationId: string) {
       preserveFace?: boolean,
       imageAspectRatio?: '1:1' | '16:9' | '9:16',
       files?: { data: string; filename: string }[],
+      // ویرایش‌وارسال‌مجدد — وقتی ست باشد، سرور آن پیام و همه‌ی پیام‌های بعدش را حذف و پاسخ
+      // تازه‌ای برای متن ویرایش‌شده تولید می‌کند (ChatPage.tsx: handleEditMessage)
+      editMessageId?: string,
     ) => {
       abortRef.current?.abort()
       const ctrl = new AbortController()
@@ -93,6 +96,7 @@ export function useChat(conversationId: string) {
               ...(imageAspectRatio ? { imageAspectRatio } : {}),
               ...(files?.length ? { files } : {}),
               ...(webSearchEnabled ? { webSearch: true } : {}),
+              ...(editMessageId ? { editMessageId } : {}),
               thinkingMode,
             }),
           },
@@ -253,9 +257,30 @@ export function useChat(conversationId: string) {
   )
 
   const abort = useCallback(() => {
+    // resetStreaming پایین‌تر هم‌زمان streamingContent را خالی می‌کند — بدون این snapshot،
+    // حباب پاسخ نیمه‌کاره یک لحظه کامل خالی می‌شد تا invalidateQueries (در finally بلوک
+    // sendMessage) نسخه‌ی واقعی ذخیره‌شده در DB را جایگزین کند
+    const { streamingContent, streamingSources } = useChatStore.getState()
+    if (streamingContent.trim()) {
+      qc.setQueryData<ConversationDetail>(keys.conv.detail(conversationId), old => {
+        if (!old) return old
+        const interrupted: Message = {
+          id: `interrupted-${Date.now()}`,
+          conversationId,
+          role: 'ASSISTANT',
+          content: streamingContent,
+          citations: streamingSources?.length ? streamingSources : null,
+          tokensInput: 0,
+          tokensOutput: 0,
+          wasInterrupted: true,
+          createdAt: new Date().toISOString(),
+        }
+        return { ...old, messages: [...old.messages, interrupted] }
+      })
+    }
     abortRef.current?.abort()
     resetStreaming()
-  }, [resetStreaming])
+  }, [conversationId, qc, resetStreaming])
 
   return { sendMessage, abort }
 }

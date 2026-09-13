@@ -332,6 +332,8 @@ export interface Message {
   createdAt: string
   // نکته: مدل واقعی پاسخ‌دهنده عمداً از API حذف شده — می‌تواند توسط مسیریاب مدل بی‌صدا override شده باشد
   feedback?: { vote: 'UP' | 'DOWN'; comment: string | null } | null
+  // دکمه‌ی «توقف تولید پاسخ» — true یعنی این پاسخ دستیار قبل از پایان طبیعی استریم نیمه‌کاره ذخیره شده
+  wasInterrupted?: boolean
 }
 
 export interface ConversationDetail extends Conversation {

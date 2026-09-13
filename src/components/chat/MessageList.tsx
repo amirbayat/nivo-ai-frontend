@@ -54,9 +54,12 @@ interface MessageListProps {
   // onImageClick لایت‌باکس داخلی این کامپوننت به عکس‌های داخل extraContent هم وصل شود —
   // وگرنه کلیک روی عکس تولیدشده‌ی یک سبک دیسکاوری هیچ‌کاری نمی‌کرد (نه بزرگ‌نمایی، نه دانلود)
   extraContent?: (onImageClick: (src: string) => void) => ReactNode
+  // ویرایش‌وارسال‌مجدد پیام کاربر — وقتی ست باشد، دکمه‌ی ویرایش کنار پیام‌های USER نشان داده
+  // می‌شود (ChatPage.tsx: handleEditMessage تاریخچه‌ی بعد از این پیام را truncate و پاسخ تازه می‌گیرد)
+  onEditMessage?: (messageId: string, newContent: string) => void
 }
 
-export function MessageList({ messages, extraContent }: MessageListProps) {
+export function MessageList({ messages, extraContent, onEditMessage }: MessageListProps) {
   const {
     streamingContent, isStreaming, isReasoning, reasoningText, chatError, chatErrorCode, isGeneratingImage,
     generatingImagePreview, streamingSources, webSearchUnavailable,
@@ -81,7 +84,14 @@ export function MessageList({ messages, extraContent }: MessageListProps) {
           attachments={msg.attachments}
           citations={msg.citations}
           feedback={msg.feedback}
+          wasInterrupted={msg.wasInterrupted}
           onImageClick={setLightboxSrc}
+          onEdit={
+            onEditMessage && msg.role === 'USER' && !msg.id.startsWith('opt-')
+              ? newContent => onEditMessage(msg.id, newContent)
+              : undefined
+          }
+          editDisabled={isStreaming || Boolean(msg.images?.length) || Boolean(msg.attachments?.length)}
         />
       ))}
 
@@ -321,6 +331,9 @@ export function MessageBubble({
   streaming,
   disableFeedback,
   onImageClick,
+  wasInterrupted,
+  onEdit,
+  editDisabled,
 }: {
   id?: string
   role: Message['role']
@@ -332,9 +345,30 @@ export function MessageBubble({
   streaming?: boolean
   disableFeedback?: boolean
   onImageClick?: (src: string) => void
+  // دکمه‌ی «توقف تولید پاسخ» — این پاسخ دستیار قبل از پایان طبیعی استریم نیمه‌کاره ذخیره شده
+  wasInterrupted?: boolean
+  // ویرایش‌وارسال‌مجدد — فقط پیام‌های USER؛ ست‌بودن این prop دکمه‌ی ویرایش را نشان می‌دهد
+  onEdit?: (newContent: string) => void
+  editDisabled?: boolean
 }) {
   const isUser = role === 'USER'
   const displayContent = isUser ? stripFileBlocks(content) : content
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(displayContent)
+
+  function startEdit() {
+    setDraft(displayContent)
+    setIsEditing(true)
+  }
+  function cancelEdit() {
+    setIsEditing(false)
+  }
+  function saveEdit() {
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    onEdit?.(trimmed)
+    setIsEditing(false)
+  }
 
   return (
     <div>
@@ -376,8 +410,50 @@ export function MessageBubble({
                 {attachments.map((a, i) => <FileChip key={i} filename={a.filename} />)}
               </div>
             )}
-            {displayContent}
-            {streaming && <span className="inline-block w-0.5 h-4 bg-emerald-400 animate-pulse mr-0.5" />}
+            {isEditing ? (
+              <div className="min-w-[200px]">
+                <textarea
+                  autoFocus
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  onInput={e => {
+                    const el = e.currentTarget
+                    el.style.height = 'auto'
+                    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      saveEdit()
+                    } else if (e.key === 'Escape') {
+                      cancelEdit()
+                    }
+                  }}
+                  rows={1}
+                  className="w-full resize-none bg-transparent text-sm text-emerald-50 placeholder:text-emerald-100/40 focus:outline-none leading-relaxed"
+                />
+                <div className="mt-2 flex items-center justify-end gap-1.5">
+                  <button
+                    onClick={cancelEdit}
+                    className="rounded-lg px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700/50 transition-colors"
+                  >
+                    لغو
+                  </button>
+                  <button
+                    onClick={saveEdit}
+                    disabled={!draft.trim()}
+                    className="rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ذخیره و ارسال
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {displayContent}
+                {streaming && <span className="inline-block w-0.5 h-4 bg-emerald-400 animate-pulse mr-0.5" />}
+              </>
+            )}
           </div>
         ) : (
           <div className="min-w-0 flex-1 text-sm leading-relaxed text-slate-100 ai-content">
@@ -417,13 +493,39 @@ export function MessageBubble({
               </ReactMarkdown>
             )}
             {citations && citations.length > 0 && <SourceChips sources={citations} />}
+            {wasInterrupted && (
+              <p className="mt-1.5 text-[11px] text-amber-400/70">{fa.chat.responseInterruptedNotice}</p>
+            )}
           </div>
         )}
       </div>
 
-      {!streaming && content && (
+      {!streaming && content && !isEditing && (
         <div className={clsx('mt-1.5 flex items-center gap-1', isUser ? 'justify-start pl-11' : 'pr-11')}>
           <MessageCopyButton text={displayContent} role={role} />
+          {isUser && onEdit && (
+            <button
+              onClick={startEdit}
+              disabled={editDisabled}
+              className={clsx(
+                'flex size-6 items-center justify-center rounded-md transition-colors',
+                editDisabled
+                  ? 'text-slate-700 cursor-not-allowed'
+                  : 'text-slate-600 hover:bg-slate-800 hover:text-slate-400',
+              )}
+              aria-label="ویرایش پیام"
+              title="ویرایش"
+            >
+              <svg viewBox="0 0 20 20" fill="none" className="size-3.5">
+                <path
+                  d="M11.5 3.5l5 5L6 19H1v-5l10.5-10.5z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       )}
 
