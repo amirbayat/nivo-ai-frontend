@@ -11,13 +11,21 @@ export function useDiscoveryCatalog(params: {
   outputType?: 'IMAGE' | 'TEXT'
   categoryId?: string
   sort?: DiscoverySort
+  // docs/PRD-daily-content-prompt-agent.md بخش ۷ — صفحه‌ی عمومی /prompts فقط پرامپت‌های
+  // کشف‌شده‌ی ایجنت را می‌خواهد، نه کل کاتالوگ CURATED ادمین
+  sourceType?: 'AGENT_DISCOVERED'
 }) {
   return useQuery({
-    queryKey: keys.discovery.catalog(params.outputType, params.categoryId, params.sort),
+    queryKey: keys.discovery.catalog(params.outputType, params.categoryId, params.sort, params.sourceType),
     queryFn: () =>
       api
         .get<CreativePromptCatalogItem[]>('/v2/discovery/catalog', {
-          params: { outputType: params.outputType, categoryId: params.categoryId, sort: params.sort },
+          params: {
+            outputType: params.outputType,
+            categoryId: params.categoryId,
+            sort: params.sort,
+            sourceType: params.sourceType,
+          },
         })
         .then(r => r.data),
   })

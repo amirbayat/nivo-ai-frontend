@@ -147,6 +147,9 @@ export interface CreativePromptCatalogItem {
   sortOrder: number
   hasSourceImage: boolean
   sourceImageAccuracyCreditCost: number
+  // فقط برای پرامپت‌های AGENT_DISCOVERED پر می‌شود — سبک‌های CURATED عمداً template را
+  // به فرانت لو نمی‌دهند (docs/PRD-daily-content-prompt-agent.md بخش ۷.۳)
+  userPromptTemplate?: string
 }
 
 // یک ردیف تاریخچه‌ی «تبدیل عکس به پرامپت» — همون CreativePromptCatalogItem + وضعیت بررسی ادمین،

@@ -121,6 +121,18 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           onClick={() => goToSection('/captions')}
         />
         <HubCard
+          title="پرامپت‌های روز"
+          description="هر روز چند پرامپت خوب از سراسر وب — عکس و ویدیو، آماده‌ی امتحان‌کردن."
+          accentColor="#38bdf8"
+          borderColor="rgba(14,165,233,0.28)"
+          glowColor="rgba(14,165,233,0.08)"
+          gradientColor="rgba(14,165,233,0.10)"
+          iconBg="rgba(14,165,233,0.16)"
+          iconColor="#38bdf8"
+          icon={<PromptsIcon />}
+          onClick={() => navigate('/prompts')}
+        />
+        <HubCard
           title="نیوو کالری"
           description="از غذات عکس بگیر تا کالری و مواد مغذیش رو دقیق ببینی."
           accentColor="#22d3ee"
@@ -226,6 +238,15 @@ function VideoEditIcon() {
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="5" width="15" height="14" rx="2.5" />
       <path d="M18 9.5l3.5-2v9L18 14.5" />
+    </svg>
+  )
+}
+
+function PromptsIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.6 4.7L18 9l-4.4 1.7L12 15l-1.6-4.3L6 9l4.4-1.3L12 3z" />
+      <path d="M18.5 15l.8 2.3L21.5 18l-2.2.9-.8 2.1-.8-2.1L16.5 18l2.2-.7.8-2.3z" />
     </svg>
   )
 }

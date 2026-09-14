@@ -25,8 +25,8 @@ export const keys = {
     detail: (id: string) => ['projects', 'detail', id] as const,
   },
   discovery: {
-    catalog: (outputType?: string, categoryId?: string, sort?: string) =>
-      ['discovery', 'catalog', outputType ?? 'all', categoryId ?? 'all', sort ?? 'default'] as const,
+    catalog: (outputType?: string, categoryId?: string, sort?: string, sourceType?: string) =>
+      ['discovery', 'catalog', outputType ?? 'all', categoryId ?? 'all', sort ?? 'default', sourceType ?? 'all'] as const,
     catalogItem: (id?: string) => ['discovery', 'catalog-item', id ?? 'none'] as const,
     categories: () => ['discovery', 'categories'] as const,
     gallery: (projectId?: string) => ['discovery', 'gallery', projectId ?? 'all'] as const,

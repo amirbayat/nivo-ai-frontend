@@ -11,6 +11,7 @@ import { CaptionStudioPage } from '@/pages/caption-studio/CaptionStudioPage'
 import { VideoStudioPage } from '@/pages/video-edit/VideoStudioPage'
 import { PricingPage } from '@/pages/pricing/PricingPage'
 import { DiscoverPage } from '@/pages/discover/DiscoverPage'
+import { PromptsPage } from '@/pages/prompts/PromptsPage'
 import { StudioLinkPage } from '@/pages/discover/StudioLinkPage'
 import { ProjectsPage } from '@/pages/projects/ProjectsPage'
 import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage'
@@ -131,6 +132,9 @@ export function AppRouter() {
           DiscoverPage خودش بر اساس access_token شاخه می‌زند (ساخت Conversation واقعی
           فقط برای کاربر لاگین‌شده) */}
       <Route path="/discover" element={<DiscoverPage />} />
+      {/* بخش عمومی «پرامپت‌های روز» — docs/PRD-daily-content-prompt-agent.md بخش ۷، بدون
+          ProtectedRoute، هم‌الگوی /discover و /studio */}
+      <Route path="/prompts" element={<PromptsPage />} />
       {/* دیپ‌لینک عمومی یک سبک استودیو — nivoai.ir/studio?id=... — بدون ProtectedRoute،
           خودش بر اساس access_token شاخه می‌زند (StudioLinkPage) */}
       <Route path="/studio" element={<StudioLinkPage />} />
