@@ -298,8 +298,6 @@ function StudioWorkspace({ id }: { id?: string }) {
           <span className="text-[17px] font-bold text-white">{data?.title || 'تولید و ویرایش عکس'}</span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2.5">
-          {/* روی موبایل نوار سراسری خود ChatLayout همین نشان اعتبار را بالای هر صفحه‌ای
-              نشان می‌دهد (ChatLayout.tsx، نوار sm:hidden) — تکرارش اینجا فقط روی sm:+ */}
           <div className="hidden sm:contents">
             <PlanUpgradeBadge />
           </div>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useKieVideoModels, useVideoEditSessions } from '@/queries/videoEdit.queries'
-import { useCreditsBalance } from '@/queries/credits.queries'
+import { WalletBalanceBadge } from '@/components/chat/WalletBalanceBadge'
 import { VideoEditForm } from './VideoEditForms'
 import { VideoStudioForm } from './VideoStudioForm'
 import { VideoEditGallery } from './VideoEditGallery'
@@ -125,7 +125,6 @@ export function VideoStudioPage() {
   const navigate = useNavigate()
   const { data: models } = useKieVideoModels()
   const { data: sessions } = useVideoEditSessions()
-  const { data: balance } = useCreditsBalance()
   const [mobileFormOpen, setMobileFormOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
@@ -256,13 +255,9 @@ export function VideoStudioPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
-          {balance && (
-            <div className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] sm:flex" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.30)' }}>
-              <span style={{ color: '#94a3b8' }}>اعتبار شما:</span>
-              <span className="font-bold" style={{ color: '#6ee7b7' }}>{balance.credits.toLocaleString('fa-IR')}</span>
-              <span style={{ color: '#94a3b8' }}>نیوو</span>
-            </div>
-          )}
+          <div className="hidden sm:contents">
+            <WalletBalanceBadge />
+          </div>
           <button
             onClick={() => setHistoryOpen(true)}
             title="تاریخچه‌ی جلسه‌ها"
