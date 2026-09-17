@@ -45,6 +45,23 @@ interface ChatState {
   // studioDraftImages، این یک «تنظیم» شبیه انتخاب مدل است، نه یک پیوست یک‌بارمصرف — پس در
   // resetStudioDraft پاک نمی‌شود و بین پیام‌های پشت‌سرهم باقی می‌ماند
   studioDraftAspectRatio: ImageAspectRatio | null
+  // docs: مدال انتخاب مدل تولید عکس قبل از اولین بار تولید — وقتی بک‌اند implicit تشخیص می‌دهد
+  // کاربر عکس می‌خواهد ولی هنوز مدل پیش‌فرضی pin نشده، رویداد SSE «image-model-choice-needed»
+  // پیام را همین‌جا نگه می‌دارد تا MessageInput مدال را باز کند؛ null یعنی مدالی در انتظار نیست
+  pendingImageChoice: {
+    content: string
+    images?: string[]
+    files?: { data: string; filename: string }[]
+    preserveFace?: boolean
+    imageAspectRatio?: ImageAspectRatio
+    editMessageId?: string
+    isEdit: boolean
+  } | null
+  // «انتخاب مدل تولید عکس» (خودکار یا مدل مشخص) حداقل یک‌بار از مدال pendingImageChoice تأیید
+  // شده — تا این true نشده، selectedImageGenModel=null نمی‌تواند «کاربر آگاهانه auto را
+  // خواسته» را از «هنوز هیچ‌وقت پرسیده نشده» تشخیص دهد؛ بعد از این true شدن، چت دیگر برای
+  // پیام‌های implicit بعدی دوباره مدال باز نمی‌کند (حتی وقتی انتخاب نهایی هم «خودکار» بوده)
+  imageGenDefaultConfirmed: boolean
   setSelectedConvId: (id: string | null) => void
   setStreamingContent: (text: string) => void
   appendStreamingContent: (chunk: string) => void
@@ -67,6 +84,8 @@ interface ChatState {
   setStudioDraftPreserveFace: (v: boolean) => void
   setStudioDraftAspectRatio: (v: ImageAspectRatio | null) => void
   resetStudioDraft: () => void
+  setPendingImageChoice: (v: ChatState['pendingImageChoice']) => void
+  setImageGenDefaultConfirmed: (v: boolean) => void
 }
 
 export const useChatStore = create<ChatState>(set => ({
@@ -99,6 +118,8 @@ export const useChatStore = create<ChatState>(set => ({
   studioDraftImages: [],
   studioDraftPreserveFace: true,
   studioDraftAspectRatio: null,
+  pendingImageChoice: null,
+  imageGenDefaultConfirmed: typeof window !== 'undefined' && localStorage.getItem('nivo:imageGenDefaultConfirmed') === 'true',
 
   setSelectedConvId: id => set({ selectedConvId: id }),
   setStreamingContent: text => set({ streamingContent: text }),
@@ -134,4 +155,9 @@ export const useChatStore = create<ChatState>(set => ({
   setStudioDraftPreserveFace: v => set({ studioDraftPreserveFace: v }),
   setStudioDraftAspectRatio: v => set({ studioDraftAspectRatio: v }),
   resetStudioDraft: () => set({ studioDraftValue: '', studioDraftImages: [], studioDraftPreserveFace: true }),
+  setPendingImageChoice: v => set({ pendingImageChoice: v }),
+  setImageGenDefaultConfirmed: v => {
+    localStorage.setItem('nivo:imageGenDefaultConfirmed', String(v))
+    set({ imageGenDefaultConfirmed: v })
+  },
 }))

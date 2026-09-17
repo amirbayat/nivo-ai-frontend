@@ -16,7 +16,7 @@ export function useChat(conversationId: string) {
     appendStreamingContent, setIsStreaming, setIsReasoning, appendReasoningText,
     resetStreaming, setChatError, selectedModel, setIsGeneratingImage,
     setGeneratingImagePreview, thinkingMode, webSearchEnabled,
-    setStreamingSources, setWebSearchUnavailable,
+    setStreamingSources, setWebSearchUnavailable, setPendingImageChoice,
   } = useChatStore()
 
   const sendMessage = useCallback(
@@ -30,6 +30,13 @@ export function useChat(conversationId: string) {
       // ویرایش‌وارسال‌مجدد — وقتی ست باشد، سرور آن پیام و همه‌ی پیام‌های بعدش را حذف و پاسخ
       // تازه‌ای برای متن ویرایش‌شده تولید می‌کند (ChatPage.tsx: handleEditMessage)
       editMessageId?: string,
+      // docs/PRD-chat-images.md — سوییچ صریح: true یعنی «کاربر مدل تولید عکس را از مدال تأیید
+      // کرد، مستقیم تولید کن»، false یعنی «کاربر مدال را رد کرد، implicit دوباره چک نشود».
+      // undefined (پیش‌فرض) یعنی رفتار قبلی: تشخیص implicit سمت بک‌اند خودش انجام شود
+      generateImage?: boolean,
+      // وقتی این پیام دومین‌بار (بعد از مدال انتخاب مدل) دوباره فرستاده می‌شود، حباب کاربر از
+      // همان دفعه‌ی اول روی صفحه مانده — دوباره optimistic اضافه نکن (پیام تکراری نشان داده نشود)
+      skipOptimisticAppend?: boolean,
     ) => {
       abortRef.current?.abort()
       const ctrl = new AbortController()
@@ -38,42 +45,50 @@ export function useChat(conversationId: string) {
       resetStreaming()
       setChatError(null)
       setIsStreaming(true)
+      setPendingImageChoice(null)
       // اینجا هنوز نمی‌دانیم این پیام قرار است عکس تولید کند یا نه — تشخیص کاملاً سمت بک‌اند
       // است (classifyImageIntent)؛ setIsGeneratingImage با رویداد SSE «image-generation-started»
       // (پایین‌تر) روشن می‌شود، همین که سرور خودش تشخیص داد
 
-      // فقط متادیتا — متن واقعی پیام هرگز به events-backend فرستاده نمی‌شود
-      track('message_sent', {
-        conversationId,
-        model: selectedModel,
-        imageModel,
-        thinkingMode,
-        contentLength: content.length,
-        imageCount: images?.length ?? 0,
-        fileCount: files?.length ?? 0,
-        webSearch: webSearchEnabled,
-      })
+      // اگر implicit تشخیص وسط راه بگوید «اول از کاربر مدل بپرس» (رویداد image-model-choice-needed
+      // پایین‌تر)، سرور هنوز چیزی ذخیره نکرده — پس نباید کش مکالمه را invalidate کنیم، وگرنه
+      // حباب optimistic پیام کاربر (که همین بالا اضافه می‌شود) ناپدید می‌شود
+      let awaitingImageChoice = false
 
-      // Optimistic: add user message to cache immediately so it shows before the stream starts.
-      // فایل‌های پیوست‌شده هنوز key واقعی MinIO ندارند (بعد از آپلود سمت سرور مشخص می‌شود) —
-      // چیپ فقط بر اساس filename نشان داده می‌شود تا invalidate پایان استریم واقعی‌اش را جایگزین کند
-      qc.setQueryData<ConversationDetail>(keys.conv.detail(conversationId), old => {
-        if (!old) return old
-        const optimistic: Message = {
-          id: `opt-${Date.now()}`,
+      if (!skipOptimisticAppend) {
+        // فقط متادیتا — متن واقعی پیام هرگز به events-backend فرستاده نمی‌شود
+        track('message_sent', {
           conversationId,
-          role: 'USER',
-          content,
-          images: images ?? null,
-          attachments: files?.length
-            ? files.map(f => ({ key: '', filename: f.filename, mime: '' }))
-            : null,
-          tokensInput: 0,
-          tokensOutput: 0,
-          createdAt: new Date().toISOString(),
-        }
-        return { ...old, messages: [...old.messages, optimistic] }
-      })
+          model: selectedModel,
+          imageModel,
+          thinkingMode,
+          contentLength: content.length,
+          imageCount: images?.length ?? 0,
+          fileCount: files?.length ?? 0,
+          webSearch: webSearchEnabled,
+        })
+
+        // Optimistic: add user message to cache immediately so it shows before the stream starts.
+        // فایل‌های پیوست‌شده هنوز key واقعی MinIO ندارند (بعد از آپلود سمت سرور مشخص می‌شود) —
+        // چیپ فقط بر اساس filename نشان داده می‌شود تا invalidate پایان استریم واقعی‌اش را جایگزین کند
+        qc.setQueryData<ConversationDetail>(keys.conv.detail(conversationId), old => {
+          if (!old) return old
+          const optimistic: Message = {
+            id: `opt-${Date.now()}`,
+            conversationId,
+            role: 'USER',
+            content,
+            images: images ?? null,
+            attachments: files?.length
+              ? files.map(f => ({ key: '', filename: f.filename, mime: '' }))
+              : null,
+            tokensInput: 0,
+            tokensOutput: 0,
+            createdAt: new Date().toISOString(),
+          }
+          return { ...old, messages: [...old.messages, optimistic] }
+        })
+      }
 
       try {
         const token = localStorage.getItem('access_token')
@@ -97,6 +112,7 @@ export function useChat(conversationId: string) {
               ...(files?.length ? { files } : {}),
               ...(webSearchEnabled ? { webSearch: true } : {}),
               ...(editMessageId ? { editMessageId } : {}),
+              ...(typeof generateImage === 'boolean' ? { generateImage } : {}),
               thinkingMode,
             }),
           },
@@ -150,9 +166,21 @@ export function useChat(conversationId: string) {
                 image?: string
                 messageId?: string
                 sources?: { url: string; title: string }[]
+                isEdit?: boolean
               }
               if (parsed.chunk) appendStreamingContent(parsed.chunk)
               if (parsed.error) setChatError(parsed.error, parsed.code ?? null)
+              // docs/PRD-chat-images.md — implicit تشخیص داد کاربر عکس می‌خواهد ولی هنوز مدل
+              // پیش‌فرضی pin نشده؛ سرور همین‌جا استریم را بدون تولید/ذخیره تمام کرده، پس این
+              // پیام هنوز واقعاً ارسال نشده — MessageInput با pendingImageChoice مدال را باز
+              // می‌کند و بعد از انتخاب کاربر دوباره sendMessage را صدا می‌زند
+              if (parsed.info === 'image-model-choice-needed') {
+                awaitingImageChoice = true
+                setPendingImageChoice({
+                  content, images, files, preserveFace, imageAspectRatio, editMessageId,
+                  isEdit: parsed.isEdit ?? false,
+                })
+              }
               // اگر تولید عکس با toggle صریح فرانت شروع نشده باشد (تشخیص ضمنی سمت سرور)، فرانت
               // تا همین لحظه خبر نداشت این پیام قراره عکس تولید کند — این اولین علامتیه که می‌رسه
               if (parsed.info === 'image-generation-started') {
@@ -242,7 +270,11 @@ export function useChat(conversationId: string) {
         setIsStreaming(false)
         setIsGeneratingImage(false)
         setGeneratingImagePreview(null)
-        void qc.invalidateQueries({ queryKey: keys.conv.detail(conversationId) })
+        // اگر منتظر انتخاب مدل هستیم، سرور هیچ‌چیزی ذخیره نکرده — invalidate نکن وگرنه حباب
+        // optimistic پیام کاربر (که هنوز واقعاً نرفته) از کش پاک می‌شود
+        if (!awaitingImageChoice) {
+          void qc.invalidateQueries({ queryKey: keys.conv.detail(conversationId) })
+        }
         void qc.invalidateQueries({ queryKey: keys.conv.list() })
         void qc.invalidateQueries({ queryKey: keys.usage.today() })
         // کارت هدیه هم همین‌جا invalidate می‌شود — trial ممکنه دقیقاً همین پیام به پایان رسیده

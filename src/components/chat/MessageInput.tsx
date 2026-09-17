@@ -18,6 +18,8 @@ import {
 } from '@/lib/chat-attachments'
 import { ThinkingModeToggle } from './ThinkingModeToggle'
 import { WebSearchToggle } from './WebSearchToggle'
+import { ModelPickerModal } from '@/components/models/ModelPickerModal'
+import { buildImageGenModelPickerItems, persistImageGenModelChoice } from '@/lib/imageGenModelPicker'
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -85,6 +87,12 @@ interface MessageInputProps {
     preserveFace?: boolean,
     imageAspectRatio?: '1:1' | '16:9' | '9:16',
     files?: { data: string; filename: string }[],
+    editMessageId?: string,
+    // docs/PRD-chat-images.md — true بعد از تأیید مدال انتخاب مدل (اجباراً تولید کن)، false
+    // بعد از انصراف از مدال (implicit دوباره چک نشود)، undefined یعنی رفتار قبلی implicit
+    generateImage?: boolean,
+    // این ارسال، تکرار همان پیامی است که حبابش از قبل روی صفحه هست (بعد از مدال انتخاب مدل)
+    skipOptimisticAppend?: boolean,
   ) => void
   disabled?: boolean
   // برخلاف disabled، فقط دکمه‌ی ارسال (و Enter) را غیرفعال می‌کند — کاربر همچنان می‌تواند
@@ -110,7 +118,11 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
   const MAX_AUDIO_SIZE_BYTES = (flags?.maxAudioSizeMb ?? 10) * 1024 * 1024
 
   const { data: catalog } = useModelCatalog()
-  const { selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt, selectedModel } = useChatStore()
+  const {
+    selectedImageGenModel, selectedCreativePrompt, setSelectedCreativePrompt, selectedModel,
+    setSelectedImageGenModel, pendingImageChoice, setPendingImageChoice,
+    imageGenDefaultConfirmed, setImageGenDefaultConfirmed,
+  } = useChatStore()
   const inputCaps = useMemo(
     () => modelInputCaps(selectedModel, catalog),
     [selectedModel, catalog],
@@ -128,9 +140,51 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
     return (catalog ?? []).filter(m => m.supportsImageGen)
   }, [catalog])
   const pinnedImageGenModel = imageGenModels.find(m => m.name === selectedImageGenModel)
+  // وقتی کاربر قبلاً یک‌بار مدال انتخاب مدل را جواب داده (حتی با انتخاب «خودکار»)، دیگر implicit
+  // نباید دوباره بپرسد — چون selectedImageGenModel=null هم برای «هنوز نپرسیده» و هم برای «خودکار
+  // را آگاهانه انتخاب کرده» استفاده می‌شود، این پرچم دومی را از اولی جدا می‌کند (chat.store.ts)
+  const imageModelForSend = pinnedImageGenModel?.name ?? (imageGenDefaultConfirmed ? 'auto' : undefined)
   // docs/PRD-image-gen-pricing-and-credit-fix.md بخش D/E — فقط نمایشی، در تصمیم‌گیری preflight
   // بک‌اند دخالتی ندارد (بخش ۲.۴). در حالت «auto» (بدون مدل پین‌شده) هیچ عددی نشون داده نمی‌شه
   const { data: creditsBalance } = useCreditsBalance()
+
+  // docs/PRD-chat-images.md — مدال انتخاب مدل تولید عکس. دو حالت باز می‌شود: (۱) implicit
+  // تشخیص داد کاربر عکس می‌خواهد ولی هنوز دیفالتی pin نشده (pendingImageChoice از useChat.ts)،
+  // (۲) کاربر خودش خواست دیفالتش را عوض کند (چیپ «مدل تولید عکس» پایین‌تر)
+  const [manualModelPickerOpen, setManualModelPickerOpen] = useState(false)
+  const modelPickerItems = useMemo(() => buildImageGenModelPickerItems(imageGenModels), [imageGenModels])
+  // ModelPickerModal روی انتخاب کارت، هم onSelect هم onClose را پشت‌سرهم صدا می‌زند
+  // (ModelPickerModal.tsx:162) — بدون این ref، انتخاب یک مدل واقعی هم confirm هم decline را
+  // اجرا می‌کرد (یک پیام دوبار، یکی با generateImage:true یکی false). با انتخاب/انصراف true
+  // می‌شود تا فراخوانی دوم (از خودِ onClose) بی‌اثر بماند؛ با هر pendingImageChoice تازه ریست می‌شود
+  const choiceHandledRef = useRef(false)
+  useEffect(() => {
+    if (pendingImageChoice) choiceHandledRef.current = false
+  }, [pendingImageChoice])
+
+  function confirmImageModelChoice(model: string | null) {
+    if (!pendingImageChoice || choiceHandledRef.current) return
+    choiceHandledRef.current = true
+    persistImageGenModelChoice(model, setSelectedImageGenModel, 'chat_first_use')
+    setImageGenDefaultConfirmed(true)
+    const p = pendingImageChoice
+    setPendingImageChoice(null)
+    onSend(
+      p.content, p.images, model ?? undefined, p.preserveFace, p.imageAspectRatio, p.files,
+      p.editMessageId, true, true,
+    )
+  }
+
+  function declineImageModelChoice() {
+    if (!pendingImageChoice || choiceHandledRef.current) return
+    choiceHandledRef.current = true
+    const p = pendingImageChoice
+    setPendingImageChoice(null)
+    onSend(
+      p.content, p.images, undefined, p.preserveFace, p.imageAspectRatio, p.files,
+      p.editMessageId, false, true,
+    )
+  }
 
   const [value, setValue] = useState('')
   const [images, setImages] = useState<string[]>([])
@@ -216,16 +270,18 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
     }
     if (!trimmed && !images.length && !files.length) return
     if (images.length) {
-      track('image_gen_requested', { model: pinnedImageGenModel?.name, hasSourceImages: true })
+      track('image_gen_requested', { model: imageModelForSend, hasSourceImages: true })
     }
     // imageModel همیشه پاس داده می‌شود (چه عکسی ضمیمه باشد چه نه) — تشخیص اینکه این پیام واقعاً
     // باید عکس تولید/ویرایش کند یا صرفاً چت/تحلیل معمولی است، کاملاً سمت بک‌اند انجام می‌شود
     // (classifyImageIntent در chat.service.ts)، نه اینجا. imageAspectRatio اینجا استفاده نمی‌شود
-    // (undefined)، فقط جایگاهش قبل از files حفظ می‌شود (توضیح بالای MessageInputProps.onSend)
+    // (undefined)، فقط جایگاهش قبل از files حفظ می‌شود (توضیح بالای MessageInputProps.onSend).
+    // imageModelForSend خالی می‌ماند فقط وقتی هنوز هیچ‌وقت مدال انتخاب مدل جواب داده نشده — همان
+    // لحظه‌ای که بک‌اند implicit ممکن است بپرسد (chat.service.ts، رویداد image-model-choice-needed)
     onSend(
       trimmed,
       images.length ? images : undefined,
-      pinnedImageGenModel?.name,
+      imageModelForSend,
       preserveFace,
       undefined,
       files.length ? files.map(({ data, filename }) => ({ data, filename })) : undefined,
@@ -632,6 +688,22 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
           <div className="flex items-center gap-1">
             <ThinkingModeToggle disabled={disabled} />
             <WebSearchToggle disabled={disabled} />
+            {/* دستور صریح کاربر — راهی که هر وقت خواست دیفالت مدل تولید عکس چت را عوض کند،
+                نه فقط اولین‌بار (که مدال pendingImageChoice خودکار باز می‌شود) */}
+            <button
+              type="button"
+              onClick={() => setManualModelPickerOpen(true)}
+              disabled={disabled}
+              title="مدل تولید عکس"
+              className="flex items-center gap-1 rounded-full border border-slate-700/60 px-2 py-1 text-[11px] text-slate-400 transition-colors hover:bg-slate-800/40 hover:text-slate-200 disabled:opacity-50"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                <path d="M21 15l-5-5-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="max-w-[80px] truncate">{pinnedImageGenModel?.displayName ?? 'خودکار'}</span>
+            </button>
           </div>
         )}
 
@@ -663,6 +735,42 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
       <p className="mt-1.5 text-center text-[11px] text-slate-600">
         {isTouchDevice ? 'برای ارسال، دکمه‌ی ارسال را بزنید' : 'Enter برای ارسال · Shift+Enter برای خط جدید'}
       </p>
+
+      {/* implicit تشخیص داد این پیام عکس می‌خواهد و هنوز دیفالتی pin نشده — قبل از تولید، مدل
+          را از کاربر می‌پرسیم (docs/PRD-chat-images.md) */}
+      <ModelPickerModal
+        open={Boolean(pendingImageChoice)}
+        onClose={declineImageModelChoice}
+        items={modelPickerItems}
+        selectedKey={selectedImageGenModel ?? '__auto__'}
+        onSelect={key => confirmImageModelChoice(key === '__auto__' ? null : key)}
+        title="با کدام مدل عکس بسازیم؟"
+        subtitle="انتخابت به‌عنوان پیش‌فرض ذخیره می‌شود؛ هر وقت خواستی از همین‌جا عوضش کن"
+        footer={
+          <button
+            type="button"
+            onClick={declineImageModelChoice}
+            className="mt-3 w-full rounded-2xl border border-slate-700/60 py-2.5 text-center text-[12.5px] font-semibold text-slate-400 hover:bg-slate-800/40"
+          >
+            نه، این پیام عکس نبود
+          </button>
+        }
+      />
+
+      {/* راهی برای عوض‌کردن دیفالت هر وقت که کاربر خواست، نه فقط اولین بار */}
+      <ModelPickerModal
+        open={manualModelPickerOpen}
+        onClose={() => setManualModelPickerOpen(false)}
+        items={modelPickerItems}
+        selectedKey={selectedImageGenModel ?? '__auto__'}
+        onSelect={key => {
+          persistImageGenModelChoice(key === '__auto__' ? null : key, setSelectedImageGenModel, 'chat_composer_chip')
+          setImageGenDefaultConfirmed(true)
+          setManualModelPickerOpen(false)
+        }}
+        title="مدل تولید عکس"
+        subtitle="این مدل برای درخواست‌های تولید/ویرایش عکس در همین چت استفاده می‌شود"
+      />
     </div>
   )
 }
