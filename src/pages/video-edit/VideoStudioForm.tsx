@@ -41,6 +41,13 @@ function validateValues(schema: InputFieldsSchema, values: FieldValues): Validat
     if (!isPresent(raw)) continue
 
     switch (field.type) {
+      case 'text': {
+        const s = raw as string
+        if (field.maxLength != null && s.length > field.maxLength) {
+          return { fieldKey: field.key, message: `فیلد «${field.label}» حداکثر ${field.maxLength} کاراکتر می‌پذیرد` }
+        }
+        break
+      }
       case 'number': {
         const n = raw as number
         if (typeof n !== 'number' || Number.isNaN(n)) {
@@ -134,6 +141,9 @@ function validateValues(schema: InputFieldsSchema, values: FieldValues): Validat
         }
         for (const shot of arr) {
           if (!shot.prompt) return { fieldKey: field.key, message: 'پرامپت همه‌ی شات‌ها اجباری است' }
+          if (field.shotPromptField.maxLength != null && shot.prompt.length > field.shotPromptField.maxLength) {
+            return { fieldKey: field.key, message: `پرامپت هر شات حداکثر ${field.shotPromptField.maxLength} کاراکتر می‌پذیرد` }
+          }
         }
         break
       }
