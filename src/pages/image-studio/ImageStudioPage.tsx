@@ -28,7 +28,6 @@ interface PendingMessage {
   content: string
   images?: string[]
   imageModel?: string
-  preserveFace?: boolean
   imageAspectRatio?: '1:1' | '16:9' | '9:16'
 }
 
@@ -39,7 +38,6 @@ interface PendingCreative {
   userInput: string
   inputImageKeys?: string[]
   imagePreviews?: string[]
-  preserveFace?: boolean
 }
 
 export function ImageStudioPage() {
@@ -90,7 +88,7 @@ function StudioWorkspace({ id }: { id?: string }) {
       // با LLM) نیست؛ صریحاً generateImage:true می‌فرستیم تا هم آن تماس اضافه/کند حذف شود، هم
       // پیام‌هایی که کلاسیفایر اشتباهی «متن معمولی» تشخیص می‌داد درست به تولید عکس بروند
       void sendMessage(
-        msg.content, msg.images, msg.imageModel, msg.preserveFace, msg.imageAspectRatio,
+        msg.content, msg.images, msg.imageModel, undefined, msg.imageAspectRatio,
         undefined, undefined, true,
       )
     }
@@ -106,20 +104,19 @@ function StudioWorkspace({ id }: { id?: string }) {
     content: string,
     images?: string[],
     imageModel?: string,
-    preserveFace?: boolean,
     imageAspectRatio?: '1:1' | '16:9' | '9:16',
   ) => {
-    lastSendRef.current = { content, images, imageModel, preserveFace, imageAspectRatio }
+    lastSendRef.current = { content, images, imageModel, imageAspectRatio }
     if (id) {
       // همان استدلال بالا (pendingRef effect) — این صفحه همیشه یعنی «تولید/ویرایش عکس»،
       // implicit classifier سمت بک‌اند لازم نیست
-      void sendMessage(content, images, imageModel, preserveFace, imageAspectRatio, undefined, undefined, true)
+      void sendMessage(content, images, imageModel, undefined, imageAspectRatio, undefined, undefined, true)
       return
     }
     try {
       const conv = await createConv.mutateAsync({ model: 'cost_optimized' })
       navigate(`/image/${conv.id}`, {
-        state: { initialMessage: { content, images, imageModel, preserveFace, imageAspectRatio } },
+        state: { initialMessage: { content, images, imageModel, imageAspectRatio } },
         replace: true,
       })
     } catch {
@@ -129,7 +126,7 @@ function StudioWorkspace({ id }: { id?: string }) {
 
   function retrySend() {
     const last = lastSendRef.current
-    if (last) void handleSend(last.content, last.images, last.imageModel, last.preserveFace, last.imageAspectRatio)
+    if (last) void handleSend(last.content, last.images, last.imageModel, last.imageAspectRatio)
   }
 
   // فقط تلاش تولید را دوباره می‌زند (بدون افزودن حباب پیام کاربر تازه) — برای دکمه‌ی «تلاش دوباره»
@@ -141,7 +138,6 @@ function StudioWorkspace({ id }: { id?: string }) {
         userInput: pending.userInput || undefined,
         inputImageKeys: pending.inputImageKeys,
         conversationId: convId,
-        preserveFace: pending.preserveFace,
       },
       {
         onSuccess: result => {
@@ -199,16 +195,15 @@ function StudioWorkspace({ id }: { id?: string }) {
     userInput: string,
     inputImageKeys?: string[],
     imagePreviews?: string[],
-    preserveFace?: boolean,
   ) => {
     if (id) {
-      runGenerateCreative(id, { promptId, userInput, inputImageKeys, imagePreviews, preserveFace })
+      runGenerateCreative(id, { promptId, userInput, inputImageKeys, imagePreviews })
       return
     }
     try {
       const conv = await createConv.mutateAsync({ model: 'cost_optimized' })
       navigate(`/image/${conv.id}`, {
-        state: { initialCreative: { promptId, userInput, inputImageKeys, imagePreviews, preserveFace } },
+        state: { initialCreative: { promptId, userInput, inputImageKeys, imagePreviews } },
         replace: true,
       })
     } catch {

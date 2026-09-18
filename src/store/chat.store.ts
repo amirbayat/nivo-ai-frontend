@@ -40,7 +40,6 @@ interface ChatState {
   // useState محلی همان کامپوننت بودند، با هر تغییر مدل، متن/عکس‌های تایپ‌شده پاک می‌شدند
   studioDraftValue: string
   studioDraftImages: string[]
-  studioDraftPreserveFace: boolean
   // انتخاب اختیاری نسبت تصویر — null یعنی «پیش‌فرض مدل» (رفتار قبلی، بدون override). برخلاف
   // studioDraftImages، این یک «تنظیم» شبیه انتخاب مدل است، نه یک پیوست یک‌بارمصرف — پس در
   // resetStudioDraft پاک نمی‌شود و بین پیام‌های پشت‌سرهم باقی می‌ماند
@@ -81,7 +80,6 @@ interface ChatState {
   setSelectedCreativePrompt: (prompt: CreativePromptCatalogItem | null) => void
   setStudioDraftValue: (value: string) => void
   setStudioDraftImages: (images: string[] | ((prev: string[]) => string[])) => void
-  setStudioDraftPreserveFace: (v: boolean) => void
   setStudioDraftAspectRatio: (v: ImageAspectRatio | null) => void
   resetStudioDraft: () => void
   setPendingImageChoice: (v: ChatState['pendingImageChoice']) => void
@@ -116,7 +114,6 @@ export const useChatStore = create<ChatState>(set => ({
   selectedCreativePrompt: null,
   studioDraftValue: '',
   studioDraftImages: [],
-  studioDraftPreserveFace: true,
   studioDraftAspectRatio: null,
   pendingImageChoice: null,
   imageGenDefaultConfirmed: typeof window !== 'undefined' && localStorage.getItem('nivo:imageGenDefaultConfirmed') === 'true',
@@ -152,9 +149,8 @@ export const useChatStore = create<ChatState>(set => ({
   setStudioDraftImages: images => set(s => ({
     studioDraftImages: typeof images === 'function' ? images(s.studioDraftImages) : images,
   })),
-  setStudioDraftPreserveFace: v => set({ studioDraftPreserveFace: v }),
   setStudioDraftAspectRatio: v => set({ studioDraftAspectRatio: v }),
-  resetStudioDraft: () => set({ studioDraftValue: '', studioDraftImages: [], studioDraftPreserveFace: true }),
+  resetStudioDraft: () => set({ studioDraftValue: '', studioDraftImages: [] }),
   setPendingImageChoice: v => set({ pendingImageChoice: v }),
   setImageGenDefaultConfirmed: v => {
     localStorage.setItem('nivo:imageGenDefaultConfirmed', String(v))

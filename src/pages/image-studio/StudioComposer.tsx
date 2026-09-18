@@ -45,7 +45,6 @@ export function StudioComposer({
     content: string,
     images?: string[],
     imageModel?: string,
-    preserveFace?: boolean,
     imageAspectRatio?: ImageAspectRatio,
   ) => void
   disabled?: boolean
@@ -54,7 +53,7 @@ export function StudioComposer({
   // از مسیر generateCreative استفاده می‌کند — دقیقاً همان مکانیزمی که MessageInput.tsx برای چت دارد
   selectedCreativePrompt?: CreativePromptCatalogItem | null
   onClearCreativePrompt?: () => void
-  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[], preserveFace?: boolean) => void
+  onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[]) => void
   // فقط روی موبایل معنا دارد — کنترل مدال تمام‌صفحه‌ی «ساخت عکس» از بیرون (ImageStudioPage) تا
   // باکس/pill سبز نئون گالری هم بتواند همین مدال را باز کند، نه یک مدال جدا
   mobileExpanded: boolean
@@ -95,8 +94,6 @@ export function StudioComposer({
   const setValue = useChatStore(s => s.setStudioDraftValue)
   const images = useChatStore(s => s.studioDraftImages)
   const setImages = useChatStore(s => s.setStudioDraftImages)
-  const preserveFace = useChatStore(s => s.studioDraftPreserveFace)
-  const setPreserveFace = useChatStore(s => s.setStudioDraftPreserveFace)
   const aspectRatio = useChatStore(s => s.studioDraftAspectRatio)
   const setAspectRatio = useChatStore(s => s.setStudioDraftAspectRatio)
   const resetStudioDraft = useChatStore(s => s.resetStudioDraft)
@@ -164,11 +161,6 @@ export function StudioComposer({
       (!selectedCreativePrompt.requiresUserImage || images.length > 0)
     : (value.trim() || images.length > 0) && !disabled && !sending
 
-  // سوییچ «حفظ چهره» فقط وقتی معنا دارد که عکسی برای حفظ چهره در آن وجود داشته باشد؛ برای
-  // سبک‌های کتابخانه که خودشان صراحتاً به عکس کاربر نیاز دارند (مثل پروفایل‌ها) هم باید در
-  // دسترس باشد، نه فقط در حالت «بدون سبک انتخابی»
-  const showPreserveFace = images.length > 0 && (!selectedCreativePrompt || selectedCreativePrompt.requiresUserImage)
-
   const submit = async () => {
     if (!canSend) return
     if (selectedCreativePrompt) {
@@ -181,7 +173,7 @@ export function StudioComposer({
         const inputImageKeys = images.length
           ? await Promise.all(images.map(src => uploadDiscoveryImage.mutateAsync(src).then(r => r.key)))
           : undefined
-        onGenerateCreative?.(selectedCreativePrompt.id, value.trim(), inputImageKeys, images.length ? images : undefined, preserveFace)
+        onGenerateCreative?.(selectedCreativePrompt.id, value.trim(), inputImageKeys, images.length ? images : undefined)
         resetStudioDraft()
         closeMobileModal()
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -193,7 +185,7 @@ export function StudioComposer({
     }
     // چند خروجی هم‌زمان هنوز سمت بک‌اند پشتیبانی نمی‌شود (docs/EXECUTION-PLAN.md، سوال باز) —
     // فعلاً همیشه دقیقاً ۱ خروجی ساخته می‌شود، بدون هیچ گزینه‌ای در UI (چون چیزی برای انتخاب نیست)
-    onSend(value.trim(), images.length ? images : undefined, pinnedModel?.name, preserveFace, aspectRatio ?? undefined)
+    onSend(value.trim(), images.length ? images : undefined, pinnedModel?.name, aspectRatio ?? undefined)
     resetStudioDraft()
     closeMobileModal()
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -393,28 +385,8 @@ export function StudioComposer({
             </div>
           )}
 
-          {showPreserveFace && (
-            <label className="mt-1 mb-2 flex items-center gap-2 text-xs text-slate-300">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={preserveFace}
-                onClick={() => setPreserveFace(!preserveFace)}
-                className={clsx(
-                  'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
-                  preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
-                )}
-                style={{ direction: 'ltr' }}
-              >
-                <span className={clsx('inline-block size-3.5 rounded-full bg-white transition-transform', preserveFace ? 'translate-x-[18px]' : 'translate-x-[3px]')} />
-              </button>
-              <span>حفظ چهره</span>
-            </label>
-          )}
-
           {/* نسبت تصویر — اختیاری، نخواستن (پیش‌فرض «خودکار») یعنی رفتار قبلی، بدون override
-              روی سایز مدل انتخابی. برخلاف preserveFace، همیشه در دسترس است چون هم برای تولید
-              از صفر هم برای ویرایش معنا دارد. */}
+              روی سایز مدل انتخابی */}
           <div className="mt-1 mb-2 flex items-center gap-1.5 self-start rounded-full p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.18)' }}>
             {(
               [
