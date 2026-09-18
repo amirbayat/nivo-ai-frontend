@@ -402,41 +402,59 @@ function StudioWorkspace({ id }: { id?: string }) {
           )}
 
           {!galleryHasContent ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              {/* ورودی اصلی «انتخاب مرجع/سبک» وقتی گالری خالیه — قاب سبز نئون پررنگ + تپش، طبق
-                  دیزاین‌کنوس (قبلاً همین محتوا بدون قاب/کلیک بود و پیدا کردنش سخت بود). دقیقاً
-                  همون مدال «ساخت عکس» را باز می‌کند که نوار جمع‌شده‌ی composer باز می‌کند — نه یک
-                  مدال جدا (قبلاً به‌اشتباه کتابخانه‌ی سبک‌های آماده را باز می‌کرد) */}
-              <button
-                type="button"
-                onClick={() => setComposerExpanded(true)}
-                className="nivo-box-glow flex w-[250px] flex-col items-center gap-3.5 rounded-[28px] px-6 py-8 text-center"
-                style={{ border: '3px solid #10b981', background: 'radial-gradient(circle at 50% 28%, rgba(16,185,129,0.16), rgba(16,185,129,0.03))' }}
-              >
-                <div className="relative size-[58px]">
-                  <div
-                    className="flex size-[58px] items-center justify-center rounded-full"
-                    style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: '#6ee7b7' }}
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
-                    </svg>
-                  </div>
-                  <div
-                    className="absolute -bottom-0.5 -left-0.5 flex size-[22px] items-center justify-center rounded-full"
-                    style={{ background: '#10b981', border: '2px solid #020C18', color: '#02170f' }}
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </div>
+            <>
+              {/* دسکتاپ: پنل کامل composer همیشه کنارش باز است، نیازی به CTA جدا نیست — همون
+                  پلیس‌هولدر ساده‌ی قبلی */}
+              <div className="hidden flex-col items-center justify-center gap-3.5 py-16 text-center sm:flex">
+                <div
+                  className="flex size-16 items-center justify-center rounded-[20px]"
+                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: '#34d399' }}
+                >
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
+                  </svg>
                 </div>
-                <p className="text-[17.5px] font-extrabold" style={{ color: '#ecfdf5' }}>اینجا را انتخاب کنید</p>
-                <p className="text-[12.5px] leading-relaxed" style={{ color: 'rgba(209,250,229,0.62)' }}>
-                  عکس مرجع یا یک سبک آماده را انتخاب کن تا بسازیم
+                <p className="text-[15px] font-semibold text-slate-100">هنوز عکسی نساختی</p>
+                <p className="max-w-[280px] text-[13.5px] leading-relaxed" style={{ color: '#64748b' }}>
+                  یه توصیف بنویس یا از پرامپت‌های آماده استفاده کن و «ساخت عکس» رو بزن
                 </p>
-              </button>
-            </div>
+              </div>
+
+              {/* موبایل: ورودی اصلی «انتخاب مرجع/سبک» وقتی گالری خالیه — قاب سبز نئون پررنگ + تپش،
+                  طبق دیزاین‌کنوس. دقیقاً همون مدال «ساخت عکس» را باز می‌کند که نوار جمع‌شده‌ی
+                  composer باز می‌کند */}
+              <div className="flex flex-col items-center justify-center py-16 text-center sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setComposerExpanded(true)}
+                  className="nivo-box-glow flex w-[250px] flex-col items-center gap-3.5 rounded-[28px] px-6 py-8 text-center"
+                  style={{ border: '3px solid #10b981', background: 'radial-gradient(circle at 50% 28%, rgba(16,185,129,0.16), rgba(16,185,129,0.03))' }}
+                >
+                  <div className="relative size-[58px]">
+                    <div
+                      className="flex size-[58px] items-center justify-center rounded-full"
+                      style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: '#6ee7b7' }}
+                    >
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
+                      </svg>
+                    </div>
+                    <div
+                      className="absolute -bottom-0.5 -left-0.5 flex size-[22px] items-center justify-center rounded-full"
+                      style={{ background: '#10b981', border: '2px solid #020C18', color: '#02170f' }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-[17.5px] font-extrabold" style={{ color: '#ecfdf5' }}>اینجا را انتخاب کنید</p>
+                  <p className="text-[12.5px] leading-relaxed" style={{ color: 'rgba(209,250,229,0.62)' }}>
+                    عکس مرجع یا یک سبک آماده را انتخاب کن تا بسازیم
+                  </p>
+                </button>
+              </div>
+            </>
           ) : (
             <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3">
               {isStreaming && (
