@@ -298,23 +298,21 @@ export function VideoStudioPage() {
           <div className="flex-1 overflow-y-auto px-4 pb-3">
             <VideoEditGallery jobs={activeJobs} />
           </div>
-          <div className="shrink-0 px-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          {/* «اینجا را انتخاب کنید» — تنها ورودی مدال تمام‌صفحه‌ی فرم؛ قبلاً یک نوار کم‌رنگ
+              تمام‌عرض بود و به‌سختی پیدا می‌شد، حالا pill سبز نئون با تپش، طبق دیزاین‌کنوس */}
+          <div className="shrink-0 flex justify-center px-4" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
             <button
               type="button"
               onClick={() => setMobileFormOpen(true)}
-              className="flex w-full items-center gap-2.5 rounded-full py-2 pr-2 pl-4 text-right"
-              style={{
-                background: 'linear-gradient(165deg, rgba(16,185,129,0.12) 0%, rgba(147,51,234,0.06) 100%)',
-                border: '1.5px solid rgba(16,185,129,0.34)',
-                boxShadow: '0 0 0 1px rgba(16,185,129,0.08), 0 16px 34px -18px rgba(16,185,129,0.45)',
-              }}
+              className="nivo-pill-glow flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold"
+              style={{ background: 'rgba(2,12,24,0.92)', border: '2px solid #10b981', color: '#6ee7b7' }}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <span className="flex size-[19px] shrink-0 items-center justify-center rounded-full" style={{ background: '#10b981', color: '#02170f' }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </span>
-              <span className="flex-1 truncate text-[13px]" style={{ color: '#94a3b8' }}>ویدیوی جدید — تولید یا ادیت</span>
+              اینجا را انتخاب کنید
             </button>
           </div>
         </div>

@@ -117,6 +117,19 @@ body {
   .image-gen-glow-a, .image-gen-glow-b, .image-gen-shimmer, .image-gen-halo, .image-gen-spark { animation: none; }
 }
 
+/* دکمه‌ی pill سبز نئون — ورودی «انتخاب مرجع/سبک» در استودیو عکس و ویدیو؛ باید همیشه
+   خودش را با تپش نور معرفی کند، چون این نقطه‌ی ورود قبلاً به‌سختی پیدا می‌شد */
+@keyframes nivo-pill-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0px rgba(16,185,129,0.25), inset 0 0 6px rgba(16,185,129,0.06); border-color: #10b981; }
+  50%      { box-shadow: 0 0 20px 4px rgba(16,185,129,0.55), inset 0 0 10px rgba(52,211,153,0.16); border-color: #34d399; }
+}
+.nivo-pill-glow {
+  animation: nivo-pill-glow-pulse 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nivo-pill-glow { animation: none; }
+}
+
 @keyframes nivo-image-reveal {
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }

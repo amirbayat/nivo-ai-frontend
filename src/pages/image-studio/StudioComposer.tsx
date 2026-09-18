@@ -32,6 +32,7 @@ export function StudioComposer({
   sending,
   selectedCreativePrompt,
   onClearCreativePrompt,
+  onOpenPromptLibrary,
   onGenerateCreative,
   onCreativeSubmitStart,
   onCreativeSubmitEnd,
@@ -503,18 +504,25 @@ export function StudioComposer({
                 </svg>
                 افزودن عکس
               </button>
-              {/* «پرامپت آماده» فعلاً کامنت شده — کار کاملی روش انجام نشده (درخواست کاربر) */}
-              {/* <button
+              {/* «اینجا را انتخاب کنید» — ورودی PromptLibraryModal. قبلاً یک دکمه‌ی خاموش/کامنت‌شده
+                  بود (عملاً هیچ راهی برای باز کردن مدال سبک‌ها وجود نداشت)؛ حالا با ظاهر pill سبز
+                  نئون و انیمیشن تپش، همون‌طور که در دیزاین‌کنوس تایید شد، برجسته شده */}
+              <button
                 type="button"
                 onClick={onOpenPromptLibrary}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold text-slate-100"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.25)' }}
+                className="nivo-pill-glow flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-bold"
+                style={{ background: 'rgba(2,12,24,0.92)', border: '2px solid #10b981', color: '#6ee7b7' }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" />
-                </svg>
-                {promptLibraryLabel}
-              </button> */}
+                <span
+                  className="flex size-[18px] shrink-0 items-center justify-center rounded-full"
+                  style={{ background: '#10b981', color: '#02170f' }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </span>
+                اینجا را انتخاب کنید
+              </button>
               <button
                 type="button"
                 onClick={() => setReviewOpen(true)}
