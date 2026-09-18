@@ -239,6 +239,9 @@ function StudioWorkspace({ id }: { id?: string }) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const count = gallery.length
   const nearCap = count >= SOFT_CAP
+  // «خالی» فقط وقتی هیچ آیتمی نیست و چیزی هم در حال ساخته‌شدن نیست — وگرنه (مثلاً اولین عکس
+  // در حال لودینگ، count هنوز صفر است) باید همون رفتار «پر» (pill پایین، نه باکس وسط) را ببینیم
+  const galleryHasContent = count > 0 || isStreaming || generateCreative.isPending || creativeSubmitting
 
   // «افزودن به پرامپت» — انتخاب یکی از عکس‌های همین گالری به‌عنوان عکس مرجع تولید بعدی، بدون
   // نیاز به دانلود/آپلود دستی. studioDraftImages همان state کامپوزر است (StudioComposer.tsx)؛
@@ -398,7 +401,7 @@ function StudioWorkspace({ id }: { id?: string }) {
             </div>
           )}
 
-          {count === 0 && !isStreaming && !generateCreative.isPending && !creativeSubmitting ? (
+          {!galleryHasContent ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               {/* ورودی اصلی «انتخاب مرجع/سبک» وقتی گالری خالیه — قاب سبز نئون پررنگ + تپش، طبق
                   دیزاین‌کنوس (قبلاً همین محتوا بدون قاب/کلیک بود و پیدا کردنش سخت بود). دقیقاً
@@ -507,11 +510,12 @@ function StudioWorkspace({ id }: { id?: string }) {
         </div>
       </div>
 
-      {/* pill شناور «انتخاب مرجع/سبک» — فقط موبایل، فقط وقتی گالری آیتم دارد (حالت خالی خودش
-          باکس بزرگ وسط را دارد). absolute نسبت به ریشه‌ی fixed در ChatLayout.tsx (نه این کانتینر)
-          جای می‌گیرد — دقیقاً هم‌الگوی نوار جمع‌شده‌ی StudioComposer — تا با کیبورد/سیف‌اریا هماهنگ
-          بماند و کمی بالاتر از آن نوار (با فاصله) شناور شود */}
-      {count > 0 && (
+      {/* pill شناور «انتخاب مرجع/سبک» — فقط موبایل، فقط وقتی گالری آیتم دارد یا چیزی در حال
+          ساخته‌شدن است (حالت خالی واقعی خودش باکس بزرگ وسط را دارد). absolute نسبت به ریشه‌ی
+          fixed در ChatLayout.tsx (نه این کانتینر) جای می‌گیرد — دقیقاً هم‌الگوی نوار جمع‌شده‌ی
+          StudioComposer — تا با کیبورد/سیف‌اریا هماهنگ بماند و کمی بالاتر از آن نوار (با فاصله)
+          شناور شود */}
+      {galleryHasContent && (
         <div
           className="absolute inset-x-0 z-[15] flex justify-center px-4 sm:hidden"
           style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
