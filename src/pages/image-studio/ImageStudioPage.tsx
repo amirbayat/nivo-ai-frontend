@@ -86,7 +86,13 @@ function StudioWorkspace({ id }: { id?: string }) {
     if (msg && id && !isLoading && data) {
       pendingRef.current = null
       window.history.replaceState({}, '')
-      void sendMessage(msg.content, msg.images, msg.imageModel, msg.preserveFace, msg.imageAspectRatio)
+      // این صفحه خودش استودیوی عکس است — نیازی به حدس implicit سمت بک‌اند (classifyImageIntent
+      // با LLM) نیست؛ صریحاً generateImage:true می‌فرستیم تا هم آن تماس اضافه/کند حذف شود، هم
+      // پیام‌هایی که کلاسیفایر اشتباهی «متن معمولی» تشخیص می‌داد درست به تولید عکس بروند
+      void sendMessage(
+        msg.content, msg.images, msg.imageModel, msg.preserveFace, msg.imageAspectRatio,
+        undefined, undefined, true,
+      )
     }
   }, [id, isLoading, data, sendMessage])
 
@@ -105,7 +111,9 @@ function StudioWorkspace({ id }: { id?: string }) {
   ) => {
     lastSendRef.current = { content, images, imageModel, preserveFace, imageAspectRatio }
     if (id) {
-      void sendMessage(content, images, imageModel, preserveFace, imageAspectRatio)
+      // همان استدلال بالا (pendingRef effect) — این صفحه همیشه یعنی «تولید/ویرایش عکس»،
+      // implicit classifier سمت بک‌اند لازم نیست
+      void sendMessage(content, images, imageModel, preserveFace, imageAspectRatio, undefined, undefined, true)
       return
     }
     try {
