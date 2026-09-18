@@ -225,10 +225,6 @@ export function StudioComposer({
     if (failed > 0) useToastStore.getState().addToast(fa.chat.imageProcessFailed(failed))
   }
 
-  // خلاصه‌ی نوار جمع‌شده‌ی موبایل — همان چیزی که کاربر تایپ کرده، یا وضعیت سبک/پلیس‌هولدر
-  const collapsedSummary =
-    value || (selectedCreativePrompt ? `سبک: ${selectedCreativePrompt.title}` : 'چه تصویری می‌خوای بسازی؟')
-
   return (
     <>
       <input
@@ -239,55 +235,6 @@ export function StudioComposer({
         className="hidden"
         onChange={e => void handleFiles(e.target.files)}
       />
-
-      {/* نوار جمع‌شده‌ی موبایل — فقط زمانی که شیت کامل باز نیست. عمداً absolute نه fixed: باید
-          نسبت به کانتینر positioned ریشه‌ی ChatLayout (که با useVisualViewportHeight ارتفاعش
-          را با کیبورد iOS هماهنگ نگه می‌دارد) جای بگیرد، نه نسبت به viewport خام مرورگر —
-          وگرنه با باز شدن کیبورد ممکن است پشت آن پنهان شود */}
-      <div
-        className={clsx(
-          'absolute inset-x-0 bottom-0 z-20 items-center gap-2 border-t border-slate-700/50 bg-[#020C18] px-3 py-2.5 sm:hidden',
-          mobileExpanded ? 'hidden' : 'flex',
-        )}
-        style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}
-      >
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={disabled || images.length >= MAX_IMAGES}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-300 disabled:opacity-40"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.22)' }}
-          aria-label="افزودن عکس مرجع"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          onClick={() => onMobileExpandedChange(true)}
-          className="flex-1 truncate rounded-full px-4 py-2.5 text-start text-[13px] text-slate-400"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }}
-        >
-          {collapsedSummary}
-        </button>
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={!canSend}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
-          style={
-            canSend
-              ? { background: '#10b981', color: '#02170f', boxShadow: '0 0 20px rgba(16,185,129,0.35)' }
-              : { background: 'rgba(16,185,129,0.3)', color: 'rgba(2,23,15,0.55)' }
-          }
-          aria-label="ساخت عکس"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 19V5M5 12l7-7 7 7" />
-          </svg>
-        </button>
-      </div>
 
       {/* پنل کامل — دسکتاپ: همیشه در ستون ثابت (بدون تغییر). موبایل: یک مدال تمام‌صفحه با
           انیمیشن اسلاید+محو (نه شیت نیمه‌باز قبلی) — inset-0 (نه فقط inset-x-0 bottom-0) کل
