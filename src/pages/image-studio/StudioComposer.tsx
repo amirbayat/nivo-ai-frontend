@@ -32,13 +32,14 @@ export function StudioComposer({
   sending,
   selectedCreativePrompt,
   onClearCreativePrompt,
-  onOpenPromptLibrary,
   onGenerateCreative,
   onCreativeSubmitStart,
   onCreativeSubmitEnd,
   generatingCreative,
   creativeError,
   onRetryCreative,
+  mobileExpanded,
+  onMobileExpandedChange,
 }: {
   onSend: (
     content: string,
@@ -53,8 +54,11 @@ export function StudioComposer({
   // از مسیر generateCreative استفاده می‌کند — دقیقاً همان مکانیزمی که MessageInput.tsx برای چت دارد
   selectedCreativePrompt?: CreativePromptCatalogItem | null
   onClearCreativePrompt?: () => void
-  onOpenPromptLibrary?: () => void
   onGenerateCreative?: (promptId: string, userInput: string, inputImageKeys?: string[], imagePreviews?: string[], preserveFace?: boolean) => void
+  // فقط روی موبایل معنا دارد — کنترل مدال تمام‌صفحه‌ی «ساخت عکس» از بیرون (ImageStudioPage) تا
+  // باکس/pill سبز نئون گالری هم بتواند همین مدال را باز کند، نه یک مدال جدا
+  mobileExpanded: boolean
+  onMobileExpandedChange: (open: boolean) => void
   // بلافاصله روی کلیک (قبل از آپلود عکس‌های مرجع) صدا زده می‌شود تا اسپینر گالری همون لحظه
   // ظاهر شود، نه فقط بعد از این‌که آپلود تمام شد و generateCreative.isPending شروع شد
   onCreativeSubmitStart?: () => void
@@ -98,9 +102,6 @@ export function StudioComposer({
   const resetStudioDraft = useChatStore(s => s.resetStudioDraft)
   const [isFocused, setIsFocused] = useState(false)
   const [creativeImageError, setCreativeImageError] = useState<string | null>(null)
-  // فقط روی موبایل معنا دارد (دسکتاپ همیشه باز است، پایین‌تر با sm: بازنویسی می‌شود) — با
-  // انتخاب یک سبک تازه از کتابخانه، مدال خودکار باز می‌شود تا کاربر بلافاصله عکس مرجع را ببیند
-  const [mobileExpanded, setMobileExpanded] = useState(false)
   // مدال انتخاب مدل — روی هر دو دسکتاپ/موبایل همین مدال باز می‌شود (طبق دستور کاربر: «برای عکس
   // و متن هم عیناً همین شکلی بکن» که در ویدیو ساخته شده)، نه navigate به یک صفحه‌ی جدا
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
@@ -120,11 +121,11 @@ export function StudioComposer({
         : 'ساخت عکس'
 
   useEffect(() => {
-    if (selectedCreativePrompt) setMobileExpanded(true)
-  }, [selectedCreativePrompt])
+    if (selectedCreativePrompt) onMobileExpandedChange(true)
+  }, [selectedCreativePrompt, onMobileExpandedChange])
 
   function closeMobileModal() {
-    setMobileExpanded(false)
+    onMobileExpandedChange(false)
   }
 
   function selectImageGenModel(model: string | null) {
@@ -264,7 +265,7 @@ export function StudioComposer({
         </button>
         <button
           type="button"
-          onClick={() => setMobileExpanded(true)}
+          onClick={() => onMobileExpandedChange(true)}
           className="flex-1 truncate rounded-full px-4 py-2.5 text-start text-[13px] text-slate-400"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.16)' }}
         >
@@ -503,25 +504,6 @@ export function StudioComposer({
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 افزودن عکس
-              </button>
-              {/* «اینجا را انتخاب کنید» — ورودی PromptLibraryModal. قبلاً یک دکمه‌ی خاموش/کامنت‌شده
-                  بود (عملاً هیچ راهی برای باز کردن مدال سبک‌ها وجود نداشت)؛ حالا با ظاهر pill سبز
-                  نئون و انیمیشن تپش، همون‌طور که در دیزاین‌کنوس تایید شد، برجسته شده */}
-              <button
-                type="button"
-                onClick={onOpenPromptLibrary}
-                className="nivo-pill-glow flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-bold"
-                style={{ background: 'rgba(2,12,24,0.92)', border: '2px solid #10b981', color: '#6ee7b7' }}
-              >
-                <span
-                  className="flex size-[18px] shrink-0 items-center justify-center rounded-full"
-                  style={{ background: '#10b981', color: '#02170f' }}
-                >
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </span>
-                اینجا را انتخاب کنید
               </button>
               <button
                 type="button"

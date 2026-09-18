@@ -11,12 +11,11 @@ import { useToastStore } from '@/store/toast.store'
 import { ChatImage, ImageGenCanvas, ChatErrorBox } from '@/components/chat/MessageList'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { PlanUpgradeBadge } from '@/components/layout/PlanUpgradeBadge'
-import { PromptLibraryModal } from '@/components/discover/PromptLibraryModal'
 import { creativeIntroMessage, type VirtualMessage } from '@/lib/creativeIntro'
 import { StudioComposer } from './StudioComposer'
 import { ImageStudioHistoryDrawer } from './ImageStudioHistoryDrawer'
 import { fa } from '@/locales/fa'
-import type { Message, CreativePromptCatalogItem } from '@/types/api'
+import type { Message } from '@/types/api'
 
 // docs/PRD-openrouter-migration.md §۱۳-۱۴ — استودیوی تولید/ویرایش عکس به‌سبک Google Labs/Whisk،
 // پیکسل‌به‌پیکسل مطابق ImageStudioWorkspace/ImageStudioEmpty/ImageStudioCapAdvisory.dc.html در
@@ -70,7 +69,9 @@ function StudioWorkspace({ id }: { id?: string }) {
 
   const [virtualMessages, setVirtualMessages] = useState<VirtualMessage[]>([])
   const [creativeError, setCreativeError] = useState<string | null>(null)
-  const [libraryOpen, setLibraryOpen] = useState(false)
+  // فقط موبایل — کنترل مدال تمام‌صفحه‌ی «ساخت عکس»ی StudioComposer از این صفحه، تا باکس/pill
+  // سبز نئون گالری هم بتوانند دقیقاً همان مدالی را باز کنند که نوار جمع‌شده‌ی composer باز می‌کند
+  const [composerExpanded, setComposerExpanded] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   // بلافاصله روی کلیک «ساخت عکس» (سبک انتخابی) true می‌شود — قبل از این‌که آپلود عکس مرجع تمام
   // شود و generateCreative.isPending شروع شود — تا اسپینر گالری بدون تاخیر ظاهر شود
@@ -205,11 +206,6 @@ function StudioWorkspace({ id }: { id?: string }) {
     } catch {
       // کاربر می‌تواند دوباره تلاش کند
     }
-  }
-
-  function handleSelectFromLibrary(item: CreativePromptCatalogItem) {
-    setSelectedCreativePrompt(item)
-    setLibraryOpen(false)
   }
 
   const generatingImagePreview = useChatStore(s => s.generatingImagePreview)
@@ -374,13 +370,14 @@ function StudioWorkspace({ id }: { id?: string }) {
               sending={isStreaming}
               selectedCreativePrompt={selectedCreativePrompt}
               onClearCreativePrompt={() => setSelectedCreativePrompt(null)}
-              onOpenPromptLibrary={() => setLibraryOpen(true)}
               onGenerateCreative={handleGenerateCreative}
               onCreativeSubmitStart={() => setCreativeSubmitting(true)}
               onCreativeSubmitEnd={() => setCreativeSubmitting(false)}
               generatingCreative={generateCreative.isPending}
               creativeError={creativeError}
               onRetryCreative={retryGenerateCreative}
+              mobileExpanded={composerExpanded}
+              onMobileExpandedChange={setComposerExpanded}
             />
           </div>
         </div>
@@ -404,10 +401,12 @@ function StudioWorkspace({ id }: { id?: string }) {
           {count === 0 && !isStreaming && !generateCreative.isPending && !creativeSubmitting ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               {/* ورودی اصلی «انتخاب مرجع/سبک» وقتی گالری خالیه — قاب سبز نئون پررنگ + تپش، طبق
-                  دیزاین‌کنوس (قبلاً همین محتوا بدون قاب/کلیک بود و پیدا کردنش سخت بود) */}
+                  دیزاین‌کنوس (قبلاً همین محتوا بدون قاب/کلیک بود و پیدا کردنش سخت بود). دقیقاً
+                  همون مدال «ساخت عکس» را باز می‌کند که نوار جمع‌شده‌ی composer باز می‌کند — نه یک
+                  مدال جدا (قبلاً به‌اشتباه کتابخانه‌ی سبک‌های آماده را باز می‌کرد) */}
               <button
                 type="button"
-                onClick={() => setLibraryOpen(true)}
+                onClick={() => setComposerExpanded(true)}
                 className="nivo-box-glow flex w-[250px] flex-col items-center gap-3.5 rounded-[28px] px-6 py-8 text-center"
                 style={{ border: '3px solid #10b981', background: 'radial-gradient(circle at 50% 28%, rgba(16,185,129,0.16), rgba(16,185,129,0.03))' }}
               >
@@ -519,7 +518,7 @@ function StudioWorkspace({ id }: { id?: string }) {
         >
           <button
             type="button"
-            onClick={() => setLibraryOpen(true)}
+            onClick={() => setComposerExpanded(true)}
             className="nivo-pill-glow flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold"
             style={{ background: 'rgba(2,12,24,0.92)', border: '2px solid #10b981', color: '#6ee7b7' }}
           >
@@ -536,12 +535,6 @@ function StudioWorkspace({ id }: { id?: string }) {
       {lightboxSrc && (
         <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} analyticsSource="image_studio" />
       )}
-
-      <PromptLibraryModal
-        open={libraryOpen}
-        onClose={() => setLibraryOpen(false)}
-        onSelect={handleSelectFromLibrary}
-      />
 
       <ImageStudioHistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
