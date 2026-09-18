@@ -143,8 +143,52 @@ function JobCard({ job }: { job: VideoEditJob }) {
   )
 }
 
-export function VideoEditGallery({ jobs }: { jobs: VideoEditJob[] }) {
+export function VideoEditGallery({
+  jobs,
+  onEmptyCtaClick,
+}: {
+  jobs: VideoEditJob[]
+  // فقط سمت موبایل پاس داده می‌شود (دسکتاپ فرم همیشه کنارش باز است، نیازی به CTA جدا ندارد) —
+  // وقتی پاس داده شود، جای پلیس‌هولدر ساده‌ی قبلی یک قاب سبز نئون کلیک‌پذیر می‌نشیند (همون ورودی
+  // «انتخاب مرجع/سبک» که قبلاً فقط یک نوار کم‌رنگ ته صفحه بود)
+  onEmptyCtaClick?: () => void
+}) {
   if (jobs.length === 0) {
+    if (onEmptyCtaClick) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <button
+            type="button"
+            onClick={onEmptyCtaClick}
+            className="nivo-box-glow flex w-[250px] flex-col items-center gap-3.5 rounded-[28px] px-6 py-8 text-center"
+            style={{ border: '3px solid #10b981', background: 'radial-gradient(circle at 50% 28%, rgba(16,185,129,0.16), rgba(16,185,129,0.03))' }}
+          >
+            <div className="relative size-[58px]">
+              <div
+                className="flex size-[58px] items-center justify-center rounded-full"
+                style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: '#6ee7b7' }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1.5" y="5.5" width="15" height="13" rx="2.5" /><polygon points="22.5 7.5 16.5 12 22.5 16.5 22.5 7.5" />
+                </svg>
+              </div>
+              <div
+                className="absolute -bottom-0.5 -left-0.5 flex size-[22px] items-center justify-center rounded-full"
+                style={{ background: '#10b981', border: '2px solid #020C18', color: '#02170f' }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-[17.5px] font-extrabold" style={{ color: '#ecfdf5' }}>اینجا را انتخاب کنید</p>
+            <p className="text-[12.5px] leading-relaxed" style={{ color: 'rgba(209,250,229,0.62)' }}>
+              فیلم مرجع یا یک سبک آماده را انتخاب کن تا بسازیم
+            </p>
+          </button>
+        </div>
+      )
+    }
     return (
       <div className="flex flex-col items-center justify-center gap-3.5 py-16 text-center">
         <div className="flex size-16 items-center justify-center rounded-[20px]" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: '#34d399' }}>

@@ -296,25 +296,27 @@ export function VideoStudioPage() {
         {/* ── موبایل: صفحه‌ی پایه = گالری + نوار جمع‌شده ── */}
         <div className="flex flex-1 flex-col overflow-hidden sm:hidden">
           <div className="flex-1 overflow-y-auto px-4 pb-3">
-            <VideoEditGallery jobs={activeJobs} />
+            <VideoEditGallery jobs={activeJobs} onEmptyCtaClick={() => setMobileFormOpen(true)} />
           </div>
-          {/* «اینجا را انتخاب کنید» — تنها ورودی مدال تمام‌صفحه‌ی فرم؛ قبلاً یک نوار کم‌رنگ
-              تمام‌عرض بود و به‌سختی پیدا می‌شد، حالا pill سبز نئون با تپش، طبق دیزاین‌کنوس */}
-          <div className="shrink-0 flex justify-center px-4" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
-            <button
-              type="button"
-              onClick={() => setMobileFormOpen(true)}
-              className="nivo-pill-glow flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold"
-              style={{ background: 'rgba(2,12,24,0.92)', border: '2px solid #10b981', color: '#6ee7b7' }}
-            >
-              <span className="flex size-[19px] shrink-0 items-center justify-center rounded-full" style={{ background: '#10b981', color: '#02170f' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </span>
-              اینجا را انتخاب کنید
-            </button>
-          </div>
+          {/* «اینجا را انتخاب کنید» — فقط وقتی گالری آیتم دارد؛ حالت خالی خودش قاب بزرگ وسط
+              (داخل VideoEditGallery) را به‌عنوان ورودی دارد، طبق دیزاین‌کنوس */}
+          {activeJobs.length > 0 && (
+            <div className="shrink-0 flex justify-center px-4" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+              <button
+                type="button"
+                onClick={() => setMobileFormOpen(true)}
+                className="nivo-pill-glow flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold"
+                style={{ background: 'rgba(2,12,24,0.92)', border: '2px solid #10b981', color: '#6ee7b7' }}
+              >
+                <span className="flex size-[19px] shrink-0 items-center justify-center rounded-full" style={{ background: '#10b981', color: '#02170f' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </span>
+                اینجا را انتخاب کنید
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── موبایل: مدال تمام‌صفحه‌ی فرم (اسلاید از پایین) — الگوی MobileChatModal ── */}

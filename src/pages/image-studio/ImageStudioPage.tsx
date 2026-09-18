@@ -402,19 +402,38 @@ function StudioWorkspace({ id }: { id?: string }) {
           )}
 
           {count === 0 && !isStreaming && !generateCreative.isPending && !creativeSubmitting ? (
-            <div className="flex flex-col items-center justify-center gap-3.5 py-16 text-center">
-              <div
-                className="flex size-16 items-center justify-center rounded-[20px]"
-                style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: '#34d399' }}
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              {/* ورودی اصلی «انتخاب مرجع/سبک» وقتی گالری خالیه — قاب سبز نئون پررنگ + تپش، طبق
+                  دیزاین‌کنوس (قبلاً همین محتوا بدون قاب/کلیک بود و پیدا کردنش سخت بود) */}
+              <button
+                type="button"
+                onClick={() => setLibraryOpen(true)}
+                className="nivo-box-glow flex w-[250px] flex-col items-center gap-3.5 rounded-[28px] px-6 py-8 text-center"
+                style={{ border: '3px solid #10b981', background: 'radial-gradient(circle at 50% 28%, rgba(16,185,129,0.16), rgba(16,185,129,0.03))' }}
               >
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
-                </svg>
-              </div>
-              <p className="text-[15px] font-semibold text-slate-100">هنوز عکسی نساختی</p>
-              <p className="max-w-[280px] text-[13.5px] leading-relaxed" style={{ color: '#64748b' }}>
-                یه توصیف بنویس یا از پرامپت‌های آماده استفاده کن و «ساخت عکس» رو بزن
-              </p>
+                <div className="relative size-[58px]">
+                  <div
+                    className="flex size-[58px] items-center justify-center rounded-full"
+                    style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: '#6ee7b7' }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
+                    </svg>
+                  </div>
+                  <div
+                    className="absolute -bottom-0.5 -left-0.5 flex size-[22px] items-center justify-center rounded-full"
+                    style={{ background: '#10b981', border: '2px solid #020C18', color: '#02170f' }}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-[17.5px] font-extrabold" style={{ color: '#ecfdf5' }}>اینجا را انتخاب کنید</p>
+                <p className="text-[12.5px] leading-relaxed" style={{ color: 'rgba(209,250,229,0.62)' }}>
+                  عکس مرجع یا یک سبک آماده را انتخاب کن تا بسازیم
+                </p>
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3">
@@ -488,6 +507,31 @@ function StudioWorkspace({ id }: { id?: string }) {
           )}
         </div>
       </div>
+
+      {/* pill شناور «انتخاب مرجع/سبک» — فقط موبایل، فقط وقتی گالری آیتم دارد (حالت خالی خودش
+          باکس بزرگ وسط را دارد). absolute نسبت به ریشه‌ی fixed در ChatLayout.tsx (نه این کانتینر)
+          جای می‌گیرد — دقیقاً هم‌الگوی نوار جمع‌شده‌ی StudioComposer — تا با کیبورد/سیف‌اریا هماهنگ
+          بماند و کمی بالاتر از آن نوار (با فاصله) شناور شود */}
+      {count > 0 && (
+        <div
+          className="absolute inset-x-0 z-[15] flex justify-center px-4 sm:hidden"
+          style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
+        >
+          <button
+            type="button"
+            onClick={() => setLibraryOpen(true)}
+            className="nivo-pill-glow flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold"
+            style={{ background: 'rgba(2,12,24,0.92)', border: '2px solid #10b981', color: '#6ee7b7' }}
+          >
+            <span className="flex size-[19px] shrink-0 items-center justify-center rounded-full" style={{ background: '#10b981', color: '#02170f' }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            اینجا را انتخاب کنید
+          </button>
+        </div>
+      )}
 
       {lightboxSrc && (
         <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} analyticsSource="image_studio" />
