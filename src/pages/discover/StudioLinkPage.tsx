@@ -13,6 +13,8 @@ export function StudioLinkPage() {
   const id = params.get("id") ?? undefined;
   const navigate = useNavigate();
   const setSelectedCreativePrompt = useChatStore((s) => s.setSelectedCreativePrompt);
+  const setStudioDraftValue = useChatStore((s) => s.setStudioDraftValue);
+  const setSelectedImageGenModel = useChatStore((s) => s.setSelectedImageGenModel);
   const createConversation = useCreateConversation();
   const { data: item, isError } = useDiscoveryCatalogItem(id);
 
@@ -23,8 +25,25 @@ export function StudioLinkPage() {
     if (!item || startedRef.current === item.id) return;
     startedRef.current = item.id;
 
-    setSelectedCreativePrompt(item);
     const hasToken = !!localStorage.getItem("access_token");
+
+    // پرامپت‌های خام دستوری (مثل «/subway») — بدون قفل‌شدن سبک/مدل، فقط توی composer
+    // استودیوی عکس آزاد می‌ریزیم و کاربر خودش مدل و بقیه را دست می‌زند
+    if (item.isFreeformPrompt) {
+      setStudioDraftValue(item.userPromptTemplate ?? "");
+      if (item.preferredModel) {
+        setSelectedImageGenModel(item.preferredModel);
+        localStorage.setItem("nivo:selectedImageGenModel", item.preferredModel);
+      }
+      if (!hasToken) {
+        navigate("/", { replace: true });
+        return;
+      }
+      navigate("/image", { replace: true });
+      return;
+    }
+
+    setSelectedCreativePrompt(item);
     if (!hasToken) {
       navigate("/", { replace: true });
       return;

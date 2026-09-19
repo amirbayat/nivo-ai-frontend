@@ -43,6 +43,8 @@ export function DiscoverPage() {
     sort,
   });
   const setSelectedCreativePrompt = useChatStore((s) => s.setSelectedCreativePrompt);
+  const setStudioDraftValue = useChatStore((s) => s.setStudioDraftValue);
+  const setSelectedImageGenModel = useChatStore((s) => s.setSelectedImageGenModel);
   const createConversation = useCreateConversation();
 
   const categoryTree = useMemo(() => buildCategoryTree(categories ?? []), [categories]);
@@ -55,8 +57,25 @@ export function DiscoverPage() {
   // (که ۴۰۱ می‌گیرد)، فقط سبک انتخابی را در همون استور مشترک می‌گذاریم و به تجربه‌ی چت مهمان
   // در "/" برمی‌گردیم؛ AnonChatPage با دیدن selectedCreativePrompt پنل امتحان رایگان را نشان می‌دهد.
   function handleSelectPrompt(item: CreativePromptCatalogItem) {
-    setSelectedCreativePrompt(item);
     const hasToken = !!localStorage.getItem("access_token");
+
+    // پرامپت‌های خام دستوری (مثل «/subway») — بدون قفل‌شدن سبک/مدل، فقط توی composer
+    // استودیوی عکس آزاد می‌ریزیم و کاربر خودش مدل و بقیه را دست می‌زند
+    if (item.isFreeformPrompt) {
+      setStudioDraftValue(item.userPromptTemplate ?? "");
+      if (item.preferredModel) {
+        setSelectedImageGenModel(item.preferredModel);
+        localStorage.setItem("nivo:selectedImageGenModel", item.preferredModel);
+      }
+      if (!hasToken) {
+        navigate("/");
+        return;
+      }
+      navigate("/image");
+      return;
+    }
+
+    setSelectedCreativePrompt(item);
     if (!hasToken) {
       navigate("/");
       return;

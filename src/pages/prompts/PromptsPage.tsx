@@ -163,6 +163,11 @@ function PromptCard({ item, onTry }: { item: CreativePromptCatalogItem; onTry: (
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="text-[16px] font-bold text-white">{item.title}</div>
+        {item.description && (
+          <p className="-mt-1 text-[13px] leading-relaxed" style={{ color: '#94a3b8' }}>
+            {item.description}
+          </p>
+        )}
         {item.userPromptTemplate && (
           <div
             className="rounded-xl p-3.5 text-[13px] leading-[1.8]"

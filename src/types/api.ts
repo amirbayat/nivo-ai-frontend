@@ -150,6 +150,11 @@ export interface CreativePromptCatalogItem {
   // فقط برای پرامپت‌های AGENT_DISCOVERED پر می‌شود — سبک‌های CURATED عمداً template را
   // به فرانت لو نمی‌دهند (docs/PRD-daily-content-prompt-agent.md بخش ۷.۳)
   userPromptTemplate?: string
+  // اگر true، «استفاده» فقط userPromptTemplate را عیناً توی composer آزاد می‌ریزد و مدل
+  // قفل نمی‌شود (کاربر خودش انتخاب می‌کند) — به‌جای فلوی سبک‌قفل‌شده‌ی selectedCreativePrompt
+  isFreeformPrompt?: boolean
+  // فقط وقتی isFreeformPrompt=true لو می‌رود — پیش‌انتخاب چیپ مدل، نه قفل
+  preferredModel?: string | null
 }
 
 // یک ردیف تاریخچه‌ی «تبدیل عکس به پرامپت» — همون CreativePromptCatalogItem + وضعیت بررسی ادمین،
