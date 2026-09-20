@@ -282,14 +282,14 @@ function StudioWorkspace({ id }: { id?: string }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
+    <div className="flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--studio-bg)' }} dir="rtl">
       {/* top bar */}
       <div className="flex shrink-0 items-center justify-between px-5 pt-5 sm:px-10 sm:pt-7">
         <div className="flex items-center gap-3.5">
           <button
             onClick={() => navigate('/')}
             className="flex size-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+            style={{ background: 'rgba(var(--neutral-rgb),0.10)', border: '1px solid rgba(var(--neutral-rgb),0.22)', color: 'var(--studio-icon-text)' }}
             aria-label="بازگشت به خانه"
           >
             {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
@@ -297,7 +297,7 @@ function StudioWorkspace({ id }: { id?: string }) {
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-          <span className="text-[17px] font-bold text-white">{data?.title || 'تولید و ویرایش عکس'}</span>
+          <span className="text-[17px] font-bold text-white light:text-slate-900">{data?.title || 'تولید و ویرایش عکس'}</span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2.5">
           <div className="hidden sm:contents">
@@ -307,18 +307,18 @@ function StudioWorkspace({ id }: { id?: string }) {
             className="flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold"
             style={
               nearCap
-                ? { background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.3)', color: '#fde68a' }
+                ? { background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.3)', color: 'var(--amber-soft-text)' }
                 : count > 0
-                  ? { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.26)', color: '#d1fae5' }
-                  : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.18)', color: '#64748b' }
+                  ? { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.26)', color: 'var(--emerald-soft-text)' }
+                  : { background: 'rgba(var(--neutral-rgb),0.03)', border: '1px solid rgba(var(--neutral-rgb),0.18)', color: 'var(--text-tertiary)' }
             }
           >
             {`${count} از ${SOFT_CAP} عکس در این گفتگو`}
           </div>
           <button
             onClick={() => navigate('/image')}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
-            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06] light:hover:bg-slate-900/5"
+            style={{ background: 'rgba(var(--neutral-rgb),0.10)', border: '1px solid rgba(var(--neutral-rgb),0.22)', color: 'var(--studio-icon-text)' }}
             title="گفتگوی جدید"
             aria-label="شروع گفتگوی جدید در استودیوی عکس"
           >
@@ -328,8 +328,8 @@ function StudioWorkspace({ id }: { id?: string }) {
           </button>
           <button
             onClick={() => setHistoryOpen(true)}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06]"
-            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/[0.06] light:hover:bg-slate-900/5"
+            style={{ background: 'rgba(var(--neutral-rgb),0.10)', border: '1px solid rgba(var(--neutral-rgb),0.22)', color: 'var(--studio-icon-text)' }}
             title="تاریخچه‌ی استودیوی عکس"
             aria-label="باز کردن تاریخچه‌ی استودیوی عکس"
           >
@@ -346,7 +346,7 @@ function StudioWorkspace({ id }: { id?: string }) {
           className="mx-5 mt-4 flex shrink-0 flex-col gap-3 rounded-2xl px-5 py-3.5 sm:mx-10 sm:flex-row sm:items-center sm:justify-between"
           style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.26)' }}
         >
-          <div className="flex items-center gap-3 text-[13.5px]" style={{ color: '#fde68a' }}>
+          <div className="flex items-center gap-3 text-[13.5px]" style={{ color: 'var(--amber-soft-text)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
               <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" />
             </svg>
@@ -356,7 +356,7 @@ function StudioWorkspace({ id }: { id?: string }) {
           <button
             onClick={() => navigate('/image')}
             className="shrink-0 rounded-full px-5 py-2 text-[13px] font-bold"
-            style={{ background: 'rgba(251,191,36,0.16)', border: '1px solid rgba(251,191,36,0.4)', color: '#fef3c7' }}
+            style={{ background: 'rgba(251,191,36,0.16)', border: '1px solid rgba(251,191,36,0.4)', color: 'var(--amber-soft-text)' }}
           >
             + گفتگوی جدید
           </button>
@@ -367,7 +367,7 @@ function StudioWorkspace({ id }: { id?: string }) {
       <div className="flex flex-1 flex-col overflow-hidden sm:flex-row" style={{ padding: '20px 0' }}>
         <div
           className="order-2 flex shrink-0 flex-col sm:order-1 sm:w-[400px] sm:border-t sm:pr-10"
-          style={{ borderColor: 'rgba(148,163,184,0.14)' }}
+          style={{ borderColor: 'rgba(var(--neutral-rgb),0.14)' }}
         >
           <div className="flex h-full flex-1 flex-col pt-4 sm:pt-0">
             <StudioComposer
@@ -390,11 +390,11 @@ function StudioWorkspace({ id }: { id?: string }) {
 
         <div className="order-1 flex-1 overflow-y-auto px-5 pb-24 sm:order-2 sm:px-10 sm:pb-6">
           <div className="mb-3.5 flex items-center justify-between gap-2">
-            <p className="text-[13px]" style={{ color: '#64748b' }}>
+            <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
               {count > 0 ? `گالری این گفتگو (${count})` : 'گالری این گفتگو'}
             </p>
             {count > 0 && (
-              <p className="text-[12px]" style={{ color: '#64748b' }}>افزودن به پرامپت</p>
+              <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>افزودن به پرامپت</p>
             )}
           </div>
 
@@ -411,14 +411,14 @@ function StudioWorkspace({ id }: { id?: string }) {
               <div className="hidden flex-col items-center justify-center gap-3.5 py-16 text-center sm:flex">
                 <div
                   className="flex size-16 items-center justify-center rounded-[20px]"
-                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: '#34d399' }}
+                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: 'var(--brand)' }}
                 >
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
                   </svg>
                 </div>
-                <p className="text-[15px] font-semibold text-slate-100">هنوز عکسی نساختی</p>
-                <p className="max-w-[280px] text-[13.5px] leading-relaxed" style={{ color: '#64748b' }}>
+                <p className="text-[15px] font-semibold text-slate-100 light:text-slate-900">هنوز عکسی نساختی</p>
+                <p className="max-w-[280px] text-[13.5px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
                   یه توصیف بنویس یا از پرامپت‌های آماده استفاده کن و «ساخت عکس» رو بزن
                 </p>
               </div>
@@ -436,7 +436,7 @@ function StudioWorkspace({ id }: { id?: string }) {
                   <div className="relative size-[58px]">
                     <div
                       className="flex size-[58px] items-center justify-center rounded-full"
-                      style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: '#6ee7b7' }}
+                      style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: 'var(--brand)' }}
                     >
                       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
@@ -444,15 +444,15 @@ function StudioWorkspace({ id }: { id?: string }) {
                     </div>
                     <div
                       className="absolute -bottom-0.5 -left-0.5 flex size-[22px] items-center justify-center rounded-full"
-                      style={{ background: '#10b981', border: '2px solid #020C18', color: '#02170f' }}
+                      style={{ background: '#10b981', border: '2px solid var(--studio-bg)', color: '#02170f' }}
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                         <path d="M12 5v14M5 12h14" />
                       </svg>
                     </div>
                   </div>
-                  <p className="text-[17.5px] font-extrabold" style={{ color: '#ecfdf5' }}>اینجا را انتخاب کنید</p>
-                  <p className="text-[12.5px] leading-relaxed" style={{ color: 'rgba(209,250,229,0.62)' }}>
+                  <p className="text-[17.5px] font-extrabold" style={{ color: 'var(--emerald-pale-text)' }}>اینجا را انتخاب کنید</p>
+                  <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--emerald-faint-text)' }}>
                     عکس مرجع یا یک سبک آماده را انتخاب کن تا بسازیم
                   </p>
                 </button>
@@ -464,7 +464,7 @@ function StudioWorkspace({ id }: { id?: string }) {
                 <div className="relative aspect-square overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(52,211,153,0.28)' }}>
                   <ImageGenCanvas preview={generatingImagePreview} className="absolute inset-0 size-full" />
                   <div className="absolute inset-x-0 bottom-3 flex justify-center">
-                    <span className="text-[12px]" style={{ color: '#a7f3d0' }}>در حال ساخت...</span>
+                    <span className="text-[12px]" style={{ color: 'var(--emerald-bright-text)' }}>در حال ساخت...</span>
                   </div>
                 </div>
               )}
@@ -475,7 +475,7 @@ function StudioWorkspace({ id }: { id?: string }) {
                 >
                   <div className="flex flex-col items-center gap-2">
                     <div className="size-8 animate-spin rounded-full border-2 border-slate-500/30" style={{ borderTopColor: '#e879f9' }} />
-                    <span className="text-[12px]" style={{ color: '#f5d0fe' }}>در حال ساخت با سبک انتخابی...</span>
+                    <span className="text-[12px]" style={{ color: 'var(--fuchsia-soft-text)' }}>در حال ساخت با سبک انتخابی...</span>
                   </div>
                 </div>
               )}

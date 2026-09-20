@@ -160,7 +160,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
 
   if (!data) {
     return (
-      <div className="flex flex-1 items-center justify-center text-slate-500 text-sm">
+      <div className="flex flex-1 items-center justify-center text-slate-500 light:text-slate-400 text-sm">
         {fa.common.error}
       </div>
     )
@@ -174,10 +174,10 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
           'radial-gradient(ellipse 900px 500px at 70% -10%, rgba(124,58,237,0.05), transparent 60%), radial-gradient(ellipse 900px 600px at 20% 110%, rgba(16,185,129,0.045), transparent 60%)',
       }}
     >
-      <div className="flex items-center gap-3 border-b border-slate-700/30 px-4 py-3 sm:px-6 sm:py-4">
+      <div className="flex items-center gap-3 border-b border-slate-700/30 light:border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
         <button
           onClick={() => navigate('/')}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-colors"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-900 transition-colors"
           aria-label="بازگشت به خانه"
         >
           {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
@@ -185,7 +185,7 @@ function ActiveChat({ conversationId, isStreaming }: { conversationId: string; i
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        <h2 className="truncate text-sm font-medium text-slate-200">
+        <h2 className="truncate text-sm font-medium text-slate-200 light:text-slate-900">
           {data.title ?? fa.chat.untitled}
         </h2>
         <div className="mr-auto flex items-center gap-2 shrink-0">
@@ -239,7 +239,7 @@ function GeneratingCreativeBubble() {
       <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-purple-600 text-xs font-bold text-white">
         AI
       </div>
-      <div className="flex items-center gap-2 rounded-2xl rounded-tr-sm bg-slate-800 px-4 py-3 text-sm text-fuchsia-300">
+      <div className="flex items-center gap-2 rounded-2xl rounded-tr-sm bg-slate-800 light:bg-slate-100 px-4 py-3 text-sm text-fuchsia-300 light:text-fuchsia-700">
         <div className="size-3.5 rounded-full border-2 border-fuchsia-400 border-t-transparent animate-spin" />
         در حال ساخت عکس...
       </div>
@@ -266,10 +266,10 @@ function EmptyState({ onSend, isCreating }: {
           'radial-gradient(ellipse 900px 500px at 70% -10%, rgba(124,58,237,0.05), transparent 60%), radial-gradient(ellipse 900px 600px at 20% 110%, rgba(16,185,129,0.045), transparent 60%)',
       }}
     >
-      <div className="flex items-center gap-3 border-b border-slate-700/30 px-4 py-3 sm:px-6 sm:py-4">
+      <div className="flex items-center gap-3 border-b border-slate-700/30 light:border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
         <button
           onClick={() => navigate('/')}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-colors"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-900 transition-colors"
           aria-label="بازگشت به خانه"
         >
           {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
@@ -277,7 +277,7 @@ function EmptyState({ onSend, isCreating }: {
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        <h2 className="truncate text-sm font-medium text-slate-200">{fa.chat.untitled}</h2>
+        <h2 className="truncate text-sm font-medium text-slate-200 light:text-slate-900">{fa.chat.untitled}</h2>
         <div className="mr-auto flex items-center gap-2 shrink-0">
           <WalletBalanceBadge />
           <ModelSelector />
@@ -287,8 +287,8 @@ function EmptyState({ onSend, isCreating }: {
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 sm:p-8">
         <div className="text-center">
-          <p className="text-[22px] font-bold text-white sm:text-[30px]">{fa.chat.emptyTitle}</p>
-          <p className="mt-1 text-sm text-slate-500">{fa.chat.emptySubtitle}</p>
+          <p className="text-[22px] font-bold text-white light:text-slate-900 sm:text-[30px]">{fa.chat.emptyTitle}</p>
+          <p className="mt-1 text-sm text-slate-500 light:text-slate-400">{fa.chat.emptySubtitle}</p>
         </div>
 
         {/* بازطراحی هاب/چت (docs/PRD-openrouter-migration.md §۱۴.۴) — composer وسط‌چین

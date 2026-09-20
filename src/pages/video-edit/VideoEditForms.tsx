@@ -37,14 +37,14 @@ function fmtDur(sec: number) {
 }
 
 export function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <div className="text-[12px] font-bold" style={{ color: '#cbd5e1' }}>{children}</div>
+  return <div className="text-[12px] font-bold" style={{ color: 'var(--studio-icon-text)' }}>{children}</div>
 }
 
 export function Caveat({ tone = 'warn', children }: { tone?: 'warn' | 'ok' | 'err'; children: React.ReactNode }) {
   const palette = {
-    warn: { bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', color: '#fcd34d' },
-    ok: { bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.28)', color: '#6ee7b7' },
-    err: { bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.35)', color: '#fca5a5' },
+    warn: { bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', color: 'var(--amber-soft-text)' },
+    ok: { bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.28)', color: 'var(--brand)' },
+    err: { bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.35)', color: 'var(--red-soft-text)' },
   }[tone]
   return (
     <div
@@ -76,7 +76,7 @@ export function DropWell({
   accept: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const tint = accent === 'emerald' ? '#34d399' : '#fb7185'
+  const tint = accent === 'emerald' ? 'var(--brand)' : 'var(--rose-soft-text)'
   const tintBg = accent === 'emerald' ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)'
 
   if (preview) {
@@ -112,7 +112,7 @@ export function DropWell({
   return (
     <div
       className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 text-center"
-      style={{ minHeight: wide ? 160 : 108, border: '1.5px dashed rgba(148,163,184,0.20)', background: 'rgba(0,0,0,0.20)' }}
+      style={{ minHeight: wide ? 160 : 108, border: '1.5px dashed rgba(var(--neutral-rgb),0.20)', background: 'rgba(0,0,0,0.20)' }}
     >
       <input
         ref={inputRef}
@@ -130,22 +130,22 @@ export function DropWell({
           <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
         </svg>
       </div>
-      <span className="text-[11.5px] font-bold" style={{ color: '#cbd5e1' }}>{label}</span>
-      <span className="text-[10.5px]" style={{ color: '#64748b' }}>{hint}</span>
+      <span className="text-[11.5px] font-bold" style={{ color: 'var(--studio-icon-text)' }}>{label}</span>
+      <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{hint}</span>
     </div>
   )
 }
 
 export function RatioSegmented({ value, onChange }: { value: '16:9' | '9:16'; onChange: (v: '16:9' | '9:16') => void }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
+    <div className="flex items-center gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}>
       {ASPECT_RATIOS.map(r => (
         <button
           key={r}
           type="button"
           onClick={() => onChange(r)}
           className={clsx('rounded-full px-2.5 py-1.5 text-[11.5px] font-bold', value === r ? 'text-[#02170f]' : '')}
-          style={{ background: value === r ? '#10b981' : 'transparent', color: value === r ? '#02170f' : '#94a3b8' }}
+          style={{ background: value === r ? '#10b981' : 'transparent', color: value === r ? '#02170f' : 'var(--text-secondary)' }}
         >
           {r === '16:9' ? '۱۶:۹' : '۹:۱۶'}
         </button>
@@ -167,14 +167,14 @@ export function ResolutionPicker({
 }) {
   if (options.length <= 1) return <FixedChip>{options[0] ?? '720p'}</FixedChip>
   return (
-    <div className="flex items-center gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
+    <div className="flex items-center gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}>
       {options.map(r => (
         <button
           key={r}
           type="button"
           onClick={() => onChange(r)}
           className={clsx('rounded-full px-2.5 py-1.5 text-[11.5px] font-bold', value === r ? 'text-[#02170f]' : '')}
-          style={{ background: value === r ? '#10b981' : 'transparent', color: value === r ? '#02170f' : '#94a3b8' }}
+          style={{ background: value === r ? '#10b981' : 'transparent', color: value === r ? '#02170f' : 'var(--text-secondary)' }}
         >
           {r}
         </button>
@@ -187,7 +187,7 @@ export function FixedChip({ icon, children }: { icon?: React.ReactNode; children
   return (
     <div
       className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)', color: '#94a3b8' }}
+      style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.20)', color: 'var(--text-secondary)' }}
     >
       {icon}
       {children}
@@ -207,12 +207,12 @@ export function ClockIcon() {
 // واقعاً edit صحنه‌حفظ‌کننده دارد نشان داده می‌شود (دقیقاً showModeToggle در artifact)
 function ModeToggle({ mode, onChange }: { mode: 'reference' | 'edit'; onChange: (m: 'reference' | 'edit') => void }) {
   return (
-    <div className="flex gap-1.5 rounded-full p-[3px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}>
+    <div className="flex gap-1.5 rounded-full p-[3px]" style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}>
       <button
         type="button"
         onClick={() => onChange('reference')}
         className="flex-1 rounded-full py-2 text-[11.5px] font-bold"
-        style={{ background: mode === 'reference' ? '#10b981' : 'transparent', color: mode === 'reference' ? '#02170f' : '#94a3b8' }}
+        style={{ background: mode === 'reference' ? '#10b981' : 'transparent', color: mode === 'reference' ? '#02170f' : 'var(--text-secondary)' }}
       >
         به‌عنوان مرجع
       </button>
@@ -220,7 +220,7 @@ function ModeToggle({ mode, onChange }: { mode: 'reference' | 'edit'; onChange: 
         type="button"
         onClick={() => onChange('edit')}
         className="flex-1 rounded-full py-2 text-[11.5px] font-bold"
-        style={{ background: mode === 'edit' ? '#f43f5e' : 'transparent', color: mode === 'edit' ? '#2b0410' : '#94a3b8' }}
+        style={{ background: mode === 'edit' ? '#f43f5e' : 'transparent', color: mode === 'edit' ? '#2b0410' : 'var(--text-secondary)' }}
       >
         ویرایش همین ویدیو
       </button>
@@ -301,16 +301,16 @@ export function VideoWindowTrimmer({
 
   return (
     <div className="flex flex-col gap-2.5" dir="ltr">
-      <div className="flex items-center justify-between text-[11px] font-bold" style={{ color: '#e2e8f0' }}>
-        <span style={{ color: '#fb7185' }} className="tabular-nums">
+      <div className="flex items-center justify-between text-[11px] font-bold" style={{ color: 'var(--text-primary)' }}>
+        <span style={{ color: 'var(--rose-soft-text)' }} className="tabular-nums">
           {fmtDur(start)} – {fmtDur(end)}
         </span>
-        <span style={{ color: '#94a3b8' }}>{fmtDur(end - start)} از {fmtDur(durationSec)} انتخاب شده</span>
+        <span style={{ color: 'var(--text-secondary)' }}>{fmtDur(end - start)} از {fmtDur(durationSec)} انتخاب شده</span>
       </div>
 
       <div ref={trackRef} className="relative h-9 select-none" onPointerMove={onMove}>
         {/* ریل کامل ویدیو */}
-        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full" style={{ background: 'rgba(148,163,184,0.20)' }} />
+        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full" style={{ background: 'rgba(var(--neutral-rgb),0.20)' }} />
         {/* بازه‌ی انتخاب‌شده — خودش هم قابل‌کشیدنه (جابه‌جایی کل پنجره) */}
         <div
           onPointerDown={beginDrag('region')}
@@ -340,17 +340,17 @@ export function VideoWindowTrimmer({
 
       <div className="flex items-center justify-between">
         <div className="flex gap-1.5">
-          <button type="button" onClick={() => applyPreset('first')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+          <button type="button" onClick={() => applyPreset('first')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(var(--neutral-rgb),0.05)', color: 'var(--text-secondary)' }}>
             ابتدای ویدیو
           </button>
-          <button type="button" onClick={() => applyPreset('middle')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+          <button type="button" onClick={() => applyPreset('middle')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(var(--neutral-rgb),0.05)', color: 'var(--text-secondary)' }}>
             وسط ویدیو
           </button>
-          <button type="button" onClick={() => applyPreset('last')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+          <button type="button" onClick={() => applyPreset('last')} className="rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(var(--neutral-rgb),0.05)', color: 'var(--text-secondary)' }}>
             انتهای ویدیو
           </button>
         </div>
-        {atMaxWidth && <span className="text-[10px] font-bold" style={{ color: '#fbbf24' }}>حداکثر پهنای بازه ({maxWidth}ث)</span>}
+        {atMaxWidth && <span className="text-[10px] font-bold" style={{ color: 'var(--amber-text)' }}>حداکثر پهنای بازه ({maxWidth}ث)</span>}
       </div>
     </div>
   )
@@ -499,8 +499,8 @@ export function VideoEditForm({
               ? 'مثلاً: پس‌زمینه رو به یه غروب پاییزی کنار دریا تغییر بده، بقیه رو دست‌نزن'
               : 'مثلاً: یه فضانورد که کنار یه دریاچه‌ی نئونی قدم می‌زنه، سینمایی و آروم'
           }
-          className="w-full resize-none rounded-2xl p-3.5 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
-          style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
+          className="w-full resize-none rounded-2xl p-3.5 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
+          style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
         />
       </div>
 
@@ -543,15 +543,15 @@ export function VideoEditForm({
       )}
 
       {video && isEdit && (
-        <div className="flex flex-col gap-1" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 16, padding: '12px 14px' }}>
+        <div className="flex flex-col gap-1" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(var(--neutral-rgb),0.16)', borderRadius: 16, padding: '12px 14px' }}>
           <div className="flex items-center justify-between">
             <FieldLabel>{hasWindowTrim ? 'کدوم بخش ویدیو ویرایش بشه؟' : 'ویدیوی ویرایش'}</FieldLabel>
-            <button type="button" onClick={clearVideo} className="text-[11px] font-bold" style={{ color: '#94a3b8' }}>حذف</button>
+            <button type="button" onClick={clearVideo} className="text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>حذف</button>
           </div>
           {hasWindowTrim ? (
             <VideoWindowTrimmer durationSec={video.durationSec} maxWidth={maxWidth} value={windowRange} onChange={setWindowRange} />
           ) : (
-            <p className="text-[11.5px] leading-relaxed" style={{ color: '#94a3b8' }}>
+            <p className="text-[11.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               کل این کلیپ ({fmtDur(video.durationSec)}) ویرایش می‌شه — این مدل نمی‌تونه فقط یه بخش خاص از یه ویدیوی طولانی‌تر رو انتخاب کنه.
             </p>
           )}
@@ -597,7 +597,7 @@ export function VideoEditForm({
         {!isEdit && <ResolutionPicker options={model.resolutions} value={resolution} onChange={setResolution} />}
       </div>
 
-      {error && <p className="text-[12px] text-red-400">{error}</p>}
+      {error && <p className="text-[12px] text-red-400 light:text-red-600">{error}</p>}
 
       <button
         type="button"

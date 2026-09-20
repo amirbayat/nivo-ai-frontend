@@ -34,12 +34,12 @@ export function UsageGuideModal({ open, onClose }: UsageGuideModalProps) {
       onClick={onClose}
     >
       <div
-        className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+        className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 light:border-slate-200 light:bg-white p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 text-slate-600 hover:text-slate-400 transition-colors"
+          className="absolute top-4 left-4 text-slate-600 hover:text-slate-400 light:text-slate-400 light:hover:text-slate-600 transition-colors"
           aria-label={fa.anonChat.closeAria}
         >
           <svg viewBox="0 0 16 16" fill="none" className="size-4">
@@ -47,11 +47,11 @@ export function UsageGuideModal({ open, onClose }: UsageGuideModalProps) {
           </svg>
         </button>
 
-        <h3 className="mb-4 text-base font-bold text-slate-100">{fa.anonChat.modalTitle}</h3>
+        <h3 className="mb-4 text-base font-bold text-slate-100 light:text-slate-900">{fa.anonChat.modalTitle}</h3>
 
         <section className="mb-5">
-          <h4 className="mb-2 text-sm font-semibold text-emerald-400">{fa.anonChat.howToTitle}</h4>
-          <ol className="list-decimal space-y-1.5 pr-5 text-sm leading-relaxed text-slate-300">
+          <h4 className="mb-2 text-sm font-semibold text-emerald-400 light:text-emerald-600">{fa.anonChat.howToTitle}</h4>
+          <ol className="list-decimal space-y-1.5 pr-5 text-sm leading-relaxed text-slate-300 light:text-slate-700">
             {fa.anonChat.howToSteps.map((step, i) => (
               <li key={i}>{step}</li>
             ))}
@@ -59,8 +59,8 @@ export function UsageGuideModal({ open, onClose }: UsageGuideModalProps) {
         </section>
 
         <section className="mb-5">
-          <h4 className="mb-2 text-sm font-semibold text-emerald-400">{fa.anonChat.tipsTitle}</h4>
-          <ul className="list-disc space-y-1.5 pr-5 text-sm leading-relaxed text-slate-300">
+          <h4 className="mb-2 text-sm font-semibold text-emerald-400 light:text-emerald-600">{fa.anonChat.tipsTitle}</h4>
+          <ul className="list-disc space-y-1.5 pr-5 text-sm leading-relaxed text-slate-300 light:text-slate-700">
             {fa.anonChat.tips.map((tip, i) => (
               <li key={i}>{tip}</li>
             ))}
@@ -68,12 +68,12 @@ export function UsageGuideModal({ open, onClose }: UsageGuideModalProps) {
         </section>
 
         <section>
-          <h4 className="mb-2 text-sm font-semibold text-emerald-400">{fa.anonChat.faqTitle}</h4>
+          <h4 className="mb-2 text-sm font-semibold text-emerald-400 light:text-emerald-600">{fa.anonChat.faqTitle}</h4>
           <div className="space-y-3">
             {fa.anonChat.faq.map((item, i) => (
-              <div key={i} className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
-                <p className="text-sm font-medium text-slate-200">{item.q}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">{item.a}</p>
+              <div key={i} className="rounded-xl border border-slate-700/60 bg-slate-800/40 light:border-slate-200 light:bg-slate-50 p-3">
+                <p className="text-sm font-medium text-slate-200 light:text-slate-900">{item.q}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400 light:text-slate-500">{item.a}</p>
               </div>
             ))}
           </div>

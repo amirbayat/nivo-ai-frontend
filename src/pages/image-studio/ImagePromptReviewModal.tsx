@@ -156,23 +156,23 @@ export function ImagePromptReviewModal({
       dir="rtl"
     >
       <div
-        className="flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-3xl bg-slate-950 sm:max-h-[80vh] sm:max-w-xl sm:rounded-3xl"
-        style={{ border: '1px solid rgba(148,163,184,0.18)' }}
+        className="flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-3xl bg-slate-950 light:bg-white sm:max-h-[80vh] sm:max-w-xl sm:rounded-3xl"
+        style={{ border: '1px solid rgba(var(--neutral-rgb),0.18)' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 light:border-slate-200 px-5 py-4">
           <div className="flex items-center gap-2.5">
             <div
               className="flex size-8 items-center justify-center rounded-full"
               style={{ background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(167,139,250,0.30)' }}
             >
-              <SparkleIcon className="size-4 text-[#c4b5fd]" />
+              <SparkleIcon className="size-4 text-purple-300 light:text-purple-700" />
             </div>
-            <h2 className="text-[15px] font-bold text-slate-100">بررسی پرامپت</h2>
+            <h2 className="text-[15px] font-bold text-slate-100 light:text-slate-900">بررسی پرامپت</h2>
           </div>
           <button
             onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+            className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-800"
             aria-label="بستن"
           >
             <CloseIcon className="size-5" />
@@ -186,7 +186,7 @@ export function ImagePromptReviewModal({
                 <div key={i} className="flex flex-row-reverse gap-3">
                   <div
                     className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
-                    style={{ background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.18)', color: '#ecfdf5' }}
+                    style={{ background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.18)', color: 'var(--emerald-pale-text)' }}
                   >
                     {m.text}
                   </div>
@@ -195,14 +195,14 @@ export function ImagePromptReviewModal({
             }
             if (m.role === 'error') {
               return (
-                <div key={i} className="rounded-2xl px-4 py-3 text-sm text-red-300" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)' }}>
+                <div key={i} className="rounded-2xl px-4 py-3 text-sm text-red-300 light:text-red-700" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)' }}>
                   {m.text}
                 </div>
               )
             }
             return (
               <div key={i} className="flex flex-col gap-2.5">
-                <div className="ai-content text-sm leading-relaxed text-slate-200">
+                <div className="ai-content text-sm leading-relaxed text-slate-200 light:text-slate-800">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.critique}</ReactMarkdown>
                 </div>
                 {m.suggestedPrompt && (
@@ -210,8 +210,8 @@ export function ImagePromptReviewModal({
                     className="flex flex-col gap-2.5 rounded-2xl p-4"
                     style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(167,139,250,0.35)' }}
                   >
-                    <span className="text-[11px] font-bold" style={{ color: '#c4b5fd' }}>پیشنهاد پرامپت بهتر</span>
-                    <div className="ai-content text-sm leading-relaxed text-slate-100">
+                    <span className="text-[11px] font-bold" style={{ color: 'var(--purple-soft-text)' }}>پیشنهاد پرامپت بهتر</span>
+                    <div className="ai-content text-sm leading-relaxed text-slate-100 light:text-slate-900">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.suggestedPrompt}</ReactMarkdown>
                     </div>
                     <button
@@ -228,8 +228,8 @@ export function ImagePromptReviewModal({
                     className="flex flex-col gap-2 rounded-2xl p-4"
                     style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(125,211,252,0.30)' }}
                   >
-                    <span className="text-[11px] font-bold" style={{ color: '#7dd3fc' }}>خروجی مورد انتظار</span>
-                    <div className="ai-content text-sm leading-relaxed text-slate-200">
+                    <span className="text-[11px] font-bold text-sky-300 light:text-sky-700">خروجی مورد انتظار</span>
+                    <div className="ai-content text-sm leading-relaxed text-slate-200 light:text-slate-800">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.expectedOutput}</ReactMarkdown>
                     </div>
                   </div>
@@ -238,22 +238,22 @@ export function ImagePromptReviewModal({
             )
           })}
           {review.isPending && (
-            <div className="flex items-center gap-2 text-[13px] text-slate-500">
+            <div className="flex items-center gap-2 text-[13px] text-slate-500 light:text-slate-400">
               <div className="size-3.5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
               در حال فکر کردن...
             </div>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 border-t border-slate-800 p-3.5">
+        <div className="flex shrink-0 items-center gap-2 border-t border-slate-800 light:border-slate-200 p-3.5">
           <input
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') submitDraft() }}
             placeholder="سوال یا اصلاح دیگری بپرس..."
             disabled={review.isPending}
-            className="flex-1 rounded-full px-4 py-2.5 text-[13.5px] text-slate-100 placeholder:text-slate-600 focus:outline-none disabled:opacity-50"
-            style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
+            className="flex-1 rounded-full px-4 py-2.5 text-[13.5px] text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
+            style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
           />
           <button
             onClick={submitDraft}

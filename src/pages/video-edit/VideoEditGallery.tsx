@@ -45,11 +45,11 @@ function ProgressStepper({ kieState }: { kieState: string | null }) {
           <div
             key={step.key}
             className="h-1 flex-1 rounded-full transition-colors"
-            style={{ background: i <= activeIndex ? '#38bdf8' : 'rgba(148,163,184,0.25)' }}
+            style={{ background: i <= activeIndex ? '#38bdf8' : 'rgba(var(--neutral-rgb),0.25)' }}
           />
         ))}
       </div>
-      <span className="text-[10.5px] font-semibold" style={{ color: '#94a3b8' }}>
+      <span className="text-[10.5px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
         {KIE_STATE_STEPS[Math.min(activeIndex, 2)].label}
       </span>
     </div>
@@ -87,8 +87,8 @@ function JobCard({ job }: { job: VideoEditJob }) {
   const isBusy = job.status === 'PENDING' || job.status === 'PROCESSING'
 
   return (
-    <div className="overflow-hidden rounded-[18px]" style={{ border: '1px solid rgba(148,163,184,0.2)', background: 'rgba(255,255,255,0.02)' }}>
-      <div className="relative aspect-video bg-[#0b1220]">
+    <div className="overflow-hidden rounded-[18px]" style={{ border: '1px solid rgba(var(--neutral-rgb),0.2)', background: 'rgba(var(--neutral-rgb),0.02)' }}>
+      <div className="relative aspect-video bg-[var(--studio-bg)]">
         {job.status === 'SUCCEEDED' && videoUrl ? (
           playing ? (
             <video src={videoUrl} controls autoPlay playsInline className="size-full object-cover" />
@@ -108,7 +108,7 @@ function JobCard({ job }: { job: VideoEditJob }) {
               </>
             )}
             {job.status === 'FAILED' && (
-              <span className="px-4 text-center text-[11px] text-red-300">{job.errorMessage ?? 'پردازش ناموفق بود'}</span>
+              <span className="px-4 text-center text-[11px] text-red-300 light:text-red-700">{job.errorMessage ?? 'پردازش ناموفق بود'}</span>
             )}
           </div>
         )}
@@ -119,8 +119,8 @@ function JobCard({ job }: { job: VideoEditJob }) {
       </div>
       <div className="flex items-center justify-between gap-2 p-2.5">
         <div className="min-w-0">
-          <p className="truncate text-[12px] font-bold text-slate-100">{job.prompt}</p>
-          <p className="text-[10.5px]" style={{ color: '#64748b' }}>
+          <p className="truncate text-[12px] font-bold text-slate-100 light:text-slate-900">{job.prompt}</p>
+          <p className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
             {job.mode === 'EDIT' ? 'ادیت ویدیو' : 'تولید ویدیو'}
             {job.aspectRatio ? ` · ${job.aspectRatio}` : ''}
           </p>
@@ -130,8 +130,8 @@ function JobCard({ job }: { job: VideoEditJob }) {
             type="button"
             onClick={() => void downloadResult(job.resultVideoKey!, `video-edit-${job.id}.mp4`)}
             aria-label="دانلود"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300 light:text-slate-500"
+            style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -166,7 +166,7 @@ export function VideoEditGallery({
             <div className="relative size-[58px]">
               <div
                 className="flex size-[58px] items-center justify-center rounded-full"
-                style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: '#6ee7b7' }}
+                style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(52,211,153,0.4)', color: 'var(--brand)' }}
               >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="1.5" y="5.5" width="15" height="13" rx="2.5" /><polygon points="22.5 7.5 16.5 12 22.5 16.5 22.5 7.5" />
@@ -174,15 +174,15 @@ export function VideoEditGallery({
               </div>
               <div
                 className="absolute -bottom-0.5 -left-0.5 flex size-[22px] items-center justify-center rounded-full"
-                style={{ background: '#10b981', border: '2px solid #020C18', color: '#02170f' }}
+                style={{ background: '#10b981', border: '2px solid var(--studio-bg)', color: '#02170f' }}
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </div>
             </div>
-            <p className="text-[17.5px] font-extrabold" style={{ color: '#ecfdf5' }}>اینجا را انتخاب کنید</p>
-            <p className="text-[12.5px] leading-relaxed" style={{ color: 'rgba(209,250,229,0.62)' }}>
+            <p className="text-[17.5px] font-extrabold" style={{ color: 'var(--emerald-pale-text)' }}>اینجا را انتخاب کنید</p>
+            <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--emerald-faint-text)' }}>
               فیلم مرجع یا یک سبک آماده را انتخاب کن تا بسازیم
             </p>
           </button>
@@ -191,13 +191,13 @@ export function VideoEditGallery({
     }
     return (
       <div className="flex flex-col items-center justify-center gap-3.5 py-16 text-center">
-        <div className="flex size-16 items-center justify-center rounded-[20px]" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: '#34d399' }}>
+        <div className="flex size-16 items-center justify-center rounded-[20px]" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.22)', color: 'var(--brand)' }}>
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <rect x="1.5" y="5.5" width="15" height="13" rx="2.5" /><polygon points="22.5 7.5 16.5 12 22.5 16.5 22.5 7.5" />
           </svg>
         </div>
-        <p className="text-[15px] font-semibold text-slate-100">هنوز ویدیویی نساخته/ویرایش نکردی</p>
-        <p className="max-w-[280px] text-[13.5px] leading-relaxed" style={{ color: '#64748b' }}>
+        <p className="text-[15px] font-semibold text-slate-100 light:text-slate-900">هنوز ویدیویی نساخته/ویرایش نکردی</p>
+        <p className="max-w-[280px] text-[13.5px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
           از پنل «تولید یا ادیت» شروع کن — نتیجه همین‌جا ظاهر می‌شود
         </p>
       </div>

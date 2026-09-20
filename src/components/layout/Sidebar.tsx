@@ -8,6 +8,7 @@ import { useMe } from "@/queries/auth.queries";
 import { useCreditsBalance } from "@/queries/credits.queries";
 import { useChatStore } from "@/store/chat.store";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { fa } from "@/locales/fa";
 import { track } from "@/lib/events";
 import logoUrl from "@/assets/brand/horizontal-dark.svg";
@@ -89,11 +90,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
 
   return (
     <aside
-      className="flex h-full w-72 shrink-0 flex-col border-l border-slate-700/30"
-      style={{ background: 'linear-gradient(180deg, #0a0f1c 0%, #0f172a 100%)' }}
+      className="sidebar-surface flex h-full w-72 shrink-0 flex-col border-l border-slate-700/30 light:border-slate-200"
     >
       {/* header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700/30">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700/30 light:border-slate-200">
         <div className="flex items-center gap-2">
           <img
             src={logoUrl}
@@ -102,9 +102,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           />
         </div>
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <button
             onClick={handleNew}
-            className="size-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-emerald-400 transition-colors"
+            className="size-8 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-emerald-400 light:text-slate-500 light:hover:bg-slate-100 transition-colors"
             title={fa.chat.newChat}
           >
             <svg viewBox="0 0 24 24" fill="none" className="size-4">
@@ -119,20 +120,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         </div>
       </div>
 
-      <div className="px-4 py-3 border-b border-slate-700/30">
+      <div className="px-4 py-3 border-b border-slate-700/30 light:border-slate-200">
         <PlanUpgradeBadge />
       </div>
 
       {/* conversations */}
       <div className="flex-1 overflow-y-auto py-2 px-2">
         {conversations.length === 0 && (
-          <p className="px-4 py-8 text-center text-xs text-slate-600">
+          <p className="px-4 py-8 text-center text-xs text-slate-600 light:text-slate-400">
             {fa.chat.noHistory}
           </p>
         )}
         {groupConversationsByDate(conversations).map((group) => (
           <div key={group.label} className="mb-1">
-            <p className="mb-1 mt-3 px-2 text-[11px] font-bold tracking-wide text-slate-600 first:mt-1">
+            <p className="mb-1 mt-3 px-2 text-[11px] font-bold tracking-wide text-slate-600 light:text-slate-400 first:mt-1">
               {group.label}
             </p>
             {group.items.map((conv) => {
@@ -145,7 +146,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                     "group relative rounded-xl px-3 py-2.5 cursor-pointer transition-colors",
                     active
                       ? "bg-emerald-500/10"
-                      : "hover:bg-slate-700/40",
+                      : "hover:bg-slate-700/40 light:hover:bg-slate-100",
                   )}
                 >
                   {active && (
@@ -154,7 +155,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                   <p
                     className={clsx(
                       "truncate text-[13px] font-medium leading-tight",
-                      active ? "text-emerald-100" : "text-slate-300",
+                      active ? "text-emerald-100 light:text-emerald-700" : "text-slate-300 light:text-slate-700",
                     )}
                   >
                     {conv.title ?? fa.chat.untitled}
@@ -162,7 +163,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                   <p
                     className={clsx(
                       "mt-1 text-[11px]",
-                      active ? "text-emerald-400/80" : "text-slate-600",
+                      active ? "text-emerald-400/80 light:text-emerald-600" : "text-slate-600 light:text-slate-400",
                     )}
                   >
                     {conversationDateLabel(conv.lastMessageAt)}
@@ -179,7 +180,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                         navigate("/chat");
                       }
                     }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 size-6 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 size-6 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center text-slate-500 hover:text-red-400 light:text-slate-400 transition-all"
                   >
                     <svg viewBox="0 0 24 24" fill="none" className="size-3.5">
                       <path
@@ -201,7 +202,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               track("conversation_list_paginated");
               void fetchNextPage();
             }}
-            className="w-full py-2 text-xs text-slate-600 hover:text-slate-400 transition-colors"
+            className="w-full py-2 text-xs text-slate-600 hover:text-slate-400 light:text-slate-400 light:hover:text-slate-600 transition-colors"
           >
             بیشتر
           </button>
@@ -209,26 +210,26 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
       </div>
 
       {/* footer */}
-      <div className="border-t border-slate-700/30 p-3">
+      <div className="border-t border-slate-700/30 light:border-slate-200 p-3">
         <button
           onClick={() => navigate("/settings/profile")}
-          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 transition-colors text-right"
+          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 light:hover:bg-slate-100 transition-colors text-right"
         >
-          <div className="size-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-300 shrink-0">
+          <div className="size-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-300 light:bg-slate-200 light:text-slate-700 shrink-0">
             {avatarInitials(me?.name)}
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-xs font-medium text-slate-200">
+            <span className="truncate text-xs font-medium text-slate-200 light:text-slate-900">
               {me?.name ?? me?.phone}
             </span>
-            <span className="text-[10px] text-slate-500">
+            <span className="text-[10px] text-slate-500 light:text-slate-400">
               {fa.settings.viewProfile}
             </span>
           </div>
           <svg
             viewBox="0 0 20 20"
             fill="currentColor"
-            className="size-4 shrink-0 text-slate-500"
+            className="size-4 shrink-0 text-slate-500 light:text-slate-400"
           >
             {/* chevron-left — این یک لینک روبه‌جلو (رفتن به صفحه‌ی پروفایل) است، نه بازگشت */}
             <path
@@ -242,7 +243,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         {isPayAsYouGo && (
           <button
             onClick={() => navigate("/settings/wallet")}
-            className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 transition-colors text-right"
+            className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 light:hover:bg-slate-100 transition-colors text-right"
           >
             <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
               <svg viewBox="0 0 20 20" fill="none" className="size-4 -scale-x-100">
@@ -256,17 +257,17 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               </svg>
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-xs font-medium text-slate-200">
+              <span className="truncate text-xs font-medium text-slate-200 light:text-slate-900">
                 {fa.settings.wallet}
               </span>
-              <span className="text-[10px] text-emerald-400/80">
+              <span className="text-[10px] text-emerald-400/80 light:text-emerald-600">
                 {(credits?.credits ?? 0).toLocaleString("fa-IR")} {fa.credits.creditsUnit}
               </span>
             </div>
             <svg
               viewBox="0 0 20 20"
               fill="currentColor"
-              className="size-4 shrink-0 text-slate-500"
+              className="size-4 shrink-0 text-slate-500 light:text-slate-400"
             >
               <path
                 fillRule="evenodd"

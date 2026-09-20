@@ -25,9 +25,9 @@ export function PlanUpgradeBadge() {
       <>
         <button onClick={goToPricing} className={clsx('nivo-shiny-upgrade', isCritical && 'nivo-shiny-upgrade--critical')}>
           <span className="nivo-shiny-upgrade__inner">
-            <CreditCoinIcon className={clsx('size-3.5', isCritical ? 'text-red-400' : 'text-emerald-400')} />
-            <span className="text-slate-300">اعتبار شما: <span className={clsx('font-semibold', isCritical ? 'text-red-400' : 'text-emerald-300')}>{creditsText}</span> {fa.credits.creditsUnit}</span>
-            <span className={clsx('font-semibold', isCritical ? 'text-red-400' : 'text-emerald-300')}>{fa.plans.upgradeCta}</span>
+            <CreditCoinIcon className={clsx('size-3.5', isCritical ? 'text-red-400 light:text-red-600' : 'text-emerald-400 light:text-emerald-600')} />
+            <span className="text-slate-300 light:text-slate-600">اعتبار شما: <span className={clsx('font-semibold', isCritical ? 'text-red-400 light:text-red-600' : 'text-emerald-300 light:text-emerald-700')}>{creditsText}</span> {fa.credits.creditsUnit}</span>
+            <span className={clsx('font-semibold', isCritical ? 'text-red-400 light:text-red-600' : 'text-emerald-300 light:text-emerald-700')}>{fa.plans.upgradeCta}</span>
           </span>
         </button>
         <style>{`
@@ -50,7 +50,7 @@ export function PlanUpgradeBadge() {
             align-items: center;
             gap: 6px;
             border-radius: 9999px;
-            background: #0f172a;
+            background: var(--bg);
             padding: 5px 12px;
             font-size: 11px;
             white-space: nowrap;
@@ -70,12 +70,12 @@ export function PlanUpgradeBadge() {
   return (
     <button
       onClick={goToPricing}
-      className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/15 transition-colors whitespace-nowrap"
+      className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/15 transition-colors whitespace-nowrap light:bg-emerald-50 light:text-slate-600"
     >
-      <CreditCoinIcon className="size-3.5 text-emerald-400" />
-      <span className="text-slate-400">اعتبار شما:</span>
-      <span className="font-semibold text-emerald-300">{creditsText}</span>
-      <span className="text-slate-400">{fa.credits.creditsUnit}</span>
+      <CreditCoinIcon className="size-3.5 text-emerald-400 light:text-emerald-600" />
+      <span className="text-slate-400 light:text-slate-500">اعتبار شما:</span>
+      <span className="font-semibold text-emerald-300 light:text-emerald-700">{creditsText}</span>
+      <span className="text-slate-400 light:text-slate-500">{fa.credits.creditsUnit}</span>
     </button>
   )
 }

@@ -47,7 +47,11 @@ export function AnonSignupBanner({ status, userMessageCount = 0 }: { status?: An
         <p
           className={clsx(
             'text-sm font-medium',
-            stage === 'blocked' ? 'text-red-300' : stage === 'limited' ? 'text-amber-300' : 'text-emerald-300',
+            stage === 'blocked'
+              ? 'text-red-300 light:text-red-700'
+              : stage === 'limited'
+                ? 'text-amber-300 light:text-amber-700'
+                : 'text-emerald-300 light:text-emerald-700',
           )}
         >
           {status.message}

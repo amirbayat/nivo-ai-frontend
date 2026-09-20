@@ -29,8 +29,8 @@ function ModelCapabilityChips({ chips }: { chips: string[] }) {
       {chips.map(chip => (
         <span
           key={chip}
-          className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold text-slate-300"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)' }}
+          className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold text-slate-300 light:text-slate-600"
+          style={{ background: 'var(--chip-bg)', border: '1px solid var(--chip-border)' }}
         >
           {chip}
         </span>
@@ -46,16 +46,16 @@ function ModelCard({ item, selected, onSelect }: { item: ModelPickerItem; select
       onClick={onSelect}
       className={clsx(
         'flex flex-col gap-2.5 rounded-3xl p-4 text-right transition-colors',
-        selected ? 'bg-emerald-500/[0.08]' : 'bg-white/[0.02] hover:bg-white/[0.04]',
+        selected ? 'bg-emerald-500/[0.08]' : 'bg-white/[0.02] hover:bg-white/[0.04] light:bg-slate-50 light:hover:bg-slate-100',
       )}
-      style={{ border: selected ? '1.5px solid rgba(16,185,129,0.55)' : '1px solid rgba(148,163,184,0.18)' }}
+      style={{ border: selected ? '1.5px solid rgba(16,185,129,0.55)' : '1px solid var(--border)' }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/5 light:bg-slate-100">
             {item.icon}
           </span>
-          <span className="text-[14px] font-bold text-slate-100">{item.name}</span>
+          <span className="text-[14px] font-bold text-slate-100 light:text-slate-900">{item.name}</span>
         </div>
         {selected && (
           <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[#02170f]">
@@ -66,7 +66,7 @@ function ModelCard({ item, selected, onSelect }: { item: ModelPickerItem; select
         )}
       </div>
 
-      {item.blurb && <p className="text-[12.5px] leading-relaxed text-slate-400">{item.blurb}</p>}
+      {item.blurb && <p className="text-[12.5px] leading-relaxed text-slate-400 light:text-slate-500">{item.blurb}</p>}
 
       {((item.chips && item.chips.length > 0) || item.tier) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -120,27 +120,27 @@ export function ModelPickerModal({
 
       <div
         className={clsx(
-          'relative flex h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-[#020C18] transition-all duration-300 ease-out',
+          'relative flex h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-[var(--bg)] transition-all duration-300 ease-out',
           open ? 'translate-y-0' : 'translate-y-full',
           'sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-2xl sm:translate-y-0 sm:rounded-3xl sm:border sm:shadow-2xl',
           open ? 'sm:scale-100 sm:opacity-100' : 'sm:scale-95 sm:opacity-0',
         )}
-        style={{ borderColor: 'rgba(148,163,184,0.22)' }}
+        style={{ borderColor: 'var(--border)' }}
         onClick={e => e.stopPropagation()}
       >
         <div
-          className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 px-5 pb-4"
+          className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 light:border-slate-200 px-5 pb-4"
           style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}
         >
           <div>
-            <span className="block text-[15px] font-bold text-white">{title}</span>
+            <span className="block text-[15px] font-bold text-white light:text-slate-900">{title}</span>
             {subtitle && <span className="block text-[11.5px] text-slate-500">{subtitle}</span>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)' }}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300 light:text-slate-600"
+            style={{ background: 'var(--chip-bg)', border: '1px solid var(--chip-border)' }}
             aria-label="بستن"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">

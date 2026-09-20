@@ -46,7 +46,7 @@ export function MessageLimitBanner() {
         </svg>
 
         <div className="flex-1 min-w-0">
-          <p className={clsx('text-sm font-medium', isExhausted ? 'text-red-400' : 'text-amber-400')}>
+          <p className={clsx('text-sm font-medium', isExhausted ? 'text-red-400 light:text-red-700' : 'text-amber-400 light:text-amber-700')}>
             {isForcedNano
               ? fa.chat.creditExhaustedForcedNano
               : isExhausted

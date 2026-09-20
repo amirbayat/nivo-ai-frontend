@@ -131,13 +131,13 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
         aria-expanded={open}
       >
         {modeIcon(active) ?? <ProviderIcon provider={providerOf(active)} />}
-        <span className="text-xs font-medium text-purple-200 group-hover:text-purple-100 transition-colors">
+        <span className="text-xs font-medium text-purple-200 group-hover:text-purple-100 light:text-purple-700 light:group-hover:text-purple-800 transition-colors">
           {displayName(active)}
         </span>
         <svg
           viewBox="0 0 10 6"
           fill="none"
-          className={`w-2.5 h-2.5 text-purple-400/70 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-2.5 h-2.5 text-purple-400/70 light:text-purple-500 transition-transform ${open ? 'rotate-180' : ''}`}
         >
           <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -155,7 +155,7 @@ export function ModelSelector({ currentModel }: { currentModel?: string }) {
           <button
             type="button"
             onClick={goToModelsPage}
-            className="mt-3 w-full rounded-2xl border border-slate-700/60 py-2.5 text-center text-[12.5px] font-semibold text-emerald-400 hover:bg-slate-800/40"
+            className="mt-3 w-full rounded-2xl border border-slate-700/60 py-2.5 text-center text-[12.5px] font-semibold text-emerald-400 hover:bg-slate-800/40 light:border-slate-300 light:text-emerald-600 light:hover:bg-slate-100"
           >
             {moreCount > 0 ? `مدل‌های بیشتر (${moreCount} مورد دیگر) ←` : 'مشاهده همه مدل‌ها ←'}
           </button>

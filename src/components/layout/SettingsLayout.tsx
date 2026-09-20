@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { PlanUpgradeBadge } from './PlanUpgradeBadge'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { fa } from '@/locales/fa'
 
 const navItems = [
@@ -16,20 +17,21 @@ export function SettingsLayout() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100" dir="rtl">
+    <div className="min-h-screen bg-slate-950 text-slate-100 light:bg-white light:text-slate-900" dir="rtl">
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-6 flex items-center gap-3">
           <button
             onClick={() => navigate('/chat')}
-            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 light:text-slate-500 light:hover:text-slate-800 transition-colors"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
             {fa.common.back}
           </button>
-          <h1 className="text-xl font-bold text-slate-100">{fa.settings.title}</h1>
-          <div className="ms-auto">
+          <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{fa.settings.title}</h1>
+          <div className="ms-auto flex items-center gap-2">
+            <ThemeToggle />
             <PlanUpgradeBadge />
           </div>
         </div>
@@ -45,7 +47,7 @@ export function SettingsLayout() {
                     'whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-colors',
                     isActive
                       ? 'bg-emerald-500/15 text-emerald-400'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200',
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-800',
                   )
                 }
               >

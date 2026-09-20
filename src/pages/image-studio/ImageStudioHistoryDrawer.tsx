@@ -25,13 +25,13 @@ export function ImageStudioHistoryDrawer({ open, onClose }: Props) {
       <div className="flex-1" onClick={onClose} />
       <div
         className="flex h-full w-full max-w-sm shrink-0 flex-col"
-        style={{ background: '#080f1e', borderInlineStart: '1px solid rgba(148,163,184,0.16)' }}
+        style={{ background: 'var(--bg)', borderInlineStart: '1px solid rgba(var(--neutral-rgb),0.16)' }}
       >
-        <div className="flex shrink-0 items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(148,163,184,0.14)' }}>
-          <span className="text-[15px] font-bold text-white">تاریخچه‌ی استودیوی عکس</span>
+        <div className="flex shrink-0 items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(var(--neutral-rgb),0.14)' }}>
+          <span className="text-[15px] font-bold text-white light:text-slate-900">تاریخچه‌ی استودیوی عکس</span>
           <button
             onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-slate-200"
+            className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-slate-200 light:hover:bg-slate-900/5 light:hover:text-slate-800"
             aria-label="بستن"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -43,10 +43,10 @@ export function ImageStudioHistoryDrawer({ open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-3 py-3">
           {isLoading ? (
             <div className="flex justify-center py-10">
-              <div className="size-7 animate-spin rounded-full border-2 border-slate-600/40" style={{ borderTopColor: '#34d399' }} />
+              <div className="size-7 animate-spin rounded-full border-2 border-slate-600/40" style={{ borderTopColor: 'var(--brand)' }} />
             </div>
           ) : conversations.length === 0 ? (
-            <p className="px-3 py-10 text-center text-[13px]" style={{ color: '#64748b' }}>
+            <p className="px-3 py-10 text-center text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
               هنوز هیچ گفتگویی توی استودیوی عکس عکس نساخته
             </p>
           ) : (
@@ -57,19 +57,19 @@ export function ImageStudioHistoryDrawer({ open, onClose }: Props) {
                   navigate(`/image/${conv.id}`)
                   onClose()
                 }}
-                className="mb-1 flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-right transition-colors hover:bg-white/[0.05]"
+                className="mb-1 flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-right transition-colors hover:bg-white/[0.05] light:hover:bg-slate-900/5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13.5px] font-medium text-slate-200">
+                  <p className="truncate text-[13.5px] font-medium text-slate-200 light:text-slate-900">
                     {conv.title ?? 'بدون عنوان'}
                   </p>
-                  <p className="mt-0.5 text-[11px]" style={{ color: '#64748b' }}>
+                  <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                     {conversationDateLabel(conv.lastMessageAt)}
                   </p>
                 </div>
                 <span
                   className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
-                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#6ee7b7' }}
+                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: 'var(--brand)' }}
                 >
                   {conv.imageGenCount} عکس
                 </span>
@@ -79,8 +79,8 @@ export function ImageStudioHistoryDrawer({ open, onClose }: Props) {
           {hasNextPage && (
             <button
               onClick={() => void fetchNextPage()}
-              className="w-full py-2 text-[12px] transition-colors hover:text-slate-300"
-              style={{ color: '#64748b' }}
+              className="w-full py-2 text-[12px] transition-colors hover:text-slate-300 light:hover:text-slate-700"
+              style={{ color: 'var(--text-tertiary)' }}
             >
               بیشتر
             </button>

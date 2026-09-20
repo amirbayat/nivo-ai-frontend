@@ -42,7 +42,7 @@ export function ChatImage({ src, className, alt, onClick }: {
   onClick?: () => void
 }) {
   const url = useAuthedImageUrl(src)
-  if (!url) return <div className={clsx(className, 'animate-pulse bg-slate-700/50')} />
+  if (!url) return <div className={clsx(className, 'animate-pulse bg-slate-700/50 light:bg-slate-200')} />
   return <img src={url} className={className} onClick={onClick} alt={alt} />
 }
 
@@ -158,12 +158,12 @@ function ReasoningBox({ text }: { text: string }) {
   return (
     <div className="flex gap-3">
       <div className="size-8 shrink-0" />
-      <div className="max-w-[75%] rounded-2xl rounded-tr-sm border border-slate-700/50 bg-slate-800/30 px-4 py-3 opacity-60">
-        <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+      <div className="max-w-[75%] rounded-2xl rounded-tr-sm border border-slate-700/50 bg-slate-800/30 light:border-slate-200 light:bg-slate-100 px-4 py-3 opacity-60">
+        <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500 light:text-slate-400">
           <span className="animate-pulse">🤔</span>
           در حال فکر کردن...
         </div>
-        <p className="whitespace-pre-wrap text-xs italic leading-relaxed text-slate-400">{visible}</p>
+        <p className="whitespace-pre-wrap text-xs italic leading-relaxed text-slate-400 light:text-slate-500">{visible}</p>
       </div>
     </div>
   )
@@ -241,9 +241,9 @@ export function ChatErrorBox({ message, code, onRetry }: { message: string; code
             <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
             <path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <span className="text-sm font-semibold text-red-300">{heading}</span>
+          <span className="text-sm font-semibold text-red-300 light:text-red-700">{heading}</span>
         </div>
-        <p className="text-sm text-red-200/80 leading-relaxed">{message}</p>
+        <p className="text-sm text-red-200/80 light:text-red-600 leading-relaxed">{message}</p>
         {isImageGenNotSupported ? (
           <button
             onClick={() => navigate('/pricing')}
@@ -283,7 +283,7 @@ function FileChip({ filename }: { filename: string }) {
         />
         <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
       </svg>
-      <span className="max-w-[10rem] truncate text-xs text-emerald-100">{filename}</span>
+      <span className="max-w-[10rem] truncate text-xs text-emerald-100 light:text-emerald-700">{filename}</span>
     </div>
   )
 }
@@ -301,7 +301,7 @@ function SourceChips({ sources }: { sources: ChatCitation[] }) {
             href={s.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex max-w-[13rem] items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] px-2.5 py-1 text-[11px] text-cyan-200 hover:bg-cyan-500/[0.14] transition-colors"
+            className="flex max-w-[13rem] items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] px-2.5 py-1 text-[11px] text-cyan-200 hover:bg-cyan-500/[0.14] light:text-cyan-700 transition-colors"
             title={s.title}
           >
             <svg viewBox="0 0 24 24" fill="none" className="size-3 shrink-0">
@@ -388,7 +388,7 @@ export function MessageBubble({
           <div
             className={clsx(
               'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
-              'bg-emerald-500/[0.14] border border-emerald-500/[0.18] text-emerald-50 rounded-tl-sm',
+              'bg-emerald-500/[0.14] border border-emerald-500/[0.18] text-emerald-50 light:text-emerald-900 rounded-tl-sm',
               streaming && 'border-emerald-500/30',
             )}
           >
@@ -430,12 +430,12 @@ export function MessageBubble({
                     }
                   }}
                   rows={1}
-                  className="w-full resize-none bg-transparent text-sm text-emerald-50 placeholder:text-emerald-100/40 focus:outline-none leading-relaxed"
+                  className="w-full resize-none bg-transparent text-sm text-emerald-50 placeholder:text-emerald-100/40 light:text-emerald-900 light:placeholder:text-emerald-700/40 focus:outline-none leading-relaxed"
                 />
                 <div className="mt-2 flex items-center justify-end gap-1.5">
                   <button
                     onClick={cancelEdit}
-                    className="rounded-lg px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700/50 transition-colors"
+                    className="rounded-lg px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700/50 light:text-slate-600 light:hover:bg-slate-100 transition-colors"
                   >
                     لغو
                   </button>
@@ -456,7 +456,7 @@ export function MessageBubble({
             )}
           </div>
         ) : (
-          <div className="min-w-0 flex-1 text-sm leading-relaxed text-slate-100 ai-content">
+          <div className="min-w-0 flex-1 text-sm leading-relaxed text-slate-100 light:text-slate-800 ai-content">
             {images && images.length > 0 && (
               <div className="flex flex-col gap-2 mb-2">
                 {images.map((src, i) => (
@@ -473,7 +473,7 @@ export function MessageBubble({
                         track('generated_image_downloaded', { source: 'inline' })
                         void downloadImage(src, 'nivo-image.png')
                       }}
-                      className="absolute bottom-2 left-2 flex size-7 items-center justify-center rounded-lg bg-slate-900/80 text-slate-200 opacity-90 group-hover:opacity-100 transition-opacity hover:bg-slate-900"
+                      className="absolute bottom-2 left-2 flex size-7 items-center justify-center rounded-lg bg-slate-900/80 text-slate-200 opacity-90 group-hover:opacity-100 transition-opacity hover:bg-slate-900 light:bg-white/90 light:text-slate-700 light:hover:bg-white"
                       aria-label="دانلود عکس"
                     >
                       <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
@@ -494,7 +494,7 @@ export function MessageBubble({
             )}
             {citations && citations.length > 0 && <SourceChips sources={citations} />}
             {wasInterrupted && (
-              <p className="mt-1.5 text-[11px] text-amber-400/70">{fa.chat.responseInterruptedNotice}</p>
+              <p className="mt-1.5 text-[11px] text-amber-400/70 light:text-amber-600">{fa.chat.responseInterruptedNotice}</p>
             )}
           </div>
         )}
@@ -510,8 +510,8 @@ export function MessageBubble({
               className={clsx(
                 'flex size-6 items-center justify-center rounded-md transition-colors',
                 editDisabled
-                  ? 'text-slate-700 cursor-not-allowed'
-                  : 'text-slate-600 hover:bg-slate-800 hover:text-slate-400',
+                  ? 'text-slate-700 cursor-not-allowed light:text-slate-300'
+                  : 'text-slate-600 hover:bg-slate-800 hover:text-slate-400 light:text-slate-400 light:hover:bg-slate-100 light:hover:text-slate-600',
               )}
               aria-label="ویرایش پیام"
               title="ویرایش"
@@ -551,7 +551,7 @@ function MessageCopyButton({ text, role }: { text: string; role: Message['role']
       onClick={handleCopy}
       className={clsx(
         'flex size-6 items-center justify-center rounded-md transition-colors',
-        copied ? 'text-emerald-400' : 'text-slate-600 hover:bg-slate-800 hover:text-slate-400',
+        copied ? 'text-emerald-400' : 'text-slate-600 hover:bg-slate-800 hover:text-slate-400 light:text-slate-400 light:hover:bg-slate-100 light:hover:text-slate-600',
       )}
       aria-label={copied ? 'کپی شد' : 'کپی متن پیام'}
       title={copied ? 'کپی شد' : 'کپی'}
@@ -607,7 +607,7 @@ function MessageFeedbackRow({ messageId, initial }: { messageId: string; initial
           onClick={() => vote_('UP')}
           className={clsx(
             'size-6 rounded-md flex items-center justify-center transition-colors',
-            vote === 'UP' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800',
+            vote === 'UP' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800 light:text-slate-400 light:hover:text-slate-600 light:hover:bg-slate-100',
           )}
           aria-label="پاسخ مفید بود"
         >
@@ -622,7 +622,7 @@ function MessageFeedbackRow({ messageId, initial }: { messageId: string; initial
           onClick={() => vote_('DOWN')}
           className={clsx(
             'size-6 rounded-md flex items-center justify-center transition-colors',
-            vote === 'DOWN' ? 'text-red-400 bg-red-500/10' : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800',
+            vote === 'DOWN' ? 'text-red-400 bg-red-500/10' : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800 light:text-slate-400 light:hover:text-slate-600 light:hover:bg-slate-100',
           )}
           aria-label="پاسخ مفید نبود"
         >
@@ -642,19 +642,19 @@ function MessageFeedbackRow({ messageId, initial }: { messageId: string; initial
             onChange={e => setComment(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submitComment()}
             placeholder={fa.messageFeedback.commentPlaceholder}
-            className="flex-1 min-w-0 rounded-lg bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-slate-600"
+            className="flex-1 min-w-0 rounded-lg bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-slate-600 light:bg-white light:border-slate-300 light:text-slate-900 light:placeholder:text-slate-400 light:focus:border-slate-400"
           />
           <button
             onClick={submitComment}
             disabled={!comment.trim()}
-            className="shrink-0 rounded-lg bg-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 transition-colors"
+            className="shrink-0 rounded-lg bg-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 light:bg-slate-200 light:text-slate-700 light:hover:bg-slate-300 transition-colors"
           >
             {fa.messageFeedback.submit}
           </button>
         </div>
       )}
       {commentSent && (
-        <p className="mt-1 text-[11px] text-slate-600">{fa.messageFeedback.thanks}</p>
+        <p className="mt-1 text-[11px] text-slate-600 light:text-slate-400">{fa.messageFeedback.thanks}</p>
       )}
     </div>
   )

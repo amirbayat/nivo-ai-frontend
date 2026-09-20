@@ -16,12 +16,12 @@ export function TokenUsageBar() {
       {showFree && (
         <>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-slate-500">{fa.usage.free}</span>
-            <span className={`text-xs ${isLow ? 'text-amber-400' : 'text-slate-400'}`}>
+            <span className="text-xs text-slate-500 light:text-slate-400">{fa.usage.free}</span>
+            <span className={`text-xs ${isLow ? 'text-amber-400 light:text-amber-600' : 'text-slate-400 light:text-slate-500'}`}>
               {data.freeUsed.toLocaleString('fa-IR')} / {data.freeLimit.toLocaleString('fa-IR')}
             </span>
           </div>
-          <div className="h-1 rounded-full bg-slate-700/60 overflow-hidden">
+          <div className="h-1 rounded-full bg-slate-700/60 light:bg-slate-200 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${isLow ? 'bg-amber-400' : 'bg-emerald-500'}`}
               style={{ width: `${freePct}%` }}
@@ -32,12 +32,12 @@ export function TokenUsageBar() {
       {data.paidLimit > 0 && (
         <>
           <div className="flex items-center justify-between mt-1.5 mb-1">
-            <span className="text-xs text-slate-500">{fa.usage.paid}</span>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500 light:text-slate-400">{fa.usage.paid}</span>
+            <span className="text-xs text-slate-400 light:text-slate-500">
               {data.paidUsed.toLocaleString('fa-IR')} / {data.paidLimit.toLocaleString('fa-IR')}
             </span>
           </div>
-          <div className="h-1 rounded-full bg-slate-700/60 overflow-hidden">
+          <div className="h-1 rounded-full bg-slate-700/60 light:bg-slate-200 overflow-hidden">
             <div
               className="h-full rounded-full bg-blue-500 transition-all"
               style={{ width: `${Math.min((data.paidUsed / data.paidLimit) * 100, 100)}%` }}

@@ -23,15 +23,15 @@ function ModelTriggerChip({ model, onOpen }: { model: KieVideoModel | undefined;
       type="button"
       onClick={onOpen}
       className="flex w-full items-center justify-between gap-2.5 rounded-2xl px-3.5 py-3 text-right"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
+      style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full" style={{ background: 'rgba(16,185,129,0.14)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#6ee7b7"><path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z" /></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--brand)"><path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z" /></svg>
         </span>
-        <span className="truncate text-[13.5px] font-bold text-white">{model.displayName}</span>
+        <span className="truncate text-[13.5px] font-bold text-white light:text-slate-900">{model.displayName}</span>
       </div>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2"><polyline points="6 9 12 15 18 9" /></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.2"><polyline points="6 9 12 15 18 9" /></svg>
     </button>
   )
 }
@@ -62,15 +62,15 @@ function SessionHistoryDrawer({
           'absolute inset-y-0 left-0 flex w-[340px] max-w-[85vw] flex-col overflow-hidden transition-transform duration-200',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
-        style={{ background: '#080f1e', borderRight: '1px solid rgba(148,163,184,0.16)' }}
+        style={{ background: 'var(--bg)', borderRight: '1px solid rgba(var(--neutral-rgb),0.16)' }}
       >
-        <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3.5 pt-5" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
-          <span className="text-[14px] font-bold text-white">تاریخچه‌ی ویرایش ویدیو</span>
+        <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3.5 pt-5" style={{ borderColor: 'rgba(var(--neutral-rgb),0.12)' }}>
+          <span className="text-[14px] font-bold text-white light:text-slate-900">تاریخچه‌ی ویرایش ویدیو</span>
           <button
             type="button"
             onClick={onClose}
-            className="flex size-7 items-center justify-center rounded-full text-slate-300"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)' }}
+            className="flex size-7 items-center justify-center rounded-full text-slate-300 light:text-slate-500"
+            style={{ background: 'rgba(var(--neutral-rgb),0.05)', border: '1px solid rgba(var(--neutral-rgb),0.24)' }}
             aria-label="بستن"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -81,7 +81,7 @@ function SessionHistoryDrawer({
             type="button"
             onClick={onStartNew}
             className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[12.5px] font-bold"
-            style={{ background: 'rgba(16,185,129,0.10)', border: '1.5px dashed rgba(16,185,129,0.35)', color: '#6ee7b7' }}
+            style={{ background: 'rgba(16,185,129,0.10)', border: '1.5px dashed rgba(16,185,129,0.35)', color: 'var(--brand)' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
             شروع ویرایش جدید
@@ -99,16 +99,16 @@ function SessionHistoryDrawer({
                 style={{ background: active ? 'rgba(16,185,129,0.08)' : 'transparent' }}
               >
                 <span className="flex min-w-0 flex-col items-start">
-                  <span className="truncate text-[12.5px] font-semibold" style={{ color: active ? '#d1fae5' : '#e2e8f0', maxWidth: 220 }}>
+                  <span className="truncate text-[12.5px] font-semibold" style={{ color: active ? 'var(--emerald-soft-text)' : 'var(--text-primary)', maxWidth: 220 }}>
                     {s.title ?? 'بدون عنوان'}
                   </span>
-                  <span className="mt-0.5 text-[10.5px]" style={{ color: '#64748b' }}>
+                  <span className="mt-0.5 text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
                     {new Date(s.createdAt).toLocaleDateString('fa-IR')}
                   </span>
                 </span>
                 <span
                   className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                  style={{ background: 'rgba(56,189,248,0.14)', color: '#7dd3fc' }}
+                  style={{ background: 'rgba(56,189,248,0.14)', color: 'var(--sky-soft-text)' }}
                 >
                   {s.jobs.length} کار
                 </span>
@@ -188,8 +188,8 @@ export function VideoStudioPage() {
   const formPanel = (
     <div className="flex flex-1 flex-col overflow-y-auto px-1 pb-6">
       <div className="px-1 pb-1 pt-0.5">
-        <p className="text-[12px] font-bold" style={{ color: '#34d399' }}>{model?.displayName ?? '...'}</p>
-        <h1 className="mt-1.5 text-[16.5px] font-extrabold text-white" style={{ textWrap: 'balance' }}>
+        <p className="text-[12px] font-bold" style={{ color: 'var(--brand)' }}>{model?.displayName ?? '...'}</p>
+        <h1 className="mt-1.5 text-[16.5px] font-extrabold text-white light:text-slate-900" style={{ textWrap: 'balance' }}>
           از پرامپت، عکس یا ویدیو یه ویدیوی تازه بساز یا خودش رو ویرایش کن
         </h1>
       </div>
@@ -202,7 +202,7 @@ export function VideoStudioPage() {
 
       <div className="mt-3.5">
         {!model ? (
-          <p className="px-1 py-8 text-center text-[13px]" style={{ color: '#64748b' }}>در حال بارگذاری مدل‌ها...</p>
+          <p className="px-1 py-8 text-center text-[13px]" style={{ color: 'var(--text-tertiary)' }}>در حال بارگذاری مدل‌ها...</p>
         ) : model.inputFields ? (
           <VideoStudioForm
             model={model}
@@ -233,13 +233,13 @@ export function VideoStudioPage() {
   )
 
   return (
-    <div className="relative flex flex-1 flex-col overflow-hidden" style={{ background: '#020C18' }} dir="rtl">
+    <div className="relative flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--studio-bg)' }} dir="rtl">
       <div className="flex shrink-0 items-center justify-between px-5 pt-5 sm:px-10 sm:pt-7">
         <div className="flex min-w-0 items-center gap-3.5">
           <button
             onClick={() => navigate('/')}
             className="flex size-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.22)', color: '#cbd5e1' }}
+            style={{ background: 'rgba(var(--neutral-rgb),0.10)', border: '1px solid rgba(var(--neutral-rgb),0.22)', color: 'var(--studio-icon-text)' }}
             aria-label="بازگشت به خانه"
           >
             {/* chevron-right — «بازگشت» در RTL باید رو به راست اشاره کند (CLAUDE.md) */}
@@ -248,8 +248,8 @@ export function VideoStudioPage() {
             </svg>
           </button>
           <div className="flex min-w-0 flex-col">
-            <span className="text-[11px] font-bold" style={{ color: '#64748b' }}>ویرایش ویدیو</span>
-            <span className="truncate text-[16px] font-bold text-white" style={{ maxWidth: 260 }}>
+            <span className="text-[11px] font-bold" style={{ color: 'var(--text-tertiary)' }}>ویرایش ویدیو</span>
+            <span className="truncate text-[16px] font-bold text-white light:text-slate-900" style={{ maxWidth: 260 }}>
               {activeSession?.title ?? 'جلسه‌ی تازه'}
             </span>
           </div>
@@ -262,7 +262,7 @@ export function VideoStudioPage() {
             onClick={() => setHistoryOpen(true)}
             title="تاریخچه‌ی جلسه‌ها"
             className="flex size-9 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)', color: '#cbd5e1' }}
+            style={{ background: 'rgba(var(--neutral-rgb),0.05)', border: '1px solid rgba(var(--neutral-rgb),0.24)', color: 'var(--studio-icon-text)' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>
           </button>
@@ -274,7 +274,7 @@ export function VideoStudioPage() {
             }}
             title="ویرایش جدید"
             className="flex size-9 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.32)', color: '#6ee7b7' }}
+            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.32)', color: 'var(--brand)' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
           </button>
@@ -289,7 +289,7 @@ export function VideoStudioPage() {
 
         {/* ── دسکتاپ: پنل گالری (چپ) ── */}
         <div className="order-1 hidden flex-1 flex-col overflow-y-auto px-5 pb-6 sm:order-2 sm:flex sm:px-10">
-          <p className="mb-4 text-[13px]" style={{ color: '#64748b' }}>کارهای این جلسه</p>
+          <p className="mb-4 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>کارهای این جلسه</p>
           <VideoEditGallery jobs={activeJobs} />
         </div>
 
@@ -322,17 +322,17 @@ export function VideoStudioPage() {
         {/* ── موبایل: مدال تمام‌صفحه‌ی فرم (اسلاید از پایین) — الگوی MobileChatModal ── */}
         <div
           className={clsx(
-            'absolute inset-0 z-[25] flex flex-col overflow-hidden bg-[#020C18] transition-[transform,opacity] duration-300 ease-out sm:hidden',
+            'absolute inset-0 z-[25] flex flex-col overflow-hidden bg-[var(--studio-bg)] transition-[transform,opacity] duration-300 ease-out sm:hidden',
             mobileFormOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-full opacity-0',
           )}
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 px-4 pb-3" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
-            <span className="text-[14.5px] font-bold text-white">تولید یا ادیت ویدیو</span>
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 light:border-slate-200 px-4 pb-3" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
+            <span className="text-[14.5px] font-bold text-white light:text-slate-900">تولید یا ادیت ویدیو</span>
             <button
               type="button"
               onClick={() => setMobileFormOpen(false)}
-              className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)' }}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300 light:text-slate-500"
+              style={{ background: 'rgba(var(--neutral-rgb),0.05)', border: '1px solid rgba(var(--neutral-rgb),0.24)' }}
               aria-label="بستن"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">

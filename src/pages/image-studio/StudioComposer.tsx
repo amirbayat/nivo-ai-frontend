@@ -234,22 +234,22 @@ export function StudioComposer({
           z-25 عمداً زیر overlay/drawer سایدبار (z-30/z-40 در ChatLayout.tsx) است */}
       <div
         className={clsx(
-          'absolute inset-0 z-[25] flex flex-col overflow-hidden bg-[#020C18] transition-[transform,opacity] duration-300 ease-out',
+          'absolute inset-0 z-[25] flex flex-col overflow-hidden bg-[var(--studio-bg)] transition-[transform,opacity] duration-300 ease-out',
           mobileExpanded ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none',
           'sm:static sm:z-auto sm:inset-auto sm:flex sm:h-full sm:flex-1 sm:translate-y-0 sm:opacity-100 sm:pointer-events-auto sm:overflow-visible sm:bg-transparent sm:transition-none',
         )}
       >
         {/* هدر مدال — فقط موبایل. ضربدر کل مدال را می‌بندد */}
         <div
-          className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 px-4 pb-3 sm:hidden"
+          className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/50 light:border-slate-200 px-4 pb-3 sm:hidden"
           style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}
         >
-          <span className="text-[14.5px] font-bold text-white">ساخت عکس</span>
+          <span className="text-[14.5px] font-bold text-white light:text-slate-900">ساخت عکس</span>
           <button
             type="button"
             onClick={closeMobileModal}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.24)' }}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-300 light:text-slate-500"
+            style={{ background: 'rgba(var(--neutral-rgb),0.05)', border: '1px solid rgba(var(--neutral-rgb),0.24)' }}
             aria-label="بستن"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
@@ -266,7 +266,7 @@ export function StudioComposer({
           /* چیپ سبک انتخاب‌شده — جایگزین چیپ مدل، چون مدل تولید این حالت خودکار/سرور-محور است */
           <div
             className="flex items-center justify-between gap-2.5 self-start rounded-full py-2 pr-3.5 pl-2 text-[13px]"
-            style={{ background: 'rgba(217,70,239,0.08)', border: '1px solid rgba(217,70,239,0.28)', color: '#f5d0fe' }}
+            style={{ background: 'rgba(217,70,239,0.08)', border: '1px solid rgba(217,70,239,0.28)', color: 'var(--fuchsia-soft-text)' }}
           >
             <span className="font-semibold">
               {fa.discover.selectedStyleLabel}: {selectedCreativePrompt.title}
@@ -287,14 +287,14 @@ export function StudioComposer({
           <button
             onClick={() => setModelPickerOpen(true)}
             className="flex items-center gap-2.5 self-start rounded-full px-3.5 py-2 text-[13px]"
-            style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: '#d1fae5' }}
+            style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)', color: 'var(--emerald-soft-text)' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15.5l-5.2-5.2-9.3 9.3" />
             </svg>
             <span className="font-semibold">{modelLabel}</span>
-            <span style={{ width: 1, height: 12, background: 'rgba(148,163,184,0.3)' }} />
-            <span className="flex items-center gap-1" style={{ color: '#94a3b8' }}>
+            <span style={{ width: 1, height: 12, background: 'rgba(var(--neutral-rgb),0.3)' }} />
+            <span className="flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
               تغییر مدل
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
@@ -304,7 +304,7 @@ export function StudioComposer({
         )}
 
         {selectedCreativePrompt?.description && (
-          <p className="-mt-2 text-[12.5px] leading-relaxed" style={{ color: '#94a3b8' }}>
+          <p className="-mt-2 text-[12.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {selectedCreativePrompt.description}
           </p>
         )}
@@ -326,7 +326,7 @@ export function StudioComposer({
             <div className="mb-4 flex flex-wrap gap-2.5">
               {images.map((src, idx) => (
                 <div key={idx} className="group relative">
-                  <img src={src} className="size-16 rounded-2xl border border-slate-600 object-cover" alt={`عکس مرجع ${idx + 1}`} />
+                  <img src={src} className="size-16 rounded-2xl border border-slate-600 light:border-slate-300 object-cover" alt={`عکس مرجع ${idx + 1}`} />
                   {idx === 0 && selectedCreativePrompt?.requiresUserImage && (
                     <span
                       className="absolute inset-x-0 bottom-0 rounded-b-2xl py-0.5 text-center text-[8.5px] font-semibold text-emerald-200"
@@ -337,7 +337,7 @@ export function StudioComposer({
                   )}
                   <button
                     onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
-                    className="absolute -top-1.5 -left-1.5 flex size-5 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-xs leading-none text-slate-300 hover:text-white"
+                    className="absolute -top-1.5 -left-1.5 flex size-5 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-xs leading-none text-slate-300 hover:text-white light:border-slate-300 light:bg-white light:text-slate-500 light:hover:text-slate-900"
                     aria-label="حذف عکس مرجع"
                   >
                     ×
@@ -366,19 +366,19 @@ export function StudioComposer({
             }
             rows={5}
             style={{ minHeight: 132 }}
-            className="flex-1 resize-none bg-transparent text-[16.5px] leading-[1.8] text-slate-100 placeholder:text-slate-600 focus:outline-none"
+            className="flex-1 resize-none bg-transparent text-[16.5px] leading-[1.8] text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
           />
 
           {selectedCreativePrompt?.requiresUserImage && images.length === 0 && (
-            <p className="mt-1 text-xs" style={{ color: '#fbbf24' }}>{fa.discover.requiresImageNotice}</p>
+            <p className="mt-1 text-xs" style={{ color: 'var(--amber-text)' }}>{fa.discover.requiresImageNotice}</p>
           )}
           {creativeImageError && (
             <div className="mt-1 flex items-center gap-2">
-              <p className="text-xs text-red-400">{creativeImageError}</p>
+              <p className="text-xs text-red-400 light:text-red-600">{creativeImageError}</p>
               <button
                 type="button"
                 onClick={() => void submit()}
-                className="shrink-0 text-xs font-semibold text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+                className="shrink-0 text-xs font-semibold text-emerald-400 underline underline-offset-2 hover:text-emerald-300 light:text-emerald-700"
               >
                 {fa.chat.retry}
               </button>
@@ -387,7 +387,7 @@ export function StudioComposer({
 
           {/* نسبت تصویر — اختیاری، نخواستن (پیش‌فرض «خودکار») یعنی رفتار قبلی، بدون override
               روی سایز مدل انتخابی */}
-          <div className="mt-1 mb-2 flex items-center gap-1.5 self-start rounded-full p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.18)' }}>
+          <div className="mt-1 mb-2 flex items-center gap-1.5 self-start rounded-full p-1" style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.18)' }}>
             {(
               [
                 { value: null, label: 'خودکار' },
@@ -402,7 +402,7 @@ export function StudioComposer({
                 onClick={() => setAspectRatio(opt.value)}
                 className={clsx(
                   'rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors',
-                  aspectRatio === opt.value ? 'bg-emerald-500 text-[#02170f]' : 'text-slate-400 hover:text-slate-200',
+                  aspectRatio === opt.value ? 'bg-emerald-500 text-[#02170f]' : 'text-slate-400 hover:text-slate-200 light:text-slate-500 light:hover:text-slate-800',
                 )}
               >
                 {opt.label}
@@ -410,14 +410,14 @@ export function StudioComposer({
             ))}
           </div>
 
-          <div className="mt-4 flex flex-col gap-2.5 border-t pt-4" style={{ borderColor: 'rgba(148,163,184,0.14)' }}>
+          <div className="mt-4 flex flex-col gap-2.5 border-t pt-4" style={{ borderColor: 'rgba(var(--neutral-rgb),0.14)' }}>
             <div className="flex gap-2">
               <button
                 type="button"
                 disabled={disabled || images.length >= MAX_IMAGES}
                 onClick={() => fileRef.current?.click()}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold text-slate-100 disabled:opacity-40"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.25)' }}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold text-slate-100 light:text-slate-800 disabled:opacity-40"
+                style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.25)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
@@ -429,7 +429,7 @@ export function StudioComposer({
                 onClick={() => setReviewOpen(true)}
                 disabled={!value.trim() && images.length === 0}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold disabled:opacity-40"
-                style={{ background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(167,139,250,0.30)', color: '#c4b5fd' }}
+                style={{ background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(167,139,250,0.30)', color: 'var(--purple-soft-text)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
                   <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
@@ -438,7 +438,7 @@ export function StudioComposer({
               </button>
             </div>
 
-            <p className="text-center text-[11.5px]" style={{ color: '#64748b' }}>
+            <p className="text-center text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
               حداکثر {MAX_IMAGES} عکس مرجع در هر درخواست
             </p>
 
@@ -459,12 +459,12 @@ export function StudioComposer({
 
         {creativeError && (
           <div className="flex flex-col items-center gap-1.5">
-            <p className="text-center text-[12px] text-red-400">{creativeError}</p>
+            <p className="text-center text-[12px] text-red-400 light:text-red-600">{creativeError}</p>
             {onRetryCreative && (
               <button
                 type="button"
                 onClick={onRetryCreative}
-                className="text-[12px] font-semibold text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+                className="text-[12px] font-semibold text-emerald-400 underline underline-offset-2 hover:text-emerald-300 light:text-emerald-700"
               >
                 {fa.chat.retry}
               </button>

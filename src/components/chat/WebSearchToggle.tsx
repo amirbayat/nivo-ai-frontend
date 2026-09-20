@@ -51,10 +51,10 @@ export function WebSearchToggle({ disabled }: { disabled?: boolean }) {
         className={clsx(
           'flex items-center gap-1 h-7 rounded-lg px-2 text-xs transition-colors',
           isDisabled
-            ? 'text-slate-600 cursor-not-allowed'
+            ? 'text-slate-600 cursor-not-allowed light:text-slate-300'
             : webSearchEnabled
-              ? 'text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/15'
-              : 'text-slate-400 hover:bg-slate-700',
+              ? 'text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/15 light:text-cyan-700'
+              : 'text-slate-400 hover:bg-slate-700 light:text-slate-500 light:hover:bg-slate-100',
         )}
         aria-pressed={webSearchEnabled}
         aria-label="جستجوی وب"
@@ -64,7 +64,7 @@ export function WebSearchToggle({ disabled }: { disabled?: boolean }) {
       </button>
 
       {showTooltip && unsupported && (
-        <div className="absolute bottom-full right-0 mb-1.5 z-50 w-[min(14rem,calc(100vw-2rem))] rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-[11px] text-slate-300 shadow-xl">
+        <div className="absolute bottom-full right-0 mb-1.5 z-50 w-[min(14rem,calc(100vw-2rem))] rounded-lg border border-slate-700 bg-slate-800 light:border-slate-200 light:bg-white px-2.5 py-1.5 text-[11px] text-slate-300 light:text-slate-600 shadow-xl">
           این مدل جستجوی وب را پشتیبانی نمی‌کند — یک مدل دیگر یا «خودکار» را انتخاب کن
         </div>
       )}

@@ -15,7 +15,7 @@ export function WalletBalanceBadge() {
     <button
       type="button"
       onClick={() => navigate('/pricing')}
-      className="flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-500/[0.08] px-2.5 py-1 text-xs font-medium text-amber-200 hover:bg-amber-500/[0.13] transition-colors"
+      className="flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-500/[0.08] px-2.5 py-1 text-xs font-medium text-amber-200 hover:bg-amber-500/[0.13] light:text-amber-700 transition-colors"
       aria-label="موجودی نیوو — شارژ کیف‌پول"
     >
       <svg viewBox="0 0 24 24" fill="none" className="size-3.5 shrink-0">

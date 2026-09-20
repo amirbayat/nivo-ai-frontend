@@ -63,10 +63,10 @@ export function ThinkingModeToggle({ disabled }: { disabled?: boolean }) {
         className={clsx(
           'flex items-center gap-1 h-7 rounded-lg px-2 text-xs transition-colors',
           disabled
-            ? 'text-slate-600 cursor-not-allowed'
+            ? 'text-slate-600 cursor-not-allowed light:text-slate-300'
             : active.value === 'fast'
-              ? 'text-amber-300/80 hover:bg-slate-700'
-              : 'text-sky-300/80 hover:bg-slate-700',
+              ? 'text-amber-300/80 hover:bg-slate-700 light:text-amber-600 light:hover:bg-slate-100'
+              : 'text-sky-300/80 hover:bg-slate-700 light:text-sky-600 light:hover:bg-slate-100',
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -77,7 +77,7 @@ export function ThinkingModeToggle({ disabled }: { disabled?: boolean }) {
         <svg
           viewBox="0 0 10 6"
           fill="none"
-          className={clsx('size-2 text-slate-600 transition-transform', open && 'rotate-180')}
+          className={clsx('size-2 text-slate-600 light:text-slate-400 transition-transform', open && 'rotate-180')}
         >
           <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -89,7 +89,7 @@ export function ThinkingModeToggle({ disabled }: { disabled?: boolean }) {
         را به viewport کلمپ می‌کنیم (مشابه ModelSelector.tsx).
       */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-1.5 z-50 w-[min(13rem,calc(100vw-2rem))] rounded-xl border border-slate-700 bg-slate-800 shadow-xl overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-1.5 z-50 w-[min(13rem,calc(100vw-2rem))] rounded-xl border border-slate-700 bg-slate-800 light:border-slate-200 light:bg-white shadow-xl overflow-hidden">
           {OPTIONS.map(opt => (
             <button
               key={opt.value}
@@ -98,8 +98,8 @@ export function ThinkingModeToggle({ disabled }: { disabled?: boolean }) {
               className={clsx(
                 'w-full flex flex-col gap-0.5 px-3 py-2 text-right transition-colors',
                 opt.value === active.value
-                  ? 'bg-slate-700 text-slate-200'
-                  : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-300',
+                  ? 'bg-slate-700 text-slate-200 light:bg-slate-100 light:text-slate-900'
+                  : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-300 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-700',
               )}
             >
               <span className="flex items-center gap-1.5 text-sm">
@@ -111,7 +111,7 @@ export function ThinkingModeToggle({ disabled }: { disabled?: boolean }) {
                   </svg>
                 )}
               </span>
-              <span className="text-[11px] text-slate-500">{opt.description}</span>
+              <span className="text-[11px] text-slate-500 light:text-slate-400">{opt.description}</span>
             </button>
           ))}
         </div>

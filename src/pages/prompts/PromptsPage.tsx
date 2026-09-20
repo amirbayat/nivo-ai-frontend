@@ -40,7 +40,7 @@ export function PromptsPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden" style={{ background: '#020C18', color: '#e2e8f0' }} dir="rtl">
+    <div className="relative min-h-screen overflow-hidden" style={{ background: 'var(--studio-bg)', color: 'var(--text-primary)' }} dir="rtl">
       <div
         className="pointer-events-none absolute"
         style={{ width: 640, height: 640, top: -260, left: -120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.14), transparent 70%)', filter: 'blur(10px)' }}
@@ -68,14 +68,14 @@ export function PromptsPage() {
       <div className="relative flex flex-col items-center px-6 pt-14 text-center sm:pt-16">
         <div
           className="mb-5 flex items-center justify-center"
-          style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(14,165,233,0.16)', color: '#38bdf8' }}
+          style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(14,165,233,0.16)', color: 'var(--sky-soft-text)' }}
         >
           <PromptIcon />
         </div>
-        <h1 className="text-[28px] font-extrabold text-white sm:text-[36px]" style={{ letterSpacing: '-0.4px' }}>
+        <h1 className="text-[28px] font-extrabold text-white light:text-slate-900 sm:text-[36px]" style={{ letterSpacing: '-0.4px' }}>
           پرامپت‌های روز
         </h1>
-        <p className="mt-3.5 max-w-[480px] text-[15px] leading-[1.9]" style={{ color: '#94a3b8' }}>
+        <p className="mt-3.5 max-w-[480px] text-[15px] leading-[1.9]" style={{ color: 'var(--text-secondary)' }}>
           هر روز چند پرامپت خوب از سراسر وب، برای عکس و ویدیو — بازنویسی‌شده و آماده‌ی امتحان‌کردن روی استودیوی نیوو.
         </p>
       </div>
@@ -95,7 +95,7 @@ export function PromptsPage() {
             style={
               tab === value
                 ? { background: '#38bdf8', color: '#020C18', border: '1px solid #38bdf8' }
-                : { background: 'rgba(148,163,184,0.08)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.16)', fontWeight: 600 }
+                : { background: 'rgba(var(--neutral-rgb),0.08)', color: 'var(--text-secondary)', border: '1px solid rgba(var(--neutral-rgb),0.16)', fontWeight: 600 }
             }
           >
             {label}
@@ -110,7 +110,7 @@ export function PromptsPage() {
             <div className="size-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
           </div>
         ) : visiblePrompts.length === 0 ? (
-          <p className="py-16 text-center text-sm" style={{ color: '#64748b' }}>
+          <p className="py-16 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
             {tab === 'VIDEO' ? 'پرامپت‌های ویدیو به‌زودی اضافه می‌شوند' : 'فعلاً پرامپتی ثبت نشده — به‌زودی برمی‌گردیم'}
           </p>
         ) : (
@@ -145,7 +145,7 @@ function PromptCard({ item, onTry }: { item: CreativePromptCatalogItem; onTry: (
   return (
     <div
       className="flex flex-col overflow-hidden rounded-[20px] transition-transform hover:-translate-y-1"
-      style={{ border: '1px solid rgba(148,163,184,0.14)', background: 'rgba(255,255,255,0.02)' }}
+      style={{ border: '1px solid rgba(var(--neutral-rgb),0.14)', background: 'rgba(var(--neutral-rgb),0.02)' }}
     >
       <div className="relative flex h-[210px] items-center justify-center" style={{ background: 'linear-gradient(135deg, #fb7185, #6b1e35)' }}>
         {item.exampleImageUrl ? (
@@ -162,16 +162,16 @@ function PromptCard({ item, onTry }: { item: CreativePromptCatalogItem; onTry: (
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="text-[16px] font-bold text-white">{item.title}</div>
+        <div className="text-[16px] font-bold text-white light:text-slate-900">{item.title}</div>
         {item.description && (
-          <p className="-mt-1 text-[13px] leading-relaxed" style={{ color: '#94a3b8' }}>
+          <p className="-mt-1 text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {item.description}
           </p>
         )}
         {item.userPromptTemplate && (
           <div
             className="rounded-xl p-3.5 text-[13px] leading-[1.8]"
-            style={{ background: 'rgba(2,12,24,0.5)', border: '1px solid rgba(148,163,184,0.12)', color: '#cbd5e1' }}
+            style={{ background: 'rgba(2,12,24,0.5)', border: '1px solid rgba(var(--neutral-rgb),0.12)', color: 'var(--studio-icon-text)' }}
           >
             {item.userPromptTemplate}
           </div>
@@ -182,7 +182,7 @@ function PromptCard({ item, onTry }: { item: CreativePromptCatalogItem; onTry: (
             onClick={handleCopy}
             disabled={!item.userPromptTemplate}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl p-3 text-sm font-bold transition-colors disabled:opacity-40"
-            style={{ background: 'rgba(148,163,184,0.1)', color: copied ? '#34d399' : '#e2e8f0', border: '1px solid rgba(148,163,184,0.18)' }}
+            style={{ background: 'rgba(var(--neutral-rgb),0.1)', color: copied ? 'var(--brand)' : 'var(--text-primary)', border: '1px solid rgba(var(--neutral-rgb),0.18)' }}
           >
             <CopyIcon />
             {copied ? 'کپی شد' : 'کپی پرامپت'}

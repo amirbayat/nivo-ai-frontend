@@ -47,7 +47,7 @@ export function ChatLayout({ children, collapsedByDefault }: ChatLayoutProps) {
         // خود صفحه را اسکرول کند تا فیلد فوکوس‌شده بالای کیبورد دیده شود، سند چیزی برای
         // اسکرول‌کردن نداشته باشد — در غیر این صورت این اسکرول native با تغییر height
         // بر اساس visualViewport تداخل می‌کند و کل لایوت به‌هم می‌ریزد
-        className="fixed inset-x-0 flex overflow-hidden bg-slate-900"
+        className="fixed inset-x-0 flex overflow-hidden bg-slate-900 light:bg-white"
         style={{ top: offsetTop, height }}
       >
         {sidebarOpen && (
@@ -69,10 +69,10 @@ export function ChatLayout({ children, collapsedByDefault }: ChatLayoutProps) {
         </div>
 
         <main className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 sm:hidden">
+          <div className="flex items-center gap-3 border-b border-slate-700/50 light:border-slate-200 px-4 py-3 sm:hidden">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700/60 hover:text-emerald-400 transition-colors"
+              className="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700/60 hover:text-emerald-400 light:text-slate-500 light:hover:bg-slate-100 transition-colors"
               aria-label="باز کردن منو"
             >
               <svg viewBox="0 0 24 24" fill="none" className="size-5">

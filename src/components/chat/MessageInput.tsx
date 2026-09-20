@@ -376,7 +376,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
     : (value.trim() || images.length > 0 || files.length > 0) && !disabled && !sending
 
   return (
-    <div className="border-t border-slate-700/30 p-4">
+    <div className="border-t border-slate-700/30 light:border-slate-200 p-4">
       {selectedCreativePrompt && (
         <div className="mb-3 flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
           {selectedCreativePrompt.outputType === 'IMAGE' && selectedPromptImageUrl && (
@@ -387,13 +387,13 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-emerald-400/80">{fa.discover.selectedStyleLabel}</p>
-            <p className="truncate text-sm font-semibold text-slate-100">{selectedCreativePrompt.title}</p>
+            <p className="text-[11px] text-emerald-400/80 light:text-emerald-600">{fa.discover.selectedStyleLabel}</p>
+            <p className="truncate text-sm font-semibold text-slate-100 light:text-slate-900">{selectedCreativePrompt.title}</p>
             <p className="mt-0.5 text-xs text-emerald-400">{fa.discover.creditCost(effectiveCreditCost)}</p>
 
             {/* style direction:ltr لازم است — توضیح کامل بالای سوییچ preserveFace */}
             {selectedCreativePrompt.hasSourceImage && (
-              <label className="mt-2 flex items-center gap-2 text-xs text-slate-300">
+              <label className="mt-2 flex items-center gap-2 text-xs text-slate-300 light:text-slate-700">
                 <button
                   type="button"
                   role="switch"
@@ -402,7 +402,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
                   onClick={() => setUseSourceImage(v => !v)}
                   className={clsx(
                     'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
-                    useSourceImage ? 'bg-emerald-500' : 'bg-slate-600',
+                    useSourceImage ? 'bg-emerald-500' : 'bg-slate-600 light:bg-slate-300',
                   )}
                   style={{ direction: 'ltr' }}
                 >
@@ -414,7 +414,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
                   />
                 </button>
                 <span>{fa.discover.useSourceImageLabel}</span>
-                <span className="text-amber-400/90">
+                <span className="text-amber-400/90 light:text-amber-600">
                   {fa.discover.useSourceImageExtraCost(selectedCreativePrompt.sourceImageAccuracyCreditCost)}
                 </span>
               </label>
@@ -434,17 +434,17 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
                   }}
                 />
                 {creativeImagePreview ? (
-                  <div className="relative inline-block overflow-hidden rounded-lg border border-slate-700">
+                  <div className="relative inline-block overflow-hidden rounded-lg border border-slate-700 light:border-slate-200">
                     <img src={creativeImagePreview} alt="" className="h-16 w-16 object-cover" />
                     {uploadDiscoveryImage.isPending && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60">
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 light:bg-white/70">
                         <div className="size-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
                       </div>
                     )}
                     {creativeImageKey && !uploadDiscoveryImage.isPending && (
                       <button
                         onClick={() => { setCreativeImagePreview(null); setCreativeImageKey(null) }}
-                        className="absolute inset-x-0 bottom-0 bg-slate-950/80 py-0.5 text-[10px] text-slate-300 hover:text-red-400 transition-colors"
+                        className="absolute inset-x-0 bottom-0 bg-slate-950/80 py-0.5 text-[10px] text-slate-300 hover:text-red-400 light:bg-white/90 light:text-slate-600 transition-colors"
                       >
                         {fa.discover.removeImage}
                       </button>
@@ -454,14 +454,14 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
                   <button
                     type="button"
                     onClick={() => creativeFileRef.current?.click()}
-                    className="rounded-lg border border-dashed border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
+                    className="rounded-lg border border-dashed border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 light:border-slate-300 light:text-slate-600 light:hover:text-emerald-600 transition-colors"
                   >
                     {selectedCreativePrompt.requiresUserImage
                       ? fa.discover.uploadImageLabel
                       : fa.discover.uploadImageLabelOptional}
                   </button>
                 )}
-                {creativeImageError && <p className="mt-1 text-[11px] text-red-400">{creativeImageError}</p>}
+                {creativeImageError && <p className="mt-1 text-[11px] text-red-400 light:text-red-600">{creativeImageError}</p>}
 
                 {/* فقط وقتی عکس ورودی واقعاً اضافه شده باشد نشون داده می‌شود — بدون عکس این
                     سوییچ اصلاً اثری ندارد (توضیح بالای preserveFace).
@@ -471,7 +471,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
                     flex-start را از راست می‌گیرد و knob با translate-x از کادر سوییچ بیرون
                     می‌زند (نه صرفاً جهتش برعکس می‌شود) */}
                 {creativeImagePreview && (
-                  <label className="mt-2.5 flex items-center gap-2 text-xs text-slate-300">
+                  <label className="mt-2.5 flex items-center gap-2 text-xs text-slate-300 light:text-slate-700">
                     <button
                       type="button"
                       role="switch"
@@ -480,7 +480,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
                       onClick={() => setPreserveFace(v => !v)}
                       className={clsx(
                         'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
-                        preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
+                        preserveFace ? 'bg-emerald-500' : 'bg-slate-600 light:bg-slate-300',
                       )}
                       style={{ direction: 'ltr' }}
                     >
@@ -502,7 +502,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
             <button
               type="button"
               onClick={() => navigate('/discover')}
-              className="rounded-lg border border-slate-600 px-2.5 py-1 text-xs text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
+              className="rounded-lg border border-slate-600 px-2.5 py-1 text-xs text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 light:border-slate-300 light:text-slate-600 light:hover:text-emerald-600 transition-colors"
             >
               {fa.discover.changeStyle}
             </button>
@@ -510,7 +510,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
               type="button"
               onClick={() => setSelectedCreativePrompt(null)}
               aria-label={fa.discover.exitStyleMode}
-              className="flex size-6 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors"
+              className="flex size-6 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 light:text-slate-400 light:hover:text-slate-600 transition-colors"
             >
               <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
                 <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -521,7 +521,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
       )}
 
       {!selectedCreativePrompt && images.length > 0 && pinnedImageGenModel && (
-        <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-fuchsia-300/80">
+        <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-fuchsia-300/80 light:text-fuchsia-700">
           <svg viewBox="0 0 24 24" fill="none" className="size-3.5 shrink-0">
             <path
               d="M12 3l1.8 4.6L18 9.5l-4.2 1.4L12 16l-1.8-5.1L6 9.5l4.2-1.9L12 3z"
@@ -530,7 +530,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
           </svg>
           <span>{`اگر بخوای این عکس(ها) رو ویرایش/ترکیب کنم، با مدل «${pinnedImageGenModel.displayName}» انجام می‌شه`}</span>
           {pinnedImageGenModel.estimatedImageGenCreditCost != null && (
-            <span className="text-fuchsia-300/60">{`(~${fa.discover.creditCost(pinnedImageGenModel.estimatedImageGenCreditCost)})`}</span>
+            <span className="text-fuchsia-300/60 light:text-fuchsia-600">{`(~${fa.discover.creditCost(pinnedImageGenModel.estimatedImageGenCreditCost)})`}</span>
           )}
         </div>
       )}
@@ -541,7 +541,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
         pinnedImageGenModel.estimatedImageGenCreditCost != null &&
         creditsBalance != null &&
         pinnedImageGenModel.estimatedImageGenCreditCost > creditsBalance.credits && (
-        <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-amber-400/90">
+        <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-amber-400/90 light:text-amber-600">
           <span>{`⚠️ این تولید ممکنه بیشتر از موجودی فعلی‌ات (${fa.discover.creditCost(creditsBalance.credits)}) هزینه داشته باشه`}</span>
         </div>
       )}
@@ -552,12 +552,12 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
             <div key={idx} className="relative group">
               <img
                 src={src}
-                className="h-20 w-20 rounded-xl object-cover border border-slate-600"
+                className="h-20 w-20 rounded-xl object-cover border border-slate-600 light:border-slate-300"
                 alt={`پیش‌نمایش عکس پیوست‌شده، شماره ${idx + 1}`}
               />
               <button
                 onClick={() => removeImage(idx)}
-                className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-slate-900 border border-slate-600 text-slate-300 hover:text-white flex items-center justify-center text-xs leading-none"
+                className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-slate-900 border border-slate-600 text-slate-300 hover:text-white light:bg-white light:border-slate-300 light:text-slate-500 light:hover:text-slate-900 flex items-center justify-center text-xs leading-none"
                 aria-label="حذف تصویر"
               >
                 ×
@@ -574,7 +574,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
           {files.map((f, idx) => (
             <div
               key={idx}
-              className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-800/60 px-2.5 py-1.5"
+              className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-800/60 light:border-slate-300 light:bg-slate-100 px-2.5 py-1.5"
             >
               <svg viewBox="0 0 24 24" fill="none" className="size-4 shrink-0 text-cyan-400">
                 <path
@@ -585,10 +585,10 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
                 />
                 <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
               </svg>
-              <span className="max-w-[9rem] truncate text-xs text-slate-300">{f.filename}</span>
+              <span className="max-w-[9rem] truncate text-xs text-slate-300 light:text-slate-700">{f.filename}</span>
               <button
                 onClick={() => removeFile(idx)}
-                className="text-slate-500 hover:text-red-400 text-xs leading-none"
+                className="text-slate-500 hover:text-red-400 light:text-slate-400 text-xs leading-none"
                 aria-label={fa.chatFiles.remove}
               >
                 ×
@@ -599,7 +599,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
       )}
 
       {!selectedCreativePrompt && images.length > 0 && (
-        <label className="mb-2 flex items-center gap-2 text-xs text-slate-300">
+        <label className="mb-2 flex items-center gap-2 text-xs text-slate-300 light:text-slate-700">
           <button
             type="button"
             role="switch"
@@ -608,7 +608,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
             onClick={() => setPreserveFace(v => !v)}
             className={clsx(
               'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
-              preserveFace ? 'bg-emerald-500' : 'bg-slate-600',
+              preserveFace ? 'bg-emerald-500' : 'bg-slate-600 light:bg-slate-300',
             )}
             style={{ direction: 'ltr' }}
           >
@@ -625,8 +625,8 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
 
       <div
         className={clsx(
-          'flex items-end gap-3 rounded-[20px] border bg-slate-800/70 px-4 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.22)] transition-colors',
-          disabled ? 'border-slate-700/30' : 'border-slate-600/50 focus-within:border-emerald-500/50 focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_8px_28px_rgba(0,0,0,0.22)]',
+          'flex items-end gap-3 rounded-[20px] border bg-slate-800/70 light:bg-white px-4 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.22)] light:shadow-[0_2px_10px_rgba(15,23,42,0.06)] transition-colors',
+          disabled ? 'border-slate-700/30 light:border-slate-200' : 'border-slate-600/50 focus-within:border-emerald-500/50 focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_8px_28px_rgba(0,0,0,0.22)] light:border-slate-300',
         )}
       >
         <input
@@ -646,8 +646,8 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
             className={clsx(
               'shrink-0 size-7 rounded-lg flex items-center justify-center transition-colors',
               (images.length >= MAX_IMAGES && files.length >= MAX_FILES) || disabled
-                ? 'text-slate-600 cursor-not-allowed'
-                : 'text-slate-400 hover:text-fuchsia-400 hover:bg-slate-700',
+                ? 'text-slate-600 cursor-not-allowed light:text-slate-300'
+                : 'text-slate-400 hover:text-fuchsia-400 hover:bg-slate-700 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-fuchsia-600',
             )}
             aria-label={fa.chatFiles.attachLabel}
           >
@@ -676,7 +676,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
           rows={1}
           className={clsx(
             'flex-1 resize-none bg-transparent text-sm text-slate-100 placeholder:text-slate-500',
-            'focus:outline-none leading-relaxed',
+            'focus:outline-none leading-relaxed light:text-slate-900 light:placeholder:text-slate-400',
           )}
           style={{ minHeight: '24px' }}
         />
@@ -695,7 +695,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
               onClick={() => setManualModelPickerOpen(true)}
               disabled={disabled}
               title="مدل تولید عکس"
-              className="flex items-center gap-1 rounded-full border border-slate-700/60 px-2 py-1 text-[11px] text-slate-400 transition-colors hover:bg-slate-800/40 hover:text-slate-200 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-full border border-slate-700/60 px-2 py-1 text-[11px] text-slate-400 transition-colors hover:bg-slate-800/40 hover:text-slate-200 disabled:opacity-50 light:border-slate-300 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-900"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0">
                 <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
@@ -713,10 +713,10 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
           className={clsx(
             'shrink-0 size-9 rounded-xl flex items-center justify-center transition-all',
             sending
-              ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 active:scale-95'
+              ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 active:scale-95 light:bg-slate-200 light:text-slate-700 light:hover:bg-slate-300'
               : canSend
                 ? 'bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:bg-emerald-600 active:scale-95'
-                : 'bg-slate-700 text-slate-500 cursor-not-allowed',
+                : 'bg-slate-700 text-slate-500 cursor-not-allowed light:bg-slate-200 light:text-slate-400',
           )}
           aria-label={sending ? 'توقف تولید پاسخ' : 'ارسال'}
         >
@@ -732,7 +732,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
         </button>
       </div>
 
-      <p className="mt-1.5 text-center text-[11px] text-slate-600">
+      <p className="mt-1.5 text-center text-[11px] text-slate-600 light:text-slate-400">
         {isTouchDevice ? 'برای ارسال، دکمه‌ی ارسال را بزنید' : 'Enter برای ارسال · Shift+Enter برای خط جدید'}
       </p>
 
@@ -750,7 +750,7 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
           <button
             type="button"
             onClick={declineImageModelChoice}
-            className="mt-3 w-full rounded-2xl border border-slate-700/60 py-2.5 text-center text-[12.5px] font-semibold text-slate-400 hover:bg-slate-800/40"
+            className="mt-3 w-full rounded-2xl border border-slate-700/60 py-2.5 text-center text-[12.5px] font-semibold text-slate-400 hover:bg-slate-800/40 light:border-slate-300 light:text-slate-500 light:hover:bg-slate-100"
           >
             نه، این پیام عکس نبود
           </button>

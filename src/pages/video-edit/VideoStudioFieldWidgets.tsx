@@ -48,9 +48,9 @@ export function NumberField({
     <div className="flex flex-col gap-1.5">
       <FieldLabel>
         {label}
-        {required && <span style={{ color: '#fb7185' }}> *</span>}
+        {required && <span style={{ color: 'var(--rose-soft-text)' }}> *</span>}
       </FieldLabel>
-      {helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{helpText}</span>}
+      {helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{helpText}</span>}
       <input
         type="number"
         value={value ?? ''}
@@ -58,10 +58,10 @@ export function NumberField({
         max={max}
         step={step ?? 1}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full rounded-2xl p-3 text-[13.5px] text-slate-100 focus:outline-none"
+        className="w-full rounded-2xl p-3 text-[13.5px] text-slate-100 light:text-slate-900 focus:outline-none"
         style={{
           background: 'rgba(0,0,0,0.20)',
-          border: `1px solid ${invalid ? 'rgba(248,113,113,0.6)' : 'rgba(148,163,184,0.20)'}`,
+          border: `1px solid ${invalid ? 'rgba(248,113,113,0.6)' : 'rgba(var(--neutral-rgb),0.20)'}`,
         }}
       />
     </div>
@@ -147,13 +147,13 @@ export function DurationRangeSlider({
       <div className="flex items-center justify-between gap-2">
         <FieldLabel>
           {label}
-          {required && <span style={{ color: '#fb7185' }}> *</span>}
+          {required && <span style={{ color: 'var(--rose-soft-text)' }}> *</span>}
         </FieldLabel>
-        <span className="text-[12px] font-bold tabular-nums" style={{ color: '#6ee7b7' }}>
+        <span className="text-[12px] font-bold tabular-nums" style={{ color: 'var(--brand)' }}>
           {current} ثانیه
         </span>
       </div>
-      {helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{helpText}</span>}
+      {helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{helpText}</span>}
       <div className="px-2.5" style={{ direction: 'ltr' }}>
         <div
           ref={trackRef}
@@ -174,7 +174,7 @@ export function DurationRangeSlider({
         >
           <div
             className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full"
-            style={{ background: 'rgba(148,163,184,0.22)' }}
+            style={{ background: 'rgba(var(--neutral-rgb),0.22)' }}
           />
           <div
             className="pointer-events-none absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full"
@@ -187,7 +187,7 @@ export function DurationRangeSlider({
         </div>
         <div
           className="mt-0.5 flex items-center justify-between text-[10.5px] font-bold tabular-nums"
-          style={{ direction: 'ltr', color: '#64748b' }}
+          style={{ direction: 'ltr', color: 'var(--text-tertiary)' }}
         >
           <span>{lo}ث</span>
           <span>{hi}ث</span>
@@ -210,7 +210,7 @@ export function SegmentedPicker({
   return (
     <div
       className="flex flex-wrap items-center gap-0.5 rounded-full p-[3px]"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.20)' }}
+      style={{ background: 'rgba(var(--neutral-rgb),0.04)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
     >
       {options.map(o => (
         <button
@@ -218,7 +218,7 @@ export function SegmentedPicker({
           type="button"
           onClick={() => onChange(o.value)}
           className="rounded-full px-2.5 py-1.5 text-[11.5px] font-bold"
-          style={{ background: value === o.value ? '#10b981' : 'transparent', color: value === o.value ? '#02170f' : '#94a3b8' }}
+          style={{ background: value === o.value ? '#10b981' : 'transparent', color: value === o.value ? '#02170f' : 'var(--text-secondary)' }}
         >
           {o.label}
         </button>
@@ -265,8 +265,8 @@ export function AudioDropWell({
         style={{ background: 'rgba(0,0,0,0.20)', border: '1.5px solid rgba(16,185,129,0.30)' }}
       >
         <div className="flex items-center gap-2">
-          <span style={{ color: '#34d399' }}><AudioIcon /></span>
-          <span className="text-[11.5px] font-bold" style={{ color: '#cbd5e1' }}>{fileName}</span>
+          <span style={{ color: 'var(--brand)' }}><AudioIcon /></span>
+          <span className="text-[11.5px] font-bold" style={{ color: 'var(--studio-icon-text)' }}>{fileName}</span>
         </div>
         <button
           type="button"
@@ -284,7 +284,7 @@ export function AudioDropWell({
   return (
     <div
       className="relative flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 text-center"
-      style={{ minHeight: 88, border: `1.5px dashed ${invalid ? 'rgba(248,113,113,0.5)' : 'rgba(148,163,184,0.20)'}`, background: 'rgba(0,0,0,0.20)' }}
+      style={{ minHeight: 88, border: `1.5px dashed ${invalid ? 'rgba(248,113,113,0.5)' : 'rgba(var(--neutral-rgb),0.20)'}`, background: 'rgba(0,0,0,0.20)' }}
     >
       <input
         ref={inputRef}
@@ -298,11 +298,11 @@ export function AudioDropWell({
           e.target.value = ''
         }}
       />
-      <div className="flex size-8 items-center justify-center rounded-[10px]" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
+      <div className="flex size-8 items-center justify-center rounded-[10px]" style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--brand)' }}>
         <AudioIcon />
       </div>
-      <span className="text-[11.5px] font-bold" style={{ color: '#cbd5e1' }}>{uploading ? 'در حال آپلود...' : label}</span>
-      <span className="text-[10.5px]" style={{ color: '#64748b' }}>{hint}</span>
+      <span className="text-[11.5px] font-bold" style={{ color: 'var(--studio-icon-text)' }}>{uploading ? 'در حال آپلود...' : label}</span>
+      <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{hint}</span>
     </div>
   )
 }
@@ -315,12 +315,12 @@ export function AudioOutputToggleChip({ label, checked, onChange }: { label: str
       type="button"
       onClick={() => onChange(!checked)}
       className="flex items-center gap-2 rounded-full px-3 py-2"
-      style={{ background: checked ? 'rgba(16,185,129,0.14)' : 'rgba(255,255,255,0.04)', border: `1px solid ${checked ? 'rgba(16,185,129,0.35)' : 'rgba(148,163,184,0.20)'}` }}
+      style={{ background: checked ? 'rgba(16,185,129,0.14)' : 'rgba(var(--neutral-rgb),0.04)', border: `1px solid ${checked ? 'rgba(16,185,129,0.35)' : 'rgba(var(--neutral-rgb),0.20)'}` }}
     >
-      <span className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors" style={{ background: checked ? '#10b981' : 'rgba(148,163,184,0.30)' }}>
+      <span className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors" style={{ background: checked ? '#10b981' : 'rgba(var(--neutral-rgb),0.30)' }}>
         <span className="inline-block size-3 rounded-full bg-white transition-transform" style={{ transform: checked ? 'translateX(14px)' : 'translateX(2px)' }} />
       </span>
-      <span className="text-[11.5px] font-bold" style={{ color: checked ? '#6ee7b7' : '#94a3b8' }}>{label}</span>
+      <span className="text-[11.5px] font-bold" style={{ color: checked ? 'var(--brand)' : 'var(--text-secondary)' }}>{label}</span>
     </button>
   )
 }
@@ -375,10 +375,10 @@ function ShotCard({
   const filteredNames = elementNames.filter(n => n.toLowerCase().includes(autocompleteQuery.toLowerCase()))
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl p-3" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)' }}>
+    <div className="flex flex-col gap-2 rounded-2xl p-3" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(var(--neutral-rgb),0.16)' }}>
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold" style={{ color: '#94a3b8' }}>شات {index + 1}</span>
-        <button type="button" onClick={onRemove} className="text-[11px] font-bold" style={{ color: '#fb7185' }}>حذف</button>
+        <span className="text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>شات {index + 1}</span>
+        <button type="button" onClick={onRemove} className="text-[11px] font-bold" style={{ color: 'var(--rose-soft-text)' }}>حذف</button>
       </div>
       <div className="relative">
         <textarea
@@ -388,18 +388,18 @@ function ShotCard({
           maxLength={maxLength}
           rows={multiline === false ? 1 : 2}
           placeholder="مثلاً: @سارا کنار پنجره می‌ایسته و به بیرون نگاه می‌کنه"
-          className="w-full resize-none rounded-xl p-2.5 text-[13px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
-          style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
+          className="w-full resize-none rounded-xl p-2.5 text-[13px] leading-relaxed text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
+          style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
         />
         {showAutocomplete && filteredNames.length > 0 && (
-          <div className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-xl" style={{ background: '#0b1220', border: '1px solid rgba(148,163,184,0.25)' }}>
+          <div className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-xl" style={{ background: 'var(--bg)', border: '1px solid rgba(var(--neutral-rgb),0.25)' }}>
             {filteredNames.map(name => (
               <button
                 key={name}
                 type="button"
                 onClick={() => insertName(name)}
                 className="block w-full px-3 py-2 text-right text-[12px]"
-                style={{ color: '#cbd5e1' }}
+                style={{ color: 'var(--studio-icon-text)' }}
               >
                 @{name}
               </button>
@@ -471,13 +471,13 @@ export function ShotListEditor({
           onClick={addShot}
           disabled={shots.length >= maxShots}
           className="text-[11px] font-bold disabled:opacity-40"
-          style={{ color: '#34d399' }}
+          style={{ color: 'var(--brand)' }}
         >
           + افزودن شات
         </button>
       </div>
-      {helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{helpText}</span>}
-      <span className="text-[10.5px]" style={{ color: '#64748b' }}>
+      {helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{helpText}</span>}
+      <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
         بین {minShots} تا {maxShots} شات
       </span>
       <div className="flex flex-col gap-2.5">
@@ -556,26 +556,26 @@ function ElementCard({
   const showVideo = !!video && !hasImages
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-2xl p-3" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(148,163,184,0.16)' }}>
+    <div className="flex flex-col gap-2.5 rounded-2xl p-3" style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(var(--neutral-rgb),0.16)' }}>
       <div className="flex items-center justify-between gap-2">
         <input
           value={member.name}
           onChange={e => onChange({ name: e.target.value })}
           placeholder={`نام عنصر ${index + 1} (مثلاً سارا)`}
-          className="flex-1 rounded-xl p-2 text-[12.5px] text-slate-100 placeholder:text-slate-600 focus:outline-none"
-          style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
+          className="flex-1 rounded-xl p-2 text-[12.5px] text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
+          style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
         />
-        <button type="button" onClick={onRemove} className="text-[11px] font-bold" style={{ color: '#fb7185' }}>حذف</button>
+        <button type="button" onClick={onRemove} className="text-[11px] font-bold" style={{ color: 'var(--rose-soft-text)' }}>حذف</button>
       </div>
       <input
         value={member.description ?? ''}
         onChange={e => onChange({ description: e.target.value })}
         placeholder="توضیح کوتاه این عنصر (مثلاً «دختر جوان با لباس قرمز»)"
-        className="rounded-xl p-2 text-[12px] text-slate-100 placeholder:text-slate-600 focus:outline-none"
-        style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(148,163,184,0.20)' }}
+        className="rounded-xl p-2 text-[12px] text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
+        style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(var(--neutral-rgb),0.20)' }}
       />
       {!hasImages && !hasVideo && (
-        <span className="text-[10.5px]" style={{ color: '#64748b' }}>
+        <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
           یا چند عکس مرجع ({image?.minCount ?? 2}-{image?.maxCount ?? 4} تا) یا یک ویدیوی مرجع انتخاب کن — هر دو با هم مجاز نیست
         </span>
       )}
@@ -673,20 +673,20 @@ export function ElementListEditor({
       <div className="flex items-center justify-between">
         <FieldLabel>
           {label}
-          {minCount > 0 && <span style={{ color: '#fb7185' }}> *</span>}
+          {minCount > 0 && <span style={{ color: 'var(--rose-soft-text)' }}> *</span>}
         </FieldLabel>
         <button
           type="button"
           onClick={addMember}
           disabled={members.length >= maxCount}
           className="text-[11px] font-bold disabled:opacity-40"
-          style={{ color: '#34d399' }}
+          style={{ color: 'var(--brand)' }}
         >
           + افزودن عنصر
         </button>
       </div>
-      {helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{helpText}</span>}
-      <span className="text-[10.5px]" style={{ color: '#64748b' }}>
+      {helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{helpText}</span>}
+      <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
         بین {minCount} تا {maxCount} عنصر
       </span>
       <div className="flex flex-col gap-2.5">

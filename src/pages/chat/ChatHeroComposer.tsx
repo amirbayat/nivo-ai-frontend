@@ -135,13 +135,13 @@ export function ChatHeroComposer({ onSend, disabled }: {
       <div className="mb-3.5 flex flex-wrap items-center justify-center gap-2">
         <div
           className="flex gap-1.5 rounded-full p-[5px]"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.18)' }}
+          style={{ background: 'var(--chip-bg)', border: '1px solid var(--chip-border)' }}
         >
           <button
             type="button"
             onClick={() => setThinkingMode('fast')}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold"
-            style={thinkingMode === 'fast' ? { background: 'rgba(124,58,237,0.16)', color: '#c4b5fd' } : { color: '#64748b' }}
+            style={thinkingMode === 'fast' ? { background: 'rgba(124,58,237,0.16)', color: '#c4b5fd' } : { color: 'var(--text-tertiary)' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
             سریع
@@ -150,7 +150,7 @@ export function ChatHeroComposer({ onSend, disabled }: {
             type="button"
             onClick={() => setThinkingMode('smart')}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold"
-            style={thinkingMode === 'smart' ? { background: 'rgba(124,58,237,0.16)', color: '#c4b5fd' } : { color: '#64748b' }}
+            style={thinkingMode === 'smart' ? { background: 'rgba(124,58,237,0.16)', color: '#c4b5fd' } : { color: 'var(--text-tertiary)' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z" />
@@ -165,10 +165,10 @@ export function ChatHeroComposer({ onSend, disabled }: {
         <div className="mb-2 flex w-full flex-wrap gap-2">
           {images.map((src, idx) => (
             <div key={idx} className="group relative">
-              <img src={src} className="size-14 rounded-xl border border-slate-600 object-cover" alt={`عکس پیوست‌شده ${idx + 1}`} />
+              <img src={src} className="size-14 rounded-xl border border-slate-600 light:border-slate-300 object-cover" alt={`عکس پیوست‌شده ${idx + 1}`} />
               <button
                 onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
-                className="absolute -top-1.5 -left-1.5 flex size-5 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-xs leading-none text-slate-300 hover:text-white"
+                className="absolute -top-1.5 -left-1.5 flex size-5 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-xs leading-none text-slate-300 hover:text-white light:border-slate-300 light:bg-white light:text-slate-500 light:hover:text-slate-900"
                 aria-label="حذف عکس"
               >
                 ×
@@ -183,12 +183,12 @@ export function ChatHeroComposer({ onSend, disabled }: {
           {files.map((f, idx) => (
             <div
               key={idx}
-              className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-800/60 px-2.5 py-1.5"
+              className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-800/60 light:border-slate-300 light:bg-slate-100 px-2.5 py-1.5"
             >
-              <span className="max-w-[9rem] truncate text-xs text-slate-300">{f.filename}</span>
+              <span className="max-w-[9rem] truncate text-xs text-slate-300 light:text-slate-700">{f.filename}</span>
               <button
                 onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))}
-                className="text-slate-500 hover:text-red-400 text-xs leading-none"
+                className="text-slate-500 hover:text-red-400 light:text-slate-400 text-xs leading-none"
                 aria-label={fa.chatFiles.remove}
               >
                 ×
@@ -200,7 +200,7 @@ export function ChatHeroComposer({ onSend, disabled }: {
 
       <div
         className="flex w-full items-end gap-3 rounded-[26px] p-2.5"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(124,58,237,0.32)', boxShadow: '0 0 50px rgba(124,58,237,0.08)' }}
+        style={{ background: 'var(--chip-bg)', border: '1px solid rgba(124,58,237,0.32)', boxShadow: '0 0 50px rgba(124,58,237,0.08)' }}
       >
         <button
           onClick={submit}
@@ -223,7 +223,7 @@ export function ChatHeroComposer({ onSend, disabled }: {
           disabled={disabled}
           placeholder="پیامتو بنویس، یا فایل و عکس ضمیمه کن..."
           rows={1}
-          className="flex-1 resize-none bg-transparent text-[15px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
+          className="flex-1 resize-none bg-transparent text-[15px] leading-relaxed text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
           style={{ minHeight: 24 }}
         />
 
@@ -240,7 +240,7 @@ export function ChatHeroComposer({ onSend, disabled }: {
           disabled={disabled || (images.length >= MAX_IMAGES && files.length >= MAX_FILES)}
           onClick={() => fileRef.current?.click()}
           className="flex shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-          style={{ width: 38, height: 38, color: '#94a3b8' }}
+          style={{ width: 38, height: 38, color: 'var(--text-tertiary)' }}
           aria-label={fa.chatFiles.attachLabel}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">

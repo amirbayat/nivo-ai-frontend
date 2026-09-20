@@ -6,7 +6,7 @@ import type { KieVideoModel } from '@/types/api'
 // چیزی که کاربر باید روش تصمیم بگیره؛ به‌جاش فقط امکانات واقعی مدل (عکس/ویدیو/ادیت/رزولوشن) دیده می‌شه.
 function GenericModelIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="#6ee7b7">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--brand)">
       <path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z" />
     </svg>
   )

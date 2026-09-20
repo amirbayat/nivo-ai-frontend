@@ -324,7 +324,7 @@ export function VideoStudioForm({
       {groups.map(group => (
         <div key={group.id} className="flex flex-col gap-3">
           {group.label && (
-            <span className="text-[11px] font-bold" style={{ color: '#6ee7b7' }}>{group.label}</span>
+            <span className="text-[11px] font-bold" style={{ color: 'var(--brand)' }}>{group.label}</span>
           )}
           {group.fields.map(field => (
             <FieldRenderer
@@ -341,7 +341,7 @@ export function VideoStudioForm({
         </div>
       ))}
 
-      {error && <p className="text-[12px] text-red-400">{error}</p>}
+      {error && <p className="text-[12px] text-red-400 light:text-red-600">{error}</p>}
 
       <button
         type="button"

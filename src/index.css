@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import './assets/fonts/‫‪IRANYekanMsn/IRANYekanMsn.css';
 
+/* variant سفارشی برای تم روشن — پیش‌فرض سایت تیره می‌ماند، `light:` فقط زیر
+   html[data-theme="light"] فعال می‌شود (معادل معکوس `dark:` معمول Tailwind) */
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
 
 @theme {
   --font-sans: 'IRANYekanMsn', 'Tahoma', system-ui, sans-serif;
@@ -10,6 +13,75 @@
   --color-brand-500: #10b981;
   --color-brand-600: #059669;
   --color-brand-700: #047857;
+}
+
+/* توکن‌های رنگی تم — پیش‌فرض همون تیره‌ی فعلی سایت است (بدون تغییر رفتار موجود)،
+   نسخه‌ی روشن فقط زیر html[data-theme="light"] فعال می‌شود */
+:root {
+  --bg: #0f172a;
+  --surface: rgba(30, 41, 59, 0.4);
+  --border: rgba(51, 65, 85, 0.6);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --brand: #34d399;
+  --brand-soft: rgba(16, 185, 129, 0.12);
+  --brand-soft-border: rgba(16, 185, 129, 0.25);
+  /* برای عناصر کوچک روی سطح (چیپ، دکمه‌ی بستن مودال) — کمی روشن‌تر/تیره‌تر از --surface */
+  --chip-bg: rgba(255, 255, 255, 0.05);
+  --chip-border: rgba(148, 163, 184, 0.2);
+}
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --brand: #059669;
+  --brand-soft: #ecfdf5;
+  --brand-soft-border: rgba(5, 150, 105, 0.18);
+  --chip-bg: #f1f5f9;
+  --chip-border: #e2e8f0;
+}
+
+/* توکن‌های استودیو (عکس/ویدیو) — این صفحات رنگ‌هاشون رو با style درون‌خطی (نه کلاس Tailwind)
+   می‌گیرند، پس برای معکوس‌شدن زیر تم روشن باید مقادیرشان var باشد نه hex/rgba ثابت.
+   --neutral-rgb به‌شکل «R, G, B» (نه rgba کامل) تعریف شده تا با همون آلفاهای متفاوتی که هرجا
+   لازم است ترکیب شود: rgba(var(--neutral-rgb), 0.14) */
+:root {
+  --neutral-rgb: 148, 163, 184;
+  --studio-bg: #020C18;
+  --studio-icon-text: #cbd5e1;
+  --amber-soft-text: #fde68a;
+  --amber-text: #fbbf24;
+  --emerald-soft-text: #d1fae5;
+  --emerald-bright-text: #a7f3d0;
+  --emerald-pale-text: #ecfdf5;
+  --emerald-faint-text: rgba(209, 250, 229, 0.62);
+  --fuchsia-soft-text: #f5d0fe;
+  --purple-soft-text: #c4b5fd;
+  --sky-soft-text: #7dd3fc;
+  --rose-soft-text: #fb7185;
+  --red-soft-text: #fca5a5;
+  --cyan-soft-text: #22d3ee;
+}
+:root[data-theme='light'] {
+  --neutral-rgb: 15, 23, 42;
+  --studio-bg: #ffffff;
+  --studio-icon-text: #475569;
+  --amber-soft-text: #b45309;
+  --amber-text: #b45309;
+  --emerald-soft-text: #047857;
+  --emerald-bright-text: #047857;
+  --emerald-pale-text: #065f46;
+  --emerald-faint-text: #047857;
+  --fuchsia-soft-text: #a21caf;
+  --purple-soft-text: #6d28d9;
+  --sky-soft-text: #0369a1;
+  --rose-soft-text: #be123c;
+  --red-soft-text: #b91c1c;
+  --cyan-soft-text: #0e7490;
 }
 
 *, *::before, *::after {
@@ -33,14 +105,15 @@ html {
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background-color: #0f172a;
-  color: #f1f5f9;
+  background-color: var(--bg);
+  color: var(--text-primary);
   touch-action: manipulation;
+  transition: background-color .2s ease, color .2s ease;
 }
 
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #334155; border-radius: 9px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9px; }
 
 /* رفع زوم خودکار سافاری iOS موقع focus روی input/textarea/select — باگ معروف سافاری وقتی
    فونت فیلد فوکوس‌شده زیر ۱۶px باشد (اینجا اکثر فیلدها با text-sm یعنی ۱۴px هستند)؛ فقط در
@@ -76,6 +149,18 @@ body {
 
 .image-gen-canvas {
   background: linear-gradient(160deg, #12141f, #0b1024);
+}
+:root[data-theme='light'] .image-gen-canvas {
+  background: linear-gradient(160deg, #f1f5f9, #e2e8f0);
+}
+
+/* گرادیان تیره‌ی ثابت سایدبار چت (Sidebar.tsx) — چون inline style بود، به یک کلاس با override
+   روشن منتقل شد (تکنیک دوم پلن تم: مقادیر hex به توکن/کلاس‌قابل‌تم تبدیل می‌شوند) */
+.sidebar-surface {
+  background: linear-gradient(180deg, #0a0f1c 0%, #0f172a 100%);
+}
+:root[data-theme='light'] .sidebar-surface {
+  background: #ffffff;
 }
 .image-gen-glow {
   position: absolute;
@@ -202,4 +287,23 @@ body {
   border-right: 3px solid #34d399;
   padding-right: 0.75em; margin: 0.75em 0;
   color: #94a3b8;
+}
+
+:root[data-theme='light'] .ai-content > * + h1,
+:root[data-theme='light'] .ai-content > * + h2,
+:root[data-theme='light'] .ai-content > * + h3 {
+  border-top-color: rgba(15,23,42,0.1);
+}
+:root[data-theme='light'] .ai-content hr {
+  border-top-color: rgba(15,23,42,0.1);
+}
+:root[data-theme='light'] .ai-content th,
+:root[data-theme='light'] .ai-content td {
+  border-color: rgba(15,23,42,0.12);
+}
+:root[data-theme='light'] .ai-content th {
+  background: rgba(15,23,42,0.04);
+}
+:root[data-theme='light'] .ai-content blockquote {
+  color: #64748b;
 }

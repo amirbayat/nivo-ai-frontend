@@ -26,8 +26,8 @@ export function Button({
         size === 'md' && 'h-11 px-5 text-sm',
         size === 'sm' && 'h-8 px-3 text-xs',
         variant === 'primary' && 'bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95',
-        variant === 'ghost' && 'bg-transparent text-slate-300 hover:bg-slate-700/60',
-        variant === 'danger' && 'bg-red-500/10 text-red-400 hover:bg-red-500/20',
+        variant === 'ghost' && 'bg-transparent text-slate-300 hover:bg-slate-700/60 light:text-slate-600 light:hover:bg-slate-100',
+        variant === 'danger' && 'bg-red-500/10 text-red-400 hover:bg-red-500/20 light:text-red-600',
         className,
       )}
       {...props}

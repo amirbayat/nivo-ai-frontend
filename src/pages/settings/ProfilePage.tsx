@@ -63,11 +63,11 @@ export function ProfilePage() {
   return (
     <div className="space-y-5">
       {/* profile form */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6 light:border-slate-200 light:bg-slate-50">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-sm text-slate-400">{fa.settings.phone}</label>
-            <p className="mt-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-sm text-slate-400" dir="ltr">
+            <label className="text-sm text-slate-400 light:text-slate-600">{fa.settings.phone}</label>
+            <p className="mt-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-sm text-slate-400 light:border-slate-300 light:bg-white light:text-slate-500" dir="ltr">
               {me?.phone ?? '—'}
             </p>
           </div>
@@ -79,29 +79,29 @@ export function ProfilePage() {
           />
           <div className="flex items-center gap-3">
             <Button type="submit" loading={update.isPending}>{fa.settings.saveProfile}</Button>
-            {saved && <span className="text-sm text-emerald-400">{fa.settings.profileSaved}</span>}
-            {update.isError && <span className="text-sm text-red-400">{fa.common.error}</span>}
+            {saved && <span className="text-sm text-emerald-400 light:text-emerald-600">{fa.settings.profileSaved}</span>}
+            {update.isError && <span className="text-sm text-red-400 light:text-red-600">{fa.common.error}</span>}
           </div>
         </form>
       </div>
 
       {/* اعتبار — دیگه اشتراک/پلن ماهانه نیست، فقط موجودی نیوو + خرید اعتبار */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6 light:border-slate-200 light:bg-slate-50">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-slate-200">{fa.settings.creditsBalance}</h3>
+          <h3 className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.settings.creditsBalance}</h3>
           <Link
             to="/pricing"
-            className="rounded-xl bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/25 transition-colors"
+            className="rounded-xl bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/25 light:text-emerald-700 transition-colors"
           >
             {fa.settings.buyCredits}
           </Link>
         </div>
-        <p className={clsx('text-2xl font-bold', (creditsBalance?.credits ?? 0) < 0 ? 'text-red-400' : 'text-emerald-400')}>
-          {(creditsBalance?.credits ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500">نیوو</span>
+        <p className={clsx('text-2xl font-bold', (creditsBalance?.credits ?? 0) < 0 ? 'text-red-400 light:text-red-600' : 'text-emerald-400 light:text-emerald-600')}>
+          {(creditsBalance?.credits ?? 0).toLocaleString('fa-IR')} <span className="text-sm font-normal text-slate-500 light:text-slate-400">نیوو</span>
         </p>
         <Link
           to="/settings/invoices"
-          className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 py-2.5 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 transition-colors"
+          className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 py-2.5 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100 light:border-slate-300 light:text-slate-600 light:hover:border-slate-400 light:hover:text-slate-900 transition-colors"
         >
           <svg viewBox="0 0 20 20" fill="none" className="size-4">
             <path d="M6 2h6l4 4v12H6V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -113,34 +113,34 @@ export function ProfilePage() {
 
       {/* معرفی دوستان — docs/PRD-growth-traction-features.md بخش ۶ */}
       {me?.referralCode && (
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6">
-          <h3 className="text-sm font-semibold text-slate-200 mb-2">🤝 معرفی دوستان</h3>
-          <p className="mb-4 text-sm text-slate-400">
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-6 light:border-slate-200 light:bg-slate-50">
+          <h3 className="text-sm font-semibold text-slate-200 light:text-slate-900 mb-2">🤝 معرفی دوستان</h3>
+          <p className="mb-4 text-sm text-slate-400 light:text-slate-500">
             لینکت رو برای دوستات بفرست — به ازای هر دوستی که با لینک تو ثبت‌نام کنه، ۴۰ نیوو
             هدیه می‌گیری. بدون محدودیت در تعداد دفعات.
           </p>
           <button
             onClick={copyReferralUrl}
             dir="ltr"
-            className="w-full truncate rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-start text-sm text-emerald-400 hover:border-emerald-500/50 transition-colors"
+            className="w-full truncate rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-start text-sm text-emerald-400 hover:border-emerald-500/50 light:border-slate-300 light:bg-white light:text-emerald-700 transition-colors"
           >
             {referralCopied ? 'کپی شد ✓' : referralUrl}
           </button>
 
           {myCodes && myCodes.length > 0 && (
-            <div className="mt-4 space-y-2 border-t border-slate-700/40 pt-4">
-              <p className="text-xs text-slate-500">کدهای تخفیف فعال شما:</p>
+            <div className="mt-4 space-y-2 border-t border-slate-700/40 light:border-slate-200 pt-4">
+              <p className="text-xs text-slate-500 light:text-slate-400">کدهای تخفیف فعال شما:</p>
               {myCodes.map(c => (
                 <button
                   key={c.id}
                   onClick={() => copyDiscountCode(c.id, c.code, c.source)}
-                  className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 text-start hover:border-emerald-500/50 transition-colors"
+                  className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 text-start hover:border-emerald-500/50 light:border-slate-300 light:bg-white transition-colors"
                 >
                   <span className="flex flex-col items-start">
-                    <span dir="ltr" className="font-mono text-sm text-emerald-400">
+                    <span dir="ltr" className="font-mono text-sm text-emerald-400 light:text-emerald-700">
                       {copiedCodeId === c.id ? 'کپی شد ✓' : c.code}
                     </span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 light:text-slate-400">
                       {DISCOUNT_SOURCE_LABEL[c.source]} · {c.discountPercent}٪ تخفیف
                       {c.expiresAt && ` · تا ${new Date(c.expiresAt).toLocaleDateString('fa-IR')}`}
                     </span>
@@ -154,7 +154,7 @@ export function ProfilePage() {
 
       <button
         onClick={() => logoutMut.mutate()}
-        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-500/20 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-500/20 py-2.5 text-sm text-red-400 hover:bg-red-500/10 light:text-red-600 transition-colors"
       >
         <svg viewBox="0 0 24 24" fill="none" className="size-4">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

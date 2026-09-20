@@ -32,24 +32,24 @@ export function GiftBanner() {
         )}
       >
         <span className="flex flex-col items-start gap-0.5">
-          <span className={clsx('flex items-center gap-2 text-sm font-medium', isGrace ? 'text-amber-300' : 'text-emerald-300')}>
+          <span className={clsx('flex items-center gap-2 text-sm font-medium', isGrace ? 'text-amber-300 light:text-amber-700' : 'text-emerald-300 light:text-emerald-700')}>
             <span>{isGrace ? '⏳' : '🎁'}</span>
             {isGrace
               ? 'فرصت محدود: کد تخفیف هدیه رو از دست نده'
               : 'هدیه ویژه نیوو به کاربران تازه (پادکست صوتی آموزش هوش مصنوعی رایگان + کد تخفیف ارتقا حساب)'}
           </span>
           {isGrace && graceCountdown && (
-            <span className="text-xs text-amber-400/80">
+            <span className="text-xs text-amber-400/80 light:text-amber-600">
               مهلت استفاده: <span dir="ltr" className="font-mono">{graceCountdown}</span>
             </span>
           )}
           {!isGrace && status.welcomeDiscountValidHours && (
-            <span className="text-xs text-emerald-400/70">
+            <span className="text-xs text-emerald-400/70 light:text-emerald-600">
               کد تخفیف تا {status.welcomeDiscountValidHours} ساعت معتبر است
             </span>
           )}
         </span>
-        <svg viewBox="0 0 16 16" fill="none" className={clsx('size-4 shrink-0 rotate-180', isGrace ? 'text-amber-400' : 'text-emerald-400')}>
+        <svg viewBox="0 0 16 16" fill="none" className={clsx('size-4 shrink-0 rotate-180', isGrace ? 'text-amber-400 light:text-amber-600' : 'text-emerald-400 light:text-emerald-600')}>
           <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
@@ -101,12 +101,12 @@ function GiftModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+        className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 light:border-slate-200 light:bg-white p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 text-slate-600 hover:text-slate-400 transition-colors"
+          className="absolute top-4 left-4 text-slate-600 hover:text-slate-400 light:text-slate-400 light:hover:text-slate-600 transition-colors"
           aria-label="بستن"
         >
           <svg viewBox="0 0 16 16" fill="none" className="size-4">
@@ -118,21 +118,21 @@ function GiftModal({
           <div className="mx-auto mb-3 text-3xl">{isGrace ? '⏳' : '🎁'}</div>
           {isGrace ? (
             <>
-              <h3 className="text-base font-bold text-slate-100">دوره‌ی آزمایشی شما تمام شد</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              <h3 className="text-base font-bold text-slate-100 light:text-slate-900">دوره‌ی آزمایشی شما تمام شد</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400 light:text-slate-500">
                 می‌توانید همچنان به‌صورت رایگان از نیوو استفاده کنید — اما اگر می‌خواهید ارتقا بدهید،
                 هنوز فرصت دارید از کد تخفیف هدیه استفاده کنید.
               </p>
               {countdown && (
-                <p dir="ltr" className="mt-2 text-xs text-amber-400" style={{ direction: 'rtl' }}>
-                  زمان باقی‌مانده: <span dir="ltr" className="font-mono text-amber-300">{countdown}</span>
+                <p dir="ltr" className="mt-2 text-xs text-amber-400 light:text-amber-600" style={{ direction: 'rtl' }}>
+                  زمان باقی‌مانده: <span dir="ltr" className="font-mono text-amber-300 light:text-amber-700">{countdown}</span>
                 </p>
               )}
             </>
           ) : (
             <>
-              <h3 className="text-base font-bold text-slate-100">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
+              <h3 className="text-base font-bold text-slate-100 light:text-slate-900">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400 light:text-slate-500">{description}</p>
             </>
           )}
         </div>
@@ -142,7 +142,7 @@ function GiftModal({
             href={audioUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-slate-600 py-3 text-sm font-medium text-slate-200 hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
+            className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-slate-600 py-3 text-sm font-medium text-slate-200 hover:border-emerald-500/50 hover:text-emerald-300 light:border-slate-300 light:text-slate-700 light:hover:text-emerald-600 transition-colors"
           >
             <svg viewBox="0 0 16 16" fill="none" className="size-4">
               <path d="M8 1v9m0 0l-3-3m3 3l3-3M2 12v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -162,18 +162,18 @@ function GiftModal({
             </button>
           ) : (
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-              <p className="text-xs text-emerald-300">
+              <p className="text-xs text-emerald-300 light:text-emerald-700">
                 {claimGift.data.discountPercent}٪ تخفیف برای اولین خرید — کدت رو موقع خرید وارد کن
               </p>
               <button
                 onClick={copyCode}
                 dir="ltr"
-                className="mt-2 w-full rounded-lg bg-slate-800 border border-slate-600 py-2 text-sm font-mono text-emerald-300 hover:border-emerald-500/50 transition-colors"
+                className="mt-2 w-full rounded-lg bg-slate-800 border border-slate-600 py-2 text-sm font-mono text-emerald-300 hover:border-emerald-500/50 light:bg-slate-100 light:border-slate-300 light:text-emerald-700 transition-colors"
               >
                 {copied ? 'کپی شد ✓' : claimGift.data.code}
               </button>
               {claimGift.data.expiresAt && (
-                <p className="mt-2 text-[11px] text-slate-500">
+                <p className="mt-2 text-[11px] text-slate-500 light:text-slate-400">
                   اعتبار تا {new Date(claimGift.data.expiresAt).toLocaleString('fa-IR')}
                 </p>
               )}
@@ -186,7 +186,7 @@ function GiftModal({
             </div>
           )}
           {claimGift.isError && (
-            <p className="mt-2 text-center text-xs text-red-400">مشکلی پیش آمد، دوباره امتحان کن</p>
+            <p className="mt-2 text-center text-xs text-red-400 light:text-red-600">مشکلی پیش آمد، دوباره امتحان کن</p>
           )}
         </div>
       </div>

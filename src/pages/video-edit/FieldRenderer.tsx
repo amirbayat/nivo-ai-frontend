@@ -39,7 +39,7 @@ import type {
 // رندر هر فیلد چک می‌کند — همون evaluateCondition مشترک با بک‌اند (fieldConditions.ts)
 
 function RequiredMark({ required }: { required: boolean }) {
-  return required ? <span style={{ color: '#fb7185' }}> *</span> : null
+  return required ? <span style={{ color: 'var(--rose-soft-text)' }}> *</span> : null
 }
 
 // ============================== text ==============================
@@ -51,7 +51,7 @@ function ReviewPromptButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       className="absolute flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold transition-opacity hover:opacity-90"
-      style={{ left: 10, bottom: 10, background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(167,139,250,0.30)', color: '#c4b5fd' }}
+      style={{ left: 10, bottom: 10, background: 'rgba(139,92,246,0.14)', border: '1px solid rgba(167,139,250,0.30)', color: 'var(--purple-soft-text)' }}
     >
       <svg viewBox="0 0 24 24" fill="none" className="size-3.5">
         <path
@@ -82,7 +82,7 @@ function TextFieldWidget({
   onReview?: () => void
 }) {
   const val = value ?? ''
-  const borderColor = invalid ? 'rgba(248,113,113,0.6)' : 'rgba(148,163,184,0.20)'
+  const borderColor = invalid ? 'rgba(248,113,113,0.6)' : 'rgba(var(--neutral-rgb),0.20)'
   const showReview = onReview && field.semantic === 'mainPrompt'
   return (
     <div className="flex flex-col gap-1.5">
@@ -90,7 +90,7 @@ function TextFieldWidget({
         {field.label}
         <RequiredMark required={required} />
       </FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       {field.multiline ? (
         <div className="relative">
           <textarea
@@ -99,7 +99,7 @@ function TextFieldWidget({
             maxLength={field.maxLength}
             rows={4}
             placeholder={field.placeholder}
-            className="w-full resize-none rounded-2xl p-3.5 pb-11 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 focus:outline-none"
+            className="w-full resize-none rounded-2xl p-3.5 pb-11 text-[14px] leading-relaxed text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
             style={{ background: 'rgba(0,0,0,0.20)', border: `1px solid ${borderColor}` }}
           />
           {showReview && <ReviewPromptButton onClick={onReview} />}
@@ -110,7 +110,7 @@ function TextFieldWidget({
           onChange={e => onChange(e.target.value)}
           maxLength={field.maxLength}
           placeholder={field.placeholder}
-          className="w-full rounded-2xl p-3 text-[13.5px] text-slate-100 placeholder:text-slate-600 focus:outline-none"
+          className="w-full rounded-2xl p-3 text-[13.5px] text-slate-100 placeholder:text-slate-600 light:text-slate-900 light:placeholder:text-slate-400 focus:outline-none"
           style={{ background: 'rgba(0,0,0,0.20)', border: `1px solid ${borderColor}` }}
         />
       )}
@@ -196,7 +196,7 @@ function EnumFieldWidget({
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel>{field.label}</FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       {field.semantic === 'aspectRatio' && isBinaryAspectRatio(options) ? (
         <RatioSegmented value={current as '16:9' | '9:16'} onChange={onChange} />
       ) : field.semantic === 'resolution' ? (
@@ -253,7 +253,7 @@ function DurationFieldWidget({
     return (
       <div className="flex flex-col gap-1.5">
         <FieldLabel>{field.label}</FieldLabel>
-        {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+        {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
         <SegmentedPicker
           options={field.fixedOptions.map(d => ({ value: String(d), label: `${d} ثانیه` }))}
           value={String(value)}
@@ -333,7 +333,7 @@ function ImageFieldWidget({
         {field.label}
         <RequiredMark required={field.required} />
       </FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       <DropWell
         accent={invalid ? 'rose' : 'emerald'}
         accept={field.accept.join(',')}
@@ -343,7 +343,7 @@ function ImageFieldWidget({
         onPick={file => void pick(file)}
         onClear={clear}
       />
-      {error && <p className="text-[11px] text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-red-400 light:text-red-600">{error}</p>}
     </div>
   )
 }
@@ -398,7 +398,7 @@ function ImageArrayFieldWidget({
         {field.label}
         <RequiredMark required={field.required} />
       </FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       <div className="grid grid-cols-2 gap-2">
         {value.map((_, i) => (
           <DropWell
@@ -424,7 +424,7 @@ function ImageArrayFieldWidget({
           />
         )}
       </div>
-      {error && <p className="text-[11px] text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-red-400 light:text-red-600">{error}</p>}
     </div>
   )
 }
@@ -480,7 +480,7 @@ function VideoFieldWidget({
         {field.label}
         <RequiredMark required={field.required} />
       </FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       <DropWell
         accent={invalid ? 'rose' : 'emerald'}
         accept={field.accept.join(',')}
@@ -498,7 +498,7 @@ function VideoFieldWidget({
           onChange={([s, e]) => onChange({ key: value.key, windowStartSec: s, windowEndSec: e })}
         />
       )}
-      {error && <p className="text-[11px] text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-red-400 light:text-red-600">{error}</p>}
     </div>
   )
 }
@@ -542,7 +542,7 @@ function VideoArrayFieldWidget({
         {field.label}
         <RequiredMark required={field.required} />
       </FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       <div className="grid grid-cols-2 gap-2">
         {value.map((_, i) => (
           <DropWell
@@ -566,7 +566,7 @@ function VideoArrayFieldWidget({
           onClear={() => {}}
         />
       </div>
-      {error && <p className="text-[11px] text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-red-400 light:text-red-600">{error}</p>}
     </div>
   )
 }
@@ -615,7 +615,7 @@ function AudioFieldWidget({
         {field.label}
         <RequiredMark required={field.required} />
       </FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       <AudioDropWell
         label="افزودن صدا"
         hint={field.role ?? 'انتخاب فایل'}
@@ -626,7 +626,7 @@ function AudioFieldWidget({
         onClear={clear}
         accept={field.accept.join(',')}
       />
-      {error && <p className="text-[11px] text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-red-400 light:text-red-600">{error}</p>}
     </div>
   )
 }
@@ -673,7 +673,7 @@ function AudioArrayFieldWidget({
         {field.label}
         <RequiredMark required={field.required} />
       </FieldLabel>
-      {field.helpText && <span className="text-[10.5px]" style={{ color: '#64748b' }}>{field.helpText}</span>}
+      {field.helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{field.helpText}</span>}
       {value.map((_, i) => (
         <AudioDropWell
           key={i}
@@ -697,7 +697,7 @@ function AudioArrayFieldWidget({
           accept={field.accept.join(',')}
         />
       )}
-      {error && <p className="text-[11px] text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-red-400 light:text-red-600">{error}</p>}
     </div>
   )
 }

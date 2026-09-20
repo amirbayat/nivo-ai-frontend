@@ -10,7 +10,7 @@ export function OutageBanner() {
   return (
     <div className="mx-4 mb-2 flex w-[calc(100%-2rem)] items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-right">
       <span className="shrink-0 text-base">📡</span>
-      <span className="text-sm font-medium text-amber-300">{fa.networkOutage.message}</span>
+      <span className="text-sm font-medium text-amber-300 light:text-amber-700">{fa.networkOutage.message}</span>
     </div>
   )
 }

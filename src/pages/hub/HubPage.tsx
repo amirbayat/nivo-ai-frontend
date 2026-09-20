@@ -25,7 +25,7 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden" style={{ background: '#020C18', color: '#e2e8f0' }} dir="rtl">
+    <div className="relative min-h-screen overflow-hidden" style={{ background: 'var(--studio-bg)', color: 'var(--text-primary)' }} dir="rtl">
       <div
         className="pointer-events-none absolute"
         style={{ width: 640, height: 640, top: -260, left: -120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.20), transparent 70%)', filter: 'blur(10px)' }}
@@ -37,7 +37,7 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage: 'radial-gradient(rgba(148,163,184,0.10) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(rgba(var(--neutral-rgb),0.10) 1px, transparent 1px)',
           backgroundSize: '34px 34px',
           maskImage: 'radial-gradient(ellipse 900px 500px at 50% 30%, #000 0%, transparent 70%)',
           WebkitMaskImage: 'radial-gradient(ellipse 900px 500px at 50% 30%, #000 0%, transparent 70%)',
@@ -62,10 +62,10 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
 
       {/* hero copy */}
       <div className="relative flex flex-col items-center px-6 pt-16 text-center sm:pt-[88px]">
-        <h1 className="text-[28px] font-extrabold text-white sm:text-[46px]" style={{ letterSpacing: '-0.5px' }}>
+        <h1 className="text-[28px] font-extrabold text-white light:text-slate-900 sm:text-[46px]" style={{ letterSpacing: '-0.5px' }}>
           امروز چیکار می‌تونم برات انجام بدم؟
         </h1>
-        <p className="mt-4 text-[15px] sm:text-[17px]" style={{ color: '#94a3b8' }}>
+        <p className="mt-4 text-[15px] sm:text-[17px]" style={{ color: 'var(--text-secondary)' }}>
           یکی از موارد زیر رو انتخاب کن تا شروع کنیم
         </p>
       </div>
@@ -75,72 +75,72 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
         <HubCard
           title="استودیو فیلم"
           description="یه ویدیو از پرامپت و عکس بساز، یا یه ویدیوی موجود رو ویرایش کن — همه با یه فرم واحد."
-          accentColor="#fb7185"
+          accentColor="var(--rose-soft-text)"
           borderColor="rgba(244,63,94,0.28)"
           glowColor="rgba(244,63,94,0.07)"
           gradientColor="rgba(244,63,94,0.10)"
           iconBg="rgba(244,63,94,0.16)"
-          iconColor="#fb7185"
+          iconColor="var(--rose-soft-text)"
           icon={<VideoEditIcon />}
           onClick={() => goToSection('/video')}
         />
         <HubCard
           title="استودیو عکس"
           description="یه توصیف بنویس یا عکس آپلود کن؛ نتیجه رو در چند ثانیه ببین."
-          accentColor="#10b981"
+          accentColor="var(--brand)"
           borderColor="rgba(16,185,129,0.30)"
           glowColor="rgba(16,185,129,0.08)"
           gradientColor="rgba(16,185,129,0.10)"
           iconBg="rgba(16,185,129,0.14)"
-          iconColor="#34d399"
+          iconColor="var(--brand)"
           icon={<ImageIcon />}
           onClick={() => goToSection('/image')}
         />
         <HubCard
           title="چت"
           description="سوال بپرس، متن بنویس یا با هم فکر کنیم — مثل یک دستیار متخصص."
-          accentColor="#a78bfa"
+          accentColor="var(--purple-soft-text)"
           borderColor="rgba(124,58,237,0.28)"
           glowColor="rgba(124,58,237,0.07)"
           gradientColor="rgba(124,58,237,0.10)"
           iconBg="rgba(124,58,237,0.16)"
-          iconColor="#a78bfa"
+          iconColor="var(--purple-soft-text)"
           icon={<ChatIcon />}
           onClick={() => goToSection('/chat')}
         />
         <HubCard
           title="کپشن اتوماتیک"
           description="ویدیوت رو آپلود کن، زیرنویس خودکار با استایل دلخواه بگیر."
-          accentColor="#f59e0b"
+          accentColor="var(--amber-text)"
           borderColor="rgba(245,158,11,0.28)"
           glowColor="rgba(245,158,11,0.07)"
           gradientColor="rgba(245,158,11,0.10)"
           iconBg="rgba(245,158,11,0.16)"
-          iconColor="#fbbf24"
+          iconColor="var(--amber-text)"
           icon={<CaptionsIcon />}
           onClick={() => goToSection('/captions')}
         />
         <HubCard
           title="پرامپت‌های روز"
           description="هر روز چند پرامپت خوب از سراسر وب — عکس و ویدیو، آماده‌ی امتحان‌کردن."
-          accentColor="#38bdf8"
+          accentColor="var(--sky-soft-text)"
           borderColor="rgba(14,165,233,0.28)"
           glowColor="rgba(14,165,233,0.08)"
           gradientColor="rgba(14,165,233,0.10)"
           iconBg="rgba(14,165,233,0.16)"
-          iconColor="#38bdf8"
+          iconColor="var(--sky-soft-text)"
           icon={<PromptsIcon />}
           onClick={() => navigate('/prompts')}
         />
         <HubCard
           title="نیوو کالری"
           description="از غذات عکس بگیر تا کالری و مواد مغذیش رو دقیق ببینی."
-          accentColor="#22d3ee"
+          accentColor="var(--cyan-soft-text)"
           borderColor="rgba(6,182,212,0.28)"
           glowColor="rgba(6,182,212,0.07)"
           gradientColor="rgba(6,182,212,0.10)"
           iconBg="rgba(6,182,212,0.16)"
-          iconColor="#22d3ee"
+          iconColor="var(--cyan-soft-text)"
           icon={<CalorieIcon />}
           href="https://cal.nivoai.ir"
           onClick={() => track('nivo_cal_nav_clicked')}
@@ -182,8 +182,8 @@ function HubCard({ title, description, accentColor, borderColor, glowColor, grad
         {icon}
       </div>
       <div>
-        <div className="text-[21px] font-bold text-white">{title}</div>
-        <div className="mt-2 text-[14.5px] leading-[1.9]" style={{ color: '#94a3b8' }}>{description}</div>
+        <div className="text-[21px] font-bold text-white light:text-slate-900">{title}</div>
+        <div className="mt-2 text-[14.5px] leading-[1.9]" style={{ color: 'var(--text-secondary)' }}>{description}</div>
       </div>
       <div className="mt-auto flex items-center gap-1.5 text-sm font-semibold" style={{ color: accentColor }}>
         شروع کن
