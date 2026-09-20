@@ -4,7 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
 import { WelcomeCreditsModal } from "./WelcomeCreditsModal";
 import { useVisualViewportHeight } from "@/hooks/useVisualViewportHeight";
-import logoUrl from "@/assets/brand/horizontal-dark.svg";
+import { Logo } from "@/components/ui/Logo";
 
 interface SidebarControl {
   sidebarOpen: boolean;
@@ -84,11 +84,7 @@ export function ChatLayout({ children, collapsedByDefault }: ChatLayoutProps) {
                 />
               </svg>
             </button>
-            <img
-              src={logoUrl}
-              alt="نیوو"
-              className="w-28 h-auto"
-            />
+            <Logo className="w-28 h-auto" />
             <div className="ms-auto flex items-center gap-2">
               <PlanUpgradeBadge />
             </div>

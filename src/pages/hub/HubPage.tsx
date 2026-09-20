@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
-import logoUrl from '@/assets/brand/horizontal-dark.svg'
+import { Logo } from '@/components/ui/Logo'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 
 // Main entry for logged-in users and guests (router/index.tsx: HomeRoute).
@@ -47,17 +48,20 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
       {/* header */}
       <div className="relative flex items-center justify-between px-6 pt-8 sm:px-16">
         <div className="flex items-center gap-2.5">
-          <img src={logoUrl} alt="نیوو" className="h-11 w-auto sm:h-14" />
+          <Logo className="h-11 w-auto sm:h-14" />
         </div>
-        {!isLoggedIn && (
-          <button
-            type="button"
-            onClick={() => { track('login_nav_clicked'); navigate('/login') }}
-            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
-          >
-            {fa.anonChat.loginSignup}
-          </button>
-        )}
+        <div className="flex items-center gap-2.5">
+          <ThemeToggle />
+          {!isLoggedIn && (
+            <button
+              type="button"
+              onClick={() => { track('login_nav_clicked'); navigate('/login') }}
+              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
+            >
+              {fa.anonChat.loginSignup}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* hero copy */}

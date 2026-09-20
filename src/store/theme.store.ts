@@ -14,7 +14,7 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>(set => ({
-  theme: (typeof window !== 'undefined' ? (localStorage.getItem('nivo:theme') as Theme | null) : null) ?? 'dark',
+  theme: (typeof window !== 'undefined' ? (localStorage.getItem('nivo:theme') as Theme | null) : null) ?? 'light',
   setTheme: theme => {
     if (typeof window !== 'undefined') localStorage.setItem('nivo:theme', theme)
     applyTheme(theme)

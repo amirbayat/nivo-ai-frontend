@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useDiscoveryCatalog } from '@/queries/discovery.queries'
 import { fa } from '@/locales/fa'
 import { track } from '@/lib/events'
-import logoUrl from '@/assets/brand/horizontal-dark.svg'
+import { Logo } from '@/components/ui/Logo'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import type { CreativePromptCatalogItem } from '@/types/api'
 
@@ -52,16 +53,19 @@ export function PromptsPage() {
 
       {/* header */}
       <div className="relative flex items-center justify-between px-6 pt-8 sm:px-16">
-        <img src={logoUrl} alt="نیوو" className="h-11 w-auto sm:h-14" />
-        {!isLoggedIn && (
-          <button
-            type="button"
-            onClick={() => { track('login_nav_clicked'); navigate('/login') }}
-            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
-          >
-            {fa.anonChat.loginSignup}
-          </button>
-        )}
+        <Logo className="h-11 w-auto sm:h-14" />
+        <div className="flex items-center gap-2.5">
+          <ThemeToggle />
+          {!isLoggedIn && (
+            <button
+              type="button"
+              onClick={() => { track('login_nav_clicked'); navigate('/login') }}
+              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
+            >
+              {fa.anonChat.loginSignup}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* hero */}
@@ -171,7 +175,7 @@ function PromptCard({ item, onTry }: { item: CreativePromptCatalogItem; onTry: (
         {item.userPromptTemplate && (
           <div
             className="rounded-xl p-3.5 text-[13px] leading-[1.8]"
-            style={{ background: 'rgba(2,12,24,0.5)', border: '1px solid rgba(var(--neutral-rgb),0.12)', color: 'var(--studio-icon-text)' }}
+            style={{ background: 'rgba(var(--neutral-rgb),0.06)', border: '1px solid rgba(var(--neutral-rgb),0.12)', color: 'var(--studio-icon-text)' }}
           >
             {item.userPromptTemplate}
           </div>

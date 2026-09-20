@@ -9,9 +9,9 @@ import { useCreditsBalance } from "@/queries/credits.queries";
 import { useChatStore } from "@/store/chat.store";
 import { PlanUpgradeBadge } from "./PlanUpgradeBadge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Logo } from "@/components/ui/Logo";
 import { fa } from "@/locales/fa";
 import { track } from "@/lib/events";
-import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
 // گروه‌بندی لیست مکالمه‌ها بر اساس تاریخ (امروز/دیروز/۷ روز گذشته/قدیمی‌تر) — فقط چیدمان
 // بصری لیست موجود است، هیچ کوئری/داده‌ی جدیدی لازم ندارد چون lastMessageAt از قبل می‌آید
@@ -95,11 +95,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
       {/* header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700/30 light:border-slate-200">
         <div className="flex items-center gap-2">
-          <img
-            src={logoUrl}
-            alt="نیوو"
-            className="w-28 h-auto"
-          />
+          <Logo className="w-28 h-auto" />
         </div>
         <div className="flex items-center gap-1">
           <ThemeToggle />

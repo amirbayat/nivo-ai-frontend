@@ -1,8 +1,8 @@
 @import "tailwindcss";
 @import './assets/fonts/‫‪IRANYekanMsn/IRANYekanMsn.css';
 
-/* variant سفارشی برای تم روشن — پیش‌فرض سایت تیره می‌ماند، `light:` فقط زیر
-   html[data-theme="light"] فعال می‌شود (معادل معکوس `dark:` معمول Tailwind) */
+/* variant سفارشی برای تم روشن — پیش‌فرض سایت روشن است (index.html و theme.store.ts)،
+   `light:` زیر html[data-theme="light"] فعال می‌شود (معادل معکوس `dark:` معمول Tailwind) */
 @custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
 
 @theme {
@@ -15,8 +15,9 @@
   --color-brand-700: #047857;
 }
 
-/* توکن‌های رنگی تم — پیش‌فرض همون تیره‌ی فعلی سایت است (بدون تغییر رفتار موجود)،
-   نسخه‌ی روشن فقط زیر html[data-theme="light"] فعال می‌شود */
+/* توکن‌های رنگی تم — مقدار پایه‌ی :root (بدون attribute) همان تیره‌ی قبلی است، اما چون
+   index.html/theme.store.ts همیشه data-theme را ست می‌کنند (پیش‌فرض now = 'light')، عملاً
+   کاربر همیشه یکی از این دو بلوک را می‌بیند، نه حالت بدون-attribute را */
 :root {
   --bg: #0f172a;
   --surface: rgba(30, 41, 59, 0.4);
