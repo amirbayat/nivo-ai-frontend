@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /blog
+
+# مسیرهای پشت لاگین/داخل اپ — نیازی به ایندکس ندارند
+Disallow: /chat
+Disallow: /image
+Disallow: /captions
+Disallow: /video
+Disallow: /pricing
+Disallow: /projects
+Disallow: /gallery
+Disallow: /nivo-cal
+Disallow: /models
+Disallow: /payment
+Disallow: /settings
+Disallow: /login
+Disallow: /otp
+Disallow: /studio
+
+Sitemap: https://nivoai.ir/sitemap.xml
