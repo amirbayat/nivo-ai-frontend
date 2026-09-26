@@ -29,8 +29,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // مقالات /blog باید همیشه از شبکه (رندر واقعی بک‌اند) بیایند، نه از app-shell کش‌شده
-        navigateFallbackDenylist: [/^\/blog/],
+        // /blog is rendered by the backend. sitemap.xml and robots.txt are static
+        // files nginx serves. Browser navigations to these must reach the network;
+        // otherwise the service worker returns the app shell and React redirects to /.
+        navigateFallbackDenylist: [/^\/blog/, /^\/sitemap\.xml$/, /^\/robots\.txt$/],
         // چون injectRegister:false است (ثبت SW دستی در main.tsx)، vite-plugin-pwa دیگر
         // خودش این دو مقدار را برای registerType:'autoUpdate' ست نمی‌کند (فقط وقتی
         // injectRegister==='auto'/null این کار را خودکار انجام می‌دهد) — بدون تنظیم صریح
