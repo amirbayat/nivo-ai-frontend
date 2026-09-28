@@ -21,6 +21,9 @@ export interface ModelCatalogEntry {
   tier: 'SIMPLE' | 'MEDIUM' | 'COMPLEX'
   supportsVision: boolean
   supportsImageGen: boolean
+  // true یعنی این مدل بدون عکس ورودی کار نمی‌کند (مثل واریانت‌های style-transfer ری‌کرفت) —
+  // برای هشدار/غیرفعال‌کردن ارسال قبل از رسیدن به بک‌اند
+  imageGenRequiresInputImage: boolean
   // docs/PRD-chat-models-web-search-and-files.md §۳.۵
   supportsWebSearch: boolean
   supportsFileInput: boolean

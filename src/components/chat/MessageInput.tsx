@@ -535,6 +535,15 @@ export function MessageInput({ onSend, disabled, sending, onStop, onGenerateCrea
         </div>
       )}
 
+      {/* مدل‌های edit-only (مثل واریانت‌های style-transfer ری‌کرفت) بدون عکس ورودی از سمت بک‌اند
+          رد می‌شوند (imageGenRequiresInputImage) — این فقط هشدار پیشگیرانه است، دکمه‌ی ارسال
+          بلاک نمی‌شود؛ اگر کاربر نادیده بگیرد، همان خطای فارسی بک‌اند در چت نشان داده می‌شود */}
+      {!selectedCreativePrompt && pinnedImageGenModel?.imageGenRequiresInputImage && images.length === 0 && (
+        <div className="mb-2 flex items-center gap-1.5 px-1 text-xs text-amber-400/90 light:text-amber-600">
+          <span>{`⚠️ مدل «${pinnedImageGenModel.displayName}» فقط عکس ورودی رو ویرایش می‌کنه، از صفر تولید نمی‌کنه — یک عکس پیوست کن`}</span>
+        </div>
+      )}
+
       {/* بخش E — فقط هشدار، دکمه‌ی ارسال بلاک نمی‌شود (بخش ۲.۴: preflight بک‌اند عمداً فقط
           balance<=0 چک می‌کند، این هشدار صرفاً یک لایه‌ی UI مجزاست) */}
       {!selectedCreativePrompt && images.length > 0 && pinnedImageGenModel &&

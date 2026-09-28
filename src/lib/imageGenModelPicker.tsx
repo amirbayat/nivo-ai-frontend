@@ -27,9 +27,12 @@ export function buildImageGenModelPickerItems(imageGenModels: ModelCatalogEntry[
       name: model.displayName,
       blurb: model.description || tierDescription(model.tier),
       tier: { label: imageQualityLabel(model.tier), ...TIER_COLOR[model.tier] },
-      chips: model.estimatedImageGenCreditCost != null
-        ? [`حدود ${fa.discover.creditCost(model.estimatedImageGenCreditCost)}`]
-        : undefined,
+      chips: [
+        ...(model.imageGenRequiresInputImage ? ['فقط ویرایش عکس'] : []),
+        ...(model.estimatedImageGenCreditCost != null
+          ? [`حدود ${fa.discover.creditCost(model.estimatedImageGenCreditCost)}`]
+          : []),
+      ],
     })),
   ]
 }
