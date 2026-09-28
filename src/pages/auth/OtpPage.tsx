@@ -102,15 +102,15 @@ export function OtpPage() {
 
   if (waitlisted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 light:bg-white">
         <div className="w-full max-w-sm text-center">
-          <div className="mx-auto mb-4 size-14 rounded-2xl bg-amber-500/15 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" className="size-7 text-amber-400">
+          <div className="mx-auto mb-4 size-14 rounded-2xl bg-amber-500/15 flex items-center justify-center light:bg-amber-50">
+            <svg viewBox="0 0 24 24" fill="none" className="size-7 text-amber-400 light:text-amber-600">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </div>
-          <p className="text-slate-100">{waitlisted.message}</p>
-          <p className="mt-2 text-sm text-slate-500">{fa.waitlist.queuePosition(waitlisted.queuePosition)}</p>
+          <p className="text-slate-100 light:text-slate-900">{waitlisted.message}</p>
+          <p className="mt-2 text-sm text-slate-500 light:text-slate-400">{fa.waitlist.queuePosition(waitlisted.queuePosition)}</p>
           <Button className="mt-6 w-full" onClick={() => navigate('/', { replace: true })}>
             {fa.waitlist.gotIt}
           </Button>
@@ -120,16 +120,16 @@ export function OtpPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 light:bg-white">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 size-14 rounded-2xl bg-emerald-500/15 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" className="size-7 text-emerald-400">
+          <div className="mx-auto mb-4 size-14 rounded-2xl bg-emerald-500/15 flex items-center justify-center light:bg-emerald-50">
+            <svg viewBox="0 0 24 24" fill="none" className="size-7 text-emerald-400 light:text-emerald-600">
               <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0H4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-slate-100">{fa.auth.enterOtp}</h1>
-          <p className="mt-1 text-sm text-slate-500">{fa.auth.otpSentTo(phone)}</p>
+          <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{fa.auth.enterOtp}</h1>
+          <p className="mt-1 text-sm text-slate-500 light:text-slate-400">{fa.auth.otpSentTo(phone)}</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -152,12 +152,12 @@ export function OtpPage() {
 
         <div className="mt-4 text-center">
           {countdown > 0 ? (
-            <p className="text-sm text-slate-500">{fa.auth.resendIn(countdown)}</p>
+            <p className="text-sm text-slate-500 light:text-slate-400">{fa.auth.resendIn(countdown)}</p>
           ) : (
             <button
               onClick={onResend}
               disabled={sendOtp.isPending}
-              className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+              className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors light:text-emerald-600 light:hover:text-emerald-700"
             >
               {fa.auth.resendOtp}
             </button>
@@ -165,7 +165,7 @@ export function OtpPage() {
         </div>
         <button
           onClick={() => navigate('/login')}
-          className="mt-2 w-full text-center text-sm text-slate-600 hover:text-slate-400 transition-colors"
+          className="mt-2 w-full text-center text-sm text-slate-600 hover:text-slate-400 transition-colors light:text-slate-500 light:hover:text-slate-700"
         >
           {fa.common.back}
         </button>

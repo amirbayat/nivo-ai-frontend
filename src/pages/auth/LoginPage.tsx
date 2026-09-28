@@ -7,9 +7,9 @@ import {
 } from "@/queries/campaign.queries";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Logo } from "@/components/ui/Logo";
 import { toEnglishDigits } from "@/lib/digits";
 import { fa } from "@/locales/fa";
-import logoUrl from "@/assets/brand/horizontal-dark.svg";
 
 export function LoginPage() {
   const [phone, setPhone] = useState("");
@@ -39,23 +39,19 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 light:bg-white">
       <div className="w-full max-w-sm">
         {/* logo */}
         <div className="mb-8 text-center">
-          <img
-            src={logoUrl}
-            alt="نیوو"
-            className="mx-auto mb-4 w-48"
-          />
-          <h1 className="text-xl font-bold text-slate-100">نیوو</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <Logo className="mx-auto mb-4 w-48" />
+          <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">نیوو</h1>
+          <p className="mt-1 text-sm text-slate-500 light:text-slate-400">
             با شماره موبایل وارد شوید
           </p>
         </div>
 
         {campaignStatus?.active && displayCounter !== null && (
-          <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-300">
+          <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-300 light:border-amber-200 light:bg-amber-50 light:text-amber-700">
             {fa.waitlist.remainingCapacity(displayCounter)}
           </div>
         )}
