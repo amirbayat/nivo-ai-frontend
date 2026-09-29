@@ -93,6 +93,10 @@ export const keys = {
   seller: {
     stores: () => ['seller', 'stores'] as const,
     slugAvailable: (slug: string) => ['seller', 'slug-available', slug] as const,
+    products: (storeId: string) => ['seller', 'products', storeId] as const,
+    orders: (storeId: string, status?: string) => ['seller', 'orders', storeId, status ?? 'all'] as const,
+    attention: (storeId: string) => ['seller', 'attention', storeId] as const,
+    conversation: (storeId: string, conversationId: string) => ['seller', 'conversation', storeId, conversationId] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

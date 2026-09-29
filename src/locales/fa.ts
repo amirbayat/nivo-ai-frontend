@@ -470,12 +470,55 @@ export const fa = {
       shareLink: 'ارسال به دایرکت/تلگرام',
       goToDashboard: 'برو به پنل فروشگاه',
     },
-    dashboardPlaceholder: {
-      heading: 'فروشگاه',
-      linkLabel: 'لینک فروشگاه شما',
-      comingSoon: 'بقیه‌ی پنل (سفارش‌ها، محصولات، نیاز به توجه) به‌زودی اضافه می‌شود.',
-    },
     errorGeneric: 'مشکلی پیش آمد، دوباره تلاش کنید',
+    panel: {
+      nav: {
+        home: 'خانه',
+        orders: 'سفارش‌ها',
+        attention: 'نیاز به توجه',
+        products: 'محصولات',
+        more: 'بیشتر',
+      },
+      home: {
+        pendingOrders: (n: number) => `${n.toLocaleString('fa-IR')} سفارش در انتظار تایید`,
+        needsAttention: (n: number) => `${n.toLocaleString('fa-IR')} مکالمه نیاز به توجه دارد`,
+        shareLink: 'اشتراک‌گذاری لینک فروشگاه',
+      },
+      orders: {
+        filterAll: 'همه',
+        filterPending: 'در انتظار',
+        filterApproved: 'تاییدشده',
+        filterRejected: 'ردشده',
+        empty: 'سفارشی نیست',
+        viewReceipt: 'مشاهده فیش واریزی',
+        approve: 'تایید سفارش',
+        reject: 'رد سفارش',
+        noReceipt: 'رسیدی برای این سفارش ثبت نشده',
+        total: 'مبلغ سفارش',
+        close: 'بستن',
+      },
+      attention: {
+        empty: 'مکالمه‌ای نیاز به توجه نیست',
+        inputPlaceholder: 'پیامت رو بنویس...',
+        backToBot: 'برگردون به ربات',
+      },
+      products: {
+        empty: 'هنوز محصولی اضافه نکردی',
+        addProduct: 'محصول جدید',
+        uploadExcel: 'آپلود اکسل',
+        edit: 'ویرایش',
+        deleteConfirm: 'این محصول حذف شود؟',
+        importResult: (created: number, errorCount: number) =>
+          errorCount > 0
+            ? `${created.toLocaleString('fa-IR')} محصول اضافه شد، ${errorCount.toLocaleString('fa-IR')} ردیف با خطا`
+            : `${created.toLocaleString('fa-IR')} محصول با موفقیت اضافه شد`,
+        importColumnsHint: 'ستون‌های اکسل: نام، قیمت، موجودی (اختیاری)',
+      },
+      more: {
+        storeLink: 'لینک فروشگاه',
+        logout: 'خروج از حساب',
+      },
+    },
   },
   shop: {
     notFoundHeading: 'فروشگاه پیدا نشد',
@@ -495,7 +538,7 @@ export const fa = {
       APPROVED: 'تایید شد',
       REJECTED: 'رد شد',
     } as Record<string, string>,
-    conversationEnded: 'این مکالمه به یکی از همکارهای فروشگاه منتقل شد.',
+    conversationEnded: 'این مکالمه به یکی از همکارهای فروشگاه منتقل شد — می‌تونی همینجا باهاش صحبت کنی.',
   },
   common: {
     save: 'ذخیره',

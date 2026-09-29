@@ -20,7 +20,8 @@ function eventsToMessages(events: ShopConversationEvent[]): ShopMessage[] {
   events.forEach((e, i) => {
     if (e.type === 'CUSTOMER_MESSAGE' && e.payload.text) {
       messages.push({ id: `c-${i}`, role: 'customer', text: e.payload.text })
-    } else if (e.type === 'AGENT_REPLY' && e.payload.text) {
+    } else if ((e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE') && e.payload.text) {
+      // مشتری فرق ربات/فروشنده‌ی انسانی را از نظر بصری نمی‌بیند — هر دو حباب «agent» هستند
       messages.push({
         id: `a-${i}`,
         role: 'agent',
@@ -76,6 +77,29 @@ export function useShopChat(slug: string) {
     [sending, appendCustomerMessage, applyReply],
   )
 
+  // بعد از HANDOFF_HUMAN، پیام‌های فروشنده باید بدون اینکه مشتری خودش چیزی بفرستد دیده شوند —
+  // بدون SSE/WebSocket در پروژه، پالینگ ساده کافی است (فقط وقتی مکالمه دست انسان است)
+  const fetchConversation = useCallback(async () => {
+    const session = sessionRef.current
+    if (!session) return
+    const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}`, {
+      headers: { 'X-Session-Token': session.sessionToken },
+    })
+    if (!res.ok) throw new Error('request failed')
+    const data = (await res.json()) as ShopGetConversationResponse
+    setState(data.state)
+    setStoreName(data.storeName)
+    setMessages(eventsToMessages(data.events))
+  }, [])
+
+  useEffect(() => {
+    if (state !== 'HANDOFF_HUMAN') return
+    const interval = setInterval(() => {
+      void fetchConversation()
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [state, fetchConversation])
+
   const uploadReceipt = useCallback(
     async (file: File) => {
       const session = sessionRef.current
@@ -112,15 +136,8 @@ export function useShopChat(slug: string) {
       try {
         if (existing) {
           sessionRef.current = existing
-          const res = await fetch(`${env.VITE_API_URL}/v2/chat/${existing.conversationId}`, {
-            headers: { 'X-Session-Token': existing.sessionToken },
-          })
-          if (!res.ok) throw new Error('request failed')
-          const data = (await res.json()) as ShopGetConversationResponse
+          await fetchConversation()
           if (cancelled) return
-          setState(data.state)
-          setStoreName(data.storeName)
-          setMessages(eventsToMessages(data.events))
           setLoading(false)
           return
         }

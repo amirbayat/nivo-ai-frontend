@@ -4,7 +4,9 @@ import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
 import { fa } from '@/locales/fa'
 
-const TERMINAL_STATES = ['HANDOFF_HUMAN', 'COMPLETED', 'REJECTED']
+// HANDOFF_HUMAN عمداً اینجا نیست — بعد از escalate، مشتری باید بتواند مستقیم با فروشنده
+// چت کند (پنل فروشنده، تب «نیاز به توجه»)؛ فقط COMPLETED/REJECTED واقعاً پایانی‌اند
+const TERMINAL_STATES = ['COMPLETED', 'REJECTED']
 
 export function ShopChatPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -96,7 +98,7 @@ export function ShopChatPage() {
         {error && <p className="text-center text-xs text-red-400">{error}</p>}
       </div>
 
-      {TERMINAL_STATES.includes(state) && (
+      {(TERMINAL_STATES.includes(state) || state === 'HANDOFF_HUMAN') && (
         <div className="border-t border-slate-800 bg-slate-900/60 px-4 py-2 text-center text-xs text-slate-500">
           {fa.shop.conversationEnded}
         </div>

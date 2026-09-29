@@ -281,7 +281,7 @@ export function SellerOnboardingPage() {
             <button onClick={shareLink} className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-[15px] font-bold text-white hover:bg-emerald-600">
               {fa.seller.step4.shareLink}
             </button>
-            <button onClick={() => navigate('/seller/dashboard-placeholder')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300">
+            <button onClick={() => navigate('/seller/panel/home')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300">
               {fa.seller.step4.goToDashboard}
             </button>
           </div>

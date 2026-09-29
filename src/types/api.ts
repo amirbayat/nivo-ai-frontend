@@ -149,7 +149,7 @@ export interface ShopSendMessageResponse {
 }
 
 export interface ShopConversationEvent {
-  type: 'CUSTOMER_MESSAGE' | 'AGENT_REPLY' | 'TOOL_CALL' | 'STATE_TRANSITION' | 'SYSTEM'
+  type: 'CUSTOMER_MESSAGE' | 'SELLER_MESSAGE' | 'AGENT_REPLY' | 'TOOL_CALL' | 'STATE_TRANSITION' | 'SYSTEM'
   payload: { text?: string; uiBlock?: ShopUiBlock }
   createdAt: string
 }
@@ -157,6 +157,48 @@ export interface ShopConversationEvent {
 export interface ShopGetConversationResponse {
   state: string
   storeName: string
+  events: ShopConversationEvent[]
+}
+
+// docs/PRD-mvp-launch-plan.md گام ۳ — پنل فروشنده
+export interface UpdateProductInput {
+  name?: string
+  basePrice?: number
+  stock?: number
+}
+
+export interface ImportProductsResult {
+  created: number
+  errors: { row: number; message: string }[]
+}
+
+export type SellerOrderStatus = 'PENDING_PAYMENT' | 'RECEIPT_SUBMITTED' | 'APPROVED' | 'REJECTED'
+
+export interface SellerOrder {
+  id: string
+  storeId: string
+  conversationId: string
+  items: { productId: string; name: string; unitPrice: number; qty: number }[]
+  totalAmount: number
+  status: SellerOrderStatus
+  receiptImageKey: string | null
+  rejectReason: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NeededAttentionConversation {
+  id: string
+  customerLabel: string
+  currentState: string
+  updatedAt: string
+}
+
+export interface SellerConversationDetail {
+  id: string
+  isMutedForHuman: boolean
+  currentState: string
+  customerLabel: string
   events: ShopConversationEvent[]
 }
 

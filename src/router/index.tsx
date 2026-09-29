@@ -37,7 +37,12 @@ import { SellerLandingPage } from '@/pages/seller/SellerLandingPage'
 import { SellerLoginPage } from '@/pages/seller/SellerLoginPage'
 import { SellerOtpPage } from '@/pages/seller/SellerOtpPage'
 import { SellerOnboardingPage } from '@/pages/seller/SellerOnboardingPage'
-import { SellerDashboardPlaceholderPage } from '@/pages/seller/SellerDashboardPlaceholderPage'
+import { SellerPanelLayout } from '@/pages/seller/panel/SellerPanelLayout'
+import { SellerHomePage } from '@/pages/seller/panel/SellerHomePage'
+import { SellerOrdersPage } from '@/pages/seller/panel/SellerOrdersPage'
+import { SellerAttentionPage } from '@/pages/seller/panel/SellerAttentionPage'
+import { SellerProductsPage } from '@/pages/seller/panel/SellerProductsPage'
+import { SellerMorePage } from '@/pages/seller/panel/SellerMorePage'
 import { ShopChatPage } from '@/pages/shop/ShopChatPage'
 import type { ReactNode } from 'react'
 
@@ -97,7 +102,18 @@ export function AppRouter() {
       <Route path="/seller/login" element={<SellerLoginPage />} />
       <Route path="/seller/otp" element={<SellerOtpPage />} />
       <Route path="/seller/onboarding" element={<ProtectedRoute><SellerOnboardingPage /></ProtectedRoute>} />
-      <Route path="/seller/dashboard-placeholder" element={<ProtectedRoute><SellerDashboardPlaceholderPage /></ProtectedRoute>} />
+
+      {/* docs/PRD-mvp-launch-plan.md گام ۳ — پنل فروشنده mobile-first، ناوبری پایین با ۵ تب */}
+      <Route path="/seller/panel" element={<ProtectedRoute><SellerPanelLayout /></ProtectedRoute>}>
+        <Route index element={<Navigate to="home" replace />} />
+        <Route path="home" element={<SellerHomePage />} />
+        <Route path="orders" element={<SellerOrdersPage />} />
+        <Route path="attention" element={<SellerAttentionPage />} />
+        <Route path="products" element={<SellerProductsPage />} />
+        <Route path="more" element={<SellerMorePage />} />
+      </Route>
+      {/* بازگشت‌سازگار: جایگزین گام۲ (SellerDashboardPlaceholderPage حذف شد) */}
+      <Route path="/seller/dashboard-placeholder" element={<Navigate to="/seller/panel/home" replace />} />
 
       {/* docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی مشتری، کاملاً بدون لاگین؛ نمی‌شود
           /chat/:slug باشد چون آن مسیر از قبل برای چت لاگین‌شده‌ی نیوو گرفته شده (پایین‌تر) */}
