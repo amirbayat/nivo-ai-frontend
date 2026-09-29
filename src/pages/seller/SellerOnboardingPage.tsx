@@ -111,7 +111,7 @@ export function SellerOnboardingPage() {
     setStep(4)
   }
 
-  const chatLink = storeSlug ? `${window.location.origin}/chat/${storeSlug}` : ''
+  const chatLink = storeSlug ? `${window.location.origin}/shop/${storeSlug}` : ''
 
   async function copyLink() {
     await navigator.clipboard.writeText(chatLink)

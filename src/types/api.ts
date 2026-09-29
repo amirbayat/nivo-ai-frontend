@@ -120,6 +120,46 @@ export interface SellerStore {
   products: SellerProduct[]
 }
 
+// docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی /shop/:slug؛ عیناً مطابق
+// nivo-ai-backend/src/modules/sales-agent/sales-agent.types.ts
+export type ShopUiBlock =
+  | { type: 'PRODUCT_CARD'; products: { id: string; name: string; basePrice: number; stock: number }[] }
+  | { type: 'CART_SUMMARY'; items: { productId: string; name: string; unitPrice: number; qty: number }[]; total: number }
+  | { type: 'PAYMENT_INSTRUCTIONS'; cardNumber: string; ownerName: string; amount: number }
+  | { type: 'ORDER_STATUS'; orderId: string; status: string }
+  | { type: 'NONE' }
+
+export interface ShopMessage {
+  id: string
+  role: 'customer' | 'agent'
+  text: string
+  uiBlock?: ShopUiBlock
+}
+
+export interface ShopStartChatResponse {
+  conversationId: string
+  sessionToken: string
+  storeName: string
+}
+
+export interface ShopSendMessageResponse {
+  reply: string
+  uiBlocks: ShopUiBlock[]
+  state: string
+}
+
+export interface ShopConversationEvent {
+  type: 'CUSTOMER_MESSAGE' | 'AGENT_REPLY' | 'TOOL_CALL' | 'STATE_TRANSITION' | 'SYSTEM'
+  payload: { text?: string; uiBlock?: ShopUiBlock }
+  createdAt: string
+}
+
+export interface ShopGetConversationResponse {
+  state: string
+  storeName: string
+  events: ShopConversationEvent[]
+}
+
 export interface Project {
   id: string
   name: string

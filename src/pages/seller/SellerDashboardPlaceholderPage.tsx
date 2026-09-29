@@ -11,7 +11,7 @@ export function SellerDashboardPlaceholderPage() {
 
   if (isLoading) return <div className="min-h-screen bg-slate-950" />
 
-  const chatLink = store ? `${window.location.origin}/chat/${store.slug}` : ''
+  const chatLink = store ? `${window.location.origin}/shop/${store.slug}` : ''
 
   async function copyLink() {
     await navigator.clipboard.writeText(chatLink)

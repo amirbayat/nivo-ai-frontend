@@ -1,0 +1,161 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { env } from '@/env'
+import { fa } from '@/locales/fa'
+import { getShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
+import type {
+  ShopConversationEvent,
+  ShopGetConversationResponse,
+  ShopMessage,
+  ShopSendMessageResponse,
+  ShopStartChatResponse,
+} from '@/types/api'
+
+// این صفحه مشتری ناشناس یک فروشگاه است، نه یک User لاگین‌شده — عمداً از `api` (axios)
+// مشترک استفاده نمی‌کند چون آن همیشه هدر Authorization را از localStorage تزریق می‌کند
+// (src/lib/api.ts)؛ اینجا هویت فقط X-Session-Token است.
+const KICKOFF_MESSAGE = 'سلام، محصولاتتون رو نشون بدید'
+
+function eventsToMessages(events: ShopConversationEvent[]): ShopMessage[] {
+  const messages: ShopMessage[] = []
+  events.forEach((e, i) => {
+    if (e.type === 'CUSTOMER_MESSAGE' && e.payload.text) {
+      messages.push({ id: `c-${i}`, role: 'customer', text: e.payload.text })
+    } else if (e.type === 'AGENT_REPLY' && e.payload.text) {
+      messages.push({
+        id: `a-${i}`,
+        role: 'agent',
+        text: e.payload.text,
+        uiBlock: e.payload.uiBlock?.type !== 'NONE' ? e.payload.uiBlock : undefined,
+      })
+    }
+  })
+  return messages
+}
+
+export function useShopChat(slug: string) {
+  const [storeName, setStoreName] = useState<string | null>(null)
+  const [notFound, setNotFound] = useState(false)
+  const [messages, setMessages] = useState<ShopMessage[]>([])
+  const [state, setState] = useState<string>('GREETING')
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const sessionRef = useRef<ShopSession | null>(null)
+
+  const appendCustomerMessage = useCallback((text: string) => {
+    setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text }])
+  }, [])
+
+  const applyReply = useCallback((res: ShopSendMessageResponse) => {
+    setState(res.state)
+    const uiBlock = res.uiBlocks.find((b) => b.type !== 'NONE')
+    setMessages((prev) => [...prev, { id: `agent-${Date.now()}`, role: 'agent', text: res.reply, uiBlock }])
+  }, [])
+
+  const sendMessage = useCallback(
+    async (text: string, options?: { silent?: boolean }) => {
+      const session = sessionRef.current
+      if (!session || sending) return
+      if (!options?.silent) appendCustomerMessage(text)
+      setSending(true)
+      setError(null)
+      try {
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          body: JSON.stringify({ message: text }),
+        })
+        if (!res.ok) throw new Error('request failed')
+        applyReply((await res.json()) as ShopSendMessageResponse)
+      } catch {
+        setError(fa.common.error)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, appendCustomerMessage, applyReply],
+  )
+
+  const uploadReceipt = useCallback(
+    async (file: File) => {
+      const session = sessionRef.current
+      if (!session || sending) return
+      setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text: fa.shop.receiptUploadedNote }])
+      setSending(true)
+      setError(null)
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        // بدون ست‌کردن دستی Content-Type — مرورگر خودش boundary مالتی‌پارت را می‌سازد
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/receipt`, {
+          method: 'POST',
+          headers: { 'X-Session-Token': session.sessionToken },
+          body: form,
+        })
+        if (!res.ok) throw new Error('request failed')
+        applyReply((await res.json()) as ShopSendMessageResponse)
+      } catch {
+        setError(fa.common.error)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, applyReply],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function boot() {
+      setLoading(true)
+      const existing = getShopSession(slug)
+      try {
+        if (existing) {
+          sessionRef.current = existing
+          const res = await fetch(`${env.VITE_API_URL}/v2/chat/${existing.conversationId}`, {
+            headers: { 'X-Session-Token': existing.sessionToken },
+          })
+          if (!res.ok) throw new Error('request failed')
+          const data = (await res.json()) as ShopGetConversationResponse
+          if (cancelled) return
+          setState(data.state)
+          setStoreName(data.storeName)
+          setMessages(eventsToMessages(data.events))
+          setLoading(false)
+          return
+        }
+
+        const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/chat/start`, { method: 'POST' })
+        if (res.status === 404) {
+          if (!cancelled) {
+            setNotFound(true)
+            setLoading(false)
+          }
+          return
+        }
+        if (!res.ok) throw new Error('request failed')
+        const data = (await res.json()) as ShopStartChatResponse
+        if (cancelled) return
+        const session: ShopSession = { conversationId: data.conversationId, sessionToken: data.sessionToken }
+        setShopSession(slug, session)
+        sessionRef.current = session
+        setStoreName(data.storeName)
+        setLoading(false)
+        void sendMessage(KICKOFF_MESSAGE, { silent: true })
+      } catch {
+        if (!cancelled) {
+          setError(fa.common.error)
+          setLoading(false)
+        }
+      }
+    }
+
+    void boot()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug])
+
+  return { storeName, notFound, messages, state, loading, sending, error, sendMessage, uploadReceipt }
+}

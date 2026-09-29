@@ -38,6 +38,7 @@ import { SellerLoginPage } from '@/pages/seller/SellerLoginPage'
 import { SellerOtpPage } from '@/pages/seller/SellerOtpPage'
 import { SellerOnboardingPage } from '@/pages/seller/SellerOnboardingPage'
 import { SellerDashboardPlaceholderPage } from '@/pages/seller/SellerDashboardPlaceholderPage'
+import { ShopChatPage } from '@/pages/shop/ShopChatPage'
 import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -97,6 +98,10 @@ export function AppRouter() {
       <Route path="/seller/otp" element={<SellerOtpPage />} />
       <Route path="/seller/onboarding" element={<ProtectedRoute><SellerOnboardingPage /></ProtectedRoute>} />
       <Route path="/seller/dashboard-placeholder" element={<ProtectedRoute><SellerDashboardPlaceholderPage /></ProtectedRoute>} />
+
+      {/* docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی مشتری، کاملاً بدون لاگین؛ نمی‌شود
+          /chat/:slug باشد چون آن مسیر از قبل برای چت لاگین‌شده‌ی نیوو گرفته شده (پایین‌تر) */}
+      <Route path="/shop/:slug" element={<ShopChatPage />} />
 
       {/* guest */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
