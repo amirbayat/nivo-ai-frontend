@@ -103,6 +103,7 @@ export interface SellerProduct {
   basePrice: number
   stock: number
   images: string[]
+  description: string | null
   createdAt: string
 }
 
@@ -137,6 +138,10 @@ export interface ShopMessage {
   role: 'customer' | 'agent'
   text: string
   uiBlock?: ShopUiBlock
+  // docs/PRD-sales-agent-voice.md بخش ۱.۲ — وقتی پاسخ بلند بود و وویس در حال تولید است،
+  // سرور voiceEventId می‌دهد؛ کلاینت کوتاه پول می‌کند تا voiceKey برسد
+  voiceEventId?: string
+  voiceKey?: string
 }
 
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس
@@ -153,12 +158,21 @@ export interface ShopStartChatResponse {
   initialReply?: string
   initialUiBlocks?: ShopUiBlock[]
   initialState?: string
+  initialVoiceEventId?: string
 }
 
 export interface ShopSendMessageResponse {
   reply: string
   uiBlocks: ShopUiBlock[]
   state: string
+  voiceEventId?: string
+  // فقط پاسخ voice-message این را دارد — متن واقعی تبدیل‌شده‌ی صدای مشتری با ASR
+  transcript?: string
+}
+
+export interface ShopVoiceStatusResponse {
+  voiceKey: string | null
+  pending: boolean
 }
 
 export interface ShopConversationEvent {
@@ -178,6 +192,43 @@ export interface UpdateProductInput {
   name?: string
   basePrice?: number
   stock?: number
+  description?: string
+}
+
+// docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI
+export interface ProductAiCompleteResult {
+  suggestedDescription: string
+  suggestedQuestions: string[]
+}
+
+// بخش ۱.۲/۳ — باکس دانش فروشگاه
+export type StoreKbKind = 'FAQ' | 'POLICY' | 'PRODUCT_INFO' | 'GENERAL'
+
+export interface StoreKbEntry {
+  id: string
+  storeId: string
+  kind: StoreKbKind
+  relatedProductId: string | null
+  question: string
+  answer: string
+  tags: string[]
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CreateKbEntryInput {
+  kind: StoreKbKind
+  question: string
+  answer: string
+  tags?: string[]
+  relatedProductId?: string | null
+}
+
+// بخش ۳.۳ — کاندید استخراج‌شده از فایل، قبل از تأیید فروشنده (هنوز ذخیره نشده)
+export interface KbCandidateEntry {
+  kind: StoreKbKind
+  question: string
+  answer: string
 }
 
 export interface ImportProductsResult {

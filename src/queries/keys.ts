@@ -97,6 +97,7 @@ export const keys = {
     orders: (storeId: string, status?: string) => ['seller', 'orders', storeId, status ?? 'all'] as const,
     attention: (storeId: string) => ['seller', 'attention', storeId] as const,
     conversation: (storeId: string, conversationId: string) => ['seller', 'conversation', storeId, conversationId] as const,
+    kbEntries: (storeId: string, kind?: string) => ['seller', 'kb-entries', storeId, kind ?? 'all'] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

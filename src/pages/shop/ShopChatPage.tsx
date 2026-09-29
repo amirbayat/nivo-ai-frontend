@@ -2,21 +2,55 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
+import { env } from '@/env'
 import { fa } from '@/locales/fa'
+import type { ShopMessage } from '@/types/api'
 
 // HANDOFF_HUMAN عمداً اینجا نیست — بعد از escalate، مشتری باید بتواند مستقیم با فروشنده
 // چت کند (پنل فروشنده، تب «نیاز به توجه»)؛ فقط COMPLETED/REJECTED واقعاً پایانی‌اند
 const TERMINAL_STATES = ['COMPLETED', 'REJECTED']
+
+function voiceAudioUrl(conversationId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/chat/${conversationId}/voice/${key}`
+}
+
+// docs/PRD-sales-agent-voice.md بخش ۱.۵ — پخش وویس پاسخ (وقتی آماده شد)؛ تا وقتی voiceKey
+// نرسیده و voiceEventId هست، یک وضعیت «در حال آمادگی» کوچک نشان می‌دهد
+function VoiceIndicator({ message, conversationId }: { message: ShopMessage; conversationId: string }) {
+  if (!message.voiceEventId) return null
+  if (!message.voiceKey) {
+    return <p className="mt-1 text-[11px] text-slate-500">{fa.shop.voicePreparing}</p>
+  }
+  return (
+    // eslint-disable-next-line jsx-a11y/media-has-caption -- پیام صوتی خودِ ایجنت است، نه محتوای رسانه‌ای مستقل
+    <audio controls src={voiceAudioUrl(conversationId, message.voiceKey)} className="mt-1.5 h-8 w-full max-w-[240px]" />
+  )
+}
 
 export function ShopChatPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   // فیدبک اول پایلوت — لینک اختصاصی یک محصول («فروشنده در استوری گذاشته»): /shop/:slug?product=<id>
   const [searchParams] = useSearchParams()
   const productId = searchParams.get('product') ?? undefined
-  const { storeName, notFound, messages, state, loading, sending, error, sendMessage, sendAction, uploadReceipt } =
-    useShopChat(slug, productId)
+  const {
+    storeName,
+    notFound,
+    conversationId,
+    messages,
+    state,
+    loading,
+    sending,
+    error,
+    sendMessage,
+    sendAction,
+    uploadReceipt,
+    sendVoiceMessage,
+  } = useShopChat(slug, productId)
   const [input, setInput] = useState('')
+  const [recording, setRecording] = useState(false)
   const messagesRef = useRef<HTMLDivElement>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     const el = messagesRef.current
@@ -30,6 +64,40 @@ export function ShopChatPage() {
     if (!text || disabled) return
     setInput('')
     void sendMessage(text)
+  }
+
+  // docs/PRD-sales-agent-voice.md بخش ۲.۲ — ضبط با MediaRecorder، فرمت هرچی مرورگر پیش‌فرضش
+  // باشد (معمولاً webm/opus)؛ بک‌اند خودش با ffmpeg نرمال‌سازی می‌کند، اینجا نیازی به انتخاب
+  // فرمت خاصی نیست
+  async function toggleRecording() {
+    if (disabled) return
+    if (recording) {
+      recorderRef.current?.stop()
+      setRecording(false)
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert(fa.shop.micNotSupported)
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      chunksRef.current = []
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop())
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        void sendVoiceMessage(blob)
+      }
+      recorderRef.current = recorder
+      recorder.start()
+      setRecording(true)
+    } catch {
+      alert(fa.shop.micNotSupported)
+    }
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -73,6 +141,7 @@ export function ShopChatPage() {
               >
                 {m.text}
               </div>
+              {conversationId && m.role === 'agent' && <VoiceIndicator message={m} conversationId={conversationId} />}
               {m.uiBlock && (
                 <ShopUiBlockView
                   block={m.uiBlock}
@@ -118,6 +187,21 @@ export function ShopChatPage() {
           dir="auto"
           className="flex-1 resize-none rounded-xl border border-slate-600/60 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 outline-none placeholder:text-slate-500 disabled:opacity-50"
         />
+        <button
+          onClick={() => void toggleRecording()}
+          disabled={disabled}
+          title={recording ? fa.shop.voiceRecording : undefined}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-xl disabled:opacity-30 ${
+            recording
+              ? 'bg-red-500 text-white'
+              : 'border border-slate-600/60 light:border-slate-300 text-slate-300 light:text-slate-700 hover:border-slate-500'
+          }`}
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
+            <path d="M10 2a3 3 0 00-3 3v4a3 3 0 006 0V5a3 3 0 00-3-3z" />
+            <path d="M5.5 9a.75.75 0 00-1.5 0 6 6 0 005.25 5.955V17H7a.75.75 0 000 1.5h6A.75.75 0 0013 17h-2.75v-2.045A6 6 0 0016 9a.75.75 0 00-1.5 0 4.5 4.5 0 01-9 0z" />
+          </svg>
+        </button>
         <button
           onClick={send}
           disabled={disabled || !input.trim()}

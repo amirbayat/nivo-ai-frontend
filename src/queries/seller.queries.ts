@@ -2,13 +2,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import type {
+  CreateKbEntryInput,
   ImportProductsResult,
+  KbCandidateEntry,
   NeededAttentionConversation,
+  ProductAiCompleteResult,
   SellerConversationDetail,
   SellerOrder,
   SellerOrderStatus,
   SellerProduct,
   SellerStore,
+  StoreKbEntry,
+  StoreKbKind,
   UpdateProductInput,
 } from '@/types/api'
 
@@ -27,6 +32,7 @@ export interface CreateProductInput {
   name: string
   basePrice: number
   stock?: number
+  description?: string
 }
 
 export function useMyStores() {
@@ -203,6 +209,62 @@ export function useUnmuteConversation(storeId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: keys.seller.attention(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.stores() })
+    },
+  })
+}
+
+// docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI (نتیجه ذخیره نمی‌شود،
+// فروشنده در همان شیت تأیید/ویرایش می‌کند و بعد save می‌زند)
+export function useCompleteProductInfo(storeId: string) {
+  return useMutation({
+    mutationFn: (productId: string) =>
+      api
+        .post<ProductAiCompleteResult>(`/v2/stores/${storeId}/products/${productId}/ai-complete`)
+        .then(r => r.data),
+  })
+}
+
+// بخش ۳ — باکس دانش فروشگاه
+export function useKbEntries(storeId: string, kind?: StoreKbKind) {
+  return useQuery({
+    queryKey: keys.seller.kbEntries(storeId, kind),
+    queryFn: () =>
+      api
+        .get<StoreKbEntry[]>(`/v2/stores/${storeId}/knowledge`, { params: kind ? { kind } : undefined })
+        .then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+export function useCreateKbEntry(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: CreateKbEntryInput) =>
+      api.post<StoreKbEntry>(`/v2/stores/${storeId}/knowledge`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.kbEntries(storeId) }),
+  })
+}
+
+export function useDeleteKbEntry(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/v2/stores/${storeId}/knowledge/${id}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.kbEntries(storeId) }),
+  })
+}
+
+// آپلود فایل → کاندیدهای استخراج‌شده (هنوز ذخیره نشده — بخش ۳.۳، فروشنده باید هرکدام را
+// جدا با useCreateKbEntry تأیید کند)
+export function useExtractKbFile(storeId: string) {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api
+        .post<KbCandidateEntry[]>(`/v2/stores/${storeId}/knowledge/extract-file`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
     },
   })
 }

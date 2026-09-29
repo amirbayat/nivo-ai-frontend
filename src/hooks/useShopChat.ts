@@ -9,6 +9,7 @@ import type {
   ShopMessage,
   ShopSendMessageResponse,
   ShopStartChatResponse,
+  ShopVoiceStatusResponse,
 } from '@/types/api'
 
 // این صفحه مشتری ناشناس یک فروشگاه است، نه یک User لاگین‌شده — عمداً از `api` (axios)
@@ -48,11 +49,48 @@ export function useShopChat(slug: string, productId?: string) {
     setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text }])
   }, [])
 
-  const applyReply = useCallback((res: ShopSendMessageResponse) => {
-    setState(res.state)
-    const uiBlock = res.uiBlocks.find((b) => b.type !== 'NONE')
-    setMessages((prev) => [...prev, { id: `agent-${Date.now()}`, role: 'agent', text: res.reply, uiBlock }])
+  // پول کوتاه وضعیت وویس یک پاسخ خاص (حداکثر ۱۵ ثانیه، هر ۲ ثانیه) — docs/PRD-sales-agent-voice.md
+  // بخش ۱.۲؛ فقط همان حباب پیام را با voiceKey آپدیت می‌کند، نه کل مکالمه را دوباره نمی‌کشد
+  const pollVoice = useCallback((messageId: string, eventId: string) => {
+    const session = sessionRef.current
+    if (!session) return
+    let attempts = 0
+    const interval = setInterval(async () => {
+      attempts++
+      try {
+        const res = await fetch(
+          `${env.VITE_API_URL}/v2/chat/${session.conversationId}/voice-status/${eventId}`,
+          { headers: { 'X-Session-Token': session.sessionToken } },
+        )
+        if (res.ok) {
+          const data = (await res.json()) as ShopVoiceStatusResponse
+          if (data.voiceKey) {
+            setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, voiceKey: data.voiceKey! } : m)))
+            clearInterval(interval)
+            return
+          }
+          if (!data.pending) {
+            clearInterval(interval) // شکست خورد، دیگه voicePending نیست ولی voiceKey هم نداره
+            return
+          }
+        }
+      } catch {
+        // خطای موقت شبکه — تلاش بعدی همچنان انجام می‌شود تا سقف attempts
+      }
+      if (attempts >= 7) clearInterval(interval) // ~۱۵ ثانیه سقف
+    }, 2000)
   }, [])
+
+  const applyReply = useCallback(
+    (res: ShopSendMessageResponse) => {
+      setState(res.state)
+      const uiBlock = res.uiBlocks.find((b) => b.type !== 'NONE')
+      const id = `agent-${Date.now()}`
+      setMessages((prev) => [...prev, { id, role: 'agent', text: res.reply, uiBlock, voiceEventId: res.voiceEventId }])
+      if (res.voiceEventId) pollVoice(id, res.voiceEventId)
+    },
+    [pollVoice],
+  )
 
   const sendMessage = useCallback(
     async (text: string, options?: { silent?: boolean }) => {
@@ -154,6 +192,35 @@ export function useShopChat(slug: string, productId?: string) {
     [sending, applyReply],
   )
 
+  // ضبط صدا از وب (بخش ۲.۲) — blob از MediaRecorder، فرمت هرچی مرورگر بدهد (معمولاً webm)،
+  // بک‌اند خودش با extractAudio نرمال‌سازی می‌کند
+  const sendVoiceMessage = useCallback(
+    async (blob: Blob) => {
+      const session = sessionRef.current
+      if (!session || sending) return
+      setSending(true)
+      setError(null)
+      try {
+        const form = new FormData()
+        form.append('file', blob, 'voice.webm')
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/voice-message`, {
+          method: 'POST',
+          headers: { 'X-Session-Token': session.sessionToken },
+          body: form,
+        })
+        if (!res.ok) throw new Error('request failed')
+        const data = (await res.json()) as ShopSendMessageResponse
+        if (data.transcript) appendCustomerMessage(data.transcript)
+        applyReply(data)
+      } catch {
+        setError(fa.common.error)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, appendCustomerMessage, applyReply],
+  )
+
   useEffect(() => {
     let cancelled = false
 
@@ -193,7 +260,12 @@ export function useShopChat(slug: string, productId?: string) {
         if (data.initialReply) {
           setState(data.initialState ?? 'BROWSING')
           const uiBlock = data.initialUiBlocks?.find((b) => b.type !== 'NONE')
-          setMessages((prev) => [...prev, { id: `agent-${Date.now()}`, role: 'agent', text: data.initialReply!, uiBlock }])
+          const id = `agent-${Date.now()}`
+          setMessages((prev) => [
+            ...prev,
+            { id, role: 'agent', text: data.initialReply!, uiBlock, voiceEventId: data.initialVoiceEventId },
+          ])
+          if (data.initialVoiceEventId) pollVoice(id, data.initialVoiceEventId)
         } else {
           void sendMessage(KICKOFF_MESSAGE, { silent: true })
         }
@@ -212,5 +284,18 @@ export function useShopChat(slug: string, productId?: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
-  return { storeName, notFound, messages, state, loading, sending, error, sendMessage, sendAction, uploadReceipt }
+  return {
+    storeName,
+    notFound,
+    conversationId: sessionRef.current?.conversationId,
+    messages,
+    state,
+    loading,
+    sending,
+    error,
+    sendMessage,
+    sendAction,
+    uploadReceipt,
+    sendVoiceMessage,
+  }
 }
