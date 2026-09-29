@@ -39,13 +39,13 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <div className="flex items-center gap-3 border-b border-slate-800 px-4 py-3">
-        <button onClick={onBack} className="text-slate-400 hover:text-slate-200"><BackChevron /></button>
-        <p className="flex-1 text-sm font-semibold text-slate-200">{data?.customerLabel}</p>
+      <div className="flex items-center gap-3 border-b border-slate-800 light:border-slate-200 px-4 py-3">
+        <button onClick={onBack} className="text-slate-400 hover:text-slate-200 light:hover:text-slate-800"><BackChevron /></button>
+        <p className="flex-1 text-sm font-semibold text-slate-200 light:text-slate-900">{data?.customerLabel}</p>
         <button
           onClick={() => unmute.mutate(conversationId, { onSuccess: onBack })}
           disabled={unmute.isPending}
-          className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+          className="rounded-lg bg-slate-800 light:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-200 light:text-slate-800 hover:bg-slate-700 light:hover:bg-slate-200 disabled:opacity-40"
         >
           {fa.seller.panel.attention.backToBot}
         </button>
@@ -60,10 +60,10 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
                 dir="auto"
                 className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
                   e.type === 'CUSTOMER_MESSAGE'
-                    ? 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100'
+                    ? 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100 light:text-emerald-900'
                     : e.type === 'SELLER_MESSAGE'
-                      ? 'rounded-tr-sm bg-sky-600/70 text-sky-50'
-                      : 'rounded-tr-sm bg-slate-700/70 text-slate-200'
+                      ? 'rounded-tr-sm bg-sky-600/70 light:bg-sky-100 text-sky-50 light:text-sky-900'
+                      : 'rounded-tr-sm bg-slate-700/70 light:bg-slate-100 text-slate-200 light:text-slate-800'
                 }`}
               >
                 {e.payload.text}
@@ -72,7 +72,7 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
           ))}
       </div>
 
-      <div className="flex items-end gap-2 border-t border-slate-800 p-3">
+      <div className="flex items-end gap-2 border-t border-slate-800 light:border-slate-200 p-3">
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -80,7 +80,7 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
           rows={1}
           placeholder={fa.seller.panel.attention.inputPlaceholder}
           dir="auto"
-          className="flex-1 resize-none rounded-xl border border-slate-600/60 bg-slate-800/60 px-3.5 py-2.5 text-sm text-slate-200 outline-none placeholder:text-slate-500"
+          className="flex-1 resize-none rounded-xl border border-slate-600/60 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 outline-none placeholder:text-slate-500"
         />
         <button
           onClick={send}
@@ -103,7 +103,7 @@ export function SellerAttentionPage() {
 
   return (
     <div className="px-5 py-6">
-      <h1 className="mb-4 text-xl font-bold text-slate-100">{fa.seller.panel.nav.attention}</h1>
+      <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.attention}</h1>
 
       {attention.data?.length === 0 && <p className="py-10 text-center text-sm text-slate-500">{fa.seller.panel.attention.empty}</p>}
 
@@ -112,10 +112,10 @@ export function SellerAttentionPage() {
           <button
             key={c.id}
             onClick={() => setOpenId(c.id)}
-            className="flex items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3.5 text-start hover:border-amber-500/50"
+            className="flex items-center justify-between rounded-2xl border border-amber-500/30 light:border-amber-300 bg-amber-500/10 light:bg-amber-50 px-4 py-3.5 text-start hover:border-amber-500/50 light:hover:border-amber-400"
           >
-            <span className="text-sm font-semibold text-slate-200">{c.customerLabel}</span>
-            <span className="text-xs text-amber-400">{new Date(c.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{c.customerLabel}</span>
+            <span className="text-xs text-amber-400 light:text-amber-700">{new Date(c.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</span>
           </button>
         ))}
       </div>

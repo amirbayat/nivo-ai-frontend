@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
 import { fa } from '@/locales/fa'
@@ -10,8 +10,11 @@ const TERMINAL_STATES = ['COMPLETED', 'REJECTED']
 
 export function ShopChatPage() {
   const { slug = '' } = useParams<{ slug: string }>()
-  const { storeName, notFound, messages, state, loading, sending, error, sendMessage, uploadReceipt } =
-    useShopChat(slug)
+  // فیدبک اول پایلوت — لینک اختصاصی یک محصول («فروشنده در استوری گذاشته»): /shop/:slug?product=<id>
+  const [searchParams] = useSearchParams()
+  const productId = searchParams.get('product') ?? undefined
+  const { storeName, notFound, messages, state, loading, sending, error, sendMessage, sendAction, uploadReceipt } =
+    useShopChat(slug, productId)
   const [input, setInput] = useState('')
   const messagesRef = useRef<HTMLDivElement>(null)
 
@@ -38,21 +41,21 @@ export function ShopChatPage() {
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4" dir="rtl">
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 light:bg-white p-4" dir="rtl">
         <div className="text-center">
-          <h1 className="mb-1.5 text-xl font-bold text-slate-100">{fa.shop.notFoundHeading}</h1>
+          <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.shop.notFoundHeading}</h1>
           <p className="text-sm text-slate-500">{fa.shop.notFoundBody}</p>
         </div>
       </div>
     )
   }
 
-  if (loading) return <div className="min-h-screen bg-slate-950" />
+  if (loading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950" dir="rtl">
-      <div className="border-b border-slate-800 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-200">{storeName}</p>
+    <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
+      <div className="border-b border-slate-800 light:border-slate-200 px-4 py-3">
+        <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{storeName}</p>
         <p className="text-xs text-slate-500">دستیار فروش</p>
       </div>
 
@@ -64,8 +67,8 @@ export function ShopChatPage() {
                 dir="auto"
                 className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
                   m.role === 'agent'
-                    ? 'rounded-tr-sm bg-slate-700/70 text-slate-200'
-                    : 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100'
+                    ? 'rounded-tr-sm bg-slate-700/70 text-slate-200 light:bg-slate-100 light:text-slate-800'
+                    : 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100 light:text-emerald-900'
                 }`}
               >
                 {m.text}
@@ -74,8 +77,8 @@ export function ShopChatPage() {
                 <ShopUiBlockView
                   block={m.uiBlock}
                   disabled={disabled}
-                  onAddToCart={(name) => void sendMessage(`${name} رو به سبد اضافه کن`)}
-                  onConfirmCart={() => void sendMessage('تایید')}
+                  onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
+                  onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
                   onUploadReceipt={(file) => void uploadReceipt(file)}
                 />
               )}
@@ -85,7 +88,7 @@ export function ShopChatPage() {
 
         {sending && (
           <div className="flex justify-end">
-            <div className="rounded-2xl rounded-tr-sm bg-slate-700/70 px-4 py-3">
+            <div className="rounded-2xl rounded-tr-sm bg-slate-700/70 light:bg-slate-100 px-4 py-3">
               <div className="flex items-center gap-1">
                 <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '0ms' }} />
                 <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '150ms' }} />
@@ -95,16 +98,16 @@ export function ShopChatPage() {
           </div>
         )}
 
-        {error && <p className="text-center text-xs text-red-400">{error}</p>}
+        {error && <p className="text-center text-xs text-red-400 light:text-red-600">{error}</p>}
       </div>
 
       {(TERMINAL_STATES.includes(state) || state === 'HANDOFF_HUMAN') && (
-        <div className="border-t border-slate-800 bg-slate-900/60 px-4 py-2 text-center text-xs text-slate-500">
+        <div className="border-t border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-slate-50 px-4 py-2 text-center text-xs text-slate-500">
           {fa.shop.conversationEnded}
         </div>
       )}
 
-      <div className="flex items-end gap-2 border-t border-slate-800 p-3">
+      <div className="flex items-end gap-2 border-t border-slate-800 light:border-slate-200 p-3">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -113,7 +116,7 @@ export function ShopChatPage() {
           rows={1}
           placeholder={fa.shop.inputPlaceholder}
           dir="auto"
-          className="flex-1 resize-none rounded-xl border border-slate-600/60 bg-slate-800/60 px-3.5 py-2.5 text-sm text-slate-200 outline-none placeholder:text-slate-500 disabled:opacity-50"
+          className="flex-1 resize-none rounded-xl border border-slate-600/60 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 outline-none placeholder:text-slate-500 disabled:opacity-50"
         />
         <button
           onClick={send}

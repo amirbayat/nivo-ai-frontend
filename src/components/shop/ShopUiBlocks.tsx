@@ -1,13 +1,19 @@
 import { useRef, useState } from 'react'
+import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import type { ShopUiBlock } from '@/types/api'
 
 interface BlockProps {
   block: ShopUiBlock
   disabled: boolean
-  onAddToCart: (productName: string) => void
+  onAddToCart: (productId: string) => void
   onConfirmCart: () => void
   onUploadReceipt: (file: File) => void
+}
+
+// عمومی، بدون auth — الگوی مسیر عیناً مطابق sales-agent.controller.ts getProductImage
+function productImageUrl(productId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/products/${productId}/images/${key}`
 }
 
 function ProductCardBlock({
@@ -15,26 +21,35 @@ function ProductCardBlock({
   disabled,
   onAddToCart,
 }: {
-  products: { id: string; name: string; basePrice: number; stock: number }[]
+  products: { id: string; name: string; basePrice: number; stock: number; images: string[] }[]
   disabled: boolean
-  onAddToCart: (productName: string) => void
+  onAddToCart: (productId: string) => void
 }) {
   return (
     <div className="mt-2 flex flex-col gap-2">
       {products.map((p) => (
-        <div key={p.id} className="rounded-xl border border-slate-600/60 bg-slate-800/60 p-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-slate-200">{p.name}</span>
-            <span className="text-xs text-slate-400">
-              {p.basePrice.toLocaleString('fa-IR')} تومان
-            </span>
+        <div key={p.id} className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
+          <div className="mb-2 flex items-center gap-3">
+            {p.images[0] && (
+              <img
+                src={productImageUrl(p.id, p.images[0])}
+                alt={p.name}
+                className="size-12 shrink-0 rounded-lg object-cover"
+              />
+            )}
+            <div className="flex flex-1 items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</span>
+              <span className="text-xs text-slate-400 light:text-slate-600">
+                {p.basePrice.toLocaleString('fa-IR')} تومان
+              </span>
+            </div>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 light:text-slate-500">
               {p.stock > 0 ? fa.shop.stockCount(p.stock) : fa.shop.outOfStock}
             </span>
             <button
-              onClick={() => onAddToCart(p.name)}
+              onClick={() => onAddToCart(p.id)}
               disabled={disabled || p.stock === 0}
               className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
             >
@@ -59,10 +74,10 @@ function CartSummaryBlock({
   onConfirmCart: () => void
 }) {
   return (
-    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 p-3">
+    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
       <div className="mb-2 flex flex-col gap-1.5">
         {items.map((i) => (
-          <div key={i.productId} className="flex items-center justify-between text-xs text-slate-300">
+          <div key={i.productId} className="flex items-center justify-between text-xs text-slate-300 light:text-slate-600">
             <span>
               {i.name} × {i.qty}
             </span>
@@ -70,7 +85,7 @@ function CartSummaryBlock({
           </div>
         ))}
       </div>
-      <div className="mb-3 flex items-center justify-between border-t border-slate-700/60 pt-2 text-sm font-semibold text-slate-100">
+      <div className="mb-3 flex items-center justify-between border-t border-slate-700/60 light:border-slate-200 pt-2 text-sm font-semibold text-slate-100 light:text-slate-900">
         <span>جمع کل</span>
         <span>{total.toLocaleString('fa-IR')} تومان</span>
       </div>
@@ -108,16 +123,16 @@ function PaymentInstructionsBlock({
   }
 
   return (
-    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 p-3">
+    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
       <p className="mb-1 text-xs text-slate-500">مبلغ قابل پرداخت</p>
-      <p className="mb-3 text-sm font-bold text-emerald-300">{amount.toLocaleString('fa-IR')} تومان</p>
-      <p dir="ltr" className="mb-1 break-all text-center font-mono text-sm text-slate-200">
+      <p className="mb-3 text-sm font-bold text-emerald-300 light:text-emerald-700">{amount.toLocaleString('fa-IR')} تومان</p>
+      <p dir="ltr" className="mb-1 break-all text-center font-mono text-sm text-slate-200 light:text-slate-900">
         {cardNumber}
       </p>
       <p className="mb-3 text-center text-xs text-slate-500">{ownerName}</p>
       <button
         onClick={copy}
-        className="mb-2 w-full rounded-lg border border-slate-600/60 py-2 text-xs font-semibold text-slate-300 hover:border-slate-500"
+        className="mb-2 w-full rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400"
       >
         {copied ? fa.shop.cardNumberCopied : fa.shop.copyCardNumber}
       </button>
@@ -145,7 +160,7 @@ function PaymentInstructionsBlock({
 
 function OrderStatusBlock({ status }: { status: string }) {
   return (
-    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 px-3 py-2 text-xs font-semibold text-emerald-300">
+    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-3 py-2 text-xs font-semibold text-emerald-300 light:text-emerald-700">
       {fa.shop.orderStatusLabels[status] ?? status}
     </div>
   )

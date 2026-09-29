@@ -3,6 +3,7 @@ import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { getShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
 import type {
+  ShopAction,
   ShopConversationEvent,
   ShopGetConversationResponse,
   ShopMessage,
@@ -33,7 +34,7 @@ function eventsToMessages(events: ShopConversationEvent[]): ShopMessage[] {
   return messages
 }
 
-export function useShopChat(slug: string) {
+export function useShopChat(slug: string, productId?: string) {
   const [storeName, setStoreName] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [messages, setMessages] = useState<ShopMessage[]>([])
@@ -75,6 +76,32 @@ export function useShopChat(slug: string) {
       }
     },
     [sending, appendCustomerMessage, applyReply],
+  )
+
+  // مسیر قطعی دکمه‌های UiBlock (افزودن به سبد/تایید سبد) — دیگر جمله‌ی فارسی نمی‌سازد تا از
+  // NLU رد شود، productId مستقیم می‌رود (فیدبک اول پایلوت: کلیک روی دکمه گاهی «نامفهوم»
+  // تشخیص داده می‌شد). بدون optimistic bubble ساختگی — متن واقعی از رویداد لاگ‌شده در سرور می‌آید
+  const sendAction = useCallback(
+    async (action: ShopAction) => {
+      const session = sessionRef.current
+      if (!session || sending) return
+      setSending(true)
+      setError(null)
+      try {
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          body: JSON.stringify({ action }),
+        })
+        if (!res.ok) throw new Error('request failed')
+        applyReply((await res.json()) as ShopSendMessageResponse)
+      } catch {
+        setError(fa.common.error)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, applyReply],
   )
 
   // بعد از HANDOFF_HUMAN، پیام‌های فروشنده باید بدون اینکه مشتری خودش چیزی بفرستد دیده شوند —
@@ -142,7 +169,11 @@ export function useShopChat(slug: string) {
           return
         }
 
-        const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/chat/start`, { method: 'POST' })
+        const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/chat/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(productId ? { productId } : {}),
+        })
         if (res.status === 404) {
           if (!cancelled) {
             setNotFound(true)
@@ -158,7 +189,14 @@ export function useShopChat(slug: string) {
         sessionRef.current = session
         setStoreName(data.storeName)
         setLoading(false)
-        void sendMessage(KICKOFF_MESSAGE, { silent: true })
+        // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
+        if (data.initialReply) {
+          setState(data.initialState ?? 'BROWSING')
+          const uiBlock = data.initialUiBlocks?.find((b) => b.type !== 'NONE')
+          setMessages((prev) => [...prev, { id: `agent-${Date.now()}`, role: 'agent', text: data.initialReply!, uiBlock }])
+        } else {
+          void sendMessage(KICKOFF_MESSAGE, { silent: true })
+        }
       } catch {
         if (!cancelled) {
           setError(fa.common.error)
@@ -174,5 +212,5 @@ export function useShopChat(slug: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
-  return { storeName, notFound, messages, state, loading, sending, error, sendMessage, uploadReceipt }
+  return { storeName, notFound, messages, state, loading, sending, error, sendMessage, sendAction, uploadReceipt }
 }

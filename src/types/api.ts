@@ -114,6 +114,9 @@ export interface SellerStore {
   category: string | null
   bankCardNumber: string
   bankOwnerName: string
+  instagramUrl: string | null
+  telegramUrl: string | null
+  websiteUrl: string | null
   status: 'ACTIVE' | 'SUSPENDED'
   createdAt: string
   updatedAt: string
@@ -123,7 +126,7 @@ export interface SellerStore {
 // docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی /shop/:slug؛ عیناً مطابق
 // nivo-ai-backend/src/modules/sales-agent/sales-agent.types.ts
 export type ShopUiBlock =
-  | { type: 'PRODUCT_CARD'; products: { id: string; name: string; basePrice: number; stock: number }[] }
+  | { type: 'PRODUCT_CARD'; products: { id: string; name: string; basePrice: number; stock: number; images: string[] }[] }
   | { type: 'CART_SUMMARY'; items: { productId: string; name: string; unitPrice: number; qty: number }[]; total: number }
   | { type: 'PAYMENT_INSTRUCTIONS'; cardNumber: string; ownerName: string; amount: number }
   | { type: 'ORDER_STATUS'; orderId: string; status: string }
@@ -136,10 +139,20 @@ export interface ShopMessage {
   uiBlock?: ShopUiBlock
 }
 
+// دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس
+// می‌شود (فیدبک اول پایلوت — sales-agent.types.ts SalesAction)
+export type ShopAction =
+  | { type: 'ADD_TO_CART'; productId: string; qty?: number }
+  | { type: 'CONFIRM_CART' }
+
 export interface ShopStartChatResponse {
   conversationId: string
   sessionToken: string
   storeName: string
+  // فقط وقتی لینک اختصاصی یک محصول باز شده (?product=) و آن محصول واقعاً پیدا شد
+  initialReply?: string
+  initialUiBlocks?: ShopUiBlock[]
+  initialState?: string
 }
 
 export interface ShopSendMessageResponse {

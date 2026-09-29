@@ -18,6 +18,9 @@ export interface CreateStoreInput {
   slug: string
   bankCardNumber: string
   bankOwnerName: string
+  instagramUrl?: string
+  telegramUrl?: string
+  websiteUrl?: string
 }
 
 export interface CreateProductInput {
@@ -87,6 +90,32 @@ export function useDeleteProduct(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (productId: string) => api.delete(`/v2/stores/${storeId}/products/${productId}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) }),
+  })
+}
+
+// فیدبک اول پایلوت — آپلود/حذف عکس محصول (حداکثر ۴ تا)
+export function useUploadProductImages(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, files }: { productId: string; files: File[] }) => {
+      const form = new FormData()
+      files.forEach(f => form.append('files', f))
+      return api
+        .post<SellerProduct>(`/v2/stores/${storeId}/products/${productId}/images`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) }),
+  })
+}
+
+export function useDeleteProductImage(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, key }: { productId: string; key: string }) =>
+      api.delete<SellerProduct>(`/v2/stores/${storeId}/products/${productId}/images/${key}`).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) }),
   })
 }

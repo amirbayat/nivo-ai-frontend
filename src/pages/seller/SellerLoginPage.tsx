@@ -26,7 +26,7 @@ export function SellerLoginPage() {
     }
     api
       .get<SellerStore[]>('/v2/stores/me')
-      .then(r => navigate(r.data.length > 0 ? '/seller/dashboard-placeholder' : '/seller/onboarding', { replace: true }))
+      .then(r => navigate(r.data.length > 0 ? '/seller/panel/home' : '/seller/onboarding', { replace: true }))
       .catch(() => setCheckingSession(false))
   }, [navigate])
 
@@ -47,14 +47,14 @@ export function SellerLoginPage() {
     }
   }
 
-  if (checkingSession) return <div className="min-h-screen bg-slate-950" />
+  if (checkingSession) return <div className="min-h-screen bg-slate-950 light:bg-white" />
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4" dir="rtl">
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 light:bg-white p-4" dir="rtl">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Logo className="mx-auto mb-4 w-40" />
-          <h1 className="text-xl font-bold text-slate-100">{fa.seller.login.heading}</h1>
+          <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.login.heading}</h1>
           <p className="mt-1 text-sm text-slate-500">{fa.seller.login.subheading}</p>
         </div>
 

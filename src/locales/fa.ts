@@ -446,7 +446,15 @@ export const fa = {
       slugChecking: 'در حال بررسی...',
       slugAvailable: 'این نام آزاد است',
       slugTaken: 'این نام قبلاً گرفته شده، یک نام دیگر امتحان کن',
-      categories: ['پوشاک', 'کیف و کفش', 'خانه و آشپزخانه', 'آرایشی و بهداشتی', 'دیجیتال و لوازم جانبی', 'سایر'],
+      categories: [
+        'پوشاک', 'کیف و کفش', 'آرایشی و بهداشتی', 'خانه و آشپزخانه', 'دیجیتال و لوازم جانبی',
+        'خوراکی و صنایع غذایی', 'کودک و نوزاد', 'ورزش و سفر', 'جواهرات و اکسسوری',
+        'کتاب و لوازم‌التحریر', 'گل و گیاه', 'صنایع‌دستی', 'حیوانات خانگی', 'سایر',
+      ],
+      linksLabel: 'لینک صفحه/کانال (اختیاری)',
+      instagramPlaceholder: 'اینستاگرام — مثلاً instagram.com/yourshop',
+      telegramPlaceholder: 'تلگرام — مثلاً t.me/yourshop',
+      websitePlaceholder: 'وبسایت — اختیاری',
     },
     step2: {
       heading: 'وجه سفارش‌ها کجا واریز شود؟',
@@ -513,9 +521,16 @@ export const fa = {
             ? `${created.toLocaleString('fa-IR')} محصول اضافه شد، ${errorCount.toLocaleString('fa-IR')} ردیف با خطا`
             : `${created.toLocaleString('fa-IR')} محصول با موفقیت اضافه شد`,
         importColumnsHint: 'ستون‌های اکسل: نام، قیمت، موجودی (اختیاری)',
+        addImage: 'افزودن عکس',
+        maxImages: 'حداکثر ۴ عکس برای هر محصول',
+        copyProductLink: 'کپی لینک محصول',
+        productLinkCopied: 'لینک محصول کپی شد',
       },
       more: {
         storeLink: 'لینک فروشگاه',
+        instagramLink: 'اینستاگرام',
+        telegramLink: 'تلگرام',
+        websiteLink: 'وبسایت',
         logout: 'خروج از حساب',
       },
     },

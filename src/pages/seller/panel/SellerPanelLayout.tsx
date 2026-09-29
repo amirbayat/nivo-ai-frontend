@@ -8,6 +8,9 @@ interface SellerStoreCtx {
   storeId: string
   storeName: string
   storeSlug: string
+  instagramUrl: string | null
+  telegramUrl: string | null
+  websiteUrl: string | null
 }
 
 const SellerStoreContext = createContext<SellerStoreCtx | null>(null)
@@ -62,7 +65,7 @@ function NavItem({ to, icon, label, badge }: { to: string; icon: React.ReactNode
       className={({ isActive }) =>
         clsx(
           'relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
-          isActive ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300',
+          isActive ? 'text-emerald-400 light:text-emerald-600' : 'text-slate-500 hover:text-slate-300 light:hover:text-slate-700',
         )
       }
     >
@@ -82,16 +85,25 @@ export function SellerPanelLayout() {
   const store = stores?.[0]
   const attention = useNeededAttention(store?.id ?? '')
 
-  if (isLoading) return <div className="min-h-screen bg-slate-950" />
+  if (isLoading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
   if (!store) return <Navigate to="/seller/onboarding" replace />
 
   return (
-    <SellerStoreContext.Provider value={{ storeId: store.id, storeName: store.name, storeSlug: store.slug }}>
-      <div className="flex min-h-screen flex-col bg-slate-950" dir="rtl">
+    <SellerStoreContext.Provider
+      value={{
+        storeId: store.id,
+        storeName: store.name,
+        storeSlug: store.slug,
+        instagramUrl: store.instagramUrl,
+        telegramUrl: store.telegramUrl,
+        websiteUrl: store.websiteUrl,
+      }}
+    >
+      <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
         <div className="flex-1 pb-16">
           <Outlet />
         </div>
-        <nav className="fixed inset-x-0 bottom-0 flex border-t border-slate-800 bg-slate-900/95 backdrop-blur">
+        <nav className="fixed inset-x-0 bottom-0 flex border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur">
           <NavItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
           <NavItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
           <NavItem
