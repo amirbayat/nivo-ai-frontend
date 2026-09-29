@@ -33,6 +33,11 @@ import { InvoicesPage } from '@/pages/settings/InvoicesPage'
 import { InvoiceDetailPage } from '@/pages/settings/InvoiceDetailPage'
 import { LandingPage } from '@/pages/landing/LandingPage'
 import { ContactPage } from '@/pages/contact/ContactPage'
+import { SellerLandingPage } from '@/pages/seller/SellerLandingPage'
+import { SellerLoginPage } from '@/pages/seller/SellerLoginPage'
+import { SellerOtpPage } from '@/pages/seller/SellerOtpPage'
+import { SellerOnboardingPage } from '@/pages/seller/SellerOnboardingPage'
+import { SellerDashboardPlaceholderPage } from '@/pages/seller/SellerDashboardPlaceholderPage'
 import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -82,6 +87,16 @@ export function AppRouter() {
       {/* لندینگ عمومی/مارکتینگ nivo-cal — حتی کاربر لاگین‌نکرده هم باید ویدیوی معرفی را ببیند،
           برخلاف «/nivo-cal» که پشت ProtectedRoute است و مقصد ثابت داشبورد/اسکن کاربر لاگین‌کرده است */}
       <Route path="/nivo-cal/intro" element={<NivoCalIntroPage />} />
+
+      {/* docs/PRD-mvp-launch-plan.md گام ۰ — مسیر ورودی جدا از پنل چت اصلی، برای فروشنده‌های
+          ایجنت فروش دایرکت/تلگرام. عمداً GuestRoute نیست: کاربر لاگین‌کرده‌ی چت اصلی هم باید
+          بتواند از اینجا فروشنده شود، نه اینکه به /chat ریدایرکت شود (SellerLoginPage خودش
+          بر اساس وجود توکن/فروشگاه شاخه می‌زند) */}
+      <Route path="/seller" element={<SellerLandingPage />} />
+      <Route path="/seller/login" element={<SellerLoginPage />} />
+      <Route path="/seller/otp" element={<SellerOtpPage />} />
+      <Route path="/seller/onboarding" element={<ProtectedRoute><SellerOnboardingPage /></ProtectedRoute>} />
+      <Route path="/seller/dashboard-placeholder" element={<ProtectedRoute><SellerDashboardPlaceholderPage /></ProtectedRoute>} />
 
       {/* guest */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />

@@ -95,6 +95,31 @@ export interface CreditPackage {
   priceToman: number
 }
 
+// docs/PRD-mvp-launch-plan.md گام ۰ — فروشگاه ایجنت فروش دایرکت/تلگرام
+export interface SellerProduct {
+  id: string
+  storeId: string
+  name: string
+  basePrice: number
+  stock: number
+  images: string[]
+  createdAt: string
+}
+
+export interface SellerStore {
+  id: string
+  sellerId: string
+  slug: string
+  name: string
+  category: string | null
+  bankCardNumber: string
+  bankOwnerName: string
+  status: 'ACTIVE' | 'SUSPENDED'
+  createdAt: string
+  updatedAt: string
+  products: SellerProduct[]
+}
+
 export interface Project {
   id: string
   name: string

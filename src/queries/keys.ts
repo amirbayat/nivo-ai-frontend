@@ -90,6 +90,10 @@ export const keys = {
   captionStudio: {
     detail: (id: string) => ['caption-studio', 'detail', id] as const,
   },
+  seller: {
+    stores: () => ['seller', 'stores'] as const,
+    slugAvailable: (slug: string) => ['seller', 'slug-available', slug] as const,
+  },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,
     config: () => ['video-edit', 'config'] as const,
