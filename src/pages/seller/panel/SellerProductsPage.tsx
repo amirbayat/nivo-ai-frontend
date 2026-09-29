@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { toEnglishDigits, formatThousands } from '@/lib/digits'
 import {
   useCompleteProductInfo,
@@ -27,6 +28,11 @@ function ProductImages({ product }: { product: SellerProduct }) {
   const upload = useUploadProductImages(storeId)
   const remove = useDeleteProductImage(storeId)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [pendingPreviews, setPendingPreviews] = useState<string[]>([])
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null)
+
+  // پیش‌نمایش محلی حین آپلود — تا رفت‌وبرگشت شبکه/invalidate تمام شود، فروشنده چیزی نمی‌دید
+  useEffect(() => () => pendingPreviews.forEach(url => URL.revokeObjectURL(url)), [pendingPreviews])
 
   return (
     <div className="mb-6">
@@ -34,13 +40,26 @@ function ProductImages({ product }: { product: SellerProduct }) {
       <div className="flex flex-wrap gap-2">
         {product.images.map(key => (
           <div key={key} className="relative size-16 overflow-hidden rounded-xl border border-slate-700 light:border-slate-200">
-            <img src={productImageUrl(product.id, key)} alt="" className="size-full object-cover" />
+            <img
+              src={productImageUrl(product.id, key)}
+              alt=""
+              onClick={() => setZoomSrc(productImageUrl(product.id, key))}
+              className="size-full cursor-zoom-in object-cover"
+            />
             <button
               onClick={() => remove.mutate({ productId: product.id, key })}
               className="absolute left-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white"
             >
               ×
             </button>
+          </div>
+        ))}
+        {pendingPreviews.map(url => (
+          <div key={url} className="relative size-16 overflow-hidden rounded-xl border border-slate-700 light:border-slate-200 opacity-60">
+            <img src={url} alt="" className="size-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            </div>
           </div>
         ))}
         {product.images.length < 4 && (
@@ -62,10 +81,19 @@ function ProductImages({ product }: { product: SellerProduct }) {
         hidden
         onChange={e => {
           const files = Array.from(e.target.files ?? [])
-          if (files.length) upload.mutate({ productId: product.id, files })
+          if (!files.length) return
+          const previewUrls = files.map(f => URL.createObjectURL(f))
+          setPendingPreviews(prev => [...prev, ...previewUrls])
+          upload.mutate({ productId: product.id, files }, {
+            onSettled: () => {
+              previewUrls.forEach(url => URL.revokeObjectURL(url))
+              setPendingPreviews(prev => prev.filter(url => !previewUrls.includes(url)))
+            },
+          })
           e.target.value = ''
         }}
       />
+      {zoomSrc && <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} analyticsSource="seller_product_image" />}
     </div>
   )
 }

@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
-import { getShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
+import {
+  archiveCurrentSession,
+  getShopSession,
+  getShopSessionHistory,
+  setShopSession,
+  type ShopSession,
+  type ShopSessionHistoryEntry,
+} from '@/lib/shopSession'
 import type {
   ShopAction,
   ShopConversationEvent,
@@ -43,7 +50,16 @@ export function useShopChat(slug: string, productId?: string) {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<ShopSessionHistoryEntry[]>([])
+  const [viewingHistory, setViewingHistoryState] = useState(false)
   const sessionRef = useRef<ShopSession | null>(null)
+  // ref موازی با state بالا — چون sendMessage/sendAction/... باید همین لحظه (نه بعد از
+  // ری‌رندر بعدی) بدانند در حالت تاریخچه هستند یا نه، وگرنه closure قدیمی گیر می‌کند
+  const viewingHistoryRef = useRef(false)
+  const setViewingHistory = useCallback((v: boolean) => {
+    viewingHistoryRef.current = v
+    setViewingHistoryState(v)
+  }, [])
 
   const appendCustomerMessage = useCallback((text: string) => {
     setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text }])
@@ -95,7 +111,7 @@ export function useShopChat(slug: string, productId?: string) {
   const sendMessage = useCallback(
     async (text: string, options?: { silent?: boolean }) => {
       const session = sessionRef.current
-      if (!session || sending) return
+      if (!session || sending || viewingHistoryRef.current) return
       if (!options?.silent) appendCustomerMessage(text)
       setSending(true)
       setError(null)
@@ -122,7 +138,7 @@ export function useShopChat(slug: string, productId?: string) {
   const sendAction = useCallback(
     async (action: ShopAction) => {
       const session = sessionRef.current
-      if (!session || sending) return
+      if (!session || sending || viewingHistoryRef.current) return
       setSending(true)
       setError(null)
       try {
@@ -158,17 +174,17 @@ export function useShopChat(slug: string, productId?: string) {
   }, [])
 
   useEffect(() => {
-    if (state !== 'HANDOFF_HUMAN') return
+    if (state !== 'HANDOFF_HUMAN' || viewingHistory) return
     const interval = setInterval(() => {
       void fetchConversation()
     }, 4000)
     return () => clearInterval(interval)
-  }, [state, fetchConversation])
+  }, [state, viewingHistory, fetchConversation])
 
   const uploadReceipt = useCallback(
     async (file: File) => {
       const session = sessionRef.current
-      if (!session || sending) return
+      if (!session || sending || viewingHistoryRef.current) return
       setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text: fa.shop.receiptUploadedNote }])
       setSending(true)
       setError(null)
@@ -197,7 +213,7 @@ export function useShopChat(slug: string, productId?: string) {
   const sendVoiceMessage = useCallback(
     async (blob: Blob) => {
       const session = sessionRef.current
-      if (!session || sending) return
+      if (!session || sending || viewingHistoryRef.current) return
       setSending(true)
       setError(null)
       try {
@@ -221,68 +237,127 @@ export function useShopChat(slug: string, productId?: string) {
     [sending, appendCustomerMessage, applyReply],
   )
 
+  // یک مکالمه‌ی کاملاً تازه می‌سازد (اولین بار، یا دستی با دکمه‌ی «گفتگوی جدید») — سشن قبلی
+  // (اگر بود) را قبلش باید کالر خودش archive/clear کرده باشد
+  const createFreshConversation = useCallback(
+    async (cancelledRef?: { current: boolean }): Promise<void> => {
+      const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/chat/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productId ? { productId } : {}),
+      })
+      if (res.status === 404) {
+        if (!cancelledRef?.current) setNotFound(true)
+        return
+      }
+      if (!res.ok) throw new Error('request failed')
+      const data = (await res.json()) as ShopStartChatResponse
+      if (cancelledRef?.current) return
+      const session: ShopSession = { conversationId: data.conversationId, sessionToken: data.sessionToken }
+      setShopSession(slug, session)
+      sessionRef.current = session
+      setStoreName(data.storeName)
+      setMessages([])
+      // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
+      if (data.initialReply) {
+        setState(data.initialState ?? 'BROWSING')
+        const uiBlock = data.initialUiBlocks?.find((b) => b.type !== 'NONE')
+        const id = `agent-${Date.now()}`
+        setMessages((prev) => [
+          ...prev,
+          { id, role: 'agent', text: data.initialReply!, uiBlock, voiceEventId: data.initialVoiceEventId },
+        ])
+        if (data.initialVoiceEventId) pollVoice(id, data.initialVoiceEventId)
+      } else {
+        setState('GREETING')
+        void sendMessage(KICKOFF_MESSAGE, { silent: true })
+      }
+    },
+    [slug, productId, pollVoice, sendMessage],
+  )
+
   useEffect(() => {
-    let cancelled = false
+    const cancelledRef = { current: false }
 
     async function boot() {
       setLoading(true)
+      setHistory(getShopSessionHistory(slug))
       const existing = getShopSession(slug)
       try {
         if (existing) {
           sessionRef.current = existing
           await fetchConversation()
-          if (cancelled) return
-          setLoading(false)
-          return
-        }
-
-        const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/chat/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(productId ? { productId } : {}),
-        })
-        if (res.status === 404) {
-          if (!cancelled) {
-            setNotFound(true)
-            setLoading(false)
-          }
-          return
-        }
-        if (!res.ok) throw new Error('request failed')
-        const data = (await res.json()) as ShopStartChatResponse
-        if (cancelled) return
-        const session: ShopSession = { conversationId: data.conversationId, sessionToken: data.sessionToken }
-        setShopSession(slug, session)
-        sessionRef.current = session
-        setStoreName(data.storeName)
-        setLoading(false)
-        // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
-        if (data.initialReply) {
-          setState(data.initialState ?? 'BROWSING')
-          const uiBlock = data.initialUiBlocks?.find((b) => b.type !== 'NONE')
-          const id = `agent-${Date.now()}`
-          setMessages((prev) => [
-            ...prev,
-            { id, role: 'agent', text: data.initialReply!, uiBlock, voiceEventId: data.initialVoiceEventId },
-          ])
-          if (data.initialVoiceEventId) pollVoice(id, data.initialVoiceEventId)
         } else {
-          void sendMessage(KICKOFF_MESSAGE, { silent: true })
+          await createFreshConversation(cancelledRef)
         }
       } catch {
-        if (!cancelled) {
-          setError(fa.common.error)
-          setLoading(false)
-        }
+        if (!cancelledRef.current) setError(fa.common.error)
+      } finally {
+        if (!cancelledRef.current) setLoading(false)
       }
     }
 
     void boot()
     return () => {
-      cancelled = true
+      cancelledRef.current = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
+
+  // فیدبک: «کاربر چت جدید نمی‌تواند باز کند» — سشن فعلی را به تاریخچه می‌فرستد و یک
+  // مکالمه‌ی تازه شروع می‌کند؛ چیزی گم نمی‌شود چون همان سشن قبلی در history باقی می‌ماند
+  const startNewChat = useCallback(async () => {
+    if (sending) return
+    archiveCurrentSession(slug)
+    setHistory(getShopSessionHistory(slug))
+    setViewingHistory(false)
+    sessionRef.current = null
+    setMessages([])
+    setError(null)
+    setLoading(true)
+    try {
+      await createFreshConversation()
+    } catch {
+      setError(fa.common.error)
+    } finally {
+      setLoading(false)
+    }
+  }, [slug, sending, createFreshConversation, setViewingHistory])
+
+  // نمایش فقط‌خواندنی یک گفتگوی قدیمی از تاریخچه — ارسال پیام غیرفعال می‌ماند تا برگردد
+  const viewHistoryEntry = useCallback(
+    async (entry: ShopSessionHistoryEntry) => {
+      if (sending) return
+      sessionRef.current = entry
+      setViewingHistory(true)
+      setLoading(true)
+      setError(null)
+      try {
+        await fetchConversation()
+      } catch {
+        setError(fa.common.error)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [sending, fetchConversation, setViewingHistory],
+  )
+
+  const returnToCurrentChat = useCallback(async () => {
+    const current = getShopSession(slug)
+    if (!current) return
+    sessionRef.current = current
+    setViewingHistory(false)
+    setLoading(true)
+    setError(null)
+    try {
+      await fetchConversation()
+    } catch {
+      setError(fa.common.error)
+    } finally {
+      setLoading(false)
+    }
+  }, [slug, fetchConversation, setViewingHistory])
 
   return {
     storeName,
@@ -293,9 +368,14 @@ export function useShopChat(slug: string, productId?: string) {
     loading,
     sending,
     error,
+    history,
+    viewingHistory,
     sendMessage,
     sendAction,
     uploadReceipt,
     sendVoiceMessage,
+    startNewChat,
+    viewHistoryEntry,
+    returnToCurrentChat,
   }
 }

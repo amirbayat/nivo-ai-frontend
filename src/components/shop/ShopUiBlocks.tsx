@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { ShopUiBlock } from '@/types/api'
 
 interface BlockProps {
@@ -25,6 +26,7 @@ function ProductCardBlock({
   disabled: boolean
   onAddToCart: (productId: string) => void
 }) {
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null)
   return (
     <div className="mt-2 flex flex-col gap-2">
       {products.map((p) => (
@@ -34,7 +36,8 @@ function ProductCardBlock({
               <img
                 src={productImageUrl(p.id, p.images[0])}
                 alt={p.name}
-                className="size-12 shrink-0 rounded-lg object-cover"
+                onClick={() => setZoomSrc(productImageUrl(p.id, p.images[0]))}
+                className="size-20 shrink-0 cursor-zoom-in rounded-lg object-cover"
               />
             )}
             <div className="flex flex-1 items-center justify-between gap-2">
@@ -58,6 +61,7 @@ function ProductCardBlock({
           </div>
         </div>
       ))}
+      {zoomSrc && <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} analyticsSource="shop_product_image" />}
     </div>
   )
 }

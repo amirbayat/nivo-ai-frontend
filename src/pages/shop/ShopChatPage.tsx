@@ -5,6 +5,7 @@ import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import type { ShopMessage } from '@/types/api'
+import type { ShopSessionHistoryEntry } from '@/lib/shopSession'
 
 // HANDOFF_HUMAN عمداً اینجا نیست — بعد از escalate، مشتری باید بتواند مستقیم با فروشنده
 // چت کند (پنل فروشنده، تب «نیاز به توجه»)؛ فقط COMPLETED/REJECTED واقعاً پایانی‌اند
@@ -27,6 +28,50 @@ function VoiceIndicator({ message, conversationId }: { message: ShopMessage; con
   )
 }
 
+// فیدبک: «کاربر چت جدید نمی‌تونه باز کنه» — لیست گفتگوهای قبلی (از localStorage، فقط همین
+// دستگاه) با امکان بازکردن هرکدام به‌صورت فقط‌خواندنی
+function HistoryDrawer({
+  entries,
+  onSelect,
+  onClose,
+}: {
+  entries: ShopSessionHistoryEntry[]
+  onSelect: (entry: ShopSessionHistoryEntry) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[70vh] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-slate-900 light:bg-white sm:rounded-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 light:border-slate-200 px-4 py-3">
+          <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.shop.history}</p>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+            ×
+          </button>
+        </div>
+        {entries.length === 0 ? (
+          <p className="px-4 py-6 text-center text-xs text-slate-500">{fa.shop.historyEmpty}</p>
+        ) : (
+          <ul className="divide-y divide-slate-800 light:divide-slate-100">
+            {entries.map((entry) => (
+              <li key={entry.conversationId}>
+                <button
+                  onClick={() => onSelect(entry)}
+                  className="w-full px-4 py-3 text-start text-sm text-slate-300 light:text-slate-700 hover:bg-slate-800/60 light:hover:bg-slate-50"
+                >
+                  {fa.shop.historyEntryLabel(new Date(entry.endedAt).toLocaleString('fa-IR'))}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function ShopChatPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   // فیدبک اول پایلوت — لینک اختصاصی یک محصول («فروشنده در استوری گذاشته»): /shop/:slug?product=<id>
@@ -41,23 +86,31 @@ export function ShopChatPage() {
     loading,
     sending,
     error,
+    history,
+    viewingHistory,
     sendMessage,
     sendAction,
     uploadReceipt,
     sendVoiceMessage,
+    startNewChat,
+    viewHistoryEntry,
+    returnToCurrentChat,
   } = useShopChat(slug, productId)
   const [input, setInput] = useState('')
   const [recording, setRecording] = useState(false)
+  const [recordSeconds, setRecordSeconds] = useState(0)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const messagesRef = useRef<HTMLDivElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const el = messagesRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, sending])
 
-  const disabled = sending || TERMINAL_STATES.includes(state)
+  const disabled = sending || viewingHistory || TERMINAL_STATES.includes(state)
 
   function send() {
     const text = input.trim()
@@ -66,13 +119,25 @@ export function ShopChatPage() {
     void sendMessage(text)
   }
 
+  function handleNewChat() {
+    if (!confirm(fa.shop.newChatConfirm)) return
+    setInput('')
+    void startNewChat()
+  }
+
+  function handleSelectHistory(entry: ShopSessionHistoryEntry) {
+    setHistoryOpen(false)
+    void viewHistoryEntry(entry)
+  }
+
   // docs/PRD-sales-agent-voice.md بخش ۲.۲ — ضبط با MediaRecorder، فرمت هرچی مرورگر پیش‌فرضش
   // باشد (معمولاً webm/opus)؛ بک‌اند خودش با ffmpeg نرمال‌سازی می‌کند، اینجا نیازی به انتخاب
-  // فرمت خاصی نیست
+  // فرمت خاصی نیست. تایمر ثانیه‌شمار فقط فیدبک بصری «داره ضبط می‌کنه» است، به سرور فرستاده نمی‌شود
   async function toggleRecording() {
     if (disabled) return
     if (recording) {
       recorderRef.current?.stop()
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current)
       setRecording(false)
       return
     }
@@ -95,10 +160,16 @@ export function ShopChatPage() {
       recorderRef.current = recorder
       recorder.start()
       setRecording(true)
+      setRecordSeconds(0)
+      recordTimerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000)
     } catch {
       alert(fa.shop.micNotSupported)
     }
   }
+
+  useEffect(() => () => {
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current)
+  }, [])
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -122,10 +193,46 @@ export function ShopChatPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
-      <div className="border-b border-slate-800 light:border-slate-200 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{storeName}</p>
-        <p className="text-xs text-slate-500">دستیار فروش</p>
+      <div className="flex items-center justify-between border-b border-slate-800 light:border-slate-200 px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{storeName}</p>
+          <p className="text-xs text-slate-500">دستیار فروش</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setHistoryOpen(true)}
+            title={fa.shop.history}
+            className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="size-4.5">
+              <path d="M4 4v4h4M4.5 8a6.5 6.5 0 111.6 6.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 6v4l3 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            onClick={handleNewChat}
+            title={fa.shop.newChat}
+            className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="size-4.5">
+              <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {viewingHistory && (
+        <div className="flex items-center justify-between gap-2 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
+          <span>{fa.shop.viewingHistoryBanner}</span>
+          <button onClick={() => void returnToCurrentChat()} className="shrink-0 font-semibold underline">
+            {fa.shop.backToCurrentChat}
+          </button>
+        </div>
+      )}
+
+      {historyOpen && (
+        <HistoryDrawer entries={history} onSelect={handleSelectHistory} onClose={() => setHistoryOpen(false)} />
+      )}
 
       <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.map((m) => (
@@ -176,6 +283,16 @@ export function ShopChatPage() {
         </div>
       )}
 
+      {recording && (
+        <div className="flex items-center gap-2 border-t border-slate-800 light:border-slate-200 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-400">
+          <span className="size-2 animate-pulse rounded-full bg-red-500" />
+          <span>{fa.shop.recordingLabel}</span>
+          <span dir="ltr" className="font-mono">
+            {String(Math.floor(recordSeconds / 60)).padStart(2, '0')}:{String(recordSeconds % 60).padStart(2, '0')}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-end gap-2 border-t border-slate-800 light:border-slate-200 p-3">
         <textarea
           value={input}
@@ -193,7 +310,7 @@ export function ShopChatPage() {
           title={recording ? fa.shop.voiceRecording : undefined}
           className={`flex size-10 shrink-0 items-center justify-center rounded-xl disabled:opacity-30 ${
             recording
-              ? 'bg-red-500 text-white'
+              ? 'animate-pulse bg-red-500 text-white'
               : 'border border-slate-600/60 light:border-slate-300 text-slate-300 light:text-slate-700 hover:border-slate-500'
           }`}
         >
