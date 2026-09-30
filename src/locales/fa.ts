@@ -563,6 +563,7 @@ export const fa = {
         knowledgeBase: 'باکس دانش',
         credit: 'اعتبار هوش مصنوعی',
         bankCards: 'کارت‌های بانکی',
+        channelStats: 'آمار وب و تلگرام',
         logout: 'خروج از حساب',
       },
       knowledge: {
@@ -633,6 +634,19 @@ export const fa = {
         confirmedNoThreshold: (confirmed: number) =>
           `${confirmed.toLocaleString('fa-IR')} تومان تاییدشده — بدون سقف`,
         inactive: 'غیرفعال',
+      },
+      // docs/PRD-sales-agent-admin-analytics.md بخش ۴ — مقایسه‌ی نرخ تبدیل وب در برابر تلگرام
+      channelStats: {
+        title: 'آمار وب و تلگرام',
+        subtitle: 'ببین مشتری‌های تلگرامت بیشتر می‌خرند یا مشتری‌هایی که از لینک وب اومدن',
+        empty: 'هنوز مکالمه‌ای ثبت نشده',
+        channelLabels: {
+          WEB: 'لینک وب',
+          TELEGRAM: 'تلگرام',
+        } as Record<string, string>,
+        conversations: 'تعداد مکالمه',
+        approvedOrderRate: 'نرخ سفارش موفق',
+        stuckHandoffRate: 'نرخ ارجاع به انسان',
       },
     },
   },

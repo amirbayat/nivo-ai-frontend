@@ -3,6 +3,7 @@ import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import type {
   CardDisplayPolicy,
+  ChannelStat,
   CreateKbEntryInput,
   ImportProductsResult,
   KbCandidateEntry,
@@ -351,6 +352,15 @@ export function useUpdateBankCard(storeId: string) {
     mutationFn: ({ cardId, dto }: { cardId: string; dto: UpdateBankCardInput }) =>
       api.patch<StoreBankCard>(`/v2/stores/${storeId}/bank-cards/${cardId}`, dto).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.bankCards(storeId) }),
+  })
+}
+
+// docs/PRD-sales-agent-admin-analytics.md بخش ۴ — مقایسه‌ی نرخ تبدیل وب در برابر تلگرام
+export function useChannelStats(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.channelStats(storeId),
+    queryFn: () => api.get<ChannelStat[]>(`/v2/stores/${storeId}/channel-stats`).then(r => r.data),
+    enabled: !!storeId,
   })
 }
 

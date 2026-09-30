@@ -100,6 +100,16 @@ export function SellerMorePage() {
         </svg>
       </Link>
 
+      <Link
+        to="/seller/panel/channel-stats"
+        className="mb-3 flex items-center justify-between rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5"
+      >
+        <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.seller.panel.more.channelStats}</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 text-slate-500">
+          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L8.414 11l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      </Link>
+
       <button
         onClick={() => logout.mutate()}
         disabled={logout.isPending}

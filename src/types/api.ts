@@ -132,6 +132,18 @@ export interface StoreCreditStatus {
   freeQuotaLimit: number
 }
 
+// docs/PRD-sales-agent-admin-analytics.md بخش ۴ — مقایسه‌ی نرخ تبدیل وب در برابر تلگرام
+export interface ChannelStat {
+  group: 'WEB' | 'TELEGRAM'
+  conversations: number
+  avgClarifyAttempts: number
+  stuckHandoffRate: number
+  approvedOrderRate: number
+  aiCalls: number
+  fallbackRate: number
+  avgLatencyMs: number
+}
+
 export interface StoreCreditPackage {
   id: string
   credits: number
