@@ -104,6 +104,7 @@ export const keys = {
     discountCodes: (storeId: string) => ['seller', 'discount-codes', storeId] as const,
     channelStats: (storeId: string) => ['seller', 'channel-stats', storeId] as const,
     completeness: (storeId: string) => ['seller', 'completeness', storeId] as const,
+    adPlacement: (storeId: string) => ['seller', 'ad-placement', storeId] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

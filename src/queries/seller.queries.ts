@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import type {
+  AdPlacement,
+  AdPlacementStatusResponse,
   CardDisplayPolicy,
   ChannelStat,
   CreateKbEntryInput,
@@ -339,6 +341,30 @@ export function usePurchaseStoreCredit(storeId: string) {
       api
         .post<{ paymentUrl: string }>(`/v2/stores/${storeId}/credit/purchase`, { packageId })
         .then(r => r.data),
+  })
+}
+
+// docs/PRD-seller-advertising-placements.md — وضعیت فعلی + بازه‌های قیمتی ثابت جایگاه تبلیغاتی
+export function useAdPlacement(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.adPlacement(storeId),
+    queryFn: () =>
+      api.get<AdPlacementStatusResponse>(`/v2/stores/${storeId}/ad-placement`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+export function usePurchaseAdPlacement(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (durationDays: 7 | 30) =>
+      api
+        .post<AdPlacement>(`/v2/stores/${storeId}/ad-placement/purchase`, { durationDays })
+        .then(r => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.seller.adPlacement(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.credit(storeId) })
+    },
   })
 }
 

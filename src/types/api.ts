@@ -158,6 +158,28 @@ export interface StoreCreditStatus {
   freeQuotaLimit: number
 }
 
+// docs/PRD-seller-advertising-placements.md — جایگاه تبلیغاتی/Boost در جستجوی تلگرام
+export interface AdPlacement {
+  id: string
+  storeId: string
+  placement: 'TELEGRAM_STORE_SEARCH' | 'MARKETPLACE_FEATURED'
+  startsAt: string
+  endsAt: string
+  priceToman: number
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
+  createdAt: string
+}
+
+export interface AdPlacementPriceTier {
+  durationDays: 7 | 30
+  priceToman: number
+}
+
+export interface AdPlacementStatusResponse {
+  active: AdPlacement | null
+  priceTiers: AdPlacementPriceTier[]
+}
+
 // docs/PRD-sales-agent-admin-analytics.md بخش ۴ — مقایسه‌ی نرخ تبدیل وب در برابر تلگرام
 export interface ChannelStat {
   group: 'WEB' | 'TELEGRAM'
