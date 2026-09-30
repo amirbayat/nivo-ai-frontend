@@ -17,6 +17,8 @@ import type {
   SellerStore,
   StoreBankCard,
   StoreBankCardsResponse,
+  StoreDiscountCode,
+  DiscountKind,
   StoreCreditPackage,
   StoreCreditStatus,
   StoreKbEntry,
@@ -362,6 +364,42 @@ export function useChannelStats(storeId: string) {
     queryKey: keys.seller.channelStats(storeId),
     queryFn: () => api.get<ChannelStat[]>(`/v2/stores/${storeId}/channel-stats`).then(r => r.data),
     enabled: !!storeId,
+  })
+}
+
+// docs/PRD-customer-comments-and-discounts.md بخش ۸
+export function useDiscountCodes(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.discountCodes(storeId),
+    queryFn: () =>
+      api.get<StoreDiscountCode[]>(`/v2/stores/${storeId}/discount-codes`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+export interface CreateDiscountCodeInput {
+  code: string
+  kind: DiscountKind
+  value: number
+  maxRedemptions?: number
+  expiresAt?: string
+}
+
+export function useAddDiscountCode(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: CreateDiscountCodeInput) =>
+      api.post<StoreDiscountCode>(`/v2/stores/${storeId}/discount-codes`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.discountCodes(storeId) }),
+  })
+}
+
+export function useUpdateDiscountCode(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ codeId, isActive }: { codeId: string; isActive: boolean }) =>
+      api.patch<StoreDiscountCode>(`/v2/stores/${storeId}/discount-codes/${codeId}`, { isActive }).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.discountCodes(storeId) }),
   })
 }
 

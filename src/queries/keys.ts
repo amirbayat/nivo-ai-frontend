@@ -101,6 +101,7 @@ export const keys = {
     credit: (storeId: string) => ['seller', 'credit', storeId] as const,
     creditPackages: () => ['seller', 'credit-packages'] as const,
     bankCards: (storeId: string) => ['seller', 'bank-cards', storeId] as const,
+    discountCodes: (storeId: string) => ['seller', 'discount-codes', storeId] as const,
     channelStats: (storeId: string) => ['seller', 'channel-stats', storeId] as const,
   },
   videoEdit: {

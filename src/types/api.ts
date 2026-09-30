@@ -177,6 +177,22 @@ export interface StoreBankCardsResponse {
   cards: StoreBankCard[]
 }
 
+// docs/PRD-customer-comments-and-discounts.md بخش ۷/۸
+export type DiscountKind = 'PERCENT' | 'FIXED_AMOUNT'
+
+export interface StoreDiscountCode {
+  id: string
+  storeId: string
+  code: string
+  kind: DiscountKind
+  value: number
+  maxRedemptions: number | null
+  redemptionCount: number
+  expiresAt: string | null
+  isActive: boolean
+  createdAt: string
+}
+
 // docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی /shop/:slug؛ عیناً مطابق
 // nivo-ai-backend/src/modules/sales-agent/sales-agent.types.ts
 export type ShopUiBlock =

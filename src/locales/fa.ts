@@ -566,6 +566,7 @@ export const fa = {
         knowledgeBase: 'باکس دانش',
         credit: 'اعتبار هوش مصنوعی',
         bankCards: 'کارت‌های بانکی',
+        discountCodes: 'کد تخفیف',
         channelStats: 'آمار وب و تلگرام',
         telegramConnect: 'اتصال تلگرام برای اعلان‌ها',
         telegramConnectError: 'ساخت لینک اتصال با خطا مواجه شد',
@@ -639,6 +640,34 @@ export const fa = {
         confirmedNoThreshold: (confirmed: number) =>
           `${confirmed.toLocaleString('fa-IR')} تومان تاییدشده — بدون سقف`,
         inactive: 'غیرفعال',
+      },
+      // docs/PRD-customer-comments-and-discounts.md بخش ۸
+      discountCodes: {
+        title: 'کد تخفیف',
+        subtitle: 'یک کد تخفیف بساز تا خریدارها موقع خرید در چت بگویند و مبلغ کم شود',
+        empty: 'هنوز کد تخفیفی نساختی',
+        addCode: 'ساخت کد تخفیف',
+        codeLabel: 'کد (فقط حروف/عدد انگلیسی)',
+        kindLabel: 'نوع تخفیف',
+        kindPercent: 'درصدی',
+        kindFixedAmount: 'مبلغ ثابت',
+        valueLabelPercent: 'درصد تخفیف',
+        valueLabelFixedAmount: 'مبلغ تخفیف (تومان)',
+        maxRedemptionsLabel: 'سقف تعداد استفاده',
+        maxRedemptionsPlaceholder: 'خالی = نامحدود',
+        expiresAtLabel: 'تاریخ انقضا',
+        expiresAtPlaceholder: 'خالی = بدون انقضا',
+        save: 'ذخیره',
+        cancel: 'انصراف',
+        activate: 'فعال کردن',
+        deactivate: 'غیرفعال کردن',
+        addError: 'ساخت کد تخفیف با خطا مواجه شد',
+        updateError: 'ذخیره تغییرات با خطا مواجه شد',
+        redemptions: (used: number) => `${used.toLocaleString('fa-IR')} بار استفاده شده`,
+        redemptionsWithMax: (used: number, max: number) =>
+          `${used.toLocaleString('fa-IR')} از ${max.toLocaleString('fa-IR')} بار استفاده شده`,
+        inactive: 'غیرفعال',
+        expired: 'منقضی‌شده',
       },
       // docs/PRD-sales-agent-admin-analytics.md بخش ۴ — مقایسه‌ی نرخ تبدیل وب در برابر تلگرام
       channelStats: {

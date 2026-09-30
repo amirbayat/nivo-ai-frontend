@@ -186,7 +186,16 @@ export function useShopChat(slug: string, productId?: string) {
   }, [])
 
   useEffect(() => {
-    if (state !== 'HANDOFF_HUMAN' || viewingHistory) return
+    // docs/PRD-customer-comments-and-discounts.md بخش الف/۳ — تایید سفارش (AWAITING_SELLER_APPROVAL
+    // → COMPLETED) هم مثل HANDOFF_HUMAN یک پیام async از سمت فروشنده/سیستم است که بدون پیام
+    // تازه‌ی مشتری تولید می‌شود (اینجا: پیام پیگیریِ نظرخواهی) — بدون پالینگ، مشتری در وب
+    // اصلاً نمی‌دید سفارشش تایید شده مگر صفحه را رفرش کند
+    if (
+      (state !== 'HANDOFF_HUMAN' && state !== 'AWAITING_SELLER_APPROVAL') ||
+      viewingHistory
+    ) {
+      return
+    }
     const interval = setInterval(() => {
       void fetchConversation()
     }, 4000)
