@@ -44,6 +44,7 @@ import { SellerAttentionPage } from '@/pages/seller/panel/SellerAttentionPage'
 import { SellerProductsPage } from '@/pages/seller/panel/SellerProductsPage'
 import { SellerMorePage } from '@/pages/seller/panel/SellerMorePage'
 import { SellerKnowledgePage } from '@/pages/seller/panel/SellerKnowledgePage'
+import { SellerCreditPage } from '@/pages/seller/panel/SellerCreditPage'
 import { ShopChatPage } from '@/pages/shop/ShopChatPage'
 import type { ReactNode } from 'react'
 
@@ -113,6 +114,7 @@ export function AppRouter() {
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="more" element={<SellerMorePage />} />
         <Route path="knowledge" element={<SellerKnowledgePage />} />
+        <Route path="credit" element={<SellerCreditPage />} />
       </Route>
       {/* بازگشت‌سازگار: جایگزین گام۲ (SellerDashboardPlaceholderPage حذف شد) */}
       <Route path="/seller/dashboard-placeholder" element={<Navigate to="/seller/panel/home" replace />} />

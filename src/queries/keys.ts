@@ -98,6 +98,8 @@ export const keys = {
     attention: (storeId: string) => ['seller', 'attention', storeId] as const,
     conversation: (storeId: string, conversationId: string) => ['seller', 'conversation', storeId, conversationId] as const,
     kbEntries: (storeId: string, kind?: string) => ['seller', 'kb-entries', storeId, kind ?? 'all'] as const,
+    credit: (storeId: string) => ['seller', 'credit', storeId] as const,
+    creditPackages: () => ['seller', 'credit-packages'] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

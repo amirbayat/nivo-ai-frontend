@@ -12,6 +12,8 @@ import type {
   SellerOrderStatus,
   SellerProduct,
   SellerStore,
+  StoreCreditPackage,
+  StoreCreditStatus,
   StoreKbEntry,
   StoreKbKind,
   UpdateProductInput,
@@ -250,6 +252,34 @@ export function useDeleteKbEntry(storeId: string) {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/v2/stores/${storeId}/knowledge/${id}`),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.kbEntries(storeId) }),
+  })
+}
+
+// docs/PRD-seller-credit-billing.md بخش ۱/۵/۷ — موجودی اعتبار AI + خرید self-serve
+export function useStoreCredit(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.credit(storeId),
+    queryFn: () => api.get<StoreCreditStatus>(`/v2/stores/${storeId}/credit`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+export function useStoreCreditPackages() {
+  return useQuery({
+    queryKey: keys.seller.creditPackages(),
+    queryFn: () =>
+      api
+        .get<StoreCreditPackage[]>('/v2/credits/packages', { params: { scope: 'STORE_AI_CREDIT' } })
+        .then(r => r.data),
+  })
+}
+
+export function usePurchaseStoreCredit(storeId: string) {
+  return useMutation({
+    mutationFn: (packageId: string) =>
+      api
+        .post<{ paymentUrl: string }>(`/v2/stores/${storeId}/credit/purchase`, { packageId })
+        .then(r => r.data),
   })
 }
 

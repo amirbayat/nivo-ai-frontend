@@ -491,6 +491,12 @@ export const fa = {
         pendingOrders: (n: number) => `${n.toLocaleString('fa-IR')} سفارش در انتظار تایید`,
         needsAttention: (n: number) => `${n.toLocaleString('fa-IR')} مکالمه نیاز به توجه دارد`,
         shareLink: 'اشتراک‌گذاری لینک فروشگاه',
+        // docs/PRD-seller-credit-billing.md بخش ۴
+        creditBalance: 'اعتبار هوش مصنوعی',
+        creditBalanceToman: (n: number) => `${n.toLocaleString('fa-IR')} تومان`,
+        creditFreeQuota: (used: number, limit: number) =>
+          `${used.toLocaleString('fa-IR')} از ${limit.toLocaleString('fa-IR')} خریدار رایگان امروز`,
+        creditTopUp: 'شارژ کن',
       },
       orders: {
         filterAll: 'همه',
@@ -542,6 +548,7 @@ export const fa = {
         telegramLink: 'تلگرام',
         websiteLink: 'وبسایت',
         knowledgeBase: 'باکس دانش',
+        credit: 'اعتبار هوش مصنوعی',
         logout: 'خروج از حساب',
       },
       knowledge: {
@@ -565,6 +572,21 @@ export const fa = {
         answerLabel: 'جواب',
         deleteConfirm: 'این مورد از باکس دانش حذف شود؟',
         filterAll: 'همه',
+      },
+      // docs/PRD-seller-credit-billing.md بخش ۴/۷
+      credit: {
+        title: 'اعتبار هوش مصنوعی',
+        subtitle: 'بعد از تمام‌شدن سهمیه‌ی رایگان روزانه، مصرف هوش مصنوعی از همین اعتبار کم می‌شود',
+        currentBalance: 'موجودی فعلی',
+        freeQuotaToday: (used: number, limit: number) =>
+          `${used.toLocaleString('fa-IR')} از ${limit.toLocaleString('fa-IR')} خریدار رایگان امروز استفاده شده`,
+        packagesTitle: 'خرید اعتبار',
+        packagesEmpty: 'فعلاً بسته‌ای برای خرید تعریف نشده',
+        priceLabel: (n: number) => `قیمت: ${n.toLocaleString('fa-IR')} تومان`,
+        buy: 'خرید',
+        redirecting: 'در حال انتقال به درگاه پرداخت...',
+        purchaseError: 'خرید اعتبار با خطا مواجه شد، دوباره تلاش کن',
+        discountBadge: (percent: number) => `${percent.toLocaleString('fa-IR')}٪ تخفیف`,
       },
     },
   },

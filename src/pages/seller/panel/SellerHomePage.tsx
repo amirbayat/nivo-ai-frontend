@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { fa } from '@/locales/fa'
-import { useNeededAttention, useOrders } from '@/queries/seller.queries'
+import { useNeededAttention, useOrders, useStoreCredit } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 
 export function SellerHomePage() {
   const { storeId, storeName, storeSlug } = useSellerStore()
   const pending = useOrders(storeId, 'RECEIPT_SUBMITTED')
   const attention = useNeededAttention(storeId)
+  const credit = useStoreCredit(storeId)
   const [copied, setCopied] = useState(false)
 
   const chatLink = `${window.location.origin}/shop/${storeSlug}`
@@ -44,6 +46,24 @@ export function SellerHomePage() {
           <p className="mt-1 text-xs text-slate-500">{fa.seller.panel.home.needsAttention(attention.data?.length ?? 0)}</p>
         </div>
       </div>
+
+      <Link
+        to="/seller/panel/credit"
+        className="mb-6 flex items-center justify-between rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-4"
+      >
+        <div>
+          <p className="text-xs text-slate-500">{fa.seller.panel.home.creditBalance}</p>
+          <p className="mt-1 text-lg font-bold text-slate-100 light:text-slate-900">
+            {fa.seller.panel.home.creditBalanceToman(credit.data?.balanceToman ?? 0)}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {fa.seller.panel.home.creditFreeQuota(credit.data?.freeQuotaUsedToday ?? 0, credit.data?.freeQuotaLimit ?? 10)}
+          </p>
+        </div>
+        <span className="rounded-xl bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-400 light:text-emerald-700">
+          {fa.seller.panel.home.creditTopUp}
+        </span>
+      </Link>
 
       <div className="mb-4 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-4">
         <p dir="ltr" className="break-all text-center text-[14px] font-mono text-emerald-300 light:text-emerald-700">{chatLink}</p>

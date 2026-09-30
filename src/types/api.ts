@@ -119,9 +119,27 @@ export interface SellerStore {
   telegramUrl: string | null
   websiteUrl: string | null
   status: 'ACTIVE' | 'SUSPENDED'
+  // docs/PRD-seller-credit-billing.md بخش ۱/۵
+  creditBalanceToman: number
   createdAt: string
   updatedAt: string
   products: SellerProduct[]
+}
+
+export interface StoreCreditStatus {
+  balanceToman: number
+  freeQuotaUsedToday: number
+  freeQuotaLimit: number
+}
+
+export interface StoreCreditPackage {
+  id: string
+  credits: number
+  discountPercent: number
+  isPopular: boolean
+  isBestValue: boolean
+  priceToman: number
+  creditToman: number
 }
 
 // docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی /shop/:slug؛ عیناً مطابق
