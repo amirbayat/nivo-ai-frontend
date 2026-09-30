@@ -543,6 +543,12 @@ export function SellerProductsPage() {
                 {p.code && <span dir="ltr" className="mr-1.5 text-xs font-normal text-slate-500">#{p.code}</span>}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">{fa.shop.stockCount(p.stock)}</p>
+              {p.completeness && p.completeness.percent < 100 && (
+                <p className="mt-0.5 text-[11px] text-amber-400 light:text-amber-600">
+                  {fa.seller.panel.products.completenessPercent(p.completeness.percent)}
+                  {p.completeness.missing[0] && ` ${fa.seller.panel.products.completenessMissing(p.completeness.missing[0])}`}
+                </p>
+              )}
             </button>
             <div className="flex flex-col items-end gap-1.5">
               <span className="text-sm font-bold text-emerald-300 light:text-emerald-700">{p.basePrice.toLocaleString('fa-IR')} {fa.common.toman}</span>

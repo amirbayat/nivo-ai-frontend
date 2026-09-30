@@ -17,6 +17,7 @@ import type {
   SellerStore,
   StoreBankCard,
   StoreBankCardsResponse,
+  StoreCompleteness,
   StoreDiscountCode,
   DiscountKind,
   StoreCreditPackage,
@@ -68,6 +69,33 @@ export function useCreateStore() {
   return useMutation({
     mutationFn: (dto: CreateStoreInput) => api.post<SellerStore>('/v2/stores', dto).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
+  })
+}
+
+// docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲ — فیلدهای ساختاریافته‌ی فروشگاه (ارسال/
+// مرجوعی/معرفی برند/ساعت پاسخ‌گویی)، قابل ویرایش بعد از ثبت‌نام
+export interface UpdateStoreInput {
+  shippingInfo?: string
+  returnPolicy?: string
+  brandIntro?: string
+  workingHoursStart?: string
+  workingHoursEnd?: string
+}
+
+export function useUpdateStore(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: UpdateStoreInput) => api.patch<SellerStore>(`/v2/stores/${storeId}`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
+  })
+}
+
+// بخش ۳.۱ — امتیاز کلی تکمیل‌بودن فروشگاه + چک‌لیست، برای کارت «خانه»‌ی پنل
+export function useStoreCompleteness(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.completeness(storeId),
+    queryFn: () => api.get<StoreCompleteness>(`/v2/stores/${storeId}/completeness`).then(r => r.data),
+    enabled: !!storeId,
   })
 }
 

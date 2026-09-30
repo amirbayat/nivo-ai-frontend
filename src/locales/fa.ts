@@ -497,6 +497,11 @@ export const fa = {
         creditFreeQuota: (used: number, limit: number) =>
           `${used.toLocaleString('fa-IR')} از ${limit.toLocaleString('fa-IR')} خریدار رایگان امروز`,
         creditTopUp: 'شارژ کن',
+        // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱
+        completenessTitle: (percent: number) => `فروشگاه شما ${percent.toLocaleString('fa-IR')}٪ آماده‌ی فروش هوشمند است`,
+        completenessChecklistPhoto: 'حداقل یک محصول با عکس',
+        completenessChecklistKb: 'حداقل ۳ مورد در باکس دانش',
+        completenessChecklistShipping: 'سیاست ارسال ثبت‌شده',
       },
       orders: {
         filterAll: 'همه',
@@ -556,6 +561,9 @@ export const fa = {
         importPreviewPriceHintLabel: 'قیمت پیشنهادی (حتماً چک کن)',
         importPreviewAddToStore: 'افزودن به فروشگاه من',
         importPreviewAdding: 'در حال افزودن...',
+        // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱
+        completenessPercent: (percent: number) => `${percent.toLocaleString('fa-IR')}٪ تکمیل`,
+        completenessMissing: (label: string) => `— ${label} ندارد`,
       },
       more: {
         storeLink: 'لینک فروشگاه',
@@ -563,6 +571,7 @@ export const fa = {
         instagramLink: 'اینستاگرام',
         telegramLink: 'تلگرام',
         websiteLink: 'وبسایت',
+        storeSettings: 'پروفایل فروشگاه',
         knowledgeBase: 'باکس دانش',
         credit: 'اعتبار هوش مصنوعی',
         bankCards: 'کارت‌های بانکی',
@@ -681,6 +690,24 @@ export const fa = {
         conversations: 'تعداد مکالمه',
         approvedOrderRate: 'نرخ سفارش موفق',
         stuckHandoffRate: 'نرخ ارجاع به انسان',
+      },
+      // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲
+      storeSettings: {
+        title: 'پروفایل فروشگاه',
+        subtitle: 'این اطلاعات همیشه در دسترس ایجنت فروش هستند و لازم نیست تک‌تک به باکس دانش اضافه شوند',
+        shippingInfoLabel: 'ارسال و هزینه‌ی آن',
+        shippingInfoPlaceholder: 'مثلاً: ارسال با پست، ۲ تا ۴ روز کاری، هزینه ۵۰ هزار تومان',
+        returnPolicyLabel: 'شرایط مرجوعی/گارانتی',
+        returnPolicyPlaceholder: 'مثلاً: تا ۷ روز بعد از تحویل قابل مرجوعی است',
+        brandIntroLabel: 'معرفی کوتاه فروشگاه',
+        brandIntroPlaceholder: 'یکی دو جمله درباره‌ی فروشگاهت (نه یک محصول خاص)',
+        workingHoursLabel: 'ساعت پاسخ‌گویی',
+        workingHoursHint: 'خالی بگذار یعنی ۲۴ساعته پاسخ می‌دهی',
+        workingHoursStartLabel: 'از ساعت',
+        workingHoursEndLabel: 'تا ساعت',
+        save: 'ذخیره',
+        saved: 'ذخیره شد',
+        saveError: 'ذخیره با خطا مواجه شد',
       },
     },
   },

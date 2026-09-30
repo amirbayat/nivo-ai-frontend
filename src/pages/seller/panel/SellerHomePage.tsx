@@ -1,14 +1,28 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { useNeededAttention, useOrders, useStoreCredit } from '@/queries/seller.queries'
+import { useNeededAttention, useOrders, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+
+// docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱ — چک‌لیست ۳موردی، هر ردیف یک ✓/— ساده
+function ChecklistRow({ done, label }: { done: boolean; label: string }) {
+  return (
+    <li className="flex items-center gap-2 text-xs">
+      <span className={clsx('flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]', done ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/40 text-slate-500')}>
+        {done ? '✓' : '—'}
+      </span>
+      <span className={done ? 'text-slate-500 line-through' : 'text-slate-300 light:text-slate-700'}>{label}</span>
+    </li>
+  )
+}
 
 export function SellerHomePage() {
   const { storeId, storeName, storeSlug } = useSellerStore()
   const pending = useOrders(storeId, 'RECEIPT_SUBMITTED')
   const attention = useNeededAttention(storeId)
   const credit = useStoreCredit(storeId)
+  const completeness = useStoreCompleteness(storeId)
   const [copied, setCopied] = useState(false)
 
   const chatLink = `${window.location.origin}/shop/${storeSlug}`
@@ -46,6 +60,19 @@ export function SellerHomePage() {
           <p className="mt-1 text-xs text-slate-500">{fa.seller.panel.home.needsAttention(attention.data?.length ?? 0)}</p>
         </div>
       </div>
+
+      {completeness.data && (
+        <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
+          <p className="mb-3 text-sm font-bold text-slate-100 light:text-slate-900">
+            {fa.seller.panel.home.completenessTitle(completeness.data.overallScorePercent)}
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            <ChecklistRow done={completeness.data.checklist.hasProductWithPhoto} label={fa.seller.panel.home.completenessChecklistPhoto} />
+            <ChecklistRow done={completeness.data.checklist.hasEnoughKbEntries} label={fa.seller.panel.home.completenessChecklistKb} />
+            <ChecklistRow done={completeness.data.checklist.hasShippingPolicy} label={fa.seller.panel.home.completenessChecklistShipping} />
+          </ul>
+        </div>
+      )}
 
       <Link
         to="/seller/panel/credit"

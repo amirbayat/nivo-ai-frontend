@@ -43,6 +43,7 @@ import { SellerOrdersPage } from '@/pages/seller/panel/SellerOrdersPage'
 import { SellerAttentionPage } from '@/pages/seller/panel/SellerAttentionPage'
 import { SellerProductsPage } from '@/pages/seller/panel/SellerProductsPage'
 import { SellerMorePage } from '@/pages/seller/panel/SellerMorePage'
+import { SellerStoreSettingsPage } from '@/pages/seller/panel/SellerStoreSettingsPage'
 import { SellerKnowledgePage } from '@/pages/seller/panel/SellerKnowledgePage'
 import { SellerCreditPage } from '@/pages/seller/panel/SellerCreditPage'
 import { SellerBankCardsPage } from '@/pages/seller/panel/SellerBankCardsPage'
@@ -116,6 +117,7 @@ export function AppRouter() {
         <Route path="attention" element={<SellerAttentionPage />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="more" element={<SellerMorePage />} />
+        <Route path="store-settings" element={<SellerStoreSettingsPage />} />
         <Route path="knowledge" element={<SellerKnowledgePage />} />
         <Route path="credit" element={<SellerCreditPage />} />
         <Route path="bank-cards" element={<SellerBankCardsPage />} />

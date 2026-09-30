@@ -103,6 +103,7 @@ export const keys = {
     bankCards: (storeId: string) => ['seller', 'bank-cards', storeId] as const,
     discountCodes: (storeId: string) => ['seller', 'discount-codes', storeId] as const,
     channelStats: (storeId: string) => ['seller', 'channel-stats', storeId] as const,
+    completeness: (storeId: string) => ['seller', 'completeness', storeId] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

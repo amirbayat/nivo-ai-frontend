@@ -95,6 +95,12 @@ export interface CreditPackage {
   priceToman: number
 }
 
+// docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱ — امتیاز تکمیل‌بودن، محاسبه‌شده در بک‌اند
+export interface ProductCompleteness {
+  percent: number
+  missing: string[]
+}
+
 // docs/PRD-mvp-launch-plan.md گام ۰ — فروشگاه ایجنت فروش دایرکت/تلگرام
 export interface SellerProduct {
   id: string
@@ -107,6 +113,8 @@ export interface SellerProduct {
   // docs/PRD-telegram-bot-channel.md بخش ۹.۳ — کد کوتاه اختیاری روی محتوای تبلیغاتی فروشنده
   code: string | null
   createdAt: string
+  // فقط GET /v2/stores/:id/products این را پر می‌کند (نه SellerStore.products از GET me)
+  completeness?: ProductCompleteness
 }
 
 export interface SellerStore {
@@ -123,9 +131,25 @@ export interface SellerStore {
   status: 'ACTIVE' | 'SUSPENDED'
   // docs/PRD-seller-credit-billing.md بخش ۱/۵
   creditBalanceToman: number
+  // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲
+  shippingInfo: string | null
+  returnPolicy: string | null
+  brandIntro: string | null
+  workingHoursStart: string | null
+  workingHoursEnd: string | null
   createdAt: string
   updatedAt: string
   products: SellerProduct[]
+}
+
+// بخش ۳.۱ — کارت «خانه»‌ی پنل
+export interface StoreCompleteness {
+  overallScorePercent: number
+  checklist: {
+    hasProductWithPhoto: boolean
+    hasEnoughKbEntries: boolean
+    hasShippingPolicy: boolean
+  }
 }
 
 export interface StoreCreditStatus {
