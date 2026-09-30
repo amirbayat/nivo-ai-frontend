@@ -142,6 +142,27 @@ export interface StoreCreditPackage {
   creditToman: number
 }
 
+// docs/PRD-seller-multi-bank-card-rotation.md
+export type CardDisplayPolicy = 'THRESHOLD' | 'PERCENTAGE' | 'EQUAL'
+
+export interface StoreBankCard {
+  id: string
+  storeId: string
+  cardNumber: string
+  ownerName: string
+  isActive: boolean
+  sortOrder: number
+  thresholdToman: number | null
+  percentWeight: number | null
+  totalConfirmedToman: number
+  createdAt: string
+}
+
+export interface StoreBankCardsResponse {
+  policy: CardDisplayPolicy
+  cards: StoreBankCard[]
+}
+
 // docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی /shop/:slug؛ عیناً مطابق
 // nivo-ai-backend/src/modules/sales-agent/sales-agent.types.ts
 export type ShopUiBlock =

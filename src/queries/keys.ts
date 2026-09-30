@@ -100,6 +100,7 @@ export const keys = {
     kbEntries: (storeId: string, kind?: string) => ['seller', 'kb-entries', storeId, kind ?? 'all'] as const,
     credit: (storeId: string) => ['seller', 'credit', storeId] as const,
     creditPackages: () => ['seller', 'credit-packages'] as const,
+    bankCards: (storeId: string) => ['seller', 'bank-cards', storeId] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

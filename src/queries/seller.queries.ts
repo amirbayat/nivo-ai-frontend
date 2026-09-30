@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import type {
+  CardDisplayPolicy,
   CreateKbEntryInput,
   ImportProductsResult,
   KbCandidateEntry,
@@ -12,6 +13,8 @@ import type {
   SellerOrderStatus,
   SellerProduct,
   SellerStore,
+  StoreBankCard,
+  StoreBankCardsResponse,
   StoreCreditPackage,
   StoreCreditStatus,
   StoreKbEntry,
@@ -280,6 +283,59 @@ export function usePurchaseStoreCredit(storeId: string) {
       api
         .post<{ paymentUrl: string }>(`/v2/stores/${storeId}/credit/purchase`, { packageId })
         .then(r => r.data),
+  })
+}
+
+// docs/PRD-seller-multi-bank-card-rotation.md
+export function useBankCards(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.bankCards(storeId),
+    queryFn: () =>
+      api.get<StoreBankCardsResponse>(`/v2/stores/${storeId}/bank-cards`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+export interface CreateBankCardInput {
+  cardNumber: string
+  ownerName: string
+  sortOrder?: number
+  thresholdToman?: number
+  percentWeight?: number
+}
+
+export function useAddBankCard(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: CreateBankCardInput) =>
+      api.post<StoreBankCard>(`/v2/stores/${storeId}/bank-cards`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.bankCards(storeId) }),
+  })
+}
+
+export interface UpdateBankCardInput {
+  isActive?: boolean
+  ownerName?: string
+  sortOrder?: number
+  thresholdToman?: number
+  percentWeight?: number
+}
+
+export function useUpdateBankCard(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ cardId, dto }: { cardId: string; dto: UpdateBankCardInput }) =>
+      api.patch<StoreBankCard>(`/v2/stores/${storeId}/bank-cards/${cardId}`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.bankCards(storeId) }),
+  })
+}
+
+export function useUpdateCardPolicy(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (policy: CardDisplayPolicy) =>
+      api.patch(`/v2/stores/${storeId}/card-policy`, { policy }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.bankCards(storeId) }),
   })
 }
 
