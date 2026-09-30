@@ -13,7 +13,10 @@
       })();
     </script>
     <link rel="icon" type="image/svg+xml" href="/brand2/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <!-- interactive-widget=resizes-content: مرورگرهای جدید (کروم/سافاری) با باز شدن کیبورد،
+         layout viewport (و در نتیجه dvh) رو واقعاً کوچیک می‌کنن به‌جای overlay کردنش —
+         تکمیل‌کننده‌ی fallback مبتنی بر visualViewport در ShopChatPage.tsx -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <title>نیوو</title>
 
     <meta name="theme-color" content="#10b981" />

@@ -105,10 +105,32 @@ export function ShopChatPage() {
   const chunksRef = useRef<Blob[]>([])
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // 100vh/100dvh روی خیلی از مرورگرهای موبایل با بازشدن کیبورد صفحه شرینک نمی‌شه (مخصوصاً
+  // سافاری قدیمی‌تر) — یعنی اینپوت پایین یک کادر که دیگه بزرگ‌تر از ویوپورت واقعی‌ست میره،
+  // پشت کیبورد قایم می‌شه. visualViewport همیشه ارتفاع واقعی دیده‌شده (بعد از کیبورد) رو
+  // می‌ده؛ کانتینر رو دقیقاً همون ارتفاع می‌ذاریم تا اینپوت همیشه لبه‌ی همون ارتفاع (یعنی
+  // بالای کیبورد) بمونه، نه پشتش
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    function update() {
+      setViewportHeight(vv!.height)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
   useEffect(() => {
     const el = messagesRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages, sending])
+  }, [messages, sending, viewportHeight])
 
   const disabled = sending || viewingHistory || TERMINAL_STATES.includes(state)
 
@@ -192,7 +214,11 @@ export function ShopChatPage() {
   if (loading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
+    <div
+      className="fixed inset-x-0 top-0 flex flex-col overflow-hidden bg-slate-950 light:bg-white"
+      style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+      dir="rtl"
+    >
       <div className="flex items-center justify-between border-b border-slate-800 light:border-slate-200 px-4 py-3">
         <div>
           <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{storeName}</p>
