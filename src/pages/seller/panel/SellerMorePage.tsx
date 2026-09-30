@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useLogout } from '@/queries/auth.queries'
+import { useCreateTelegramConnectToken } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 
 function ExternalLinkRow({ label, value }: { label: string; value: string }) {
@@ -18,8 +19,9 @@ function ExternalLinkRow({ label, value }: { label: string; value: string }) {
 }
 
 export function SellerMorePage() {
-  const { storeName, storeSlug, instagramUrl, telegramUrl, websiteUrl } = useSellerStore()
+  const { storeId, storeName, storeSlug, instagramUrl, telegramUrl, websiteUrl } = useSellerStore()
   const logout = useLogout()
+  const createConnectToken = useCreateTelegramConnectToken(storeId)
   const [copied, setCopied] = useState(false)
   const [telegramCopied, setTelegramCopied] = useState(false)
   const chatLink = `${window.location.origin}/shop/${storeSlug}`
@@ -40,6 +42,17 @@ export function SellerMorePage() {
     await navigator.clipboard.writeText(telegramLink)
     setTelegramCopied(true)
     setTimeout(() => setTelegramCopied(false), 2000)
+  }
+
+  // docs/PRD-telegram-bot-channel.md بخش ۹.۱ — توکن یک‌بارمصرف را می‌گیرد و مستقیم به تلگرام
+  // با پیلود seller_<token> می‌رود؛ TelegramService.handleStart همین‌جا ownerTelegramChatId را ست می‌کند
+  function connectTelegram() {
+    if (!env.VITE_TELEGRAM_BOT_USERNAME) return
+    createConnectToken.mutate(undefined, {
+      onSuccess: ({ token }) => {
+        window.location.href = `https://t.me/${env.VITE_TELEGRAM_BOT_USERNAME}?start=seller_${token}`
+      },
+    })
   }
 
   return (
@@ -109,6 +122,22 @@ export function SellerMorePage() {
           <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L8.414 11l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
       </Link>
+
+      {env.VITE_TELEGRAM_BOT_USERNAME && (
+        <button
+          onClick={connectTelegram}
+          disabled={createConnectToken.isPending}
+          className="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5 disabled:opacity-40"
+        >
+          <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.seller.panel.more.telegramConnect}</span>
+          <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 text-slate-500">
+            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L8.414 11l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        </button>
+      )}
+      {createConnectToken.isError && (
+        <p className="mb-3 text-xs text-red-400">{fa.seller.panel.more.telegramConnectError}</p>
+      )}
 
       <button
         onClick={() => logout.mutate()}

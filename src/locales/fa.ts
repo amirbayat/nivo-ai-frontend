@@ -533,6 +533,9 @@ export const fa = {
         productLinkCopied: 'لینک محصول کپی شد',
         descriptionLabel: 'توضیحات محصول',
         descriptionPlaceholder: 'چند جمله درباره‌ی این محصول بنویس...',
+        // docs/PRD-telegram-bot-channel.md بخش ۹.۳ — روی استوری/پست بگذار، خریدار به‌جای اسم کد رو بگه
+        codeLabel: 'کد محصول (اختیاری)',
+        codePlaceholder: 'مثلاً A12 — برای استوری/پست بگذار',
         aiComplete: 'تکمیل با AI',
         aiCompleteLoading: 'در حال تولید پیشنهاد...',
         aiCompleteError: 'تولید پیشنهاد با خطا مواجه شد',
@@ -564,6 +567,8 @@ export const fa = {
         credit: 'اعتبار هوش مصنوعی',
         bankCards: 'کارت‌های بانکی',
         channelStats: 'آمار وب و تلگرام',
+        telegramConnect: 'اتصال تلگرام برای اعلان‌ها',
+        telegramConnectError: 'ساخت لینک اتصال با خطا مواجه شد',
         logout: 'خروج از حساب',
       },
       knowledge: {

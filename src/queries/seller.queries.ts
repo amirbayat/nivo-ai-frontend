@@ -40,6 +40,7 @@ export interface CreateProductInput {
   basePrice: number
   stock?: number
   description?: string
+  code?: string
 }
 
 export function useMyStores() {
@@ -370,6 +371,15 @@ export function useUpdateCardPolicy(storeId: string) {
     mutationFn: (policy: CardDisplayPolicy) =>
       api.patch(`/v2/stores/${storeId}/card-policy`, { policy }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.bankCards(storeId) }),
+  })
+}
+
+// docs/PRD-telegram-bot-channel.md بخش ۹.۱ — توکن یک‌بارمصرف برای دیپ‌لینک اتصال تلگرام
+// شخصی فروشنده؛ نیازی به invalidate نیست چون خودش هیچ‌جا cache نمی‌شود، فقط یک‌بار مصرف می‌شود
+export function useCreateTelegramConnectToken(storeId: string) {
+  return useMutation({
+    mutationFn: () =>
+      api.post<{ token: string }>(`/v2/stores/${storeId}/telegram-connect-token`).then(r => r.data),
   })
 }
 

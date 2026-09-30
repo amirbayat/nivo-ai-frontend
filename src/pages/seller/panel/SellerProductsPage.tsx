@@ -239,6 +239,7 @@ function ProductSheet({
   const [price, setPrice] = useState(isNew ? '' : String(product.basePrice))
   const [stock, setStock] = useState(isNew ? '' : String(product.stock))
   const [description, setDescription] = useState(isNew ? '' : product.description ?? '')
+  const [code, setCode] = useState(isNew ? '' : product.code ?? '')
   const update = useUpdateProduct(storeId)
   const create = useCreateProduct(storeId)
   const remove = useDeleteProduct(storeId)
@@ -250,6 +251,7 @@ function ProductSheet({
       basePrice: Number(toEnglishDigits(price)) || 0,
       stock: stock ? Number(toEnglishDigits(stock)) : undefined,
       description: description || undefined,
+      code: code.trim() || undefined,
     }
     if (isNew) {
       create.mutate(dto, { onSuccess: onClose })
@@ -269,6 +271,15 @@ function ProductSheet({
       <div className="w-full max-w-lg rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white p-5 pb-8" onClick={e => e.stopPropagation()}>
         <div className="mb-5">
           <Input label={fa.seller.step3.nameLabel} value={name} onChange={e => setName(e.target.value)} />
+        </div>
+        <div className="mb-5">
+          <Input
+            label={fa.seller.panel.products.codeLabel}
+            placeholder={fa.seller.panel.products.codePlaceholder}
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            dir="ltr"
+          />
         </div>
         <div className="mb-6 grid grid-cols-2 gap-3">
           <Input
@@ -306,6 +317,12 @@ function ProductSheet({
 
         {!isNew && (
           <AiCompleteAssist productId={product.id} storeId={storeId} onApplyDescription={setDescription} />
+        )}
+
+        {(create.isError || update.isError) && (
+          <p className="mb-3 text-xs text-red-400">
+            {extractErrorMessage(create.error ?? update.error, fa.common.error)}
+          </p>
         )}
 
         <button
@@ -521,7 +538,10 @@ export function SellerProductsPage() {
               <img src={productImageUrl(p.id, p.images[0])} alt="" className="ml-3 size-10 shrink-0 rounded-lg object-cover" />
             )}
             <button onClick={() => setSheet(p)} className="flex-1 text-start">
-              <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</p>
+              <p className="text-sm font-semibold text-slate-200 light:text-slate-900">
+                {p.name}
+                {p.code && <span dir="ltr" className="mr-1.5 text-xs font-normal text-slate-500">#{p.code}</span>}
+              </p>
               <p className="mt-0.5 text-xs text-slate-500">{fa.shop.stockCount(p.stock)}</p>
             </button>
             <div className="flex flex-col items-end gap-1.5">

@@ -104,6 +104,8 @@ export interface SellerProduct {
   stock: number
   images: string[]
   description: string | null
+  // docs/PRD-telegram-bot-channel.md بخش ۹.۳ — کد کوتاه اختیاری روی محتوای تبلیغاتی فروشنده
+  code: string | null
   createdAt: string
 }
 
@@ -253,6 +255,7 @@ export interface UpdateProductInput {
   basePrice?: number
   stock?: number
   description?: string
+  code?: string
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI
