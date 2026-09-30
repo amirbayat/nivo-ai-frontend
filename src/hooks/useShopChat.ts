@@ -1,18 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
-import {
-  archiveCurrentSession,
-  getShopSession,
-  getShopSessionHistory,
-  setShopSession,
-  type ShopSession,
-  type ShopSessionHistoryEntry,
-} from '@/lib/shopSession'
+import { getShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
 import type {
   ShopAction,
   ShopConversationEvent,
   ShopGetConversationResponse,
+  ShopHistoryEntry,
   ShopMessage,
   ShopSendMessageResponse,
   ShopStartChatResponse,
@@ -50,9 +44,13 @@ export function useShopChat(slug: string, productId?: string) {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [history, setHistory] = useState<ShopSessionHistoryEntry[]>([])
+  const [history, setHistory] = useState<ShopHistoryEntry[]>([])
   const [viewingHistory, setViewingHistoryState] = useState(false)
   const sessionRef = useRef<ShopSession | null>(null)
+  // مکالمه‌ی واقعاً «فعال» — وقتی viewHistoryEntry موقتاً sessionRef را روی یک مکالمه‌ی
+  // قدیمی می‌گذارد، این ref همچنان مکالمه‌ی زنده را نگه می‌دارد تا returnToCurrentChat بتواند
+  // برگردد (docs/PRD-conversation-history.md — تاریخچه حالا سمت سرور است، نه localStorage)
+  const liveSessionRef = useRef<ShopSession | null>(null)
   // ref موازی با state بالا — چون sendMessage/sendAction/... باید همین لحظه (نه بعد از
   // ری‌رندر بعدی) بدانند در حالت تاریخچه هستند یا نه، وگرنه closure قدیمی گیر می‌کند
   const viewingHistoryRef = useRef(false)
@@ -60,6 +58,20 @@ export function useShopChat(slug: string, productId?: string) {
     viewingHistoryRef.current = v
     setViewingHistoryState(v)
   }, [])
+
+  const fetchHistory = useCallback(async () => {
+    const session = liveSessionRef.current
+    if (!session) return
+    try {
+      const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/customer-history`, {
+        headers: { 'X-Session-Token': session.sessionToken },
+      })
+      if (!res.ok) return
+      setHistory((await res.json()) as ShopHistoryEntry[])
+    } catch {
+      // تاریخچه صرفاً یک پنل جانبی است — شکست آن نباید کل چت را خراب کند
+    }
+  }, [slug])
 
   const appendCustomerMessage = useCallback((text: string) => {
     setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text }])
@@ -237,25 +249,15 @@ export function useShopChat(slug: string, productId?: string) {
     [sending, appendCustomerMessage, applyReply],
   )
 
-  // یک مکالمه‌ی کاملاً تازه می‌سازد (اولین بار، یا دستی با دکمه‌ی «گفتگوی جدید») — سشن قبلی
-  // (اگر بود) را قبلش باید کالر خودش archive/clear کرده باشد
-  const createFreshConversation = useCallback(
-    async (cancelledRef?: { current: boolean }): Promise<void> => {
-      const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/chat/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(productId ? { productId } : {}),
-      })
-      if (res.status === 404) {
-        if (!cancelledRef?.current) setNotFound(true)
-        return
-      }
-      if (!res.ok) throw new Error('request failed')
-      const data = (await res.json()) as ShopStartChatResponse
-      if (cancelledRef?.current) return
+  // مشترک بین اولین بوت (chat/start) و «گفتگوی جدید» (chat/:id/restart) — هر دو همین شکل
+  // پاسخ را برمی‌گردانند (docs/PRD-conversation-history.md: restart همان sessionToken را
+  // echo می‌کند چون Customer عوض نمی‌شود، فقط SalesConversation تازه است)
+  const applyStartResponse = useCallback(
+    (data: ShopStartChatResponse) => {
       const session: ShopSession = { conversationId: data.conversationId, sessionToken: data.sessionToken }
       setShopSession(slug, session)
       sessionRef.current = session
+      liveSessionRef.current = session
       setStoreName(data.storeName)
       setMessages([])
       // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
@@ -272,8 +274,29 @@ export function useShopChat(slug: string, productId?: string) {
         setState('GREETING')
         void sendMessage(KICKOFF_MESSAGE, { silent: true })
       }
+      void fetchHistory()
     },
-    [slug, productId, pollVoice, sendMessage],
+    [slug, pollVoice, sendMessage, fetchHistory],
+  )
+
+  // فقط اولین بار (هیچ سشنی در این مرورگر نبوده) — Customer تازه می‌سازد
+  const createFreshConversation = useCallback(
+    async (cancelledRef?: { current: boolean }): Promise<void> => {
+      const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/chat/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productId ? { productId } : {}),
+      })
+      if (res.status === 404) {
+        if (!cancelledRef?.current) setNotFound(true)
+        return
+      }
+      if (!res.ok) throw new Error('request failed')
+      const data = (await res.json()) as ShopStartChatResponse
+      if (cancelledRef?.current) return
+      applyStartResponse(data)
+    },
+    [slug, productId, applyStartResponse],
   )
 
   useEffect(() => {
@@ -281,12 +304,13 @@ export function useShopChat(slug: string, productId?: string) {
 
     async function boot() {
       setLoading(true)
-      setHistory(getShopSessionHistory(slug))
       const existing = getShopSession(slug)
       try {
         if (existing) {
           sessionRef.current = existing
+          liveSessionRef.current = existing
           await fetchConversation()
+          void fetchHistory()
         } else {
           await createFreshConversation(cancelledRef)
         }
@@ -304,31 +328,39 @@ export function useShopChat(slug: string, productId?: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
-  // فیدبک: «کاربر چت جدید نمی‌تواند باز کند» — سشن فعلی را به تاریخچه می‌فرستد و یک
-  // مکالمه‌ی تازه شروع می‌کند؛ چیزی گم نمی‌شود چون همان سشن قبلی در history باقی می‌ماند
+  // فیدبک: «کاربر چت جدید نمی‌تواند باز کند» — docs/PRD-conversation-history.md: دیگر
+  // Customer تازه نمی‌سازد، فقط مکالمه‌ی فعلی همین خریدار را آرشیو و یکی تازه شروع می‌کند
+  // (خودِ سرور در تاریخچه‌ی همین خریدار نگهش می‌دارد)
   const startNewChat = useCallback(async () => {
     if (sending) return
-    archiveCurrentSession(slug)
-    setHistory(getShopSessionHistory(slug))
+    const current = liveSessionRef.current
+    if (!current) return
     setViewingHistory(false)
-    sessionRef.current = null
     setMessages([])
     setError(null)
     setLoading(true)
     try {
-      await createFreshConversation()
+      const res = await fetch(`${env.VITE_API_URL}/v2/chat/${current.conversationId}/restart`, {
+        method: 'POST',
+        headers: { 'X-Session-Token': current.sessionToken },
+      })
+      if (!res.ok) throw new Error('request failed')
+      applyStartResponse((await res.json()) as ShopStartChatResponse)
     } catch {
       setError(fa.common.error)
     } finally {
       setLoading(false)
     }
-  }, [slug, sending, createFreshConversation, setViewingHistory])
+  }, [sending, applyStartResponse, setViewingHistory])
 
-  // نمایش فقط‌خواندنی یک گفتگوی قدیمی از تاریخچه — ارسال پیام غیرفعال می‌ماند تا برگردد
+  // نمایش فقط‌خواندنی یک گفتگوی قدیمی از تاریخچه — ارسال پیام غیرفعال می‌ماند تا برگردد؛
+  // همان sessionToken مکالمه‌ی زنده کار می‌کند چون هر دو مال یک Customer‌اند
   const viewHistoryEntry = useCallback(
-    async (entry: ShopSessionHistoryEntry) => {
+    async (entry: ShopHistoryEntry) => {
       if (sending) return
-      sessionRef.current = entry
+      const live = liveSessionRef.current
+      if (!live) return
+      sessionRef.current = { conversationId: entry.conversationId, sessionToken: live.sessionToken }
       setViewingHistory(true)
       setLoading(true)
       setError(null)
@@ -344,7 +376,7 @@ export function useShopChat(slug: string, productId?: string) {
   )
 
   const returnToCurrentChat = useCallback(async () => {
-    const current = getShopSession(slug)
+    const current = liveSessionRef.current
     if (!current) return
     sessionRef.current = current
     setViewingHistory(false)
@@ -357,7 +389,7 @@ export function useShopChat(slug: string, productId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [slug, fetchConversation, setViewingHistory])
+  }, [fetchConversation, setViewingHistory])
 
   return {
     storeName,

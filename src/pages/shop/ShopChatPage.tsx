@@ -4,8 +4,7 @@ import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
-import type { ShopMessage } from '@/types/api'
-import type { ShopSessionHistoryEntry } from '@/lib/shopSession'
+import type { ShopHistoryEntry, ShopMessage } from '@/types/api'
 
 // HANDOFF_HUMAN عمداً اینجا نیست — بعد از escalate، مشتری باید بتواند مستقیم با فروشنده
 // چت کند (پنل فروشنده، تب «نیاز به توجه»)؛ فقط COMPLETED/REJECTED واقعاً پایانی‌اند
@@ -28,22 +27,37 @@ function VoiceIndicator({ message, conversationId }: { message: ShopMessage; con
   )
 }
 
-// فیدبک: «کاربر چت جدید نمی‌تونه باز کنه» — لیست گفتگوهای قبلی (از localStorage، فقط همین
-// دستگاه) با امکان بازکردن هرکدام به‌صورت فقط‌خواندنی
+const HISTORY_STATUS_STYLES: Record<string, string> = {
+  COMPLETED: 'bg-emerald-500/15 text-emerald-400',
+  REJECTED: 'bg-rose-500/15 text-rose-400',
+  IN_PROGRESS: 'bg-sky-500/15 text-sky-400',
+  NEEDS_ATTENTION: 'bg-amber-500/15 text-amber-400',
+}
+
+// فیدبک: «کاربر چت جدید نمی‌تونه باز کنه» + «منو کشویی از راست» — تاریخچه‌ی واقعی سمت سرور
+// (docs/PRD-conversation-history.md)، هر آیتم: نام فروشگاه/آخرین محصول/وضعیت رنگی
 function HistoryDrawer({
   entries,
   onSelect,
   onClose,
 }: {
-  entries: ShopSessionHistoryEntry[]
-  onSelect: (entry: ShopSessionHistoryEntry) => void
+  entries: ShopHistoryEntry[]
+  onSelect: (entry: ShopHistoryEntry) => void
   onClose: () => void
 }) {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[70vh] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-slate-900 light:bg-white sm:rounded-2xl"
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col bg-slate-900 light:bg-white shadow-xl transition-transform duration-300 ease-out ${
+          visible ? 'translate-x-0' : 'translate-x-full'
+        }`}
       >
         <div className="flex items-center justify-between border-b border-slate-800 light:border-slate-200 px-4 py-3">
           <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.shop.history}</p>
@@ -54,14 +68,22 @@ function HistoryDrawer({
         {entries.length === 0 ? (
           <p className="px-4 py-6 text-center text-xs text-slate-500">{fa.shop.historyEmpty}</p>
         ) : (
-          <ul className="divide-y divide-slate-800 light:divide-slate-100">
+          <ul className="flex-1 divide-y divide-slate-800 light:divide-slate-100 overflow-y-auto">
             {entries.map((entry) => (
               <li key={entry.conversationId}>
                 <button
                   onClick={() => onSelect(entry)}
-                  className="w-full px-4 py-3 text-start text-sm text-slate-300 light:text-slate-700 hover:bg-slate-800/60 light:hover:bg-slate-50"
+                  className="flex w-full flex-col gap-1 px-4 py-3 text-start hover:bg-slate-800/60 light:hover:bg-slate-50"
                 >
-                  {fa.shop.historyEntryLabel(new Date(entry.endedAt).toLocaleString('fa-IR'))}
+                  <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{entry.storeName}</span>
+                  <span className="text-xs text-slate-400 light:text-slate-500">
+                    {entry.lastProductName ?? fa.shop.historyNoProduct}
+                  </span>
+                  <span
+                    className={`w-fit rounded-full px-2 py-0.5 text-[11px] font-medium ${HISTORY_STATUS_STYLES[entry.status] ?? 'bg-slate-500/15 text-slate-400'}`}
+                  >
+                    {fa.shop.historyStatusLabels[entry.status] ?? entry.status}
+                  </span>
                 </button>
               </li>
             ))}
@@ -147,7 +169,7 @@ export function ShopChatPage() {
     void startNewChat()
   }
 
-  function handleSelectHistory(entry: ShopSessionHistoryEntry) {
+  function handleSelectHistory(entry: ShopHistoryEntry) {
     setHistoryOpen(false)
     void viewHistoryEntry(entry)
   }

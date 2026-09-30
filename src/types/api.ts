@@ -226,6 +226,15 @@ export interface ShopGetConversationResponse {
   events: ShopConversationEvent[]
 }
 
+// docs/PRD-conversation-history.md بخش ۳ — یک ردیف در تاریخچه (فعال یا آرشیوشده)
+export interface ShopHistoryEntry {
+  conversationId: string
+  storeName: string
+  lastProductName: string | null
+  status: 'COMPLETED' | 'REJECTED' | 'IN_PROGRESS' | 'NEEDS_ATTENTION'
+  updatedAt: string
+}
+
 // docs/PRD-mvp-launch-plan.md گام ۳ — پنل فروشنده
 export interface UpdateProductInput {
   name?: string

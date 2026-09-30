@@ -668,7 +668,13 @@ export const fa = {
     historyEmpty: 'گفتگوی قبلی‌ای ثبت نشده',
     viewingHistoryBanner: 'داری یک گفتگوی قدیمی رو می‌بینی — فرستادن پیام غیرفعاله',
     backToCurrentChat: 'بازگشت به گفتگوی فعلی',
-    historyEntryLabel: (date: string) => `گفتگوی ${date}`,
+    historyNoProduct: 'بدون محصول',
+    historyStatusLabels: {
+      COMPLETED: 'تکمیل‌شده',
+      REJECTED: 'رد شده',
+      IN_PROGRESS: 'در حال انجام',
+      NEEDS_ATTENTION: 'نیاز به پیگیری',
+    } as Record<string, string>,
   },
   common: {
     save: 'ذخیره',
