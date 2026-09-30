@@ -235,9 +235,26 @@ export interface UpdateProductInput {
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI
+export interface ProductSpecSuggestion {
+  label: string
+  value: string
+}
+
 export interface ProductAiCompleteResult {
   suggestedDescription: string
   suggestedQuestions: string[]
+  // بخش ۲.۳ — فقط وقتی withWebSearch=true درخواست شده باشد پر می‌شوند
+  suggestedSpecs?: ProductSpecSuggestion[]
+  sourceNote?: string
+}
+
+// بخش ۲.۵ — ورود سریع محصول از لینک؛ فقط پیش‌نمایش، هیچ‌چیز خودکار ذخیره نمی‌شود
+export interface ProductImportFromUrlResult {
+  name: string
+  suggestedDescription: string
+  suggestedSpecs?: ProductSpecSuggestion[]
+  priceHint?: number
+  imageUrls: string[]
 }
 
 // بخش ۱.۲/۳ — باکس دانش فروشگاه

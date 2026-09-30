@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
+import axios from 'axios'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { toEnglishDigits, formatThousands } from '@/lib/digits'
 import {
+  useAddProductImagesFromUrl,
   useCompleteProductInfo,
   useCreateKbEntry,
   useCreateProduct,
   useDeleteProduct,
   useDeleteProductImage,
+  useImportProductFromUrl,
   useImportProducts,
   useProducts,
   useUpdateProduct,
@@ -17,6 +20,16 @@ import {
 } from '@/queries/seller.queries'
 import type { SellerProduct } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
+
+// همون الگوی extractErrorMessage در PromptExtractionCard.tsx/NivoCalPage.tsx/VideoEditForms.tsx —
+// پیام واقعی بک‌اند (مثلاً «اعتبار فروشگاه کافی نیست») را نشان می‌دهد، نه یک متن ثابت
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const message = (err.response?.data as { message?: string } | undefined)?.message
+    if (message) return message
+  }
+  return fallback
+}
 
 // عمومی، بدون auth — عیناً همان مسیر که ShopUiBlocks.tsx برای چت خریدار استفاده می‌کند
 function productImageUrl(productId: string, key: string): string {
@@ -114,6 +127,7 @@ function AiCompleteAssist({
   const createKb = useCreateKbEntry(storeId)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set())
+  const [withWebSearch, setWithWebSearch] = useState(false)
 
   function saveAnswer(question: string, index: number) {
     const answer = answers[index]?.trim()
@@ -127,16 +141,27 @@ function AiCompleteAssist({
   return (
     <div className="mb-6">
       {!complete.data && (
-        <button
-          type="button"
-          onClick={() => complete.mutate(productId)}
-          disabled={complete.isPending}
-          className="w-full rounded-2xl border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
-        >
-          {complete.isPending ? fa.seller.panel.products.aiCompleteLoading : `✨ ${fa.seller.panel.products.aiComplete}`}
-        </button>
+        <>
+          <label className="mb-2 flex items-center gap-2 text-xs text-slate-400 light:text-slate-600">
+            <input type="checkbox" checked={withWebSearch} onChange={e => setWithWebSearch(e.target.checked)} />
+            {fa.seller.panel.products.aiWebSearchToggle}
+          </label>
+          {withWebSearch && <p className="mb-2 text-[11px] text-slate-500">{fa.seller.panel.products.aiWebSearchHint}</p>}
+          <button
+            type="button"
+            onClick={() => complete.mutate({ productId, withWebSearch })}
+            disabled={complete.isPending}
+            className="w-full rounded-2xl border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
+          >
+            {complete.isPending ? fa.seller.panel.products.aiCompleteLoading : `✨ ${fa.seller.panel.products.aiComplete}`}
+          </button>
+        </>
       )}
-      {complete.isError && <p className="mt-2 text-xs text-red-400">{fa.seller.panel.products.aiCompleteError}</p>}
+      {complete.isError && (
+        <p className="mt-2 text-xs text-red-400">
+          {extractErrorMessage(complete.error, fa.seller.panel.products.aiCompleteError)}
+        </p>
+      )}
 
       {complete.data && (
         <div className="mt-3 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 p-3.5">
@@ -149,6 +174,22 @@ function AiCompleteAssist({
           >
             {fa.seller.panel.products.aiApplyDescription}
           </button>
+
+          {!!complete.data.suggestedSpecs?.length && (
+            <div className="mb-3">
+              <p className="mb-1.5 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedSpecs}</p>
+              <div className="flex flex-col gap-1">
+                {complete.data.suggestedSpecs.map((s, i) => (
+                  <p key={i} className="text-xs text-slate-300 light:text-slate-700">
+                    <span className="font-semibold">{s.label}:</span> {s.value}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+          {complete.data.sourceNote && (
+            <p className="mb-3 text-[11px] text-slate-500">{complete.data.sourceNote}</p>
+          )}
 
           <p className="mb-2 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedQuestions}</p>
           <div className="flex flex-col gap-2">
@@ -284,6 +325,131 @@ function ProductSheet({
   )
 }
 
+// ورود سریع محصول از لینک صفحه‌ی موجود (docs/PRD-seller-knowledge-base.md بخش ۲.۵) — فقط
+// پیش‌نمایش، خودِ افزودن با همان useCreateProduct موجود انجام می‌شود؛ عکس‌ها فقط بعد از
+// تأیید فروشنده دانلود+آپلود می‌شوند (useAddProductImagesFromUrl)
+function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+  const importFromUrl = useImportProductFromUrl(storeId)
+  const createProduct = useCreateProduct(storeId)
+  const addImagesFromUrl = useAddProductImagesFromUrl(storeId)
+  const [url, setUrl] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
+  const [description, setDescription] = useState('')
+
+  const preview = importFromUrl.data
+
+  useEffect(() => {
+    if (!preview) return
+    setName(preview.name)
+    setPrice(preview.priceHint ? String(preview.priceHint) : '')
+    setDescription(preview.suggestedDescription)
+  }, [preview])
+
+  function addToStore() {
+    if (!preview) return
+    setAdding(true)
+    createProduct.mutate(
+      { name, basePrice: Number(toEnglishDigits(price)) || 0, description: description || undefined },
+      {
+        onSuccess: product => {
+          if (preview.imageUrls.length) {
+            addImagesFromUrl.mutate({ productId: product.id, urls: preview.imageUrls }, { onSettled: onClose })
+          } else {
+            onClose()
+          }
+        },
+        onSettled: () => setAdding(false),
+      },
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white p-5 pb-8"
+        onClick={e => e.stopPropagation()}
+      >
+        <h2 className="mb-1.5 text-lg font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.products.importFromUrlTitle}</h2>
+        <p className="mb-4 text-xs text-slate-500">{fa.seller.panel.products.importFromUrlHint}</p>
+
+        {!preview && (
+          <>
+            <div className="mb-4">
+              <Input value={url} onChange={e => setUrl(e.target.value)} placeholder={fa.seller.panel.products.importFromUrlPlaceholder} dir="ltr" />
+            </div>
+            {importFromUrl.isError && (
+              <p className="mb-3 text-xs text-red-400">
+                {extractErrorMessage(importFromUrl.error, fa.seller.panel.products.importFromUrlError)}
+              </p>
+            )}
+            <button
+              onClick={() => importFromUrl.mutate(url.trim())}
+              disabled={!url.trim() || importFromUrl.isPending}
+              className="w-full rounded-2xl bg-emerald-500 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+            >
+              {importFromUrl.isPending ? fa.seller.panel.products.importFromUrlLoading : fa.seller.panel.products.importFromUrlSubmit}
+            </button>
+          </>
+        )}
+
+        {preview && (
+          <>
+            {!!preview.imageUrls.length && (
+              <div className="mb-4 flex gap-2">
+                {preview.imageUrls.map(src => (
+                  <img key={src} src={src} alt="" className="size-16 rounded-xl border border-slate-700 light:border-slate-200 object-cover" />
+                ))}
+              </div>
+            )}
+            <div className="mb-4">
+              <Input label={fa.seller.step3.nameLabel} value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div className="mb-4">
+              <Input
+                label={fa.seller.panel.products.importPreviewPriceHintLabel}
+                value={formatThousands(price)}
+                onChange={e => setPrice(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+                dir="ltr"
+                inputMode="numeric"
+                className="text-center"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
+                {fa.seller.panel.products.descriptionLabel}
+              </label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={3}
+                className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900"
+              />
+            </div>
+            {!!preview.suggestedSpecs?.length && (
+              <div className="mb-4 flex flex-col gap-1">
+                {preview.suggestedSpecs.map((s, i) => (
+                  <p key={i} className="text-xs text-slate-400 light:text-slate-600">
+                    <span className="font-semibold">{s.label}:</span> {s.value}
+                  </p>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={addToStore}
+              disabled={!name || !price || adding}
+              className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+            >
+              {adding ? fa.seller.panel.products.importPreviewAdding : fa.seller.panel.products.importPreviewAddToStore}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function SellerProductsPage() {
   const { storeId, storeSlug } = useSellerStore()
   const products = useProducts(storeId)
@@ -292,6 +458,7 @@ export function SellerProductsPage() {
   const [sheet, setSheet] = useState<SellerProduct | 'new' | null>(null)
   const [importResult, setImportResult] = useState<{ created: number; errorCount: number } | null>(null)
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null)
+  const [importFromUrlOpen, setImportFromUrlOpen] = useState(false)
 
   async function copyProductLink(productId: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/shop/${storeSlug}?product=${productId}`)
@@ -325,6 +492,14 @@ export function SellerProductsPage() {
             e.target.value = ''
           }}
         />
+      </div>
+      <div className="mb-5">
+        <button
+          onClick={() => setImportFromUrlOpen(true)}
+          className="w-full rounded-xl border border-dashed border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400"
+        >
+          {fa.seller.panel.products.importFromUrl}
+        </button>
       </div>
 
       {importResult && (
@@ -363,6 +538,7 @@ export function SellerProductsPage() {
       </div>
 
       {sheet && <ProductSheet product={sheet} storeId={storeId} onClose={() => setSheet(null)} />}
+      {importFromUrlOpen && <ImportFromUrlSheet storeId={storeId} onClose={() => setImportFromUrlOpen(false)} />}
     </div>
   )
 }

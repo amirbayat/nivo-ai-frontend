@@ -8,6 +8,7 @@ import type {
   KbCandidateEntry,
   NeededAttentionConversation,
   ProductAiCompleteResult,
+  ProductImportFromUrlResult,
   SellerConversationDetail,
   SellerOrder,
   SellerOrderStatus,
@@ -222,10 +223,33 @@ export function useUnmuteConversation(storeId: string) {
 // فروشنده در همان شیت تأیید/ویرایش می‌کند و بعد save می‌زند)
 export function useCompleteProductInfo(storeId: string) {
   return useMutation({
-    mutationFn: (productId: string) =>
+    mutationFn: ({ productId, withWebSearch }: { productId: string; withWebSearch?: boolean }) =>
       api
-        .post<ProductAiCompleteResult>(`/v2/stores/${storeId}/products/${productId}/ai-complete`)
+        .post<ProductAiCompleteResult>(`/v2/stores/${storeId}/products/${productId}/ai-complete`, undefined, {
+          params: withWebSearch ? { withWebSearch: true } : undefined,
+        })
         .then(r => r.data),
+  })
+}
+
+// docs/PRD-seller-knowledge-base.md بخش ۲.۵ — فقط پیش‌نمایش، چیزی ذخیره نمی‌شود
+export function useImportProductFromUrl(storeId: string) {
+  return useMutation({
+    mutationFn: (url: string) =>
+      api
+        .post<ProductImportFromUrlResult>(`/v2/stores/${storeId}/products/import-from-url`, { url })
+        .then(r => r.data),
+  })
+}
+
+export function useAddProductImagesFromUrl(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, urls }: { productId: string; urls: string[] }) =>
+      api
+        .post<SellerProduct>(`/v2/stores/${storeId}/products/${productId}/images/from-url`, { urls })
+        .then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) }),
   })
 }
 
