@@ -579,6 +579,9 @@ export const fa = {
     cardNumberCopied: 'کپی شد',
     receiptUploadedNote: 'رسید واریز رو فرستادم',
     outOfStock: 'ناموجود',
+    // عمداً بدون عدد — فروشنده نمی‌خواهد تعداد موجودی واقعی به خریدار (در ویجت فروش) نشان
+    // داده شود؛ stockCount زیر فقط برای پنل خودِ فروشنده (SellerProductsPage) است
+    inStock: 'موجود است',
     stockCount: (n: number) => `موجودی: ${n}`,
     orderStatusLabels: {
       PENDING_PAYMENT: 'در انتظار پرداخت',

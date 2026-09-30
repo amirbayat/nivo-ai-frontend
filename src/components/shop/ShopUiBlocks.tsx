@@ -49,7 +49,7 @@ function ProductCardBlock({
           </div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-slate-500 light:text-slate-500">
-              {p.stock > 0 ? fa.shop.stockCount(p.stock) : fa.shop.outOfStock}
+              {p.stock > 0 ? fa.shop.inStock : fa.shop.outOfStock}
             </span>
             <button
               onClick={() => onAddToCart(p.id)}
