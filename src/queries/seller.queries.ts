@@ -82,6 +82,8 @@ export interface UpdateStoreInput {
   brandIntro?: string
   workingHoursStart?: string
   workingHoursEnd?: string
+  postPurchaseFollowUpEnabled?: boolean
+  abandonedCartReminderEnabled?: boolean
 }
 
 export function useUpdateStore(storeId: string) {

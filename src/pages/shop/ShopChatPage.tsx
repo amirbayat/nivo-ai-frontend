@@ -16,14 +16,29 @@ function voiceAudioUrl(conversationId: string, key: string): string {
 
 // docs/PRD-sales-agent-voice.md بخش ۱.۵ — پخش وویس پاسخ (وقتی آماده شد)؛ تا وقتی voiceKey
 // نرسیده و voiceEventId هست، یک وضعیت «در حال آمادگی» کوچک نشان می‌دهد
-function VoiceIndicator({ message, conversationId }: { message: ShopMessage; conversationId: string }) {
+function VoiceIndicator({
+  message,
+  conversationId,
+  onPlay,
+}: {
+  message: ShopMessage
+  conversationId: string
+  onPlay: (key: string) => void
+}) {
   if (!message.voiceEventId) return null
   if (!message.voiceKey) {
     return <p className="mt-1 text-[11px] text-slate-500">{fa.shop.voicePreparing}</p>
   }
   return (
     // eslint-disable-next-line jsx-a11y/media-has-caption -- پیام صوتی خودِ ایجنت است، نه محتوای رسانه‌ای مستقل
-    <audio controls src={voiceAudioUrl(conversationId, message.voiceKey)} className="mt-1.5 h-8 w-full max-w-[240px]" />
+    <audio
+      controls
+      src={voiceAudioUrl(conversationId, message.voiceKey)}
+      className="mt-1.5 h-8 w-full max-w-[240px]"
+      // docs/PRD-sales-agent-voice.md بخش ۶.۵ — فقط یک‌بار (سرور هم idempotent است)، همین که
+      // پخش واقعاً شروع شد، نه فقط فایل لود شد
+      onPlay={() => onPlay(message.voiceKey!)}
+    />
   )
 }
 
@@ -114,6 +129,7 @@ export function ShopChatPage() {
     sendAction,
     uploadReceipt,
     sendVoiceMessage,
+    markVoiceHeard,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,
@@ -296,7 +312,9 @@ export function ShopChatPage() {
               >
                 {m.text}
               </div>
-              {conversationId && m.role === 'agent' && <VoiceIndicator message={m} conversationId={conversationId} />}
+              {conversationId && m.role === 'agent' && (
+                <VoiceIndicator message={m} conversationId={conversationId} onPlay={markVoiceHeard} />
+              )}
               {m.uiBlock && (
                 <ShopUiBlockView
                   block={m.uiBlock}

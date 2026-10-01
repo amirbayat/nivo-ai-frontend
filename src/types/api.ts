@@ -137,6 +137,9 @@ export interface SellerStore {
   brandIntro: string | null
   workingHoursStart: string | null
   workingHoursEnd: string | null
+  // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۰ بند ۴
+  postPurchaseFollowUpEnabled: boolean
+  abandonedCartReminderEnabled: boolean
   createdAt: string
   updatedAt: string
   products: SellerProduct[]

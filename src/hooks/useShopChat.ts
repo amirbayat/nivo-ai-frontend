@@ -400,6 +400,17 @@ export function useShopChat(slug: string, productId?: string) {
     }
   }, [fetchConversation, setViewingHistory])
 
+  // docs/PRD-sales-agent-voice.md بخش ۶.۵ — سیگنال واقعی «شنیده شد» روی وب؛ onPlay تگ audio
+  // یک‌بار این را صدا می‌زند. fire-and-forget — شکست این پینگ نباید پخش صدا را مختل کند
+  const markVoiceHeard = useCallback((key: string) => {
+    const session = sessionRef.current
+    if (!session) return
+    void fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/voice/${key}/heard`, {
+      method: 'POST',
+      headers: { 'X-Session-Token': session.sessionToken },
+    }).catch(() => {})
+  }, [])
+
   return {
     storeName,
     notFound,
@@ -415,6 +426,7 @@ export function useShopChat(slug: string, productId?: string) {
     sendAction,
     uploadReceipt,
     sendVoiceMessage,
+    markVoiceHeard,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,

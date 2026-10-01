@@ -706,6 +706,11 @@ export const fa = {
         workingHoursHint: 'خالی بگذار یعنی ۲۴ساعته پاسخ می‌دهی',
         workingHoursStartLabel: 'از ساعت',
         workingHoursEndLabel: 'تا ساعت',
+        // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۰ بند ۴
+        autoMessagesLabel: 'پیام‌های خودکار برای خریدار',
+        autoMessagesHint: 'این پیام‌ها خودکار برای خریدار فرستاده می‌شوند، بدون دخالت تو',
+        postPurchaseFollowUpLabel: 'پیگیری رضایت بعد از خرید',
+        abandonedCartReminderLabel: 'یادآوری سبد رهاشده',
         save: 'ذخیره',
         saved: 'ذخیره شد',
         saveError: 'ذخیره با خطا مواجه شد',

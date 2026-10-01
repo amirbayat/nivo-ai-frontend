@@ -1,8 +1,34 @@
 import { useEffect, useState } from 'react'
+import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { useMyStores, useUpdateStore } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+
+function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 py-2.5">
+      <span className="text-sm text-slate-300 light:text-slate-700">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={clsx(
+          'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+          checked ? 'bg-emerald-500' : 'bg-slate-700 light:bg-slate-300',
+        )}
+      >
+        <span
+          className={clsx(
+            'absolute top-0.5 size-5 rounded-full bg-white transition-transform',
+            checked ? 'right-0.5' : 'right-[1.375rem]',
+          )}
+        />
+      </button>
+    </label>
+  )
+}
 
 // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲ — فیلدهای ساختاریافته‌ی فروشگاه که تا امروز
 // فقط یک‌بار در ویزارد ثبت‌نام قابل ورود بودند و بعدش هیچ‌جا قابل ویرایش نبودند
@@ -17,6 +43,8 @@ export function SellerStoreSettingsPage() {
   const [brandIntro, setBrandIntro] = useState('')
   const [workingHoursStart, setWorkingHoursStart] = useState('')
   const [workingHoursEnd, setWorkingHoursEnd] = useState('')
+  const [postPurchaseFollowUpEnabled, setPostPurchaseFollowUpEnabled] = useState(true)
+  const [abandonedCartReminderEnabled, setAbandonedCartReminderEnabled] = useState(true)
   const [saved, setSaved] = useState(false)
 
   // فقط یک‌بار بعد از رسیدن دیتا مقداردهی اولیه می‌شود — ویرایش‌های در حال تایپ کاربر با
@@ -28,6 +56,8 @@ export function SellerStoreSettingsPage() {
     setBrandIntro(store.brandIntro ?? '')
     setWorkingHoursStart(store.workingHoursStart ?? '')
     setWorkingHoursEnd(store.workingHoursEnd ?? '')
+    setPostPurchaseFollowUpEnabled(store.postPurchaseFollowUpEnabled)
+    setAbandonedCartReminderEnabled(store.abandonedCartReminderEnabled)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store?.id])
 
@@ -39,6 +69,8 @@ export function SellerStoreSettingsPage() {
         brandIntro: brandIntro.trim() || undefined,
         workingHoursStart: workingHoursStart || undefined,
         workingHoursEnd: workingHoursEnd || undefined,
+        postPurchaseFollowUpEnabled,
+        abandonedCartReminderEnabled,
       },
       {
         onSuccess: () => {
@@ -112,6 +144,23 @@ export function SellerStoreSettingsPage() {
           />
         </div>
         <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.storeSettings.workingHoursHint}</p>
+      </div>
+
+      <div className="mb-6">
+        <p className="mb-0.5 text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.panel.storeSettings.autoMessagesLabel}</p>
+        <p className="mb-1 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.storeSettings.autoMessagesHint}</p>
+        <div className="divide-y divide-slate-800 light:divide-slate-200">
+          <ToggleRow
+            label={fa.seller.panel.storeSettings.postPurchaseFollowUpLabel}
+            checked={postPurchaseFollowUpEnabled}
+            onChange={setPostPurchaseFollowUpEnabled}
+          />
+          <ToggleRow
+            label={fa.seller.panel.storeSettings.abandonedCartReminderLabel}
+            checked={abandonedCartReminderEnabled}
+            onChange={setAbandonedCartReminderEnabled}
+          />
+        </div>
       </div>
 
       {update.isError && <p className="mb-3 text-xs text-red-400">{fa.seller.panel.storeSettings.saveError}</p>}
