@@ -162,10 +162,12 @@ export interface StoreCreditStatus {
 }
 
 // docs/PRD-seller-advertising-placements.md — جایگاه تبلیغاتی/Boost در جستجوی تلگرام
+// docs/PRD-product-display-focus-and-variations.md §۳ — GREETING_FEATURED_PRODUCT (محصول‌محور)
 export interface AdPlacement {
   id: string
   storeId: string
-  placement: 'TELEGRAM_STORE_SEARCH' | 'MARKETPLACE_FEATURED'
+  productId?: string | null
+  placement: 'TELEGRAM_STORE_SEARCH' | 'MARKETPLACE_FEATURED' | 'GREETING_FEATURED_PRODUCT'
   startsAt: string
   endsAt: string
   priceToman: number
@@ -342,6 +344,16 @@ export interface ProductAiCompleteResult {
   // بخش ۲.۳ — فقط وقتی withWebSearch=true درخواست شده باشد پر می‌شوند
   suggestedSpecs?: ProductSpecSuggestion[]
   sourceNote?: string
+}
+
+// docs/PRD-admin-product-enrichment-review.md — پیشنهاد تایید‌شده‌ی ادمین، در انتظار تصمیم فروشنده
+export interface ProductEnrichmentDraft {
+  id: string
+  productId: string
+  suggestedDescription: string
+  suggestedQuestions: string[]
+  suggestedSpecs: ProductSpecSuggestion[] | null
+  sourceNote: string | null
 }
 
 // بخش ۲.۵ — ورود سریع محصول از لینک؛ فقط پیش‌نمایش، هیچ‌چیز خودکار ذخیره نمی‌شود

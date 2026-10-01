@@ -573,6 +573,13 @@ export const fa = {
         editProduct: 'ویرایش محصول',
         backToList: 'بازگشت به لیست محصولات',
         notFound: 'این محصول پیدا نشد',
+        // docs/PRD-product-display-focus-and-variations.md §۲.۴
+        copyTelegramLink: 'کپی لینک تلگرام محصول',
+        telegramLinkCopied: 'لینک تلگرام کپی شد',
+        // docs/PRD-admin-product-enrichment-review.md
+        enrichmentDraftBadge: 'پیشنهاد تیم نیوو برای تکمیل این محصول',
+        enrichmentApprove: 'تایید و اعمال',
+        enrichmentReject: 'رد کن',
       },
       more: {
         storeLink: 'لینک فروشگاه',
@@ -736,6 +743,11 @@ export const fa = {
         buy: 'خرید',
         buying: 'در حال خرید...',
         purchaseError: 'اعتبار فروشگاه کافی نیست — از بخش «اعتبار هوش مصنوعی» شارژ کن',
+        // docs/PRD-product-display-focus-and-variations.md §۳ — جایگاه فاز ۲: نمایش یک
+        // محصول مشخص در اولین پیام مکالمه (نه نتایج جستجوی تلگرام)
+        productSectionTitle: 'پیشنهاد ویژه در اولین پیام',
+        productSectionSubtitle: 'یک محصول را برای معرفی در همان اولین پیام هر مکالمه‌ی تازه انتخاب کن',
+        productSelectPlaceholder: 'یک محصول را انتخاب کن',
       },
     },
   },

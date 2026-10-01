@@ -11,6 +11,7 @@ import type {
   KbCandidateEntry,
   NeededAttentionConversation,
   ProductAiCompleteResult,
+  ProductEnrichmentDraft,
   ProductImportFromUrlResult,
   SellerConversationDetail,
   SellerOrder,
@@ -383,6 +384,82 @@ export function usePurchaseAdPlacement(storeId: string) {
       void qc.invalidateQueries({ queryKey: keys.seller.adPlacement(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.credit(storeId) })
     },
+  })
+}
+
+// docs/PRD-product-display-focus-and-variations.md §۳ — جایگاه فاز ۲: نمایش یک محصول مشخص
+// در اولین پیام مکالمه؛ همان الگوی useAdPlacement/usePurchaseAdPlacement بالا، per-product
+export function useProductAdPlacement(storeId: string, productId: string) {
+  return useQuery({
+    queryKey: keys.seller.productAdPlacement(storeId, productId),
+    queryFn: () =>
+      api
+        .get<AdPlacementStatusResponse>(`/v2/stores/${storeId}/products/${productId}/ad-placement`)
+        .then(r => r.data),
+    enabled: !!storeId && !!productId,
+  })
+}
+
+export function usePurchaseProductAdPlacement(storeId: string, productId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (durationDays: 7 | 30) =>
+      api
+        .post<AdPlacement>(`/v2/stores/${storeId}/products/${productId}/ad-placement/purchase`, { durationDays })
+        .then(r => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.seller.productAdPlacement(storeId, productId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.credit(storeId) })
+    },
+  })
+}
+
+// docs/PRD-product-display-focus-and-variations.md §۲.۴ — کد کوتاه لینک تلگرامی محصول را
+// می‌گیرد (در صورت نبود، بک‌اند همین‌جا می‌سازد)
+export function useProductTelegramLink(storeId: string) {
+  return useMutation({
+    mutationFn: (productId: string) =>
+      api
+        .post<{ shortCode: string }>(`/v2/stores/${storeId}/products/${productId}/telegram-link`)
+        .then(r => r.data),
+  })
+}
+
+// docs/PRD-admin-product-enrichment-review.md — پیشنهاد تایید‌شده‌ی ادمین در انتظار تصمیم
+// فروشنده برای این محصول (یا null اگر چیزی در انتظار نیست)
+export function usePendingEnrichmentDraft(storeId: string, productId: string) {
+  return useQuery({
+    queryKey: keys.seller.enrichmentDraft(storeId, productId),
+    queryFn: () =>
+      api
+        .get<ProductEnrichmentDraft | null>(`/v2/stores/${storeId}/products/${productId}/enrichment-draft`)
+        .then(r => r.data),
+    enabled: !!storeId && !!productId,
+  })
+}
+
+export function useApproveEnrichmentDraft(storeId: string, productId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      api
+        .post<SellerProduct>(`/v2/stores/${storeId}/products/${productId}/enrichment-draft/approve`)
+        .then(r => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.seller.enrichmentDraft(storeId, productId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
+    },
+  })
+}
+
+export function useRejectEnrichmentDraft(storeId: string, productId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      api
+        .post(`/v2/stores/${storeId}/products/${productId}/enrichment-draft/reject`)
+        .then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.enrichmentDraft(storeId, productId) }),
   })
 }
 

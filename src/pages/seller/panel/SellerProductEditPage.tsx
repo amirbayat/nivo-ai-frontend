@@ -2,18 +2,23 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { toEnglishDigits, formatThousands } from '@/lib/digits'
 import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
+  useApproveEnrichmentDraft,
   useCompleteProductInfo,
   useCreateKbEntry,
   useCreateProduct,
   useDeleteProduct,
   useDeleteProductImage,
+  usePendingEnrichmentDraft,
   useProducts,
+  useProductTelegramLink,
+  useRejectEnrichmentDraft,
   useTranscribeAudio,
   useUpdateProduct,
   useUploadProductImages,
@@ -123,12 +128,98 @@ function AiCompleteAssist({
   const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set())
   const [withWebSearch, setWithWebSearch] = useState(false)
 
+  // docs/PRD-admin-product-enrichment-review.md — اگر ادمین قبلاً یک پیشنهاد تایید‌کرده برای
+  // این محصول منتظر تصمیم فروشنده باشد، به‌جای دکمه‌ی «شروع تکمیل با AI» مستقیم همان را نشان
+  // می‌دهیم؛ تایید/رد یک اکشن سرور است (description واقعاً آپدیت می‌شود)، نه فقط پرکردن فرم
+  const pendingDraft = usePendingEnrichmentDraft(storeId, productId)
+  const approveDraft = useApproveEnrichmentDraft(storeId, productId)
+  const rejectDraft = useRejectEnrichmentDraft(storeId, productId)
+
   function saveAnswer(question: string, index: number) {
     const answer = answers[index]?.trim()
     if (!answer) return
     createKb.mutate(
       { kind: 'PRODUCT_INFO', question, answer, relatedProductId: productId },
       { onSuccess: () => setSavedIndexes(prev => new Set(prev).add(index)) },
+    )
+  }
+
+  if (pendingDraft.data) {
+    const draft = pendingDraft.data
+    return (
+      <div className="mb-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3.5">
+        <p className="mb-2 text-xs font-bold text-emerald-300 light:text-emerald-700">
+          ✨ {fa.seller.panel.products.enrichmentDraftBadge}
+        </p>
+        <p className="mb-1.5 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedDescription}</p>
+        <p className="mb-3 text-sm text-slate-200 light:text-slate-800">{draft.suggestedDescription}</p>
+
+        {!!draft.suggestedSpecs?.length && (
+          <div className="mb-3">
+            <p className="mb-1.5 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedSpecs}</p>
+            <div className="flex flex-col gap-1">
+              {draft.suggestedSpecs.map((s, i) => (
+                <p key={i} className="text-xs text-slate-300 light:text-slate-700">
+                  <span className="font-semibold">{s.label}:</span> {s.value}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+        {draft.sourceNote && <p className="mb-3 text-[11px] text-slate-500">{draft.sourceNote}</p>}
+
+        <div className="mb-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              approveDraft.mutate(undefined, {
+                onSuccess: () => onApplyDescription(draft.suggestedDescription),
+              })
+            }
+            disabled={approveDraft.isPending}
+            className="flex-1 rounded-xl bg-emerald-500/20 py-2 text-xs font-bold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
+          >
+            {fa.seller.panel.products.enrichmentApprove}
+          </button>
+          <button
+            type="button"
+            onClick={() => rejectDraft.mutate()}
+            disabled={rejectDraft.isPending}
+            className="flex-1 rounded-xl border border-slate-700 light:border-slate-300 py-2 text-xs font-bold text-slate-300 light:text-slate-600 disabled:opacity-40"
+          >
+            {fa.seller.panel.products.enrichmentReject}
+          </button>
+        </div>
+
+        <p className="mb-2 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedQuestions}</p>
+        <div className="flex flex-col gap-2">
+          {draft.suggestedQuestions.map((q, i) => (
+            <div key={i} className="rounded-xl bg-slate-900/40 light:bg-white p-2.5">
+              <p className="mb-1.5 text-sm text-slate-300 light:text-slate-700">{q}</p>
+              {savedIndexes.has(i) ? (
+                <p className="text-xs text-emerald-400">{fa.common.success}</p>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={answers[i] ?? ''}
+                    onChange={e => setAnswers(prev => ({ ...prev, [i]: e.target.value }))}
+                    placeholder={fa.seller.panel.products.aiQuestionAnswerPlaceholder}
+                    className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 bg-transparent px-2.5 py-1.5 text-xs text-slate-200 light:text-slate-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveAnswer(q, i)}
+                    disabled={!answers[i]?.trim() || createKb.isPending}
+                    className="shrink-0 rounded-lg bg-emerald-500/20 px-3 text-xs font-semibold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
+                  >
+                    {fa.common.save}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     )
   }
 
@@ -349,6 +440,18 @@ export function SellerProductEditPage() {
   const remove = useDeleteProduct(storeId)
   const pending = update.isPending || create.isPending || remove.isPending
 
+  // docs/PRD-product-display-focus-and-variations.md §۲.۴ — لینک اختصاصی تلگرام همین محصول؛
+  // بدون یوزرنیم بات (هنوز ساخته نشده) دکمه کلاً نمایش داده نمی‌شود، همون الگوی SellerMorePage
+  const telegramLink = useProductTelegramLink(storeId)
+  const [telegramCopied, setTelegramCopied] = useState(false)
+  async function copyTelegramLink(productId: string) {
+    if (!env.VITE_TELEGRAM_BOT_USERNAME) return
+    const { shortCode } = await telegramLink.mutateAsync(productId)
+    await navigator.clipboard.writeText(`https://t.me/${env.VITE_TELEGRAM_BOT_USERNAME}?start=p_${shortCode}`)
+    setTelegramCopied(true)
+    setTimeout(() => setTelegramCopied(false), 2000)
+  }
+
   const product = found
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
@@ -418,6 +521,8 @@ export function SellerProductEditPage() {
     )
   }
 
+  const existingProduct = product !== 'new' ? product : null
+
   return (
     <div className="px-5 py-6">
       <button onClick={goBack} className="mb-5 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 light:text-slate-500 light:hover:text-slate-800">
@@ -425,9 +530,20 @@ export function SellerProductEditPage() {
         {fa.seller.panel.products.backToList}
       </button>
 
-      <h1 className="mb-5 text-lg font-bold text-slate-100 light:text-slate-900">
-        {isNew ? fa.seller.panel.products.addProduct : fa.seller.panel.products.editProduct}
-      </h1>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h1 className="text-lg font-bold text-slate-100 light:text-slate-900">
+          {isNew ? fa.seller.panel.products.addProduct : fa.seller.panel.products.editProduct}
+        </h1>
+        {existingProduct && env.VITE_TELEGRAM_BOT_USERNAME && (
+          <button
+            onClick={() => void copyTelegramLink(existingProduct.id)}
+            disabled={telegramLink.isPending}
+            className="shrink-0 rounded-lg border border-slate-700/60 light:border-slate-200 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-100 light:text-slate-600 light:hover:text-slate-900 disabled:opacity-50"
+          >
+            {telegramCopied ? fa.seller.panel.products.telegramLinkCopied : fa.seller.panel.products.copyTelegramLink}
+          </button>
+        )}
+      </div>
 
       <div className="mb-5">
         <Input label={fa.seller.step3.nameLabel} value={name} onChange={e => setName(e.target.value)} maxLength={NAME_MAX_LENGTH} />
