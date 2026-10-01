@@ -569,6 +569,10 @@ export const fa = {
         descriptionDictating: 'در حال ضبط... برای توقف دوباره بزن',
         descriptionTranscribing: 'در حال تبدیل گفتار به متن...',
         descriptionDictateError: 'تبدیل صدا به متن با خطا مواجه شد',
+        // فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — ویرایش محصول از مودال به یک صفحه‌ی مستقل تبدیل شد
+        editProduct: 'ویرایش محصول',
+        backToList: 'بازگشت به لیست محصولات',
+        notFound: 'این محصول پیدا نشد',
       },
       more: {
         storeLink: 'لینک فروشگاه',
