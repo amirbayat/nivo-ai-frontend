@@ -308,9 +308,12 @@ export function ShopChatPage() {
                   m.role === 'agent'
                     ? 'rounded-tr-sm bg-slate-700/70 text-slate-200 light:bg-slate-100 light:text-slate-800'
                     : 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100 light:text-emerald-900'
-                }`}
+                } ${m.isVoice && !m.text ? 'italic text-emerald-200/70 light:text-emerald-900/60' : ''}`}
               >
-                {m.text}
+                {/* فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — تا transcript برسد (isVoice && !text)، یک وضعیت
+                    pending نشان می‌دهیم؛ بعد از آن میکروفون کنار متن واقعی می‌ماند تا خریدار
+                    بفهمد این پیام از وویس آمده، نه تایپ */}
+                {m.isVoice && !m.text ? fa.shop.customerVoiceTranscribing : m.isVoice ? `🎙️ ${m.text}` : m.text}
               </div>
               {conversationId && m.role === 'agent' && (
                 <VoiceIndicator message={m} conversationId={conversationId} onPlay={markVoiceHeard} />

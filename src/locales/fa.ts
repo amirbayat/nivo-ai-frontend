@@ -564,6 +564,11 @@ export const fa = {
         // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱
         completenessPercent: (percent: number) => `${percent.toLocaleString('fa-IR')}٪ تکمیل`,
         completenessMissing: (label: string) => `— ${label} ندارد`,
+        descriptionPreviewToggle: 'پیش‌نمایش',
+        descriptionDictateStart: 'ضبط توضیحات با صدا',
+        descriptionDictating: 'در حال ضبط... برای توقف دوباره بزن',
+        descriptionTranscribing: 'در حال تبدیل گفتار به متن...',
+        descriptionDictateError: 'تبدیل صدا به متن با خطا مواجه شد',
       },
       more: {
         storeLink: 'لینک فروشگاه',
@@ -753,6 +758,7 @@ export const fa = {
     } as Record<string, string>,
     conversationEnded: 'این مکالمه به یکی از همکارهای فروشگاه منتقل شد — می‌تونی همینجا باهاش صحبت کنی.',
     voicePreparing: '🔊 در حال آماده‌سازی صدا...',
+    customerVoiceTranscribing: '🎙️ در حال تبدیل گفتار به متن...',
     voiceRecording: 'در حال ضبط... برای فرستادن دوباره بزن',
     micNotSupported: 'ضبط صدا روی این مرورگر پشتیبانی نمی‌شود',
     recordingLabel: 'در حال ضبط',

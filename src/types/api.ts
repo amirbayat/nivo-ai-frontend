@@ -264,6 +264,9 @@ export interface ShopMessage {
   // سرور voiceEventId می‌دهد؛ کلاینت کوتاه پول می‌کند تا voiceKey برسد
   voiceEventId?: string
   voiceKey?: string
+  // فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — پیام صوتیِ خودِ خریدار (نه پاسخ ایجنت). وقتی true و text خالی
+  // است یعنی هنوز در حال تبدیل گفتار به متن (ASR سمت سرور) — useShopChat.ts's sendVoiceMessage
+  isVoice?: boolean
 }
 
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس

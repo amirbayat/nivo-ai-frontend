@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
@@ -15,6 +17,7 @@ import {
   useImportProductFromUrl,
   useImportProducts,
   useProducts,
+  useTranscribeAudio,
   useUpdateProduct,
   useUploadProductImages,
 } from '@/queries/seller.queries'
@@ -36,7 +39,13 @@ function productImageUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/images/${key}`
 }
 
-function ProductImages({ product }: { product: SellerProduct }) {
+function ProductImages({
+  product,
+  onProductUpdated,
+}: {
+  product: SellerProduct
+  onProductUpdated: (product: SellerProduct) => void
+}) {
   const { storeId } = useSellerStore()
   const upload = useUploadProductImages(storeId)
   const remove = useDeleteProductImage(storeId)
@@ -98,6 +107,9 @@ function ProductImages({ product }: { product: SellerProduct }) {
           const previewUrls = files.map(f => URL.createObjectURL(f))
           setPendingPreviews(prev => [...prev, ...previewUrls])
           upload.mutate({ productId: product.id, files }, {
+            // سرور SellerProduct به‌روز (با عکس‌های جدید) را برمی‌گرداند — مستقیم به sheet
+            // والد پاس داده می‌شود تا پیش‌نمایش فوری باشد، نه منتظر رفت‌وبرگشت invalidate
+            onSuccess: updated => onProductUpdated(updated),
             onSettled: () => {
               previewUrls.forEach(url => URL.revokeObjectURL(url))
               setPendingPreviews(prev => prev.filter(url => !previewUrls.includes(url)))
@@ -225,14 +237,115 @@ function AiCompleteAssist({
   )
 }
 
+// فروشنده هرچقدر می‌خواهد می‌تواند بنویسد (دیگر سقف سختگیرانه‌ای در فرانت نیست)؛ فقط DTO
+// بک‌اند (create-product.dto.ts/update-product.dto.ts) سقف واقعی ۵۰۰۰/۲۰۰ را enforce می‌کند —
+// این‌جا فقط برای فیدبک فوری به فروشنده قبل از Save تکرار شده
+const NAME_MAX_LENGTH = 200
+const DESCRIPTION_MAX_LENGTH = 5000
+
+// فیدبک کاربر ۱۴۰۵/۰۷/۰۱: میکروفون برای ضبط توضیحات + پیش‌نمایش Markdown — توضیح خام هیچ‌وقت
+// مستقیم به خریدار نشان داده نمی‌شود (caption() همیشه پاسخ تازه می‌سازد)، پس این پیش‌نمایش فقط
+// برای خودِ فروشنده حین نوشتن معناست. همان الگوی ضبط ShopChatPage.tsx، بدون semantics مکالمه.
+function DescriptionEditor({
+  value,
+  onChange,
+  storeId,
+  maxLength,
+}: {
+  value: string
+  onChange: (text: string) => void
+  storeId: string
+  maxLength: number
+}) {
+  const transcribe = useTranscribeAudio(storeId)
+  const [recording, setRecording] = useState(false)
+  const [previewOn, setPreviewOn] = useState(false)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+
+  async function toggleRecording() {
+    if (recording) {
+      recorderRef.current?.stop()
+      setRecording(false)
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      chunksRef.current = []
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        transcribe.mutate(blob, {
+          onSuccess: ({ text }) => {
+            const trimmed = text.trim()
+            if (trimmed) onChange(value ? `${value}\n${trimmed}` : trimmed)
+          },
+        })
+      }
+      recorderRef.current = recorder
+      recorder.start()
+      setRecording(true)
+    } catch {
+      // دسترسی میکروفون رد شد — دکمه به حالت اولیه برمی‌گردد، نیازی به alert مزاحم نیست
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleRecording}
+          disabled={transcribe.isPending}
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+            recording ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 light:bg-slate-100 text-slate-300 light:text-slate-700'
+          } disabled:opacity-40`}
+        >
+          🎙️ {recording ? fa.seller.panel.products.descriptionDictating : fa.seller.panel.products.descriptionDictateStart}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPreviewOn(p => !p)}
+          className="text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline"
+        >
+          {fa.seller.panel.products.descriptionPreviewToggle}
+        </button>
+      </div>
+      {transcribe.isPending && <p className="mb-2 text-xs text-slate-500">{fa.seller.panel.products.descriptionTranscribing}</p>}
+      {transcribe.isError && <p className="mb-2 text-xs text-red-400">{fa.seller.panel.products.descriptionDictateError}</p>}
+      {previewOn ? (
+        <div className="min-h-[72px] rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-900/40 light:bg-slate-50 px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 prose prose-sm prose-invert light:prose-neutral max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{value || fa.seller.panel.products.descriptionPlaceholder}</ReactMarkdown>
+        </div>
+      ) : (
+        <textarea
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={fa.seller.panel.products.descriptionPlaceholder}
+          rows={3}
+          maxLength={maxLength}
+          className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
+        />
+      )}
+    </div>
+  )
+}
+
 function ProductSheet({
   product,
   storeId,
   onClose,
+  onProductUpdated,
 }: {
   product: SellerProduct | 'new'
   storeId: string
   onClose: () => void
+  onProductUpdated: (product: SellerProduct) => void
 }) {
   const isNew = product === 'new'
   const [name, setName] = useState(isNew ? '' : product.name)
@@ -268,9 +381,12 @@ function ProductSheet({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white p-5 pb-8" onClick={e => e.stopPropagation()}>
+      <div
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white p-5 pb-8"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="mb-5">
-          <Input label={fa.seller.step3.nameLabel} value={name} onChange={e => setName(e.target.value)} />
+          <Input label={fa.seller.step3.nameLabel} value={name} onChange={e => setName(e.target.value)} maxLength={NAME_MAX_LENGTH} />
         </div>
         <div className="mb-5">
           <Input
@@ -300,18 +416,17 @@ function ProductSheet({
           />
         </div>
 
-        {!isNew && <ProductImages product={product} />}
+        {!isNew && <ProductImages product={product} onProductUpdated={onProductUpdated} />}
 
         <div className="mb-6">
           <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
             {fa.seller.panel.products.descriptionLabel}
           </label>
-          <textarea
+          <DescriptionEditor
             value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder={fa.seller.panel.products.descriptionPlaceholder}
-            rows={3}
-            className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
+            onChange={setDescription}
+            storeId={storeId}
+            maxLength={DESCRIPTION_MAX_LENGTH}
           />
         </div>
 
@@ -563,7 +678,14 @@ export function SellerProductsPage() {
         ))}
       </div>
 
-      {sheet && <ProductSheet product={sheet} storeId={storeId} onClose={() => setSheet(null)} />}
+      {sheet && (
+        <ProductSheet
+          product={sheet}
+          storeId={storeId}
+          onClose={() => setSheet(null)}
+          onProductUpdated={updated => setSheet(updated)}
+        />
+      )}
       {importFromUrlOpen && <ImportFromUrlSheet storeId={storeId} onClose={() => setImportFromUrlOpen(false)} />}
     </div>
   )

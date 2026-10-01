@@ -9,7 +9,7 @@ import { useSellerStore } from './SellerPanelLayout'
 export function SellerCreditPage() {
   const { storeId } = useSellerStore()
   const credit = useStoreCredit(storeId)
-  const packages = useStoreCreditPackages()
+  const packages = useStoreCreditPackages(storeId)
   const purchase = usePurchaseStoreCredit(storeId)
   const [purchasingId, setPurchasingId] = useState<string | null>(null)
 
@@ -17,6 +17,9 @@ export function SellerCreditPage() {
     setPurchasingId(packageId)
     purchase.mutate(packageId, {
       onSuccess: ({ paymentUrl }) => {
+        // فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — بدون این خط، CallbackPage.tsx بعد از پرداخت فروشنده را
+        // به فال‌بک `/chat` می‌فرستاد (همان الگوی موجود در plans.queries.ts برای خریدار)
+        sessionStorage.setItem('nivo:pendingReturnPath', window.location.pathname)
         window.location.href = paymentUrl
       },
       onError: () => setPurchasingId(null),

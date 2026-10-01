@@ -235,6 +235,11 @@ export function useShopChat(slug: string, productId?: string) {
     async (blob: Blob) => {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
+      // فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — قبلاً تا رسیدن transcript (رفت‌وبرگشت بلاکینگ + ASR سمت
+      // سرور) خریدار هیچ نشونه‌ای نمی‌دید که وویسش اصلاً فرستاده شده. حالا فوری یک حباب
+      // pending (با isVoice) اضافه می‌شود، همون id بعداً با متن واقعی جایگزین می‌شود
+      const pendingId = `voice-${Date.now()}`
+      setMessages((prev) => [...prev, { id: pendingId, role: 'customer', text: '', isVoice: true }])
       setSending(true)
       setError(null)
       try {
@@ -247,7 +252,9 @@ export function useShopChat(slug: string, productId?: string) {
         })
         if (!res.ok) throw new Error('request failed')
         const data = (await res.json()) as ShopSendMessageResponse
-        if (data.transcript) appendCustomerMessage(data.transcript)
+        setMessages((prev) =>
+          prev.map((m) => (m.id === pendingId ? { ...m, text: data.transcript ?? '' } : m)),
+        )
         applyReply(data)
       } catch {
         setError(fa.common.error)
@@ -255,7 +262,7 @@ export function useShopChat(slug: string, productId?: string) {
         setSending(false)
       }
     },
-    [sending, appendCustomerMessage, applyReply],
+    [sending, applyReply],
   )
 
   // مشترک بین اولین بوت (chat/start) و «گفتگوی جدید» (chat/:id/restart) — هر دو همین شکل

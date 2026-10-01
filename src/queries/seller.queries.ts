@@ -159,6 +159,22 @@ export function useUploadProductImages(storeId: string) {
   })
 }
 
+// فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — میکروفون کنار توضیحات محصول؛ همان الگوی sendVoiceMessage در
+// useShopChat.ts (ضبط با MediaRecorder، آپلود multipart)، ولی بدون semantics مکالمه
+export function useTranscribeAudio(storeId: string) {
+  return useMutation({
+    mutationFn: (blob: Blob) => {
+      const form = new FormData()
+      form.append('file', blob, 'voice.webm')
+      return api
+        .post<{ text: string }>(`/v2/stores/${storeId}/transcribe`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
+    },
+  })
+}
+
 export function useDeleteProductImage(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
@@ -327,13 +343,13 @@ export function useStoreCredit(storeId: string) {
   })
 }
 
-export function useStoreCreditPackages() {
+// فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — مسیر مخصوص فروشگاه (نه v2/credits/packages عمومی قبلی) تا
+// بسته‌های «مخصوص همین فروشگاه» (CreditPackage.storeId) هم کنار بسته‌های عمومی دیده شوند
+export function useStoreCreditPackages(storeId: string) {
   return useQuery({
-    queryKey: keys.seller.creditPackages(),
-    queryFn: () =>
-      api
-        .get<StoreCreditPackage[]>('/v2/credits/packages', { params: { scope: 'STORE_AI_CREDIT' } })
-        .then(r => r.data),
+    queryKey: keys.seller.creditPackages(storeId),
+    queryFn: () => api.get<StoreCreditPackage[]>(`/v2/stores/${storeId}/credit/packages`).then(r => r.data),
+    enabled: !!storeId,
   })
 }
 
