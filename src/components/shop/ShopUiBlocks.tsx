@@ -66,6 +66,38 @@ function ProductCardBlock({
   )
 }
 
+// docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۳ — برخلاف ProductCardBlock که فقط
+// images[0] نشان می‌دهد، همه‌ی عکس‌های محصول را به شکل گرید می‌دهد (وقتی مشتری صریح عکس
+// بیشتر خواسته)
+function ProductPhotosBlock({
+  productId,
+  productName,
+  images,
+}: {
+  productId: string
+  productName: string
+  images: string[]
+}) {
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null)
+  return (
+    <div className="mt-2 grid grid-cols-3 gap-2">
+      {images.map((key) => {
+        const src = productImageUrl(productId, key)
+        return (
+          <img
+            key={key}
+            src={src}
+            alt={productName}
+            onClick={() => setZoomSrc(src)}
+            className="aspect-square w-full cursor-zoom-in rounded-lg object-cover"
+          />
+        )
+      })}
+      {zoomSrc && <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} analyticsSource="shop_product_photos" />}
+    </div>
+  )
+}
+
 function CartSummaryBlock({
   items,
   total,
@@ -174,6 +206,8 @@ export function ShopUiBlockView({ block, disabled, onAddToCart, onConfirmCart, o
   switch (block.type) {
     case 'PRODUCT_CARD':
       return <ProductCardBlock products={block.products} disabled={disabled} onAddToCart={onAddToCart} />
+    case 'PRODUCT_PHOTOS':
+      return <ProductPhotosBlock productId={block.productId} productName={block.productName} images={block.images} />
     case 'CART_SUMMARY':
       return <CartSummaryBlock items={block.items} total={block.total} disabled={disabled} onConfirmCart={onConfirmCart} />
     case 'PAYMENT_INSTRUCTIONS':

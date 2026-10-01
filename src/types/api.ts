@@ -243,6 +243,10 @@ export interface StoreDiscountCode {
 // nivo-ai-backend/src/modules/sales-agent/sales-agent.types.ts
 export type ShopUiBlock =
   | { type: 'PRODUCT_CARD'; products: { id: string; name: string; basePrice: number; stock: number; images: string[] }[] }
+  // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۳ — برخلاف PRODUCT_CARD که فقط اولین
+  // عکس هر محصول را می‌دهد، این بلاک همه‌ی عکس‌های یک محصول را حمل می‌کند (وقتی مشتری صریح
+  // عکس بیشتر خواسته)
+  | { type: 'PRODUCT_PHOTOS'; productId: string; productName: string; images: string[] }
   | { type: 'CART_SUMMARY'; items: { productId: string; name: string; unitPrice: number; qty: number }[]; total: number }
   | { type: 'PAYMENT_INSTRUCTIONS'; cardNumber: string; ownerName: string; amount: number }
   | { type: 'ORDER_STATUS'; orderId: string; status: string }
