@@ -412,7 +412,9 @@ export function useShopChat(slug: string, productId?: string) {
   const markVoiceHeard = useCallback((key: string) => {
     const session = sessionRef.current
     if (!session) return
-    void fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/voice/${key}/heard`, {
+    // کلید ذخیره‌سازی شامل پیشوند «conversationId/» است (storage.service.ts uploadImage) —
+    // باید encode شود وگرنه «/» داخلش روت :key را به چند سگمنت می‌شکند و 404 می‌گیرد
+    void fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/voice/${encodeURIComponent(key)}/heard`, {
       method: 'POST',
       headers: { 'X-Session-Token': session.sessionToken },
     }).catch(() => {})

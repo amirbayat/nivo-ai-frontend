@@ -11,7 +11,10 @@ import type { ShopHistoryEntry, ShopMessage } from '@/types/api'
 const TERMINAL_STATES = ['COMPLETED', 'REJECTED']
 
 function voiceAudioUrl(conversationId: string, key: string): string {
-  return `${env.VITE_API_URL}/v2/chat/${conversationId}/voice/${key}`
+  // کلید ذخیره‌سازی شامل پیشوند «conversationId/» است (storage.service.ts uploadImage) —
+  // باید encode شود وگرنه «/» داخلش روت :key را به چند سگمنت می‌شکند و 404 می‌گیرد (صدا هرگز
+  // بارگذاری نمی‌شد، مستقل از مشکل WAV/MP3)
+  return `${env.VITE_API_URL}/v2/chat/${conversationId}/voice/${encodeURIComponent(key)}`
 }
 
 // docs/PRD-sales-agent-voice.md بخش ۱.۵ — پخش وویس پاسخ (وقتی آماده شد)؛ تا وقتی voiceKey
