@@ -791,6 +791,11 @@ export const fa = {
       IN_PROGRESS: 'در حال انجام',
       NEEDS_ATTENTION: 'نیاز به پیگیری',
     } as Record<string, string>,
+    // docs/PRD-sales-agent-response-strategy-ab.md بخش ۹ — سوییچ دستی تست Track A/B، فعلاً
+    // فقط برای تست کاربر، نه یک قابلیت نهایی محصول
+    responseStrategyTitle: 'نسخه‌ی پاسخ‌دهی ربات (فقط تست)',
+    responseStrategyRuleBased: 'A',
+    responseStrategyAgent: 'B',
   },
   common: {
     save: 'ذخیره',

@@ -8,6 +8,7 @@ import type {
   ShopGetConversationResponse,
   ShopHistoryEntry,
   ShopMessage,
+  ShopResponseStrategy,
   ShopSendMessageResponse,
   ShopStartChatResponse,
   ShopVoiceStatusResponse,
@@ -46,6 +47,9 @@ export function useShopChat(slug: string, productId?: string) {
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<ShopHistoryEntry[]>([])
   const [viewingHistory, setViewingHistoryState] = useState(false)
+  // docs/PRD-sales-agent-response-strategy-ab.md بخش ۹ — سوییچ دستی خریدار برای تست زنده‌ی
+  // Track A/B؛ فعلاً فقط برای تست، پیش‌فرض واقعی سرور RULE_BASED است
+  const [responseStrategy, setResponseStrategyState] = useState<ShopResponseStrategy>('RULE_BASED')
   const sessionRef = useRef<ShopSession | null>(null)
   // مکالمه‌ی واقعاً «فعال» — وقتی viewHistoryEntry موقتاً sessionRef را روی یک مکالمه‌ی
   // قدیمی می‌گذارد، این ref همچنان مکالمه‌ی زنده را نگه می‌دارد تا returnToCurrentChat بتواند
@@ -182,6 +186,7 @@ export function useShopChat(slug: string, productId?: string) {
     const data = (await res.json()) as ShopGetConversationResponse
     setState(data.state)
     setStoreName(data.storeName)
+    setResponseStrategyState(data.responseStrategy)
     setMessages(eventsToMessages(data.events))
   }, [])
 
@@ -275,6 +280,7 @@ export function useShopChat(slug: string, productId?: string) {
       sessionRef.current = session
       liveSessionRef.current = session
       setStoreName(data.storeName)
+      setResponseStrategyState(data.responseStrategy)
       setMessages([])
       // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
       if (data.initialReply) {
@@ -407,6 +413,30 @@ export function useShopChat(slug: string, productId?: string) {
     }
   }, [fetchConversation, setViewingHistory])
 
+  // docs/PRD-sales-agent-response-strategy-ab.md بخش ۹ — سوییچ دستی خریدار بین Track A
+  // (RULE_BASED) و Track B (SIMPLE_AGENT) روی همین مکالمه، فقط برای تست؛ optimistic update،
+  // در صورت شکست fetchConversation مقدار واقعی سرور را برمی‌گرداند
+  const setResponseStrategy = useCallback(
+    async (strategy: ShopResponseStrategy) => {
+      const session = sessionRef.current
+      if (!session || sending || viewingHistoryRef.current) return
+      const previous = responseStrategy
+      if (previous === strategy) return
+      setResponseStrategyState(strategy)
+      try {
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/response-strategy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          body: JSON.stringify({ responseStrategy: strategy }),
+        })
+        if (!res.ok) throw new Error('request failed')
+      } catch {
+        await fetchConversation().catch(() => setResponseStrategyState(previous))
+      }
+    },
+    [sending, responseStrategy, fetchConversation],
+  )
+
   // docs/PRD-sales-agent-voice.md بخش ۶.۵ — سیگنال واقعی «شنیده شد» روی وب؛ onPlay تگ audio
   // یک‌بار این را صدا می‌زند. fire-and-forget — شکست این پینگ نباید پخش صدا را مختل کند
   const markVoiceHeard = useCallback((key: string) => {
@@ -431,6 +461,8 @@ export function useShopChat(slug: string, productId?: string) {
     error,
     history,
     viewingHistory,
+    responseStrategy,
+    setResponseStrategy,
     sendMessage,
     sendAction,
     uploadReceipt,

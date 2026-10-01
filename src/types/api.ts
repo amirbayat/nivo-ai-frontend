@@ -281,6 +281,7 @@ export interface ShopStartChatResponse {
   conversationId: string
   sessionToken: string
   storeName: string
+  responseStrategy: ShopResponseStrategy
   // فقط وقتی لینک اختصاصی یک محصول باز شده (?product=) و آن محصول واقعاً پیدا شد
   initialReply?: string
   initialUiBlocks?: ShopUiBlock[]
@@ -308,9 +309,12 @@ export interface ShopConversationEvent {
   createdAt: string
 }
 
+export type ShopResponseStrategy = 'RULE_BASED' | 'SIMPLE_AGENT'
+
 export interface ShopGetConversationResponse {
   state: string
   storeName: string
+  responseStrategy: ShopResponseStrategy
   events: ShopConversationEvent[]
 }
 

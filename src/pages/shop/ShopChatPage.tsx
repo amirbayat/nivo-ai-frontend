@@ -128,6 +128,8 @@ export function ShopChatPage() {
     error,
     history,
     viewingHistory,
+    responseStrategy,
+    setResponseStrategy,
     sendMessage,
     sendAction,
     uploadReceipt,
@@ -266,6 +268,33 @@ export function ShopChatPage() {
           <p className="text-xs text-slate-500">دستیار فروش</p>
         </div>
         <div className="flex items-center gap-1">
+          <div
+            title={fa.shop.responseStrategyTitle}
+            className="flex items-center overflow-hidden rounded-lg border border-slate-700 light:border-slate-300 text-[11px] font-semibold"
+          >
+            <button
+              onClick={() => void setResponseStrategy('RULE_BASED')}
+              disabled={viewingHistory}
+              className={`px-2 py-1 transition-colors ${
+                responseStrategy === 'RULE_BASED'
+                  ? 'bg-sky-500 text-white'
+                  : 'text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100'
+              }`}
+            >
+              {fa.shop.responseStrategyRuleBased}
+            </button>
+            <button
+              onClick={() => void setResponseStrategy('SIMPLE_AGENT')}
+              disabled={viewingHistory}
+              className={`px-2 py-1 transition-colors ${
+                responseStrategy === 'SIMPLE_AGENT'
+                  ? 'bg-sky-500 text-white'
+                  : 'text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100'
+              }`}
+            >
+              {fa.shop.responseStrategyAgent}
+            </button>
+          </div>
           <button
             onClick={() => setHistoryOpen(true)}
             title={fa.shop.history}
