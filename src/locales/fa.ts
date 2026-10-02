@@ -550,6 +550,10 @@ export const fa = {
         aiApplyDescription: 'استفاده از این توضیح',
         aiWebSearchToggle: 'جستجوی وب هم انجام بده',
         aiWebSearchHint: 'برای محصولات برند‌دار/شناخته‌شده دقیق‌تر است — از اعتبار هوش مصنوعی فروشگاه کم می‌شود',
+        // docs/PRD-sales-agent-persuasion-principles.md بخش ۶.۴ — حتی وقتی کلید کلی فروشگاه
+        // روشن است، فروشنده می‌تواند همین یک محصول را مستثنا کند
+        persuasionToggleLabel: 'تکنیک‌های متقاعدسازی برای این محصول',
+        persuasionToggleHint: 'اگر خاموش کنی، حتی وقتی کلید کلی فروشگاه روشن است، ایجنت برای همین محصول از این تکنیک‌ها استفاده نمی‌کند',
         aiSuggestedSpecs: 'مشخصات پیدا‌شده',
         importFromUrl: 'افزودن از لینک',
         importFromUrlTitle: 'ورود سریع محصول از لینک',
@@ -727,6 +731,10 @@ export const fa = {
         autoMessagesHint: 'این پیام‌ها خودکار برای خریدار فرستاده می‌شوند، بدون دخالت تو',
         postPurchaseFollowUpLabel: 'پیگیری رضایت بعد از خرید',
         abandonedCartReminderLabel: 'یادآوری سبد رهاشده',
+        // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
+        persuasionLabel: 'تکنیک‌های متقاعدسازی فروش',
+        persuasionHint: 'ایجنت از نظرات خریداران قبلی، تعداد فروش واقعی، تخفیف‌های زمان‌دار و موجودی محدود (فقط اگر واقعی باشند) برای متقاعدکردن مشتری استفاده می‌کند',
+        persuasionToggleLabel: 'استفاده از تکنیک‌های متقاعدسازی',
         save: 'ذخیره',
         saved: 'ذخیره شد',
         saveError: 'ذخیره با خطا مواجه شد',
@@ -796,6 +804,8 @@ export const fa = {
     responseStrategyTitle: 'نسخه‌ی پاسخ‌دهی ربات (فقط تست)',
     responseStrategyRuleBased: 'A',
     responseStrategyAgent: 'B',
+    // docs/PRD-sales-agent-tool-calling-architecture.md بخش ۷ (فاز ۳)
+    responseStrategyFullAgent: 'C',
   },
   common: {
     save: 'ذخیره',

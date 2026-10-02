@@ -115,6 +115,9 @@ export interface SellerProduct {
   createdAt: string
   // فقط GET /v2/stores/:id/products این را پر می‌کند (نه SellerStore.products از GET me)
   completeness?: ProductCompleteness
+  // docs/PRD-sales-agent-persuasion-principles.md بخش ۶ — کلید به‌ازای این محصول (AND با
+  // SellerStore.persuasionTechniquesEnabled)
+  persuasionTechniquesEnabled: boolean
 }
 
 export interface SellerStore {
@@ -140,6 +143,8 @@ export interface SellerStore {
   // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۰ بند ۴
   postPurchaseFollowUpEnabled: boolean
   abandonedCartReminderEnabled: boolean
+  // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
+  persuasionTechniquesEnabled: boolean
   createdAt: string
   updatedAt: string
   products: SellerProduct[]
@@ -309,7 +314,9 @@ export interface ShopConversationEvent {
   createdAt: string
 }
 
-export type ShopResponseStrategy = 'RULE_BASED' | 'SIMPLE_AGENT'
+// docs/PRD-sales-agent-tool-calling-architecture.md بخش ۷ (فاز ۳) — FULL_AGENT سومین گزینه،
+// فقط برای تست دستی خریدار
+export type ShopResponseStrategy = 'RULE_BASED' | 'SIMPLE_AGENT' | 'FULL_AGENT'
 
 export interface ShopGetConversationResponse {
   state: string
@@ -334,6 +341,8 @@ export interface UpdateProductInput {
   stock?: number
   description?: string
   code?: string
+  // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
+  persuasionTechniquesEnabled?: boolean
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI

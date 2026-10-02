@@ -294,6 +294,17 @@ export function ShopChatPage() {
             >
               {fa.shop.responseStrategyAgent}
             </button>
+            <button
+              onClick={() => void setResponseStrategy('FULL_AGENT')}
+              disabled={viewingHistory}
+              className={`px-2 py-1 transition-colors ${
+                responseStrategy === 'FULL_AGENT'
+                  ? 'bg-sky-500 text-white'
+                  : 'text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100'
+              }`}
+            >
+              {fa.shop.responseStrategyFullAgent}
+            </button>
           </div>
           <button
             onClick={() => setHistoryOpen(true)}

@@ -47,6 +47,8 @@ export interface CreateProductInput {
   stock?: number
   description?: string
   code?: string
+  // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
+  persuasionTechniquesEnabled?: boolean
 }
 
 export function useMyStores() {
@@ -85,6 +87,8 @@ export interface UpdateStoreInput {
   workingHoursEnd?: string
   postPurchaseFollowUpEnabled?: boolean
   abandonedCartReminderEnabled?: boolean
+  // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
+  persuasionTechniquesEnabled?: boolean
 }
 
 export function useUpdateStore(storeId: string) {

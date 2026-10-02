@@ -6,6 +6,7 @@ import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
+import { ToggleRow } from '@/components/ui/ToggleRow'
 import { toEnglishDigits, formatThousands } from '@/lib/digits'
 import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
@@ -458,6 +459,7 @@ export function SellerProductEditPage() {
   const [stock, setStock] = useState('')
   const [description, setDescription] = useState('')
   const [code, setCode] = useState('')
+  const [persuasionTechniquesEnabled, setPersuasionTechniquesEnabled] = useState(true)
   const [initialized, setInitialized] = useState(false)
 
   // فرم فقط یک‌بار از دیتای واقعی پر می‌شود (نه هر رندر، وگرنه تایپ فروشنده با هر invalidate
@@ -473,6 +475,7 @@ export function SellerProductEditPage() {
       setStock(String(product.stock))
       setDescription(product.description ?? '')
       setCode(product.code ?? '')
+      setPersuasionTechniquesEnabled(product.persuasionTechniquesEnabled)
     }
     setInitialized(true)
   }, [initialized, product])
@@ -488,6 +491,7 @@ export function SellerProductEditPage() {
       stock: stock ? Number(toEnglishDigits(stock)) : undefined,
       description: description || undefined,
       code: code.trim() || undefined,
+      persuasionTechniquesEnabled,
     }
     if (isNew) {
       create.mutate(dto, { onSuccess: goBack })
@@ -595,6 +599,17 @@ export function SellerProductEditPage() {
       {!isNew && product && product !== 'new' && (
         <AiCompleteAssist productId={product.id} storeId={storeId} onApplyDescription={setDescription} />
       )}
+
+      <div className="mb-6">
+        <div className="divide-y divide-slate-800 light:divide-slate-200">
+          <ToggleRow
+            label={fa.seller.panel.products.persuasionToggleLabel}
+            checked={persuasionTechniquesEnabled}
+            onChange={setPersuasionTechniquesEnabled}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.persuasionToggleHint}</p>
+      </div>
 
       {(create.isError || update.isError) && (
         <p className="mb-3 text-xs text-red-400">
