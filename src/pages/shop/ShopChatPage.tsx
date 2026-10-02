@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
@@ -32,6 +32,96 @@ function voiceAudioUrl(conversationId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/chat/${conversationId}/voice/${encodeURIComponent(key)}`
 }
 
+function formatVoiceDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+// فیدبک: پلیر بومی <audio controls> خیلی ساده/زشت بود — پلیر سفارشی با دکمه‌ی پخش، نوار
+// پیشرفت قابل-seek، و زمان، هم‌شکل حباب‌های صدای اپ‌های پیام‌رسان آشنا. dir="ltr" عمدی است
+// چون ترتیب زمانی (دکمه → نوار → عدد) جهانی و چپ‌به‌راست است، حتی داخل صفحه‌ی RTL.
+function VoicePlayer({ src, onFirstPlay }: { src: string; onFirstPlay: () => void }) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [duration, setDuration] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const firedRef = useRef(false)
+
+  const toggle = () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (audio.paused) void audio.play()
+    else audio.pause()
+  }
+
+  const seek = (e: MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current
+    if (!audio || !duration) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+    audio.currentTime = ratio * duration
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+  return (
+    <div
+      dir="ltr"
+      className="mt-1.5 flex w-full max-w-[220px] items-center gap-2 rounded-full bg-slate-800/70 px-2 py-1.5 light:bg-slate-100"
+    >
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption -- پیام صوتی خودِ ایجنت است، کنترل‌های سفارشی پایین جایگزین controls بومی‌اند */}
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="metadata"
+        className="hidden"
+        onPlay={() => {
+          setPlaying(true)
+          // docs/PRD-sales-agent-voice.md بخش ۶.۵ — فقط یک‌بار (سرور هم idempotent است)
+          if (!firedRef.current) {
+            firedRef.current = true
+            onFirstPlay()
+          }
+        }}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+      />
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white"
+      >
+        {playing ? (
+          <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5">
+            <rect x="5" y="4" width="3.5" height="12" rx="1" />
+            <rect x="11.5" y="4" width="3.5" height="12" rx="1" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5">
+            <path d="M6 4.5v11l9-5.5-9-5.5z" />
+          </svg>
+        )}
+      </button>
+      <div
+        onClick={seek}
+        className="relative h-1.5 flex-1 cursor-pointer rounded-full bg-slate-600/60 light:bg-slate-300"
+      >
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-sky-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <span className="shrink-0 text-[10px] tabular-nums text-slate-400">
+        {formatVoiceDuration(currentTime > 0 ? currentTime : duration)}
+      </span>
+    </div>
+  )
+}
+
 // docs/PRD-sales-agent-voice.md بخش ۱.۵ — پخش وویس پاسخ (وقتی آماده شد)؛ تا وقتی voiceKey
 // نرسیده و voiceEventId هست، یک وضعیت «در حال آمادگی» کوچک نشان می‌دهد
 function VoiceIndicator({
@@ -48,14 +138,9 @@ function VoiceIndicator({
     return <p className="mt-1 text-[11px] text-slate-500">{fa.shop.voicePreparing}</p>
   }
   return (
-    // eslint-disable-next-line jsx-a11y/media-has-caption -- پیام صوتی خودِ ایجنت است، نه محتوای رسانه‌ای مستقل
-    <audio
-      controls
+    <VoicePlayer
       src={voiceAudioUrl(conversationId, message.voiceKey)}
-      className="mt-1.5 h-8 w-full max-w-[240px]"
-      // docs/PRD-sales-agent-voice.md بخش ۶.۵ — فقط یک‌بار (سرور هم idempotent است)، همین که
-      // پخش واقعاً شروع شد، نه فقط فایل لود شد
-      onPlay={() => onPlay(message.voiceKey!)}
+      onFirstPlay={() => onPlay(message.voiceKey!)}
     />
   )
 }
@@ -145,8 +230,6 @@ export function ShopChatPage() {
     error,
     history,
     viewingHistory,
-    responseStrategy,
-    setResponseStrategy,
     sendMessage,
     sendAction,
     uploadReceipt,
@@ -281,7 +364,7 @@ export function ShopChatPage() {
     >
       <div className="relative flex items-center justify-end border-b border-slate-800 light:border-slate-200 px-4 py-3">
         {/* فیدبک کاربر — عکس پروفایل فروشگاه وسط هدر؛ absolute تا عرض دکمه‌های کنار (تاریخچه/
-            چت جدید/سوییچ A-B) جابه‌جایش نکند */}
+            چت جدید) جابه‌جایش نکند */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 flex max-w-[48vw] -translate-x-1/2 -translate-y-1/2 items-center gap-2">
           {storeId && storeLogoKey ? (
             <img
@@ -301,44 +384,6 @@ export function ShopChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <div
-            title={fa.shop.responseStrategyTitle}
-            className="flex items-center overflow-hidden rounded-lg border border-slate-700 light:border-slate-300 text-[11px] font-semibold"
-          >
-            <button
-              onClick={() => void setResponseStrategy('RULE_BASED')}
-              disabled={viewingHistory}
-              className={`px-2 py-1 transition-colors ${
-                responseStrategy === 'RULE_BASED'
-                  ? 'bg-sky-500 text-white'
-                  : 'text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100'
-              }`}
-            >
-              {fa.shop.responseStrategyRuleBased}
-            </button>
-            <button
-              onClick={() => void setResponseStrategy('SIMPLE_AGENT')}
-              disabled={viewingHistory}
-              className={`px-2 py-1 transition-colors ${
-                responseStrategy === 'SIMPLE_AGENT'
-                  ? 'bg-sky-500 text-white'
-                  : 'text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100'
-              }`}
-            >
-              {fa.shop.responseStrategyAgent}
-            </button>
-            <button
-              onClick={() => void setResponseStrategy('FULL_AGENT')}
-              disabled={viewingHistory}
-              className={`px-2 py-1 transition-colors ${
-                responseStrategy === 'FULL_AGENT'
-                  ? 'bg-sky-500 text-white'
-                  : 'text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100'
-              }`}
-            >
-              {fa.shop.responseStrategyFullAgent}
-            </button>
-          </div>
           <button
             onClick={() => setHistoryOpen(true)}
             title={fa.shop.history}
