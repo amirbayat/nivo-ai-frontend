@@ -17,12 +17,25 @@ function productImageUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/images/${key}`
 }
 
+// docs/PRD-product-video.md — عیناً همون الگوی productImageUrl بالا؛ اندپوینت Range request
+// را پشتیبانی می‌کند، پس <video> خودش seek می‌تواند بزند
+function productVideoUrl(productId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/products/${productId}/video/${key}`
+}
+
 function ProductCardBlock({
   products,
   disabled,
   onAddToCart,
 }: {
-  products: { id: string; name: string; basePrice: number; stock: number; images: string[] }[]
+  products: {
+    id: string
+    name: string
+    basePrice: number
+    stock: number
+    images: string[]
+    videoKey?: string | null
+  }[]
   disabled: boolean
   onAddToCart: (productId: string) => void
 }) {
@@ -47,6 +60,16 @@ function ProductCardBlock({
               </span>
             </div>
           </div>
+          {p.videoKey && (
+            // preload="metadata" نه auto — پخش خودکار توی چت آزاردهنده است و بی‌اجازه
+            // دیتای موبایل مشتری را مصرف می‌کند
+            <video
+              controls
+              preload="metadata"
+              src={productVideoUrl(p.id, p.videoKey)}
+              className="mb-2 w-full rounded-lg"
+            />
+          )}
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-slate-500 light:text-slate-500">
               {p.stock > 0 ? fa.shop.inStock : fa.shop.outOfStock}

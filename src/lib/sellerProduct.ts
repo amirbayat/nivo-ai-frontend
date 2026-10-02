@@ -20,3 +20,8 @@ export function productImageUrl(productId: string, key: string): string {
 export function storeLogoUrl(storeId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/stores/${storeId}/logo/${key}`
 }
+
+// docs/PRD-product-video.md — عیناً همون الگوی productImageUrl بالا
+export function productVideoUrl(productId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/products/${productId}/video/${key}`
+}

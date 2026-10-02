@@ -109,6 +109,9 @@ export interface SellerProduct {
   basePrice: number
   stock: number
   images: string[]
+  // docs/PRD-product-video.md — یک ویدیوی معرفی کوتاه (تک‌فیلد، نه گالری)
+  videoKey: string | null
+  videoDurationSec: number | null
   description: string | null
   // docs/PRD-telegram-bot-channel.md بخش ۹.۳ — کد کوتاه اختیاری روی محتوای تبلیغاتی فروشنده
   code: string | null

@@ -534,6 +534,13 @@ export const fa = {
         importColumnsHint: 'ستون‌های اکسل: نام، قیمت، موجودی (اختیاری)',
         addImage: 'افزودن عکس',
         maxImages: 'حداکثر ۴ عکس برای هر محصول',
+        // docs/PRD-product-video.md
+        videoLabel: 'ویدیوی معرفی محصول',
+        videoHint: 'حداکثر ۵۰ مگابایت و ۹۰ ثانیه — mp4 یا mov',
+        videoUploadError: 'آپلود ویدیو با خطا مواجه شد',
+        videoRemoveError: 'حذف ویدیو با خطا مواجه شد',
+        changeVideo: 'تغییر ویدیو',
+        removeVideo: 'حذف ویدیو',
         copyProductLink: 'کپی لینک محصول',
         productLinkCopied: 'لینک محصول کپی شد',
         descriptionLabel: 'توضیحات محصول',

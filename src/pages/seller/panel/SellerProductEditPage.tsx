@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { ToggleRow } from '@/components/ui/ToggleRow'
 import { toEnglishDigits, formatThousands } from '@/lib/digits'
-import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
+import { extractErrorMessage, productImageUrl, productVideoUrl } from '@/lib/sellerProduct'
 import {
   useApproveEnrichmentDraft,
   useCompleteProductInfo,
@@ -20,9 +20,11 @@ import {
   useProducts,
   useProductTelegramLink,
   useRejectEnrichmentDraft,
+  useRemoveProductVideo,
   useTranscribeAudio,
   useUpdateProduct,
   useUploadProductImages,
+  useUploadProductVideo,
 } from '@/queries/seller.queries'
 import type { SellerProduct } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
@@ -107,6 +109,97 @@ function ProductImages({
         }}
       />
       {zoomSrc && <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} analyticsSource="seller_product_image" />}
+    </div>
+  )
+}
+
+// docs/PRD-product-video.md — عیناً الگوی StoreLogoUpload (SellerStoreSettingsPage.tsx)، تک‌فیلد نه آرایه
+function ProductVideo({
+  product,
+  onProductUpdated,
+}: {
+  product: SellerProduct
+  onProductUpdated: (product: SellerProduct) => void
+}) {
+  const { storeId } = useSellerStore()
+  const upload = useUploadProductVideo(storeId)
+  const remove = useRemoveProductVideo(storeId)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+
+  useEffect(() => () => {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+  }, [pendingPreview])
+
+  const previewSrc = pendingPreview ?? (product.videoKey ? productVideoUrl(product.id, product.videoKey) : null)
+
+  return (
+    <div className="mb-6">
+      <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
+        {fa.seller.panel.products.videoLabel}
+      </label>
+      {previewSrc ? (
+        <video controls src={previewSrc} className="mb-2 w-full max-w-xs rounded-lg" />
+      ) : (
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={upload.isPending}
+          className="flex h-24 w-full max-w-xs items-center justify-center rounded-xl border border-dashed border-slate-600 light:border-slate-300 text-slate-500 hover:border-slate-500 disabled:opacity-40"
+        >
+          {upload.isPending ? (
+            <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+          ) : (
+            '+'
+          )}
+        </button>
+      )}
+      <div className="flex items-center gap-3">
+        {previewSrc && (
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={upload.isPending}
+            className="text-xs text-slate-400 hover:text-slate-300 disabled:opacity-40"
+          >
+            {fa.seller.panel.products.changeVideo}
+          </button>
+        )}
+        {product.videoKey && (
+          <button
+            onClick={() => remove.mutate(product.id, { onSuccess: updated => onProductUpdated(updated) })}
+            disabled={remove.isPending}
+            className="text-xs text-red-400 hover:text-red-300"
+          >
+            {fa.seller.panel.products.removeVideo}
+          </button>
+        )}
+      </div>
+      <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.videoHint}</p>
+      {upload.isError && (
+        <p className="mt-1 text-xs text-red-400">{extractErrorMessage(upload.error, fa.seller.panel.products.videoUploadError)}</p>
+      )}
+      {remove.isError && (
+        <p className="mt-1 text-xs text-red-400">{extractErrorMessage(remove.error, fa.seller.panel.products.videoRemoveError)}</p>
+      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="video/mp4,video/quicktime"
+        hidden
+        onChange={e => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const previewUrl = URL.createObjectURL(file)
+          setPendingPreview(previewUrl)
+          upload.mutate(
+            { productId: product.id, file },
+            {
+              onSuccess: updated => onProductUpdated(updated),
+              onSettled: () => setPendingPreview(null),
+            },
+          )
+          e.target.value = ''
+        }}
+      />
     </div>
   )
 }
@@ -581,7 +674,10 @@ export function SellerProductEditPage() {
       </div>
 
       {!isNew && product && product !== 'new' && (
-        <ProductImages product={product} onProductUpdated={setOverride} />
+        <>
+          <ProductImages product={product} onProductUpdated={setOverride} />
+          <ProductVideo product={product} onProductUpdated={setOverride} />
+        </>
       )}
 
       <div className="mb-6">
