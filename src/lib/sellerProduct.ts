@@ -15,3 +15,8 @@ export function extractErrorMessage(err: unknown, fallback: string): string {
 export function productImageUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/images/${key}`
 }
+
+// docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عینا همون الگوی بالا، برای عکس پروفایل فروشگاه
+export function storeLogoUrl(storeId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/stores/${storeId}/logo/${key}`
+}

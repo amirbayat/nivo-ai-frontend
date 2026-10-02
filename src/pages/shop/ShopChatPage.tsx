@@ -10,6 +10,21 @@ import type { ShopHistoryEntry, ShopMessage } from '@/types/api'
 // چت کند (پنل فروشنده، تب «نیاز به توجه»)؛ فقط COMPLETED/REJECTED واقعاً پایانی‌اند
 const TERMINAL_STATES = ['COMPLETED', 'REJECTED']
 
+// عمومی، بدون auth — عیناً همون الگوی productImageUrl در ShopUiBlocks.tsx
+function storeLogoUrl(storeId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/stores/${storeId}/logo/${key}`
+}
+
+// عیناً همون الگوی avatarInitials در Sidebar.tsx — تا فروشگاهی عکس نگذاشته، به‌جای خالی‌ماندن
+// یک دایره‌ی حروف‌اول نشان داده شود (بخش ۵.۱۴ داک — بند ۶)
+function avatarInitials(name?: string | null): string {
+  if (!name) return ''
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return ''
+  if (parts.length === 1) return parts[0].charAt(0)
+  return parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+}
+
 function voiceAudioUrl(conversationId: string, key: string): string {
   // کلید ذخیره‌سازی شامل پیشوند «conversationId/» است (storage.service.ts uploadImage) —
   // باید encode شود وگرنه «/» داخلش روت :key را به چند سگمنت می‌شکند و 404 می‌گیرد (صدا هرگز
@@ -118,7 +133,9 @@ export function ShopChatPage() {
   const [searchParams] = useSearchParams()
   const productId = searchParams.get('product') ?? undefined
   const {
+    storeId,
     storeName,
+    storeLogoKey,
     notFound,
     conversationId,
     messages,
@@ -262,10 +279,26 @@ export function ShopChatPage() {
       style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
       dir="rtl"
     >
-      <div className="flex items-center justify-between border-b border-slate-800 light:border-slate-200 px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{storeName}</p>
-          <p className="text-xs text-slate-500">دستیار فروش</p>
+      <div className="relative flex items-center justify-end border-b border-slate-800 light:border-slate-200 px-4 py-3">
+        {/* فیدبک کاربر — عکس پروفایل فروشگاه وسط هدر؛ absolute تا عرض دکمه‌های کنار (تاریخچه/
+            چت جدید/سوییچ A-B) جابه‌جایش نکند */}
+        <div className="pointer-events-none absolute left-1/2 top-1/2 flex max-w-[48vw] -translate-x-1/2 -translate-y-1/2 items-center gap-2">
+          {storeId && storeLogoKey ? (
+            <img
+              src={storeLogoUrl(storeId, storeLogoKey)}
+              alt=""
+              className="size-9 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs text-slate-300 light:bg-slate-200 light:text-slate-700">
+              {avatarInitials(storeName)}
+            </div>
+          )}
+          {/* فروشگاه بدون عکس هم باید وسط بماند، نه فقط وقتی لوگو هست — min-w-0 برای truncate */}
+          <div className="min-w-0 text-center">
+            <p className="truncate text-sm font-semibold text-slate-200 light:text-slate-900">{storeName}</p>
+            <p className="text-xs text-slate-500">دستیار فروش</p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <div

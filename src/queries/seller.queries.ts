@@ -180,6 +180,31 @@ export function useTranscribeAudio(storeId: string) {
   })
 }
 
+// docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه (تک‌فایل، نه آرایه)
+export function useUploadStoreLogo(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api
+        .post<SellerStore>(`/v2/stores/${storeId}/logo`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
+  })
+}
+
+export function useRemoveStoreLogo(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete<SellerStore>(`/v2/stores/${storeId}/logo`).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
+  })
+}
+
 export function useDeleteProductImage(storeId: string) {
   const qc = useQueryClient()
   return useMutation({

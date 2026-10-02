@@ -145,6 +145,8 @@ export interface SellerStore {
   abandonedCartReminderEnabled: boolean
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled: boolean
+  // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه (کلید MinIO، نه URL)
+  logoImageKey: string | null
   createdAt: string
   updatedAt: string
   products: SellerProduct[]
@@ -285,7 +287,10 @@ export type ShopAction =
 export interface ShopStartChatResponse {
   conversationId: string
   sessionToken: string
+  storeId: string
   storeName: string
+  // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — کلید MinIO، نه URL (مثل Product.images)
+  storeLogoKey: string | null
   responseStrategy: ShopResponseStrategy
   // فقط وقتی لینک اختصاصی یک محصول باز شده (?product=) و آن محصول واقعاً پیدا شد
   initialReply?: string
@@ -320,7 +325,9 @@ export type ShopResponseStrategy = 'RULE_BASED' | 'SIMPLE_AGENT' | 'FULL_AGENT'
 
 export interface ShopGetConversationResponse {
   state: string
+  storeId: string
   storeName: string
+  storeLogoKey: string | null
   responseStrategy: ShopResponseStrategy
   events: ShopConversationEvent[]
 }

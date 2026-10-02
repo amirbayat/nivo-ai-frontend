@@ -39,6 +39,9 @@ function eventsToMessages(events: ShopConversationEvent[]): ShopMessage[] {
 
 export function useShopChat(slug: string, productId?: string) {
   const [storeName, setStoreName] = useState<string | null>(null)
+  // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — برای ساخت URL عکس پروفایل (storeLogoUrl)
+  const [storeId, setStoreId] = useState<string | null>(null)
+  const [storeLogoKey, setStoreLogoKey] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [messages, setMessages] = useState<ShopMessage[]>([])
   const [state, setState] = useState<string>('GREETING')
@@ -185,7 +188,9 @@ export function useShopChat(slug: string, productId?: string) {
     if (!res.ok) throw new Error('request failed')
     const data = (await res.json()) as ShopGetConversationResponse
     setState(data.state)
+    setStoreId(data.storeId)
     setStoreName(data.storeName)
+    setStoreLogoKey(data.storeLogoKey)
     setResponseStrategyState(data.responseStrategy)
     setMessages(eventsToMessages(data.events))
   }, [])
@@ -279,7 +284,9 @@ export function useShopChat(slug: string, productId?: string) {
       setShopSession(slug, session)
       sessionRef.current = session
       liveSessionRef.current = session
+      setStoreId(data.storeId)
       setStoreName(data.storeName)
+      setStoreLogoKey(data.storeLogoKey)
       setResponseStrategyState(data.responseStrategy)
       setMessages([])
       // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
@@ -455,7 +462,9 @@ export function useShopChat(slug: string, productId?: string) {
   }, [])
 
   return {
+    storeId,
     storeName,
+    storeLogoKey,
     notFound,
     conversationId: sessionRef.current?.conversationId,
     messages,
