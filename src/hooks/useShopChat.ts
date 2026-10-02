@@ -125,10 +125,10 @@ export function useShopChat(slug: string, productId?: string) {
   )
 
   const sendMessage = useCallback(
-    async (text: string, options?: { silent?: boolean }) => {
+    async (text: string) => {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
-      if (!options?.silent) appendCustomerMessage(text)
+      appendCustomerMessage(text)
       setSending(true)
       setError(null)
       try {
@@ -294,7 +294,11 @@ export function useShopChat(slug: string, productId?: string) {
         if (data.initialVoiceEventId) pollVoice(id, data.initialVoiceEventId)
       } else {
         setState('GREETING')
-        void sendMessage(KICKOFF_MESSAGE, { silent: true })
+        // باگ واقعی زنده (۱۴۰۵/۰۷/۱۹، docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴) —
+        // silent:true حباب مشتری را مخفی می‌کرد در حالی‌که این پیام واقعاً روی سرور به‌عنوان
+        // یک CUSTOMER_MESSAGE واقعی ثبت می‌شود (با رفرش هم از لاگ سرور درست نمایش داده
+        // می‌شد) — یعنی ناسازگاری بین اولین‌بار دیدن و رفرش، نه رفتار عمدی
+        void sendMessage(KICKOFF_MESSAGE)
       }
       void fetchHistory()
     },
