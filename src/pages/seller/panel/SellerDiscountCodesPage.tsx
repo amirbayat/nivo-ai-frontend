@@ -54,6 +54,11 @@ function DiscountCodeRow({ code, storeId }: { code: StoreDiscountCode; storeId: 
           ? fa.seller.panel.discountCodes.redemptions(code.redemptionCount)
           : fa.seller.panel.discountCodes.redemptionsWithMax(code.redemptionCount, code.maxRedemptions)}
       </p>
+      {code.minQuantity != null && (
+        <p className="mt-0.5 text-xs text-slate-500">
+          {fa.seller.panel.discountCodes.minQuantityHint(code.minQuantity)}
+        </p>
+      )}
 
       <button
         onClick={toggleActive}
@@ -74,6 +79,7 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
   const [value, setValue] = useState('')
   const [maxRedemptions, setMaxRedemptions] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
+  const [minQuantity, setMinQuantity] = useState('')
 
   const numericValue = Number(toEnglishDigits(value))
   const valid =
@@ -88,6 +94,7 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
       value: numericValue,
       ...(maxRedemptions ? { maxRedemptions: Number(toEnglishDigits(maxRedemptions)) } : {}),
       ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
+      ...(minQuantity ? { minQuantity: Number(toEnglishDigits(minQuantity)) } : {}),
     }
     add.mutate(dto, { onSuccess: onDone })
   }
@@ -147,6 +154,15 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
           label={fa.seller.panel.discountCodes.expiresAtLabel}
           value={expiresAt}
           onChange={e => setExpiresAt(e.target.value)}
+        />
+      </div>
+      <div className="mb-3">
+        <Input
+          label={fa.seller.panel.discountCodes.minQuantityLabel}
+          placeholder={fa.seller.panel.discountCodes.minQuantityPlaceholder}
+          value={minQuantity}
+          onChange={e => setMinQuantity(e.target.value.replace(/\D/g, ''))}
+          inputMode="numeric"
         />
       </div>
       {add.isError && <p className="mb-3 text-xs text-red-400">{fa.seller.panel.discountCodes.addError}</p>}

@@ -41,6 +41,21 @@ export function SellerCreditPage() {
         </p>
       </div>
 
+      {/* docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶ — فقط وقتی واقعاً فعال است نمایش داده شود */}
+      {!!credit.data?.trialCreditRemainingToman && (
+        <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+          <p className="text-xs font-semibold text-emerald-300 light:text-emerald-700">{fa.seller.panel.credit.trialTitle}</p>
+          <p className="mt-1 text-xl font-bold text-emerald-400 light:text-emerald-600">
+            {fa.seller.panel.home.creditBalanceToman(credit.data.trialCreditRemainingToman)}
+          </p>
+          {credit.data.trialEndsAt && (
+            <p className="mt-1 text-xs text-emerald-400/80 light:text-emerald-700/80">
+              {fa.seller.panel.credit.trialEndsAt(new Date(credit.data.trialEndsAt).toLocaleDateString('fa-IR'))}
+            </p>
+          )}
+        </div>
+      )}
+
       <h2 className="mb-3 text-sm font-bold text-slate-200 light:text-slate-900">{fa.seller.panel.credit.packagesTitle}</h2>
 
       {purchase.isError && <p className="mb-4 text-xs text-red-400">{fa.seller.panel.credit.purchaseError}</p>}

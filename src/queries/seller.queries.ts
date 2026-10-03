@@ -14,6 +14,7 @@ import type {
   ProductEnrichmentDraft,
   ProductImportFromUrlResult,
   SellerConversationDetail,
+  SellerDashboard,
   SellerOrder,
   SellerOrderStatus,
   SellerProduct,
@@ -108,6 +109,47 @@ export function useStoreCompleteness(storeId: string) {
     queryKey: keys.seller.completeness(storeId),
     queryFn: () => api.get<StoreCompleteness>(`/v2/stores/${storeId}/completeness`).then(r => r.data),
     enabled: !!storeId,
+  })
+}
+
+// docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۱.۱ — داشبورد فروش فروشنده
+export function useSellerDashboard(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.dashboard(storeId),
+    queryFn: () => api.get<SellerDashboard>(`/v2/stores/${storeId}/dashboard`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+// بخش ۱.۲ — سه خروجی CSV؛ همون الگوی downloadCaptionSubtitle در captionStudio.queries.ts
+// (مسیر پشت JwtGuard است، نه لینک مستقیم قابل‌کلیک)
+async function downloadCsv(url: string, filename: string) {
+  const res = await api.get(url, { responseType: 'blob' })
+  const objectUrl = URL.createObjectURL(res.data as Blob)
+  const a = document.createElement('a')
+  a.href = objectUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(objectUrl)
+}
+
+export function useExportOrdersCsv(storeId: string) {
+  return useMutation({
+    mutationFn: () => downloadCsv(`/v2/stores/${storeId}/export/orders.csv`, 'orders.csv'),
+  })
+}
+
+export function useExportProductsCsv(storeId: string) {
+  return useMutation({
+    mutationFn: () => downloadCsv(`/v2/stores/${storeId}/export/products.csv`, 'products.csv'),
+  })
+}
+
+export function useExportCreditUsageCsv(storeId: string) {
+  return useMutation({
+    mutationFn: () => downloadCsv(`/v2/stores/${storeId}/export/credit-usage.csv`, 'credit-usage.csv'),
   })
 }
 
@@ -590,6 +632,8 @@ export interface CreateDiscountCodeInput {
   value: number
   maxRedemptions?: number
   expiresAt?: string
+  // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۵ مورد ۵ — تخفیف پلکانی
+  minQuantity?: number
 }
 
 export function useAddDiscountCode(storeId: string) {

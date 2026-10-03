@@ -171,6 +171,21 @@ export interface StoreCreditStatus {
   balanceToman: number
   freeQuotaUsedToday: number
   freeQuotaLimit: number
+  // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶ — فقط وقتی واقعاً فعال است
+  trialCreditRemainingToman: number
+  trialEndsAt: string | null
+}
+
+// docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۱.۱
+export interface SellerDashboard {
+  revenueTodayToman: number
+  revenueWeekToman: number
+  revenueMonthToman: number
+  orderCountsByStatus: Record<SellerOrderStatus, number>
+  dailyRevenueTrend: { date: string; totalToman: number }[]
+  topProducts: { productId: string; name: string; qty: number }[]
+  uniqueCustomerCount: number
+  averageOrderValueToman: number
 }
 
 // docs/PRD-seller-advertising-placements.md — جایگاه تبلیغاتی/Boost در جستجوی تلگرام
@@ -253,6 +268,8 @@ export interface StoreDiscountCode {
   redemptionCount: number
   expiresAt: string | null
   isActive: boolean
+  // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۵ مورد ۵ — تخفیف پلکانی
+  minQuantity: number | null
   createdAt: string
 }
 

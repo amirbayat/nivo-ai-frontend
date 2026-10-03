@@ -52,6 +52,7 @@ import { SellerDiscountCodesPage } from '@/pages/seller/panel/SellerDiscountCode
 import { SellerShippingPage } from '@/pages/seller/panel/SellerShippingPage'
 import { SellerAdvertisingPage } from '@/pages/seller/panel/SellerAdvertisingPage'
 import { SellerChannelStatsPage } from '@/pages/seller/panel/SellerChannelStatsPage'
+import { SellerDashboardPage } from '@/pages/seller/panel/SellerDashboardPage'
 import { ShopChatPage } from '@/pages/shop/ShopChatPage'
 import type { ReactNode } from 'react'
 
@@ -130,6 +131,7 @@ export function AppRouter() {
         <Route path="shipping-rules" element={<SellerShippingPage />} />
         <Route path="advertising" element={<SellerAdvertisingPage />} />
         <Route path="channel-stats" element={<SellerChannelStatsPage />} />
+        <Route path="dashboard" element={<SellerDashboardPage />} />
       </Route>
       {/* بازگشت‌سازگار: جایگزین گام۲ (SellerDashboardPlaceholderPage حذف شد) */}
       <Route path="/seller/dashboard-placeholder" element={<Navigate to="/seller/panel/home" replace />} />

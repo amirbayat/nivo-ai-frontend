@@ -606,6 +606,7 @@ export const fa = {
         shippingRules: 'هزینه ارسال',
         advertising: 'تبلیغات',
         channelStats: 'آمار وب و تلگرام',
+        dashboard: 'داشبورد فروش',
         telegramConnect: 'اتصال تلگرام برای اعلان‌ها',
         telegramConnectError: 'ساخت لینک اتصال با خطا مواجه شد',
         logout: 'خروج از حساب',
@@ -646,6 +647,9 @@ export const fa = {
         redirecting: 'در حال انتقال به درگاه پرداخت...',
         purchaseError: 'خرید اعتبار با خطا مواجه شد، دوباره تلاش کن',
         discountBadge: (percent: number) => `${percent.toLocaleString('fa-IR')}٪ تخفیف`,
+        // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶ — دوره آزمایشی
+        trialTitle: 'اعتبار هدیه‌ی دوره‌ی آزمایشی',
+        trialEndsAt: (date: string) => `تا ${date} معتبر است`,
       },
       // docs/PRD-seller-multi-bank-card-rotation.md بخش ۳
       bankCards: {
@@ -695,6 +699,10 @@ export const fa = {
         maxRedemptionsPlaceholder: 'خالی = نامحدود',
         expiresAtLabel: 'تاریخ انقضا',
         expiresAtPlaceholder: 'خالی = بدون انقضا',
+        // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۵ مورد ۵ — تخفیف پلکانی
+        minQuantityLabel: 'حداقل تعداد خرید',
+        minQuantityPlaceholder: 'خالی = بدون حداقل (مثلاً ۳ برای «۳ عدد بخر، تخفیف بگیر»)',
+        minQuantityHint: (minQuantity: number) => `فقط برای خرید حداقل ${minQuantity.toLocaleString('fa-IR')} عدد`,
         save: 'ذخیره',
         cancel: 'انصراف',
         activate: 'فعال کردن',
@@ -740,6 +748,32 @@ export const fa = {
         conversations: 'تعداد مکالمه',
         approvedOrderRate: 'نرخ سفارش موفق',
         stuckHandoffRate: 'نرخ ارجاع به انسان',
+      },
+      // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۱.۱/۱.۲
+      dashboard: {
+        title: 'داشبورد فروش',
+        subtitle: 'یک نگاه به فروش، سفارش‌ها و پرفروش‌ترین محصولات این فروشگاه',
+        revenueToday: 'درآمد امروز',
+        revenueWeek: 'درآمد ۷ روز اخیر',
+        revenueMonth: 'درآمد ۳۰ روز اخیر',
+        trendTitle: 'روند درآمد روزانه (۳۰ روز اخیر)',
+        orderStatusTitle: 'سفارش‌ها به تفکیک وضعیت',
+        orderStatusLabels: {
+          PENDING_PAYMENT: 'در انتظار پرداخت',
+          RECEIPT_SUBMITTED: 'رسید ارسال‌شده',
+          APPROVED: 'تاییدشده',
+          REJECTED: 'ردشده',
+        } as Record<string, string>,
+        topProductsTitle: 'پرفروش‌ترین محصولات',
+        topProductsEmpty: 'هنوز سفارش تاییدشده‌ای ثبت نشده',
+        soldQty: (qty: number) => `${qty.toLocaleString('fa-IR')} فروش`,
+        uniqueCustomers: 'خریدار یکتا',
+        averageOrderValue: 'میانگین ارزش سفارش',
+        exportTitle: 'خروجی اکسل برای حسابداری',
+        exportOrders: 'خروجی سفارش‌ها',
+        exportProducts: 'خروجی محصولات',
+        exportCreditUsage: 'خروجی تراکنش‌های اعتبار',
+        exportError: 'دانلود فایل با خطا مواجه شد',
       },
       // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲
       storeSettings: {
