@@ -49,6 +49,7 @@ import { SellerKnowledgePage } from '@/pages/seller/panel/SellerKnowledgePage'
 import { SellerCreditPage } from '@/pages/seller/panel/SellerCreditPage'
 import { SellerBankCardsPage } from '@/pages/seller/panel/SellerBankCardsPage'
 import { SellerDiscountCodesPage } from '@/pages/seller/panel/SellerDiscountCodesPage'
+import { SellerShippingPage } from '@/pages/seller/panel/SellerShippingPage'
 import { SellerAdvertisingPage } from '@/pages/seller/panel/SellerAdvertisingPage'
 import { SellerChannelStatsPage } from '@/pages/seller/panel/SellerChannelStatsPage'
 import { ShopChatPage } from '@/pages/shop/ShopChatPage'
@@ -126,6 +127,7 @@ export function AppRouter() {
         <Route path="credit" element={<SellerCreditPage />} />
         <Route path="bank-cards" element={<SellerBankCardsPage />} />
         <Route path="discount-codes" element={<SellerDiscountCodesPage />} />
+        <Route path="shipping-rules" element={<SellerShippingPage />} />
         <Route path="advertising" element={<SellerAdvertisingPage />} />
         <Route path="channel-stats" element={<SellerChannelStatsPage />} />
       </Route>

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
-import type { ShopUiBlock } from '@/types/api'
+import type { ShopAction, ShopUiBlock } from '@/types/api'
 
 interface BlockProps {
   block: ShopUiBlock
@@ -10,6 +10,7 @@ interface BlockProps {
   onAddToCart: (productId: string) => void
   onConfirmCart: () => void
   onUploadReceipt: (file: File) => void
+  onSendAction: (action: ShopAction) => void
 }
 
 // عمومی، بدون auth — الگوی مسیر عیناً مطابق sales-agent.controller.ts getProductImage
@@ -225,7 +226,91 @@ function OrderStatusBlock({ status }: { status: string }) {
   )
 }
 
-export function ShopUiBlockView({ block, disabled, onAddToCart, onConfirmCart, onUploadReceipt }: BlockProps) {
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
+// — یک کامپوننت با سه حالت (مثل UiBlock سمت بک‌اند)، نه سه کامپوننت جدا
+function AddressPromptBlock({
+  mode,
+  addresses,
+  summary,
+  disabled,
+  onSendAction,
+}: {
+  mode: 'CHOOSE_SAVED' | 'CONFIRM' | 'ASK_SAVE'
+  addresses?: { id: string; summary: string }[]
+  summary?: string
+  disabled: boolean
+  onSendAction: (action: ShopAction) => void
+}) {
+  if (mode === 'CHOOSE_SAVED') {
+    return (
+      <div className="mt-2 flex flex-col gap-2">
+        {(addresses ?? []).map((a) => (
+          <button
+            key={a.id}
+            onClick={() => onSendAction({ type: 'SELECT_ADDRESS', addressId: a.id })}
+            disabled={disabled}
+            className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-3 py-2 text-right text-xs text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+          >
+            {a.summary}
+          </button>
+        ))}
+        <button
+          onClick={() => onSendAction({ type: 'NEW_ADDRESS' })}
+          disabled={disabled}
+          className="rounded-xl border border-dashed border-slate-600/60 light:border-slate-300 px-3 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+        >
+          {fa.shop.addressNewOption}
+        </button>
+      </div>
+    )
+  }
+
+  if (mode === 'CONFIRM') {
+    return (
+      <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
+        <p className="mb-3 whitespace-pre-line text-xs text-slate-200 light:text-slate-900">{summary}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onSendAction({ type: 'CONFIRM_ADDRESS' })}
+            disabled={disabled}
+            className="flex-1 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
+          >
+            {fa.shop.addressConfirmButton}
+          </button>
+          <button
+            onClick={() => onSendAction({ type: 'EDIT_ADDRESS' })}
+            disabled={disabled}
+            className="flex-1 rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+          >
+            {fa.shop.addressEditButton}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ASK_SAVE
+  return (
+    <div className="mt-2 flex gap-2">
+      <button
+        onClick={() => onSendAction({ type: 'SAVE_ADDRESS' })}
+        disabled={disabled}
+        className="flex-1 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
+      >
+        {fa.shop.addressSaveYesButton}
+      </button>
+      <button
+        onClick={() => onSendAction({ type: 'SKIP_SAVE_ADDRESS' })}
+        disabled={disabled}
+        className="flex-1 rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+      >
+        {fa.shop.addressSaveNoButton}
+      </button>
+    </div>
+  )
+}
+
+export function ShopUiBlockView({ block, disabled, onAddToCart, onConfirmCart, onUploadReceipt, onSendAction }: BlockProps) {
   switch (block.type) {
     case 'PRODUCT_CARD':
       return <ProductCardBlock products={block.products} disabled={disabled} onAddToCart={onAddToCart} />
@@ -245,6 +330,16 @@ export function ShopUiBlockView({ block, disabled, onAddToCart, onConfirmCart, o
       )
     case 'ORDER_STATUS':
       return <OrderStatusBlock status={block.status} />
+    case 'ADDRESS_PROMPT':
+      return (
+        <AddressPromptBlock
+          mode={block.mode}
+          addresses={block.addresses}
+          summary={block.summary}
+          disabled={disabled}
+          onSendAction={onSendAction}
+        />
+      )
     default:
       return null
   }

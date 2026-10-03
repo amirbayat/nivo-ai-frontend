@@ -148,6 +148,8 @@ export interface SellerStore {
   abandonedCartReminderEnabled: boolean
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled: boolean
+  // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ — false = فروش حضوری/دیجیتال
+  requiresShipping: boolean
   // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه (کلید MinIO، نه URL)
   logoImageKey: string | null
   createdAt: string
@@ -254,6 +256,17 @@ export interface StoreDiscountCode {
   createdAt: string
 }
 
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲
+export interface StoreShippingRule {
+  id: string
+  storeId: string
+  city: string | null // null = ردیف پیش‌فرض «سایر شهرها»
+  cost: number
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 // docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی /shop/:slug؛ عیناً مطابق
 // nivo-ai-backend/src/modules/sales-agent/sales-agent.types.ts
 export type ShopUiBlock =
@@ -265,6 +278,15 @@ export type ShopUiBlock =
   | { type: 'CART_SUMMARY'; items: { productId: string; name: string; unitPrice: number; qty: number }[]; total: number }
   | { type: 'PAYMENT_INSTRUCTIONS'; cardNumber: string; ownerName: string; amount: number }
   | { type: 'ORDER_STATUS'; orderId: string; status: string }
+  // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
+  | {
+      type: 'ADDRESS_PROMPT'
+      mode: 'CHOOSE_SAVED' | 'CONFIRM' | 'ASK_SAVE'
+      addresses?: { id: string; summary: string }[]
+      summary?: string
+      shippingCostToman?: number
+      cityCovered?: boolean
+    }
   | { type: 'NONE' }
 
 export interface ShopMessage {
@@ -286,6 +308,13 @@ export interface ShopMessage {
 export type ShopAction =
   | { type: 'ADD_TO_CART'; productId: string; qty?: number }
   | { type: 'CONFIRM_CART' }
+  // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ — دکمه‌های فلوی آدرس
+  | { type: 'SELECT_ADDRESS'; addressId: string }
+  | { type: 'NEW_ADDRESS' }
+  | { type: 'CONFIRM_ADDRESS' }
+  | { type: 'EDIT_ADDRESS' }
+  | { type: 'SAVE_ADDRESS' }
+  | { type: 'SKIP_SAVE_ADDRESS' }
 
 export interface ShopStartChatResponse {
   conversationId: string

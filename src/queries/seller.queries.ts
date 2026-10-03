@@ -23,6 +23,7 @@ import type {
   StoreCompleteness,
   StoreDiscountCode,
   DiscountKind,
+  StoreShippingRule,
   StoreCreditPackage,
   StoreCreditStatus,
   StoreKbEntry,
@@ -89,6 +90,8 @@ export interface UpdateStoreInput {
   abandonedCartReminderEnabled?: boolean
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled?: boolean
+  // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱
+  requiresShipping?: boolean
 }
 
 export function useUpdateStore(storeId: string) {
@@ -604,6 +607,49 @@ export function useUpdateDiscountCode(storeId: string) {
     mutationFn: ({ codeId, isActive }: { codeId: string; isActive: boolean }) =>
       api.patch<StoreDiscountCode>(`/v2/stores/${storeId}/discount-codes/${codeId}`, { isActive }).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.discountCodes(storeId) }),
+  })
+}
+
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲
+export function useShippingRules(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.shippingRules(storeId),
+    queryFn: () =>
+      api.get<StoreShippingRule[]>(`/v2/stores/${storeId}/shipping-rules`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+export interface CreateShippingRuleInput {
+  city?: string
+  cost: number
+  enabled?: boolean
+}
+
+export function useAddShippingRule(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: CreateShippingRuleInput) =>
+      api.post<StoreShippingRule>(`/v2/stores/${storeId}/shipping-rules`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.shippingRules(storeId) }),
+  })
+}
+
+export function useUpdateShippingRule(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ ruleId, ...dto }: { ruleId: string; cost?: number; enabled?: boolean }) =>
+      api.patch<StoreShippingRule>(`/v2/stores/${storeId}/shipping-rules/${ruleId}`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.shippingRules(storeId) }),
+  })
+}
+
+export function useDeleteShippingRule(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ruleId: string) =>
+      api.delete(`/v2/stores/${storeId}/shipping-rules/${ruleId}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.shippingRules(storeId) }),
   })
 }
 

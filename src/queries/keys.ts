@@ -102,6 +102,7 @@ export const keys = {
     creditPackages: (storeId: string) => ['seller', 'credit-packages', storeId] as const,
     bankCards: (storeId: string) => ['seller', 'bank-cards', storeId] as const,
     discountCodes: (storeId: string) => ['seller', 'discount-codes', storeId] as const,
+    shippingRules: (storeId: string) => ['seller', 'shipping-rules', storeId] as const,
     channelStats: (storeId: string) => ['seller', 'channel-stats', storeId] as const,
     completeness: (storeId: string) => ['seller', 'completeness', storeId] as const,
     adPlacement: (storeId: string) => ['seller', 'ad-placement', storeId] as const,

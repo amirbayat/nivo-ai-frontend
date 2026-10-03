@@ -446,6 +446,7 @@ export function ShopChatPage() {
                   onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
                   onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
                   onUploadReceipt={(file) => void uploadReceipt(file)}
+                  onSendAction={(action) => void sendAction(action)}
                 />
               )}
             </div>

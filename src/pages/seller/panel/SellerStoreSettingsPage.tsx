@@ -85,6 +85,7 @@ export function SellerStoreSettingsPage() {
   const [postPurchaseFollowUpEnabled, setPostPurchaseFollowUpEnabled] = useState(true)
   const [abandonedCartReminderEnabled, setAbandonedCartReminderEnabled] = useState(true)
   const [persuasionTechniquesEnabled, setPersuasionTechniquesEnabled] = useState(true)
+  const [requiresShipping, setRequiresShipping] = useState(true)
   const [saved, setSaved] = useState(false)
 
   // فقط یک‌بار بعد از رسیدن دیتا مقداردهی اولیه می‌شود — ویرایش‌های در حال تایپ کاربر با
@@ -99,6 +100,7 @@ export function SellerStoreSettingsPage() {
     setPostPurchaseFollowUpEnabled(store.postPurchaseFollowUpEnabled)
     setAbandonedCartReminderEnabled(store.abandonedCartReminderEnabled)
     setPersuasionTechniquesEnabled(store.persuasionTechniquesEnabled)
+    setRequiresShipping(store.requiresShipping)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store?.id])
 
@@ -113,6 +115,7 @@ export function SellerStoreSettingsPage() {
         postPurchaseFollowUpEnabled,
         abandonedCartReminderEnabled,
         persuasionTechniquesEnabled,
+        requiresShipping,
       },
       {
         onSuccess: () => {
@@ -129,6 +132,19 @@ export function SellerStoreSettingsPage() {
       <p className="mb-6 text-sm text-slate-500">{fa.seller.panel.storeSettings.subtitle}</p>
 
       {store && <StoreLogoUpload store={store} />}
+
+      <div className="mb-6">
+        <div className="divide-y divide-slate-800 light:divide-slate-200">
+          <ToggleRow
+            label={fa.seller.panel.storeSettings.requiresShippingLabel}
+            checked={requiresShipping}
+            onChange={setRequiresShipping}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">
+          {fa.seller.panel.storeSettings.requiresShippingHint}
+        </p>
+      </div>
 
       <div className="mb-5">
         <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
