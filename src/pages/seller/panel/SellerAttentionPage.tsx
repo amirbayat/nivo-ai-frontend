@@ -1,12 +1,19 @@
 import { useState, type KeyboardEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { fa } from '@/locales/fa'
+import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import {
   useNeededAttention,
+  useProducts,
   useSellerConversation,
   useSendSellerMessage,
   useUnmuteConversation,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+
+// docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱ — بدون آستانه‌ی قابل‌تنظیم،
+// همان قاعده‌ی ثابت هرجا که بج موجودی لازم است
+const LOW_STOCK_THRESHOLD = 3
 
 function BackChevron() {
   return (
@@ -95,17 +102,47 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
 }
 
 export function SellerAttentionPage() {
+  const navigate = useNavigate()
   const { storeId } = useSellerStore()
   const attention = useNeededAttention(storeId)
+  const products = useProducts(storeId)
   const [openId, setOpenId] = useState<string | null>(null)
 
   if (openId) return <ConversationChat conversationId={openId} onBack={() => setOpenId(null)} />
+
+  const lowStockProducts = (products.data ?? [])
+    .filter(p => p.stock <= LOW_STOCK_THRESHOLD)
+    .sort((a, b) => a.stock - b.stock)
 
   return (
     <div className="px-5 py-6">
       <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.attention}</h1>
 
-      {attention.data?.length === 0 && <p className="py-10 text-center text-sm text-slate-500">{fa.seller.panel.attention.empty}</p>}
+      <FirstVisitTooltip id="attention" text={fa.seller.panel.helpCenter.tooltips.attention} />
+
+      {!!lowStockProducts.length && (
+        <div className="mb-5">
+          <p className="mb-2.5 text-xs font-semibold text-slate-500">{fa.seller.panel.attention.lowStockSectionTitle}</p>
+          <div className="flex flex-col gap-2.5">
+            {lowStockProducts.map(p => (
+              <button
+                key={p.id}
+                onClick={() => navigate(`/seller/panel/products/${p.id}`)}
+                className="flex items-center justify-between rounded-2xl border border-amber-500/30 light:border-amber-300 bg-amber-500/10 light:bg-amber-50 px-4 py-3.5 text-start hover:border-amber-500/50 light:hover:border-amber-400"
+              >
+                <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</span>
+                <span className={`text-xs font-bold ${p.stock === 0 ? 'text-red-400 light:text-red-600' : 'text-amber-400 light:text-amber-700'}`}>
+                  {p.stock === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {attention.data?.length === 0 && !lowStockProducts.length && (
+        <p className="py-10 text-center text-sm text-slate-500">{fa.seller.panel.attention.empty}</p>
+      )}
 
       <div className="flex flex-col gap-2.5">
         {attention.data?.map(c => (

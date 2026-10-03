@@ -2,7 +2,10 @@ import { createContext, useContext } from 'react'
 import { NavLink, Navigate, Outlet } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { useMyStores, useNeededAttention } from '@/queries/seller.queries'
+import { useMyStores, useNeededAttention, useProducts } from '@/queries/seller.queries'
+
+// docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱
+const LOW_STOCK_THRESHOLD = 3
 
 interface SellerStoreCtx {
   storeId: string
@@ -84,6 +87,9 @@ export function SellerPanelLayout() {
   const { data: stores, isLoading } = useMyStores()
   const store = stores?.[0]
   const attention = useNeededAttention(store?.id ?? '')
+  const products = useProducts(store?.id ?? '')
+  const lowStockCount = products.data?.filter(p => p.stock <= LOW_STOCK_THRESHOLD).length ?? 0
+  const attentionBadge = (attention.data?.length ?? 0) + lowStockCount
 
   if (isLoading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
   if (!store) return <Navigate to="/seller/onboarding" replace />
@@ -110,7 +116,7 @@ export function SellerPanelLayout() {
             to="/seller/panel/attention"
             icon={<AttentionIcon />}
             label={fa.seller.panel.nav.attention}
-            badge={attention.data?.length}
+            badge={attentionBadge}
           />
           <NavItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
           <NavItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />

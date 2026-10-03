@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
+import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import { useNeededAttention, useOrders, useProducts, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 
@@ -51,6 +52,8 @@ export function SellerHomePage() {
     <div className="px-5 py-6">
       <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{storeName}</h1>
       <p className="mb-6 text-sm text-slate-500">{fa.seller.panel.nav.home}</p>
+
+      <FirstVisitTooltip id="home" text={fa.seller.panel.helpCenter.tooltips.home} />
 
       <div className="mb-6 grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">

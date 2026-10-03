@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { fa } from '@/locales/fa'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
+import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import { useApproveOrder, useOrders, useRejectOrder } from '@/queries/seller.queries'
 import type { SellerOrder, SellerOrderStatus } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
@@ -93,6 +94,8 @@ export function SellerOrdersPage() {
   return (
     <div className="px-5 py-6">
       <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.orders}</h1>
+
+      <FirstVisitTooltip id="orders" text={fa.seller.panel.helpCenter.tooltips.orders} />
 
       <div className="mb-5 flex gap-2 overflow-x-auto">
         {FILTERS.map(f => (

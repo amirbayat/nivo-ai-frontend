@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
+import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import { toEnglishDigits, formatThousands } from '@/lib/digits'
 import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
@@ -369,6 +370,8 @@ export function SellerProductsPage() {
     <div className="px-5 py-6">
       <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.products}</h1>
 
+      <FirstVisitTooltip id="products" text={fa.seller.panel.helpCenter.tooltips.products} />
+
       <div className="mb-5 flex gap-2">
         <button onClick={() => navigate('/seller/panel/products/new')} className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-bold text-white hover:bg-emerald-600">
           + {fa.seller.panel.products.addProduct}
@@ -438,7 +441,14 @@ export function SellerProductsPage() {
                 {p.name}
                 {p.code && <span dir="ltr" className="mr-1.5 text-xs font-normal text-slate-500">#{p.code}</span>}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">{fa.shop.stockCount(p.stock)}</p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                {fa.shop.stockCount(p.stock)}
+                {p.stock <= 3 && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${p.stock === 0 ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                    {p.stock === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}
+                  </span>
+                )}
+              </p>
               {p.completeness && p.completeness.percent < 100 && (
                 <p className="mt-0.5 text-[11px] text-amber-400 light:text-amber-600">
                   {fa.seller.panel.products.completenessPercent(p.completeness.percent)}
