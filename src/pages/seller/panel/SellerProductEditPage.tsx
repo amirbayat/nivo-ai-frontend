@@ -312,7 +312,7 @@ function BackChevron() {
 export function SellerProductEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { storeId } = useSellerStore()
+  const { storeId, storeSlug } = useSellerStore()
   const products = useProducts(storeId)
   const isNew = id === 'new'
 
@@ -337,6 +337,15 @@ export function SellerProductEditPage() {
   const create = useCreateProduct(storeId)
   const remove = useDeleteProduct(storeId)
   const pending = update.isPending || create.isPending || remove.isPending
+
+  // همون الگوی کپی لینک وب در SellerProductsPage.tsx — این‌جا هم تکرار شده تا از صفحه‌ی
+  // ویرایش محصول (بدون برگشت به لیست) قابل کپی باشد
+  const [linkCopied, setLinkCopied] = useState(false)
+  async function copyProductLink(productId: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/shop/${storeSlug}?product=${productId}`)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
 
   // docs/PRD-product-display-focus-and-variations.md §۲.۴ — لینک اختصاصی تلگرام همین محصول؛
   // بدون یوزرنیم بات (هنوز ساخته نشده) دکمه کلاً نمایش داده نمی‌شود، همون الگوی SellerMorePage
@@ -446,14 +455,24 @@ export function SellerProductEditPage() {
         <h1 className="text-lg font-bold text-slate-100 light:text-slate-900">
           {isNew ? fa.seller.panel.products.addProduct : fa.seller.panel.products.editProduct}
         </h1>
-        {existingProduct && env.VITE_TELEGRAM_BOT_USERNAME && (
-          <button
-            onClick={() => void copyTelegramLink(existingProduct.id)}
-            disabled={telegramLink.isPending}
-            className="shrink-0 rounded-lg border border-slate-700/60 light:border-slate-200 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-100 light:text-slate-600 light:hover:text-slate-900 disabled:opacity-50"
-          >
-            {telegramCopied ? fa.seller.panel.products.telegramLinkCopied : fa.seller.panel.products.copyTelegramLink}
-          </button>
+        {existingProduct && (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => void copyProductLink(existingProduct.id)}
+              className="rounded-lg border border-slate-700/60 light:border-slate-200 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-100 light:text-slate-600 light:hover:text-slate-900"
+            >
+              {linkCopied ? fa.seller.panel.products.productLinkCopied : fa.seller.panel.products.copyProductLink}
+            </button>
+            {env.VITE_TELEGRAM_BOT_USERNAME && (
+              <button
+                onClick={() => void copyTelegramLink(existingProduct.id)}
+                disabled={telegramLink.isPending}
+                className="rounded-lg border border-slate-700/60 light:border-slate-200 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-100 light:text-slate-600 light:hover:text-slate-900 disabled:opacity-50"
+              >
+                {telegramCopied ? fa.seller.panel.products.telegramLinkCopied : fa.seller.panel.products.copyTelegramLink}
+              </button>
+            )}
+          </div>
         )}
       </div>
 

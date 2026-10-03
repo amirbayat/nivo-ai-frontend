@@ -123,7 +123,6 @@ export function AppRouter() {
         <Route path="orders" element={<SellerOrdersPage />} />
         <Route path="attention" element={<SellerAttentionPage />} />
         <Route path="products" element={<SellerProductsPage />} />
-        <Route path="products/new" element={<SellerProductEditPage />} />
         <Route path="products/:id" element={<SellerProductEditPage />} />
         <Route path="more" element={<SellerMorePage />} />
         <Route path="store-settings" element={<SellerStoreSettingsPage />} />
