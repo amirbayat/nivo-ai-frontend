@@ -23,7 +23,10 @@ export function useStoreProducts(slug: string, enabled: boolean) {
       try {
         const params = new URLSearchParams({ page: String(targetPage), pageSize: String(PAGE_SIZE) })
         if (q.trim()) params.set('q', q.trim())
-        const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/products?${params}`)
+        // فیدبک کاربر ۱۴۰۵/۰۷/۱۲ — «public-products» نه «products»: قبلاً این مسیر با
+        // StoreController::GET :id/products (پنل فروشنده) هم‌شکل بود و در عمل همیشه آن را
+        // shadow می‌کرد (لیست محصولات پنل فروشنده همیشه ۴۰۴ می‌داد)
+        const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/public-products?${params}`)
         if (!res.ok) throw new Error('request failed')
         const data = (await res.json()) as { items: PublicProduct[]; total: number; page: number }
         setItems((prev) => (append ? [...prev, ...data.items] : data.items))

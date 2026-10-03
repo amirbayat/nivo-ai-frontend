@@ -336,7 +336,7 @@ export type ShopUiBlock =
   | { type: 'NONE' }
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»؛ پاسخ GET
-// /v2/stores/:slug/products (عمومی، بدون auth) — همان فیلدهای نمایشی PRODUCT_CARD بالا + description
+// /v2/stores/:slug/public-products (عمومی، بدون auth) — همان فیلدهای نمایشی PRODUCT_CARD بالا + description
 export interface PublicProduct {
   id: string
   name: string
