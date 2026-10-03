@@ -259,7 +259,7 @@ export function useDeleteProductImage(storeId: string) {
   })
 }
 
-// docs/PRD-product-video.md — عیناً الگوی useUploadStoreLogo/useRemoveStoreLogo بالا، تک‌فیلد نه آرایه
+// docs/PRD-product-video.md بخش ۴ — چندویدیویی (سقف ۴ تا مثل images)، عیناً الگوی useUploadProductImages
 export function useUploadProductVideo(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
@@ -279,8 +279,8 @@ export function useUploadProductVideo(storeId: string) {
 export function useRemoveProductVideo(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (productId: string) =>
-      api.delete<SellerProduct>(`/v2/stores/${storeId}/products/${productId}/video`).then(r => r.data),
+    mutationFn: ({ productId, key }: { productId: string; key: string }) =>
+      api.delete<SellerProduct>(`/v2/stores/${storeId}/products/${productId}/video/${key}`).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) }),
   })
 }

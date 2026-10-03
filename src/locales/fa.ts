@@ -533,13 +533,11 @@ export const fa = {
         stockLabel: 'موجودی',
         addImage: 'افزودن عکس',
         maxImages: 'حداکثر ۴ عکس برای هر محصول',
-        // docs/PRD-product-video.md
-        videoLabel: 'ویدیوی معرفی محصول',
-        videoHint: 'حداکثر ۵۰ مگابایت و ۹۰ ثانیه — mp4 یا mov',
+        // docs/PRD-product-video.md بخش ۴ — چندویدیویی (سقف ۴ تا)
+        videoLabel: 'ویدیوهای معرفی محصول',
+        videoHint: 'حداکثر ۴ ویدیو، هرکدام تا ۵۰ مگابایت و ۹۰ ثانیه — mp4 یا mov',
         videoUploadError: 'آپلود ویدیو با خطا مواجه شد',
         videoRemoveError: 'حذف ویدیو با خطا مواجه شد',
-        changeVideo: 'تغییر ویدیو',
-        removeVideo: 'حذف ویدیو',
         copyProductLink: 'کپی لینک محصول',
         productLinkCopied: 'لینک محصول کپی شد',
         descriptionLabel: 'توضیحات محصول',
@@ -846,6 +844,9 @@ export const fa = {
     // داده شود؛ stockCount زیر فقط برای پنل خودِ فروشنده (SellerProductsPage) است
     inStock: 'موجود است',
     stockCount: (n: number) => `موجودی: ${n}`,
+    // docs/PRD-product-video.md بخش ۴ — دکمه‌های ناوبری MediaCarousel/MediaLightbox
+    carouselPrev: 'قبلی',
+    carouselNext: 'بعدی',
     orderStatusLabels: {
       PENDING_PAYMENT: 'در انتظار پرداخت',
       RECEIPT_SUBMITTED: 'رسید دریافت شد',

@@ -109,7 +109,8 @@ function ProductImages({
   )
 }
 
-// docs/PRD-product-video.md — عیناً الگوی StoreLogoUpload (SellerStoreSettingsPage.tsx)، تک‌فیلد نه آرایه
+// docs/PRD-product-video.md بخش ۴ — چندویدیویی (سقف ۴ تا)، عیناً الگوی ProductImages بالا
+// (نه StoreLogoUpload تک‌فایل قدیمی)
 function ProductVideo({
   product,
   onProductUpdated,
@@ -127,45 +128,39 @@ function ProductVideo({
     if (pendingPreview) URL.revokeObjectURL(pendingPreview)
   }, [pendingPreview])
 
-  const previewSrc = pendingPreview ?? (product.videoKey ? productVideoUrl(product.id, product.videoKey) : null)
-
   return (
     <div className="mb-6">
       <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
         {fa.seller.panel.products.videoLabel}
       </label>
-      {previewSrc ? (
-        <video controls src={previewSrc} className="mb-2 w-full max-w-xs rounded-lg" />
-      ) : (
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={upload.isPending}
-          className="flex h-24 w-full max-w-xs items-center justify-center rounded-xl border border-dashed border-slate-600 light:border-slate-300 text-slate-500 hover:border-slate-500 disabled:opacity-40"
-        >
-          {upload.isPending ? (
-            <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-          ) : (
-            '+'
-          )}
-        </button>
-      )}
-      <div className="flex items-center gap-3">
-        {previewSrc && (
+      <div className="flex flex-wrap gap-2">
+        {product.videos.map(v => (
+          <div key={v.key} className="relative h-16 w-24 overflow-hidden rounded-xl border border-slate-700 light:border-slate-200">
+            <video src={productVideoUrl(product.id, v.key)} className="size-full object-cover" />
+            <button
+              onClick={() => remove.mutate({ productId: product.id, key: v.key }, { onSuccess: updated => onProductUpdated(updated) })}
+              disabled={remove.isPending}
+              className="absolute left-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        {pendingPreview && (
+          <div className="relative h-16 w-24 overflow-hidden rounded-xl border border-slate-700 light:border-slate-200 opacity-60">
+            <video src={pendingPreview} className="size-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            </div>
+          </div>
+        )}
+        {product.videos.length < 4 && !pendingPreview && (
           <button
             onClick={() => fileRef.current?.click()}
             disabled={upload.isPending}
-            className="text-xs text-slate-400 hover:text-slate-300 disabled:opacity-40"
+            className="flex h-16 w-24 items-center justify-center rounded-xl border border-dashed border-slate-600 light:border-slate-300 text-slate-500 hover:border-slate-500 disabled:opacity-40"
           >
-            {fa.seller.panel.products.changeVideo}
-          </button>
-        )}
-        {product.videoKey && (
-          <button
-            onClick={() => remove.mutate(product.id, { onSuccess: updated => onProductUpdated(updated) })}
-            disabled={remove.isPending}
-            className="text-xs text-red-400 hover:text-red-300"
-          >
-            {fa.seller.panel.products.removeVideo}
+            +
           </button>
         )}
       </div>
@@ -190,7 +185,10 @@ function ProductVideo({
             { productId: product.id, file },
             {
               onSuccess: updated => onProductUpdated(updated),
-              onSettled: () => setPendingPreview(null),
+              onSettled: () => {
+                URL.revokeObjectURL(previewUrl)
+                setPendingPreview(null)
+              },
             },
           )
           e.target.value = ''
