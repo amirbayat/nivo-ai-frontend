@@ -83,6 +83,31 @@ function NavItem({ to, icon, label, badge }: { to: string; icon: React.ReactNode
   )
 }
 
+// docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۵ — همان ۵ مقصد، فقط چیدمان افقی سایدبار به‌جای bottom nav
+function SidebarItem({ to, icon, label, badge }: { to: string; icon: React.ReactNode; label: string; badge?: number }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        clsx(
+          'relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors',
+          isActive
+            ? 'bg-emerald-500/10 text-emerald-400 light:bg-emerald-50 light:text-emerald-600'
+            : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 light:hover:bg-slate-100 light:hover:text-slate-800',
+        )
+      }
+    >
+      {icon}
+      {label}
+      {!!badge && (
+        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </NavLink>
+  )
+}
+
 export function SellerPanelLayout() {
   const { data: stores, isLoading } = useMyStores()
   const store = stores?.[0]
@@ -105,11 +130,28 @@ export function SellerPanelLayout() {
         websiteUrl: store.websiteUrl,
       }}
     >
-      <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
-        <div className="flex-1 pb-16">
-          <Outlet />
+      <div className="flex min-h-screen flex-col lg:flex-row bg-slate-950 light:bg-white" dir="rtl">
+        {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۵ — از lg به بالا، سایدبار سمت راست جایگزین bottom nav */}
+        <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-l lg:border-slate-800 light:lg:border-slate-200 lg:px-3 lg:py-6">
+          <SidebarItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
+          <SidebarItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+          <SidebarItem
+            to="/seller/panel/attention"
+            icon={<AttentionIcon />}
+            label={fa.seller.panel.nav.attention}
+            badge={attentionBadge}
+          />
+          <SidebarItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
+          <SidebarItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />
+        </aside>
+
+        <div className="flex-1 pb-16 lg:pb-0">
+          <div className="lg:mx-auto lg:max-w-4xl">
+            <Outlet />
+          </div>
         </div>
-        <nav className="fixed inset-x-0 bottom-0 flex border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur">
+
+        <nav className="fixed inset-x-0 bottom-0 flex lg:hidden border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur">
           <NavItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
           <NavItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
           <NavItem
