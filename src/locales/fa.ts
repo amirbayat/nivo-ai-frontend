@@ -548,6 +548,8 @@ export const fa = {
         codeLabel: 'کد محصول (اختیاری)',
         codePlaceholder: 'مثلاً A12 — برای استوری/پست بگذار',
         aiComplete: 'تکمیل با AI',
+        // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۳ (فاز ۴.۱) — مدال تمام‌ارتفاع
+        aiModalTitle: 'تکمیل توضیحات با AI',
         aiCompleteLoading: 'در حال تولید پیشنهاد...',
         aiCompleteError: 'تولید پیشنهاد با خطا مواجه شد',
         aiSuggestedDescription: 'توضیح پیشنهادی',
