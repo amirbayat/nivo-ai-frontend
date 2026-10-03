@@ -6,6 +6,7 @@ import { toEnglishDigits, formatThousands } from '@/lib/digits'
 import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
   useAddProductImagesFromUrl,
+  useAnalyzeCompetitors,
   useBulkCompleteProducts,
   useCreateProduct,
   useImportProductFromUrl,
@@ -140,6 +141,80 @@ function BulkCompleteSheet({ storeId, onClose }: { storeId: string; onClose: () 
             >
               {fa.seller.panel.products.aiCompleteAllDone}
             </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (رصد رقبا) — استاتلس (مثل
+// completeProductInfo)؛ هر بار باز شدن این شیت یک فراخوان تازه (و هزینه‌ی تازه) است
+function CompetitorAnalysisSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+  const analyze = useAnalyzeCompetitors(storeId)
+  const startedRef = useRef(false)
+
+  useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
+    analyze.mutate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="shrink-0 p-5 pb-3">
+          <h2 className="mb-1.5 text-lg font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.products.competitorAnalysisTitle}</h2>
+          <p className="text-xs text-slate-500">{fa.seller.panel.products.competitorAnalysisHint}</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5">
+          {analyze.isPending && (
+            <p className="py-8 text-center text-sm text-slate-400">{fa.seller.panel.products.competitorAnalysisLoading}</p>
+          )}
+          {analyze.isError && (
+            <p className="py-8 text-center text-sm text-red-400">
+              {extractErrorMessage(analyze.error, fa.seller.panel.products.competitorAnalysisError)}
+            </p>
+          )}
+
+          {analyze.data && (
+            <>
+              {analyze.data.competitors.length === 0 ? (
+                <p className="py-4 text-center text-sm text-slate-400">{fa.seller.panel.products.competitorAnalysisEmpty}</p>
+              ) : (
+                <div className="mb-4 flex flex-col gap-3">
+                  {analyze.data.competitors.map((c, i) => (
+                    <div key={i} className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 p-3.5">
+                      <p className="mb-1 text-sm font-bold text-slate-100 light:text-slate-900">{c.name}</p>
+                      <p className="text-xs text-slate-400 light:text-slate-600">{c.highlight}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!!analyze.data.suggestions.length && (
+                <>
+                  <p className="mb-2 text-sm font-bold text-slate-200 light:text-slate-800">{fa.seller.panel.products.competitorAnalysisSuggestionsTitle}</p>
+                  <ul className="mb-4 flex flex-col gap-1.5">
+                    {analyze.data.suggestions.map((s, i) => (
+                      <li key={i} className="text-xs text-slate-300 light:text-slate-700">• {s}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              <button
+                onClick={onClose}
+                className="w-full rounded-2xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700"
+              >
+                {fa.seller.panel.products.competitorAnalysisDone}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -282,6 +357,7 @@ export function SellerProductsPage() {
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null)
   const [importFromUrlOpen, setImportFromUrlOpen] = useState(false)
   const [bulkCompleteOpen, setBulkCompleteOpen] = useState(false)
+  const [competitorAnalysisOpen, setCompetitorAnalysisOpen] = useState(false)
 
   async function copyProductLink(productId: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/shop/${storeSlug}?product=${productId}`)
@@ -331,6 +407,12 @@ export function SellerProductsPage() {
             ✨ {fa.seller.panel.products.aiCompleteAllButton}
           </button>
         )}
+        <button
+          onClick={() => setCompetitorAnalysisOpen(true)}
+          className="w-full rounded-xl border border-dashed border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400"
+        >
+          {fa.seller.panel.products.competitorAnalysisButton}
+        </button>
       </div>
 
       {importResult && (
@@ -379,6 +461,7 @@ export function SellerProductsPage() {
 
       {importFromUrlOpen && <ImportFromUrlSheet storeId={storeId} onClose={() => setImportFromUrlOpen(false)} />}
       {bulkCompleteOpen && <BulkCompleteSheet storeId={storeId} onClose={() => setBulkCompleteOpen(false)} />}
+      {competitorAnalysisOpen && <CompetitorAnalysisSheet storeId={storeId} onClose={() => setCompetitorAnalysisOpen(false)} />}
     </div>
   )
 }

@@ -453,6 +453,17 @@ export interface BulkCompleteResult {
   items: BulkCompleteResultItem[]
 }
 
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (رصد رقبا)
+export interface CompetitorAnalysisResult {
+  competitors: { name: string; highlight: string }[]
+  suggestions: string[]
+}
+
+// بخش ۹ (پروفایل برند عمیق‌تر در آنبوردینگ)
+export interface GenerateBrandIntroResult {
+  suggestedBrandIntro: string
+}
+
 // docs/PRD-admin-product-enrichment-review.md — پیشنهاد تایید‌شده‌ی ادمین، در انتظار تصمیم فروشنده
 export interface ProductEnrichmentDraft {
   id: string

@@ -4,11 +4,18 @@ import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { toEnglishDigits, formatCardNumberGroups } from '@/lib/digits'
-import { useCheckSlugAvailable, useCreateStore } from '@/queries/seller.queries'
+import {
+  useCheckSlugAvailable,
+  useCreateStore,
+  useGenerateBrandIntroAi,
+  useUpdateStore,
+} from '@/queries/seller.queries'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
 // فروشنده بعد از ساخت فروشگاه مستقیم به صفحه‌ی واقعی ساخت محصول در پنل هدایت می‌شود
-const TOTAL_STEPS = 3
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (پروفایل برند عمیق‌تر در
+// آنبوردینگ) — یک قدم اختیاری تازه (step 3) بین ساخت فروشگاه و صفحه‌ی موفقیت (که step4 شد) اضافه شد
+const TOTAL_STEPS = 4
 const CATEGORIES = fa.seller.step1.categories
 
 // طبق CLAUDE.md — سایت RTL است: شورون «بازگشت» رو به راست، «ادامه» رو به چپ اشاره می‌کند
@@ -76,8 +83,14 @@ export function SellerOnboardingPage() {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [cardNumber, setCardNumber] = useState('')
   const [ownerName, setOwnerName] = useState('')
+  const [storeId, setStoreId] = useState<string | null>(null)
   const [storeSlug, setStoreSlug] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [brandRawText, setBrandRawText] = useState('')
+  const [brandIntroDraft, setBrandIntroDraft] = useState<string | null>(null)
+
+  const generateBrandIntro = useGenerateBrandIntroAi(storeId ?? '')
+  const updateStore = useUpdateStore(storeId ?? '')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSlug(slug), 400)
@@ -105,8 +118,19 @@ export function SellerOnboardingPage() {
       telegramUrl: telegramUrl || undefined,
       websiteUrl: websiteUrl || undefined,
     })
+    setStoreId(store.id)
     setStoreSlug(store.slug)
     setStep(3)
+  }
+
+  async function generateBrandIntroDraft() {
+    const result = await generateBrandIntro.mutateAsync(brandRawText)
+    setBrandIntroDraft(result.suggestedBrandIntro)
+  }
+
+  async function confirmBrandIntroAndContinue() {
+    if (brandIntroDraft) await updateStore.mutateAsync({ brandIntro: brandIntroDraft })
+    setStep(4)
   }
 
   const chatLink = storeSlug ? `${window.location.origin}/shop/${storeSlug}` : ''
@@ -222,6 +246,51 @@ export function SellerOnboardingPage() {
         )}
 
         {step === 3 && (
+          <>
+            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step3Brand.heading}</h1>
+            <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step3Brand.subheading}</p>
+
+            {brandIntroDraft === null ? (
+              <>
+                <textarea
+                  value={brandRawText}
+                  onChange={e => setBrandRawText(e.target.value)}
+                  placeholder={fa.seller.step3Brand.placeholder}
+                  rows={5}
+                  className="mb-4 w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 px-4 py-3 text-sm text-slate-200 light:text-slate-800 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                />
+
+                {generateBrandIntro.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.step3Brand.generateError}</p>}
+
+                <NextButton onClick={generateBrandIntroDraft} disabled={!brandRawText.trim()} loading={generateBrandIntro.isPending}>
+                  {generateBrandIntro.isPending ? fa.seller.step3Brand.generateLoading : fa.seller.step3Brand.generateButton}
+                </NextButton>
+              </>
+            ) : (
+              <>
+                <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.step3Brand.previewLabel}</label>
+                <textarea
+                  value={brandIntroDraft}
+                  onChange={e => setBrandIntroDraft(e.target.value)}
+                  rows={4}
+                  className="mb-4 w-full resize-none rounded-2xl border border-emerald-500/60 bg-slate-800/40 light:bg-slate-50 px-4 py-3 text-sm text-slate-200 light:text-slate-800 focus:border-emerald-500 focus:outline-none"
+                />
+
+                {updateStore.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.errorGeneric}</p>}
+
+                <NextButton onClick={confirmBrandIntroAndContinue} disabled={!brandIntroDraft.trim()} loading={updateStore.isPending}>
+                  {fa.seller.step3Brand.confirmButton}
+                </NextButton>
+              </>
+            )}
+
+            <button onClick={() => setStep(4)} className="mt-3 w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
+              {fa.seller.step3Brand.skip}
+            </button>
+          </>
+        )}
+
+        {step === 4 && (
           <div className="text-center">
             <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 light:text-emerald-600">
               <svg viewBox="0 0 24 24" fill="none" className="size-7">

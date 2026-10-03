@@ -7,7 +7,9 @@ import type {
   BulkCompleteResult,
   CardDisplayPolicy,
   ChannelStat,
+  CompetitorAnalysisResult,
   CreateKbEntryInput,
+  GenerateBrandIntroResult,
   ImportProductsResult,
   KbCandidateEntry,
   NeededAttentionConversation,
@@ -415,6 +417,23 @@ export function useBulkCompleteProducts(storeId: string) {
           params: withWebSearch ? { withWebSearch: true } : undefined,
         })
         .then(r => r.data),
+  })
+}
+
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (رصد رقبا) — استاتلس، مثل
+// useCompleteProductInfo؛ چیزی ذخیره نمی‌شود، فقط نمایش برای الهام فروشنده
+export function useAnalyzeCompetitors(storeId: string) {
+  return useMutation({
+    mutationFn: () =>
+      api.post<CompetitorAnalysisResult>(`/v2/stores/${storeId}/competitor-analysis`).then(r => r.data),
+  })
+}
+
+// بخش ۹ (پروفایل برند عمیق‌تر در آنبوردینگ) — فقط پیشنهاد؛ ذخیره‌ی واقعی با useUpdateStore انجام می‌شود
+export function useGenerateBrandIntroAi(storeId: string) {
+  return useMutation({
+    mutationFn: (rawText: string) =>
+      api.post<GenerateBrandIntroResult>(`/v2/stores/${storeId}/brand-intro-ai`, { rawText }).then(r => r.data),
   })
 }
 

@@ -462,6 +462,19 @@ export const fa = {
       cardNumberLabel: 'شماره کارت (۱۶ رقم)',
       ownerNameLabel: 'نام صاحب حساب',
     },
+    // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (پروفایل برند عمیق‌تر در
+    // آنبوردینگ) — قدم اختیاری تازه، بین ساخت فروشگاه (step2) و صفحه‌ی موفقیت (step4 سابق step3)
+    step3Brand: {
+      heading: 'بیشتر درباره‌ی برندت بگو (اختیاری)',
+      subheading: 'چند جمله محاوره‌ای بنویس، AI همون لحظه یه معرفی کوتاه و حرفه‌ای ازش می‌سازه که ایجنت فروشت هم ازش استفاده می‌کنه.',
+      placeholder: 'مثلاً: ۳ ساله کیف چرم دست‌دوز می‌فروشیم، همه محصولات تضمین کیفیت دارن...',
+      generateButton: 'تحلیل با AI',
+      generateLoading: 'در حال نوشتن معرفی...',
+      generateError: 'تولید معرفی با خطا مواجه شد',
+      previewLabel: 'پیش‌نمایش معرفی برند (قابل‌ویرایش)',
+      confirmButton: 'تایید و ادامه',
+      skip: 'فعلاً رد کن',
+    },
     step3: {
       heading: 'لینک فروشگاهت آماده است',
       subheading: 'همین لینک رو برای مشتری‌هایی که از دایرکت پیام می‌دن بفرست.',
@@ -613,6 +626,15 @@ export const fa = {
         aiCompleteAllApplied: 'اعمال شد',
         aiCompleteAllRejected: 'رد شد',
         aiCompleteAllDone: 'بستن',
+        // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (رصد رقبا)
+        competitorAnalysisButton: '🔍 تحلیل رقبا',
+        competitorAnalysisTitle: 'رقبای مشابه شما چی می‌گن؟',
+        competitorAnalysisHint: 'با جستجوی وب، چند فروشگاه مشابه پیدا می‌شود و نقاط قوت محتوایی‌شون برای الهام (نه کپی) نشون داده می‌شه.',
+        competitorAnalysisLoading: 'در حال جستجوی رقبا...',
+        competitorAnalysisError: 'تحلیل رقبا با خطا مواجه شد',
+        competitorAnalysisEmpty: 'رقیب مشخصی پیدا نشد',
+        competitorAnalysisSuggestionsTitle: 'پیشنهاد برای شما',
+        competitorAnalysisDone: 'بستن',
       },
       more: {
         storeLink: 'لینک فروشگاه',
