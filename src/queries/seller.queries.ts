@@ -10,6 +10,7 @@ import type {
   CompetitorAnalysisResult,
   CreateKbEntryInput,
   GenerateBrandIntroResult,
+  GenerateProductDescriptionResult,
   ImportProductsResult,
   KbCandidateEntry,
   NeededAttentionConversation,
@@ -434,6 +435,17 @@ export function useGenerateBrandIntroAi(storeId: string) {
   return useMutation({
     mutationFn: (rawText: string) =>
       api.post<GenerateBrandIntroResult>(`/v2/stores/${storeId}/brand-intro-ai`, { rawText }).then(r => r.data),
+  })
+}
+
+// فیدبک کاربر ۱۴۰۵/۰۷/۱۱ — دستیار «نوشتن توضیحات با کمک AI» از روی یادداشت خام فروشنده؛
+// خروجی مستقیم ذخیره نمی‌شود، فروشنده در مدال «اعمال» می‌کند (همون الگوی useGenerateBrandIntroAi)
+export function useGenerateProductDescriptionFromNotes(storeId: string) {
+  return useMutation({
+    mutationFn: ({ productId, rawText }: { productId: string; rawText: string }) =>
+      api
+        .post<GenerateProductDescriptionResult>(`/v2/stores/${storeId}/products/${productId}/describe-from-notes`, { rawText })
+        .then(r => r.data),
   })
 }
 

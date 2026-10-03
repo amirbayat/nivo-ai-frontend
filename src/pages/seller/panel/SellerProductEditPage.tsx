@@ -23,6 +23,7 @@ import {
 } from '@/queries/seller.queries'
 import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
 import { AiCompleteAssist } from './AiCompleteAssist'
+import { DescriptionNotesAssist } from './DescriptionNotesAssist'
 import { useSellerStore } from './SellerPanelLayout'
 
 function ProductImages({
@@ -211,11 +212,13 @@ function DescriptionEditor({
   value,
   onChange,
   storeId,
+  productId,
   maxLength,
 }: {
   value: string
   onChange: (text: string) => void
   storeId: string
+  productId?: string
   maxLength: number
 }) {
   const transcribe = useTranscribeAudio(storeId)
@@ -276,6 +279,9 @@ function DescriptionEditor({
         >
           {fa.seller.panel.products.descriptionPreviewToggle}
         </button>
+        {productId && (
+          <DescriptionNotesAssist storeId={storeId} productId={productId} onApply={onChange} />
+        )}
       </div>
       {transcribe.isPending && <p className="mb-2 text-xs text-slate-500">{fa.seller.panel.products.descriptionTranscribing}</p>}
       {transcribe.isError && <p className="mb-2 text-xs text-red-400">{fa.seller.panel.products.descriptionDictateError}</p>}
@@ -522,6 +528,7 @@ export function SellerProductEditPage() {
           value={description}
           onChange={setDescription}
           storeId={storeId}
+          productId={existingProduct?.id}
           maxLength={DESCRIPTION_MAX_LENGTH}
         />
       </div>

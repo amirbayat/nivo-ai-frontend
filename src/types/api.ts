@@ -534,6 +534,11 @@ export interface GenerateBrandIntroResult {
   suggestedBrandIntro: string
 }
 
+// فیدبک کاربر ۱۴۰۵/۰۷/۱۱ — دستیار «نوشتن توضیحات با کمک AI» از روی یادداشت خام فروشنده
+export interface GenerateProductDescriptionResult {
+  suggestedDescription: string
+}
+
 // docs/PRD-admin-product-enrichment-review.md — پیشنهاد تایید‌شده‌ی ادمین، در انتظار تصمیم فروشنده
 export interface ProductEnrichmentDraft {
   id: string

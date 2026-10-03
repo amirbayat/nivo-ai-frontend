@@ -591,6 +591,16 @@ export const fa = {
         completenessPercent: (percent: number) => `${percent.toLocaleString('fa-IR')}٪ تکمیل`,
         completenessMissing: (label: string) => `— ${label} ندارد`,
         descriptionPreviewToggle: 'پیش‌نمایش',
+        // فیدبک کاربر ۱۴۰۵/۰۷/۱۱ — دستیار «نوشتن توضیحات با کمک AI»: مدال تمام‌ارتفاع که
+        // فروشنده هرچی می‌داند خام می‌نویسد و AI یک توضیح Markdown تمیز ازش می‌سازد
+        aiDescribeFromNotes: 'نوشتن با کمک AI',
+        aiDescribeFromNotesModalTitle: 'نوشتن توضیحات با کمک AI',
+        aiDescribeFromNotesHint: 'هرچی از این محصول می‌دونی همین‌جا بنویس — حتی تیکه‌تیکه و نامرتب. هوش مصنوعی از روش یک توضیح تمیز و خوش‌خوان می‌سازه.',
+        aiDescribeFromNotesPlaceholder: 'مثلاً: جنسش چیه، چه کاربردی داره، چرا بهتر از بقیه‌ست، نکات نگهداری، ارسال چند روزه است...',
+        aiDescribeFromNotesSubmit: 'پردازش با هوش مصنوعی',
+        aiDescribeFromNotesLoading: 'در حال نوشتن توضیح...',
+        aiDescribeFromNotesError: 'تولید توضیح با خطا مواجه شد',
+        aiDescribeFromNotesApply: 'اعمال در توضیحات',
         descriptionDictateStart: 'ضبط توضیحات با صدا',
         descriptionDictating: 'در حال ضبط... برای توقف دوباره بزن',
         descriptionTranscribing: 'در حال تبدیل گفتار به متن...',
