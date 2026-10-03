@@ -12,6 +12,9 @@ interface BlockProps {
   onConfirmCart: () => void
   onUploadReceipt: (file: File) => void
   onSendAction: (action: ShopAction) => void
+  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
+  savedProductIds: Set<string>
+  onToggleSave: (productId: string) => void
 }
 
 // عمومی، بدون auth — الگوی مسیر عیناً مطابق sales-agent.controller.ts getProductImage
@@ -200,6 +203,8 @@ function ProductCardBlock({
   products,
   disabled,
   onAddToCart,
+  savedProductIds,
+  onToggleSave,
 }: {
   products: {
     id: string
@@ -211,6 +216,8 @@ function ProductCardBlock({
   }[]
   disabled: boolean
   onAddToCart: (productId: string) => void
+  savedProductIds: Set<string>
+  onToggleSave: (productId: string) => void
 }) {
   const [zoom, setZoom] = useState<{ items: MediaItem[]; index: number } | null>(null)
   return (
@@ -241,6 +248,20 @@ function ProductCardBlock({
                   {p.basePrice.toLocaleString('fa-IR')} تومان
                 </span>
               </div>
+              {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد» */}
+              <button
+                onClick={() => onToggleSave(p.id)}
+                title={savedProductIds.has(p.id) ? fa.shop.removeFromSaved : fa.shop.saveForLater}
+                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700/60 light:hover:bg-slate-100"
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  fill={savedProductIds.has(p.id) ? 'currentColor' : 'none'}
+                  className={`size-4 ${savedProductIds.has(p.id) ? 'text-emerald-400' : ''}`}
+                >
+                  <path d="M5 3.5A1.5 1.5 0 016.5 2h7A1.5 1.5 0 0115 3.5V17l-5-3-5 3V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
             {mediaItems.length === 1 && mediaItems[0].type === 'video' && (
               // preload="metadata" نه auto — پخش خودکار توی چت آزاردهنده است و بی‌اجازه
@@ -520,10 +541,132 @@ function AddressPromptBlock({
   )
 }
 
-export function ShopUiBlockView({ block, disabled, onAddToCart, onConfirmCart, onUploadReceipt, onSendAction }: BlockProps) {
+// docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۲) — سفارش مجدد با یک دکمه
+function OrderListBlock({
+  orders,
+  disabled,
+  onReorder,
+}: {
+  orders: {
+    id: string
+    createdAt: string
+    items: { productId: string; name: string; unitPrice: number; qty: number }[]
+    totalAmount: number
+    status: string
+  }[]
+  disabled: boolean
+  onReorder: (orderId: string) => void
+}) {
+  if (orders.length === 0) {
+    return <p className="mt-2 text-xs text-slate-500">{fa.shop.orderListEmpty}</p>
+  }
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {orders.map((o) => (
+        <div key={o.id} className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs text-slate-400 light:text-slate-600">
+              {new Date(o.createdAt).toLocaleDateString('fa-IR')}
+            </span>
+            <span className="rounded-full bg-slate-700/60 light:bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-300 light:text-slate-700">
+              {fa.shop.orderStatusLabels[o.status] ?? o.status}
+            </span>
+          </div>
+          <p className="mb-2 truncate text-xs text-slate-300 light:text-slate-700">
+            {o.items.map((i) => `${i.name} × ${i.qty}`).join('، ')}
+          </p>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-slate-200 light:text-slate-900">
+              {o.totalAmount.toLocaleString('fa-IR')} تومان
+            </span>
+            <button
+              onClick={() => onReorder(o.id)}
+              disabled={disabled}
+              className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
+            >
+              {fa.shop.reorderButton}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// همان بخش، مورد ۴ — مقایسه‌ی ۲-۳ محصول کنار هم (قیمت/موجودی/specs جدولی)
+function CompareCardBlock({
+  products,
+}: {
+  products: { id: string; name: string; basePrice: number; stock: number; specs: { label: string; value: string }[] }[]
+}) {
+  const allLabels = Array.from(new Set(products.flatMap((p) => p.specs.map((s) => s.label))))
+  return (
+    <div className="mt-2 overflow-x-auto rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-slate-700/60 light:border-slate-200">
+            <th className="p-2 text-start font-medium text-slate-500" />
+            {products.map((p) => (
+              <th key={p.id} className="p-2 text-start font-semibold text-slate-200 light:text-slate-900">
+                {p.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-slate-700/40 light:border-slate-100">
+            <td className="p-2 text-slate-500">{fa.shop.compareCardPrice}</td>
+            {products.map((p) => (
+              <td key={p.id} className="p-2 font-semibold text-emerald-400">
+                {p.basePrice.toLocaleString('fa-IR')} تومان
+              </td>
+            ))}
+          </tr>
+          <tr className="border-b border-slate-700/40 light:border-slate-100">
+            <td className="p-2 text-slate-500">{fa.shop.compareCardStock}</td>
+            {products.map((p) => (
+              <td key={p.id} className="p-2 text-slate-300 light:text-slate-700">
+                {p.stock > 0 ? fa.shop.inStock : fa.shop.outOfStock}
+              </td>
+            ))}
+          </tr>
+          {allLabels.map((label) => (
+            <tr key={label} className="border-b border-slate-700/40 light:border-slate-100 last:border-0">
+              <td className="p-2 text-slate-500">{label}</td>
+              {products.map((p) => (
+                <td key={p.id} className="p-2 text-slate-300 light:text-slate-700">
+                  {p.specs.find((s) => s.label === label)?.value ?? '—'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function ShopUiBlockView({
+  block,
+  disabled,
+  onAddToCart,
+  onConfirmCart,
+  onUploadReceipt,
+  onSendAction,
+  savedProductIds,
+  onToggleSave,
+}: BlockProps) {
   switch (block.type) {
     case 'PRODUCT_CARD':
-      return <ProductCardBlock products={block.products} disabled={disabled} onAddToCart={onAddToCart} />
+      return (
+        <ProductCardBlock
+          products={block.products}
+          disabled={disabled}
+          onAddToCart={onAddToCart}
+          savedProductIds={savedProductIds}
+          onToggleSave={onToggleSave}
+        />
+      )
     case 'PRODUCT_PHOTOS':
       return <ProductPhotosBlock productId={block.productId} productName={block.productName} images={block.images} videos={block.videos} />
     case 'CART_SUMMARY':
@@ -551,6 +694,16 @@ export function ShopUiBlockView({ block, disabled, onAddToCart, onConfirmCart, o
           onSendAction={onSendAction}
         />
       )
+    case 'ORDER_LIST':
+      return (
+        <OrderListBlock
+          orders={block.orders}
+          disabled={disabled}
+          onReorder={(orderId) => onSendAction({ type: 'REORDER', orderId })}
+        />
+      )
+    case 'COMPARE_CARD':
+      return <CompareCardBlock products={block.products} />
     default:
       return null
   }

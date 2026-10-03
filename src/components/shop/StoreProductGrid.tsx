@@ -11,9 +11,19 @@ interface StoreProductGridProps {
   disabled: boolean
   onAddToCart: (productId: string) => void
   onAskSeller: (product: PublicProduct) => void
+  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
+  savedProductIds: Set<string>
+  onToggleSave: (productId: string) => void
 }
 
-export function StoreProductGrid({ slug, disabled, onAddToCart, onAskSeller }: StoreProductGridProps) {
+export function StoreProductGrid({
+  slug,
+  disabled,
+  onAddToCart,
+  onAskSeller,
+  savedProductIds,
+  onToggleSave,
+}: StoreProductGridProps) {
   const { items, query, setQuery, loading, error, hasMore, loadMore } = useStoreProducts(slug, true)
   const [selected, setSelected] = useState<PublicProduct | null>(null)
 
@@ -34,23 +44,37 @@ export function StoreProductGrid({ slug, disabled, onAddToCart, onAskSeller }: S
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {items.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setSelected(p)}
-                className="flex flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/60 text-right light:border-slate-200 light:bg-white"
-              >
-                {p.images[0] ? (
-                  <img src={productImageUrl(p.id, p.images[0])} alt={p.name} className="aspect-square w-full object-cover" />
-                ) : (
-                  <div className="aspect-square w-full bg-slate-800 light:bg-slate-100" />
-                )}
-                <div className="flex flex-col gap-0.5 p-2">
-                  <span className="truncate text-xs font-medium text-slate-200 light:text-slate-900">{p.name}</span>
-                  <span className="text-[11px] text-slate-400 light:text-slate-600">
-                    {p.basePrice.toLocaleString('fa-IR')} تومان
-                  </span>
-                </div>
-              </button>
+              <div key={p.id} className="relative">
+                <button
+                  onClick={() => setSelected(p)}
+                  className="flex w-full flex-col overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/60 text-right light:border-slate-200 light:bg-white"
+                >
+                  {p.images[0] ? (
+                    <img src={productImageUrl(p.id, p.images[0])} alt={p.name} className="aspect-square w-full object-cover" />
+                  ) : (
+                    <div className="aspect-square w-full bg-slate-800 light:bg-slate-100" />
+                  )}
+                  <div className="flex flex-col gap-0.5 p-2">
+                    <span className="truncate text-xs font-medium text-slate-200 light:text-slate-900">{p.name}</span>
+                    <span className="text-[11px] text-slate-400 light:text-slate-600">
+                      {p.basePrice.toLocaleString('fa-IR')} تومان
+                    </span>
+                  </div>
+                </button>
+                {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد» */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleSave(p.id)
+                  }}
+                  title={savedProductIds.has(p.id) ? fa.shop.removeFromSaved : fa.shop.saveForLater}
+                  className="absolute left-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/40 text-white"
+                >
+                  <svg viewBox="0 0 20 20" fill={savedProductIds.has(p.id) ? 'currentColor' : 'none'} className={`size-3.5 ${savedProductIds.has(p.id) ? 'text-emerald-400' : ''}`}>
+                    <path d="M5 3.5A1.5 1.5 0 016.5 2h7A1.5 1.5 0 0115 3.5V17l-5-3-5 3V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -79,6 +103,8 @@ export function StoreProductGrid({ slug, disabled, onAddToCart, onAskSeller }: S
             onAskSeller(p)
             setSelected(null)
           }}
+          saved={savedProductIds.has(selected.id)}
+          onToggleSave={() => onToggleSave(selected.id)}
         />
       )}
     </div>
@@ -93,12 +119,16 @@ function ProductDetailSheet({
   onClose,
   onAddToCart,
   onAskSeller,
+  saved,
+  onToggleSave,
 }: {
   product: PublicProduct
   disabled: boolean
   onClose: () => void
   onAddToCart: (id: string) => void
   onAskSeller: (product: PublicProduct) => void
+  saved: boolean
+  onToggleSave: () => void
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
@@ -114,7 +144,18 @@ function ProductDetailSheet({
             className="mb-3 aspect-square w-full rounded-xl object-cover"
           />
         )}
-        <h3 className="mb-1 text-base font-semibold text-slate-100 light:text-slate-900">{product.name}</h3>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h3 className="text-base font-semibold text-slate-100 light:text-slate-900">{product.name}</h3>
+          <button
+            onClick={onToggleSave}
+            title={saved ? fa.shop.removeFromSaved : fa.shop.saveForLater}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
+          >
+            <svg viewBox="0 0 20 20" fill={saved ? 'currentColor' : 'none'} className={`size-4.5 ${saved ? 'text-emerald-400' : ''}`}>
+              <path d="M5 3.5A1.5 1.5 0 016.5 2h7A1.5 1.5 0 0115 3.5V17l-5-3-5 3V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
         <p className="mb-2 text-sm font-bold text-emerald-400">{product.basePrice.toLocaleString('fa-IR')} تومان</p>
         {product.description && (
           <p className="mb-3 text-sm text-slate-400 light:text-slate-600">{product.description}</p>

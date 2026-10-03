@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
 import { StoreProductGrid } from '@/components/shop/StoreProductGrid'
+import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import type { PublicProduct, ShopHistoryEntry, ShopMessage } from '@/types/api'
@@ -231,6 +232,8 @@ export function ShopChatPage() {
     error,
     history,
     viewingHistory,
+    savedProductIds,
+    toggleSaveProduct,
     sendMessage,
     sendAction,
     uploadReceipt,
@@ -470,11 +473,14 @@ export function ShopChatPage() {
           disabled={disabled}
           onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
           onAskSeller={handleAskSeller}
+          savedProductIds={savedProductIds}
+          onToggleSave={toggleSaveProduct}
         />
       )}
 
       {!storeMode && (
       <>
+      <CheckoutProgressBar state={state} />
       <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'customer' ? 'justify-start' : 'justify-end'}`}>
@@ -503,6 +509,8 @@ export function ShopChatPage() {
                   onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
                   onUploadReceipt={(file) => void uploadReceipt(file)}
                   onSendAction={(action) => void sendAction(action)}
+                  savedProductIds={savedProductIds}
+                  onToggleSave={toggleSaveProduct}
                 />
               )}
             </div>
@@ -539,6 +547,32 @@ export function ShopChatPage() {
           </span>
         </div>
       )}
+
+      {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۶) — منوی چیپ سریع:
+          دسترسی زودتر به همان قابلیت‌های موجود (حالت فروشگاه بخش ۳.۵، درخواست انسان بخش ۴)،
+          بدون نیاز به اکشن/endpoint تازه برای «صحبت با فروشنده» */}
+      <div className="flex gap-1.5 overflow-x-auto border-t border-slate-800 light:border-slate-200 px-3 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          onClick={() => void sendAction({ type: 'VIEW_ORDERS' })}
+          disabled={disabled}
+          className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 light:border-slate-300 px-3 py-1.5 text-xs text-slate-300 light:text-slate-700 disabled:opacity-40"
+        >
+          {fa.shop.quickChipOrders}
+        </button>
+        <button
+          onClick={() => setStoreMode(true)}
+          className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 light:border-slate-300 px-3 py-1.5 text-xs text-slate-300 light:text-slate-700"
+        >
+          {fa.shop.quickChipProducts}
+        </button>
+        <button
+          onClick={() => void sendMessage(fa.shop.talkToSellerMessage)}
+          disabled={disabled}
+          className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 light:border-slate-300 px-3 py-1.5 text-xs text-slate-300 light:text-slate-700 disabled:opacity-40"
+        >
+          {fa.shop.quickChipTalkToSeller}
+        </button>
+      </div>
 
       <div className="flex items-end gap-2 border-t border-slate-800 light:border-slate-200 p-3">
         <textarea

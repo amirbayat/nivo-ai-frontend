@@ -9,6 +9,7 @@ import type {
   ShopHistoryEntry,
   ShopMessage,
   ShopResponseStrategy,
+  ShopSavedProductsResponse,
   ShopSendMessageResponse,
   ShopStartChatResponse,
   ShopVoiceStatusResponse,
@@ -49,6 +50,8 @@ export function useShopChat(slug: string, productId?: string) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<ShopHistoryEntry[]>([])
+  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
+  const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set())
   const [viewingHistory, setViewingHistoryState] = useState(false)
   // docs/PRD-sales-agent-response-strategy-ab.md بخش ۹ — سوییچ دستی خریدار برای تست زنده‌ی
   // Track A/B؛ فعلاً فقط برای تست، پیش‌فرض واقعی سرور RULE_BASED است
@@ -79,6 +82,21 @@ export function useShopChat(slug: string, productId?: string) {
       // تاریخچه صرفاً یک پنل جانبی است — شکست آن نباید کل چت را خراب کند
     }
   }, [slug])
+
+  const fetchSavedProducts = useCallback(async () => {
+    const session = liveSessionRef.current
+    if (!session) return
+    try {
+      const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/saved-products`, {
+        headers: { 'X-Session-Token': session.sessionToken },
+      })
+      if (!res.ok) return
+      const data = (await res.json()) as ShopSavedProductsResponse
+      setSavedProductIds(new Set(data.productIds))
+    } catch {
+      // فقط آیکون بوکمارک را تحت‌تاثیر می‌گذارد، نباید کل چت را خراب کند
+    }
+  }, [])
 
   const appendCustomerMessage = useCallback((text: string) => {
     setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text }])
@@ -175,6 +193,22 @@ export function useShopChat(slug: string, productId?: string) {
       }
     },
     [sending, applyReply],
+  )
+
+  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — toggle خوش‌بینانه
+  // (فوری روی آیکون)، بعد sendAction واقعی را می‌فرستد؛ عدم موفقیت فقط همان خطای عمومی sendAction
+  // را نشان می‌دهد، بوکمارک محلی برنمی‌گردد (فاز ۱، ریسک کم)
+  const toggleSaveProduct = useCallback(
+    (productId: string) => {
+      setSavedProductIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(productId)) next.delete(productId)
+        else next.add(productId)
+        return next
+      })
+      void sendAction({ type: 'TOGGLE_SAVE_PRODUCT', productId })
+    },
+    [sendAction],
   )
 
   // بعد از HANDOFF_HUMAN، پیام‌های فروشنده باید بدون اینکه مشتری خودش چیزی بفرستد دیده شوند —
@@ -308,8 +342,9 @@ export function useShopChat(slug: string, productId?: string) {
         void sendMessage(KICKOFF_MESSAGE)
       }
       void fetchHistory()
+      void fetchSavedProducts()
     },
-    [slug, pollVoice, sendMessage, fetchHistory],
+    [slug, pollVoice, sendMessage, fetchHistory, fetchSavedProducts],
   )
 
   // فقط اولین بار (هیچ سشنی در این مرورگر نبوده) — Customer تازه می‌سازد
@@ -344,6 +379,7 @@ export function useShopChat(slug: string, productId?: string) {
           liveSessionRef.current = existing
           await fetchConversation()
           void fetchHistory()
+          void fetchSavedProducts()
         } else {
           await createFreshConversation(cancelledRef)
         }
@@ -474,6 +510,8 @@ export function useShopChat(slug: string, productId?: string) {
     error,
     history,
     viewingHistory,
+    savedProductIds,
+    toggleSaveProduct,
     responseStrategy,
     setResponseStrategy,
     sendMessage,

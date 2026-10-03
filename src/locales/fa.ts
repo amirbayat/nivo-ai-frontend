@@ -961,6 +961,18 @@ export const fa = {
     storeModeBackToChat: 'بازگشت به گفتگو',
     storeModeAskSeller: 'پرسیدن از فروشنده',
     storeModeAddedToCart: 'به سبد اضافه شد',
+    // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸)
+    checkoutSteps: ['سبد', 'آدرس', 'پرداخت', 'تأیید'],
+    orderListEmpty: 'هنوز سفارشی ثبت نشده',
+    reorderButton: '🔁 دوباره همینو سفارش بده',
+    compareCardPrice: 'قیمت',
+    compareCardStock: 'موجودی',
+    saveForLater: 'ذخیره برای بعد',
+    removeFromSaved: 'حذف از ذخیره‌شده‌ها',
+    quickChipOrders: '📦 سفارش‌هام',
+    quickChipProducts: '🛍 دیدن محصولات',
+    quickChipTalkToSeller: '💬 صحبت با فروشنده',
+    talkToSellerMessage: 'می‌خوام با یکی از همکاراتون صحبت کنم',
   },
   common: {
     save: 'ذخیره',

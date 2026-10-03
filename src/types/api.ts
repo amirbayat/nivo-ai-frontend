@@ -317,6 +317,22 @@ export type ShopUiBlock =
       shippingCostToman?: number
       provinceCovered?: boolean
     }
+  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۲) — سفارش مجدد با یک دکمه
+  | {
+      type: 'ORDER_LIST'
+      orders: {
+        id: string
+        createdAt: string
+        items: { productId: string; name: string; unitPrice: number; qty: number }[]
+        totalAmount: number
+        status: string
+      }[]
+    }
+  // همان بخش، مورد ۴ — مقایسه‌ی ۲-۳ محصول کنار هم
+  | {
+      type: 'COMPARE_CARD'
+      products: { id: string; name: string; basePrice: number; stock: number; specs: ProductSpecSuggestion[] }[]
+    }
   | { type: 'NONE' }
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»؛ پاسخ GET
@@ -366,6 +382,10 @@ export type ShopAction =
   | { type: 'EDIT_ADDRESS' }
   | { type: 'SAVE_ADDRESS' }
   | { type: 'SKIP_SAVE_ADDRESS' }
+  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸)
+  | { type: 'VIEW_ORDERS' }
+  | { type: 'TOGGLE_SAVE_PRODUCT'; productId: string }
+  | { type: 'REORDER'; orderId: string }
 
 export interface ShopStartChatResponse {
   conversationId: string
@@ -394,6 +414,12 @@ export interface ShopSendMessageResponse {
 export interface ShopVoiceStatusResponse {
   voiceKey: string | null
   pending: boolean
+}
+
+// docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — پاسخ
+// GET /v2/chat/:conversationId/saved-products
+export interface ShopSavedProductsResponse {
+  productIds: string[]
 }
 
 export interface ShopConversationEvent {
