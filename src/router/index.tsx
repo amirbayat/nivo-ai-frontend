@@ -55,6 +55,8 @@ import { SellerChannelStatsPage } from '@/pages/seller/panel/SellerChannelStatsP
 import { SellerDashboardPage } from '@/pages/seller/panel/SellerDashboardPage'
 import { SellerHelpCenterPage } from '@/pages/seller/panel/SellerHelpCenterPage'
 import { ShopChatPage } from '@/pages/shop/ShopChatPage'
+import { ExploreHomePage } from '@/pages/marketplace/ExploreHomePage'
+import { MyOrdersPage } from '@/pages/marketplace/MyOrdersPage'
 import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -141,6 +143,11 @@ export function AppRouter() {
       {/* docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی مشتری، کاملاً بدون لاگین؛ نمی‌شود
           /chat/:slug باشد چون آن مسیر از قبل برای چت لاگین‌شده‌ی نیوو گرفته شده (پایین‌تر) */}
       <Route path="/shop/:slug" element={<ShopChatPage />} />
+
+      {/* docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — لایه‌ی اکسپلور،
+          بدون لاگین، جدا از چت تک‌فروشگاهی بالا */}
+      <Route path="/explore" element={<ExploreHomePage />} />
+      <Route path="/explore/orders" element={<MyOrdersPage />} />
 
       {/* guest */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />

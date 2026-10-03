@@ -354,6 +354,31 @@ export interface PublicProductsPage {
   pageSize: number
 }
 
+// docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — GET /v2/marketplace/stores
+// (عمومی، بدون auth)؛ فهرست ساده‌ی فروشگاه‌های فعال، بدون جست‌وجو/دسته‌بندی
+export interface MarketplaceStore {
+  id: string
+  slug: string
+  name: string
+  category: string | null
+  logoImageKey: string | null
+}
+
+// همون بخش — «سفارش‌های من، همه‌ی فروشگاه‌ها»؛ پاسخ GET /v2/marketplace/orders
+// (Authorization: Bearer <توکن کوتاه‌مدت بعد از تأیید OTP>)
+export interface MarketplaceStoreOrders {
+  storeId: string
+  storeName: string
+  storeSlug: string
+  orders: {
+    id: string
+    createdAt: string
+    items: { productId: string; name: string; unitPrice: number; qty: number }[]
+    totalAmount: number
+    status: string
+  }[]
+}
+
 export interface ShopMessage {
   id: string
   role: 'customer' | 'agent'

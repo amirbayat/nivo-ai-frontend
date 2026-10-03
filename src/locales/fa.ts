@@ -974,6 +974,28 @@ export const fa = {
     quickChipTalkToSeller: '💬 صحبت با فروشنده',
     talkToSellerMessage: 'می‌خوام با یکی از همکاراتون صحبت کنم',
   },
+  // docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — صفحه‌ی اکسپلور/فهرست
+  // فروشگاه‌ها + «سفارش‌های من، همه‌ی فروشگاه‌ها»؛ جدا از namespace بالا چون صفحه‌ی مستقلی
+  // است، نه بخشی از چت تک‌فروشگاهی
+  marketplace: {
+    exploreTitle: 'فروشگاه‌های نیوو',
+    exploreSubtitle: 'یکی از فروشگاه‌های فعال رو انتخاب کن و گفتگو رو شروع کن',
+    exploreEmpty: 'فعلاً فروشگاه فعالی نیست',
+    startChat: 'شروع گفتگو',
+    myOrdersLink: '📦 سفارش‌های من (همه‌ی فروشگاه‌ها)',
+    myOrdersTitle: 'سفارش‌های من',
+    phoneStepTitle: 'شماره موبایلت رو وارد کن',
+    phonePlaceholder: '۰۹xxxxxxxxx',
+    sendOtpButton: 'ارسال کد تأیید',
+    otpStepTitle: 'کد تأیید رو وارد کن',
+    otpSentTo: (phone: string) => `کد تأیید به ${phone} پیامک شد`,
+    otpPlaceholder: 'کد ۶ رقمی',
+    verifyOtpButton: 'تأیید',
+    changePhone: 'تغییر شماره',
+    resendOtp: 'ارسال دوباره‌ی کد',
+    noOrdersFound: 'هنوز سفارشی با این شماره ثبت نشده',
+    backToExplore: 'بازگشت به فهرست فروشگاه‌ها',
+  },
   common: {
     save: 'ذخیره',
     cancel: 'انصراف',
