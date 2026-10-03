@@ -952,6 +952,15 @@ export const fa = {
       IN_PROGRESS: 'در حال انجام',
       NEEDS_ATTENTION: 'نیاز به پیگیری',
     } as Record<string, string>,
+    // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»
+    storeMode: 'فروشگاه',
+    storeModeOpen: 'دیدن همه‌ی محصولات',
+    storeModeSearchPlaceholder: 'جست‌وجوی محصول...',
+    storeModeEmpty: 'محصولی پیدا نشد',
+    storeModeLoadMore: 'نمایش بیشتر',
+    storeModeBackToChat: 'بازگشت به گفتگو',
+    storeModeAskSeller: 'پرسیدن از فروشنده',
+    storeModeAddedToCart: 'به سبد اضافه شد',
   },
   common: {
     save: 'ذخیره',

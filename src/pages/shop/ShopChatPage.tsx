@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
+import { StoreProductGrid } from '@/components/shop/StoreProductGrid'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
-import type { ShopHistoryEntry, ShopMessage } from '@/types/api'
+import type { PublicProduct, ShopHistoryEntry, ShopMessage } from '@/types/api'
 
 // HANDOFF_HUMAN عمداً اینجا نیست — بعد از escalate، مشتری باید بتواند مستقیم با فروشنده
 // چت کند (پنل فروشنده، تب «نیاز به توجه»)؛ فقط COMPLETED/REJECTED واقعاً پایانی‌اند
@@ -243,6 +244,10 @@ export function ShopChatPage() {
   const [recording, setRecording] = useState(false)
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [historyOpen, setHistoryOpen] = useState(false)
+  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»: نخ چت مینیمم به حباب شناور
+  const [storeMode, setStoreMode] = useState(false)
+  const [storeModeUnread, setStoreModeUnread] = useState(false)
+  const prevMessageCountRef = useRef(messages.length)
   const messagesRef = useRef<HTMLDivElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -275,7 +280,23 @@ export function ShopChatPage() {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, sending, viewportHeight])
 
+  // وقتی در حالت فروشگاهیم (نخ چت پشت حباب شناور مخفی است) و پیام تازه‌ای می‌رسد (مثلاً پاسخ
+  // به ADD_TO_CART از گرید)، نقطه‌ی قرمز روی حباب نشان بده — همان الگوی ویجت‌های Intercom/Crisp
+  useEffect(() => {
+    if (messages.length > prevMessageCountRef.current && storeMode) setStoreModeUnread(true)
+    prevMessageCountRef.current = messages.length
+  }, [messages.length, storeMode])
+
   const disabled = sending || viewingHistory || TERMINAL_STATES.includes(state)
+
+  // «پرسیدن از فروشنده» از شیت محصول گرید — چت را باز می‌کند و با نام محصول (مثل اینکه خریدار
+  // تایپ کرده) همان مکانیزم موجود لنگرشدن روی محصول (doBrowse narrowing تک‌نتیجه‌ای) را فعال
+  // می‌کند؛ بدون نیاز به یک اکشن/endpoint تازه‌ی «set anchor»
+  function handleAskSeller(product: PublicProduct) {
+    setStoreMode(false)
+    setStoreModeUnread(false)
+    void sendMessage(product.name)
+  }
 
   function send() {
     const text = input.trim()
@@ -385,6 +406,30 @@ export function ShopChatPage() {
         </div>
         <div className="flex items-center gap-1">
           <button
+            onClick={() => setStoreMode((v) => !v)}
+            title={storeMode ? fa.shop.storeModeBackToChat : fa.shop.storeModeOpen}
+            className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
+          >
+            {storeMode ? (
+              <svg viewBox="0 0 20 20" fill="none" className="size-4.5">
+                <path
+                  d="M4 10.5l6-5.5 6 5.5M6 9v6a1 1 0 001 1h2.5v-4h1V16H13a1 1 0 001-1V9"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4.5">
+                <rect x="3" y="3" width="6" height="6" rx="1.3" />
+                <rect x="11" y="3" width="6" height="6" rx="1.3" />
+                <rect x="3" y="11" width="6" height="6" rx="1.3" />
+                <rect x="11" y="11" width="6" height="6" rx="1.3" />
+              </svg>
+            )}
+          </button>
+          <button
             onClick={() => setHistoryOpen(true)}
             title={fa.shop.history}
             className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
@@ -419,6 +464,17 @@ export function ShopChatPage() {
         <HistoryDrawer entries={history} onSelect={handleSelectHistory} onClose={() => setHistoryOpen(false)} />
       )}
 
+      {storeMode && (
+        <StoreProductGrid
+          slug={slug}
+          disabled={disabled}
+          onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
+          onAskSeller={handleAskSeller}
+        />
+      )}
+
+      {!storeMode && (
+      <>
       <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'customer' ? 'justify-start' : 'justify-end'}`}>
@@ -520,6 +576,30 @@ export function ShopChatPage() {
           </svg>
         </button>
       </div>
+      </>
+      )}
+
+      {storeMode && (
+        <button
+          onClick={() => {
+            setStoreMode(false)
+            setStoreModeUnread(false)
+          }}
+          title={fa.shop.storeModeBackToChat}
+          className="fixed bottom-5 left-5 z-40 flex size-14 items-center justify-center rounded-full bg-slate-800 shadow-lg light:bg-white light:shadow-xl"
+        >
+          {storeId && storeLogoKey ? (
+            <img src={storeLogoUrl(storeId, storeLogoKey)} alt="" className="size-10 rounded-full object-cover" />
+          ) : (
+            <div className="flex size-10 items-center justify-center rounded-full bg-slate-700 text-xs text-slate-300 light:bg-slate-200 light:text-slate-700">
+              {avatarInitials(storeName)}
+            </div>
+          )}
+          {storeModeUnread && (
+            <span className="absolute -right-0.5 -top-0.5 size-3.5 rounded-full border-2 border-slate-950 bg-red-500 light:border-white" />
+          )}
+        </button>
+      )}
     </div>
   )
 }

@@ -15,13 +15,14 @@ interface BlockProps {
 }
 
 // عمومی، بدون auth — الگوی مسیر عیناً مطابق sales-agent.controller.ts getProductImage
-function productImageUrl(productId: string, key: string): string {
+// export شده چون StoreProductGrid.tsx (بخش ۳.۵) هم همین الگوی URL را لازم دارد
+export function productImageUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/images/${key}`
 }
 
 // docs/PRD-product-video.md — عیناً همون الگوی productImageUrl بالا؛ اندپوینت Range request
 // را پشتیبانی می‌کند، پس <video> خودش seek می‌تواند بزند
-function productVideoUrl(productId: string, key: string): string {
+export function productVideoUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/video/${key}`
 }
 
