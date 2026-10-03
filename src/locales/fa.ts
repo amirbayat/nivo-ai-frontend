@@ -591,6 +591,28 @@ export const fa = {
         enrichmentDraftBadge: 'پیشنهاد تیم نیوو برای تکمیل این محصول',
         enrichmentApprove: 'تایید و اعمال',
         enrichmentReject: 'رد کن',
+        // docs/PRD-seller-knowledge-base.md بخش ۹.۲ (سوم) — مشخصات فنی ساختاریافته‌ی ذخیره‌شده
+        specsLabel: 'مشخصات فنی',
+        // بخش ۹.۲ (دوم، مورد ۵) — تکمیل از روی عکس
+        aiPhotoComplete: 'تکمیل از روی عکس',
+        aiPhotoCompleteHint: 'یک عکس از برچسب کالا یا خودِ کالا آپلود کن تا نام/مشخصات/توضیح از رویش استخراج شود',
+        aiPhotoCompleteLoading: 'در حال تحلیل عکس...',
+        aiPhotoCompleteError: 'تحلیل عکس با خطا مواجه شد',
+        aiPhotoAppliedNotice: 'نام/توضیح/مشخصات همین الان در فیلدهای بالا نشست — می‌تونی ویرایش کنی',
+        // بخش ۹.۲ (دوم، مورد ۶) — تکمیل خودکار دسته‌ای
+        aiCompleteAllButton: 'تکمیل خودکار همه‌ی محصولات ناقص',
+        aiCompleteAllTitle: 'تکمیل خودکار محصولات ناقص',
+        aiCompleteAllHint: 'حداکثر ۲۰ محصول ناقص این فروشگاه بررسی می‌شود — قبل از اعمال هرکدام را جدا تایید کن',
+        aiCompleteAllLoading: 'در حال تولید پیشنهاد برای محصولات ناقص... (ممکن است کمی طول بکشد)',
+        aiCompleteAllEmpty: 'همه‌ی محصولات این فروشگاه کامل هستند',
+        aiCompleteAllError: 'تولید پیشنهادها با خطا مواجه شد',
+        aiCompleteAllItemError: 'تولید پیشنهاد برای این محصول با خطا مواجه شد',
+        aiCompleteAllApprove: 'تایید و اعمال',
+        aiCompleteAllApproveAll: 'تایید همه',
+        aiCompleteAllReject: 'رد کن',
+        aiCompleteAllApplied: 'اعمال شد',
+        aiCompleteAllRejected: 'رد شد',
+        aiCompleteAllDone: 'بستن',
       },
       more: {
         storeLink: 'لینک فروشگاه',

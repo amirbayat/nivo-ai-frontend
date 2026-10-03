@@ -5,11 +5,16 @@ import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
   useApproveEnrichmentDraft,
   useCompleteProductInfo,
+  useCompleteProductInfoFromPhoto,
   useCreateKbEntry,
   usePendingEnrichmentDraft,
   useRejectEnrichmentDraft,
 } from '@/queries/seller.queries'
-import type { SellerProduct } from '@/types/api'
+import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
+
+// یک سطح «برگردون به قبل» مشترک بین هر دو مسیر تولید (متن/عکس) — هرکدام قبل از apply خودشان
+// یک snapshot تازه می‌گذارند؛ فقط آخرین apply قابل‌برگشت است (دقیقاً همون رفتار قبلی description-only)
+type ApplySnapshot = { name?: string; description: string; specs: ProductSpecSuggestion[] }
 
 // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۳ (فاز ۴.۱) — ریفکتور فرانت:
 // دستیار تکمیل محصول با AI که قبلاً دائمی داخل فرم ویرایش محصول جا می‌گرفت، حالا پشت یک
@@ -21,27 +26,52 @@ function AiCompleteAssistModal({
   onClose,
   product,
   storeId,
+  name,
   description,
+  specs,
+  onApplyName,
   onApplyDescription,
+  onApplySpecs,
 }: {
   open: boolean
   onClose: () => void
   product: SellerProduct
   storeId: string
+  name: string
   description: string
+  specs: ProductSpecSuggestion[]
+  onApplyName: (name: string) => void
   onApplyDescription: (text: string) => void
+  onApplySpecs: (specs: ProductSpecSuggestion[]) => void
 }) {
   const complete = useCompleteProductInfo(storeId)
+  const completePhoto = useCompleteProductInfoFromPhoto(storeId)
   const createKb = useCreateKbEntry(storeId)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set())
   const [withWebSearch, setWithWebSearch] = useState(false)
-  const descriptionBeforeApplyRef = useRef<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const applySnapshotRef = useRef<ApplySnapshot | null>(null)
+  function undoApply() {
+    const snap = applySnapshotRef.current
+    if (!snap) return
+    if (snap.name !== undefined) onApplyName(snap.name)
+    onApplyDescription(snap.description)
+    onApplySpecs(snap.specs)
+  }
   useEffect(() => {
     if (!complete.data) return
     onApplyDescription(complete.data.suggestedDescription)
+    if (complete.data.suggestedSpecs?.length) onApplySpecs(complete.data.suggestedSpecs)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [complete.data])
+  useEffect(() => {
+    if (!completePhoto.data) return
+    if (completePhoto.data.suggestedName) onApplyName(completePhoto.data.suggestedName)
+    onApplyDescription(completePhoto.data.suggestedDescription)
+    if (completePhoto.data.suggestedSpecs?.length) onApplySpecs(completePhoto.data.suggestedSpecs)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completePhoto.data])
 
   const pendingDraft = usePendingEnrichmentDraft(storeId, product.id)
   const approveDraft = useApproveEnrichmentDraft(storeId, product.id)
@@ -134,7 +164,10 @@ function AiCompleteAssistModal({
                       type="button"
                       onClick={() =>
                         approveDraft.mutate(undefined, {
-                          onSuccess: () => onApplyDescription(draft.suggestedDescription),
+                          onSuccess: () => {
+                            onApplyDescription(draft.suggestedDescription)
+                            onApplySpecs(draft.suggestedSpecs ?? [])
+                          },
                         })
                       }
                       disabled={approveDraft.isPending}
@@ -195,7 +228,7 @@ function AiCompleteAssistModal({
                   <button
                     type="button"
                     onClick={() => {
-                      descriptionBeforeApplyRef.current = description
+                      applySnapshotRef.current = { description, specs }
                       complete.mutate({ productId: product.id, withWebSearch })
                     }}
                     disabled={complete.isPending}
@@ -218,7 +251,7 @@ function AiCompleteAssistModal({
                   <p className="mb-2 text-sm text-slate-200 light:text-slate-800">{complete.data.suggestedDescription}</p>
                   <button
                     type="button"
-                    onClick={() => onApplyDescription(descriptionBeforeApplyRef.current ?? '')}
+                    onClick={undoApply}
                     className="mb-3 text-xs font-semibold text-slate-400 light:text-slate-600 hover:underline"
                   >
                     {fa.seller.panel.products.aiUndoApply}
@@ -270,6 +303,66 @@ function AiCompleteAssistModal({
                   </div>
                 </div>
               )}
+
+              {!completePhoto.data && (
+                <div className="mt-3 border-t border-slate-700/50 light:border-slate-200 pt-3">
+                  <p className="mb-2 text-[11px] text-slate-500">{fa.seller.panel.products.aiPhotoCompleteHint}</p>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      if (!file) return
+                      applySnapshotRef.current = { name, description, specs }
+                      completePhoto.mutate({ productId: product.id, file })
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={completePhoto.isPending}
+                    className="w-full rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 py-2.5 text-sm font-bold text-slate-200 light:text-slate-800 hover:bg-slate-800/60 light:hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    {completePhoto.isPending ? fa.seller.panel.products.aiPhotoCompleteLoading : `📷 ${fa.seller.panel.products.aiPhotoComplete}`}
+                  </button>
+                  {completePhoto.isError && (
+                    <p className="mt-2 text-xs text-red-400">
+                      {extractErrorMessage(completePhoto.error, fa.seller.panel.products.aiPhotoCompleteError)}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {completePhoto.data && (
+                <div className="mt-3 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 p-3.5">
+                  <p className="mb-1.5 text-[11px] text-emerald-400 light:text-emerald-700">{fa.seller.panel.products.aiPhotoAppliedNotice}</p>
+                  {completePhoto.data.suggestedName && (
+                    <p className="mb-1.5 text-sm text-slate-200 light:text-slate-800">
+                      <span className="font-semibold">{fa.seller.panel.products.nameLabel}:</span> {completePhoto.data.suggestedName}
+                    </p>
+                  )}
+                  <p className="mb-2 text-sm text-slate-200 light:text-slate-800">{completePhoto.data.suggestedDescription}</p>
+                  <button
+                    type="button"
+                    onClick={undoApply}
+                    className="mb-1 text-xs font-semibold text-slate-400 light:text-slate-600 hover:underline"
+                  >
+                    {fa.seller.panel.products.aiUndoApply}
+                  </button>
+                  {!!completePhoto.data.suggestedSpecs?.length && (
+                    <div className="mt-2 flex flex-col gap-1">
+                      {completePhoto.data.suggestedSpecs.map((s, i) => (
+                        <p key={i} className="text-xs text-slate-300 light:text-slate-700">
+                          <span className="font-semibold">{s.label}:</span> {s.value}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -281,13 +374,21 @@ function AiCompleteAssistModal({
 export function AiCompleteAssist({
   product,
   storeId,
+  name,
   description,
+  specs,
+  onApplyName,
   onApplyDescription,
+  onApplySpecs,
 }: {
   product: SellerProduct
   storeId: string
+  name: string
   description: string
+  specs: ProductSpecSuggestion[]
+  onApplyName: (name: string) => void
   onApplyDescription: (text: string) => void
+  onApplySpecs: (specs: ProductSpecSuggestion[]) => void
 }) {
   const [open, setOpen] = useState(false)
   // فقط برای نشان‌دادن نشان روی دکمه‌ی تریگر — منطق واقعی داخل مدال است
@@ -312,8 +413,12 @@ export function AiCompleteAssist({
         onClose={() => setOpen(false)}
         product={product}
         storeId={storeId}
+        name={name}
         description={description}
+        specs={specs}
+        onApplyName={onApplyName}
         onApplyDescription={onApplyDescription}
+        onApplySpecs={onApplySpecs}
       />
     </div>
   )

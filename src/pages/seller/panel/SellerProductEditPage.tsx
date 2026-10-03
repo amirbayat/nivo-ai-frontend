@@ -21,7 +21,7 @@ import {
   useUploadProductImages,
   useUploadProductVideo,
 } from '@/queries/seller.queries'
-import type { SellerProduct } from '@/types/api'
+import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
 import { AiCompleteAssist } from './AiCompleteAssist'
 import { useSellerStore } from './SellerPanelLayout'
 
@@ -355,6 +355,7 @@ export function SellerProductEditPage() {
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('')
   const [description, setDescription] = useState('')
+  const [specs, setSpecs] = useState<ProductSpecSuggestion[]>([])
   const [code, setCode] = useState('')
   const [persuasionTechniquesEnabled, setPersuasionTechniquesEnabled] = useState(true)
   const [initialized, setInitialized] = useState(false)
@@ -371,6 +372,7 @@ export function SellerProductEditPage() {
       setPrice(String(product.basePrice))
       setStock(String(product.stock))
       setDescription(product.description ?? '')
+      setSpecs(product.specs ?? [])
       setCode(product.code ?? '')
       setPersuasionTechniquesEnabled(product.persuasionTechniquesEnabled)
     }
@@ -387,6 +389,7 @@ export function SellerProductEditPage() {
       basePrice: Number(toEnglishDigits(price)) || 0,
       stock: stock ? Number(toEnglishDigits(stock)) : undefined,
       description: description || undefined,
+      specs: specs.length ? specs : null,
       code: code.trim() || undefined,
       persuasionTechniquesEnabled,
     }
@@ -508,9 +511,41 @@ export function SellerProductEditPage() {
         <AiCompleteAssist
           product={product}
           storeId={storeId}
+          name={name}
           description={description}
+          specs={specs}
+          onApplyName={setName}
           onApplyDescription={setDescription}
+          onApplySpecs={setSpecs}
         />
+      )}
+
+      {specs.length > 0 && (
+        <div className="mb-6">
+          <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
+            {fa.seller.panel.products.specsLabel}
+          </label>
+          <div className="flex flex-col gap-1.5">
+            {specs.map((s, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between gap-2 rounded-xl bg-slate-800/40 light:bg-slate-50 px-3 py-2"
+              >
+                <p className="min-w-0 flex-1 text-xs text-slate-300 light:text-slate-700">
+                  <span className="font-semibold">{s.label}:</span> {s.value}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSpecs(prev => prev.filter((_, idx) => idx !== i))}
+                  className="shrink-0 text-slate-500 hover:text-red-400"
+                  aria-label={fa.common.delete}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="mb-6">

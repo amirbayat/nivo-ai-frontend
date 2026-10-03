@@ -117,6 +117,9 @@ export interface SellerProduct {
   images: string[]
   videos: ProductVideoItem[]
   description: string | null
+  // docs/PRD-seller-knowledge-base.md بخش ۹.۲ (سوم) — قبلاً suggestedSpecs فقط به متن description
+  // اضافه می‌شد؛ حالا جدا و ساختاریافته هم ذخیره می‌شود
+  specs: ProductSpecSuggestion[] | null
   // docs/PRD-telegram-bot-channel.md بخش ۹.۳ — کد کوتاه اختیاری روی محتوای تبلیغاتی فروشنده
   code: string | null
   createdAt: string
@@ -409,6 +412,8 @@ export interface UpdateProductInput {
   stock?: number
   description?: string
   code?: string
+  // docs/PRD-seller-knowledge-base.md بخش ۹.۲ (سوم) — null برای پاک‌کردن
+  specs?: ProductSpecSuggestion[] | null
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled?: boolean
 }
@@ -425,6 +430,27 @@ export interface ProductAiCompleteResult {
   // بخش ۲.۳ — فقط وقتی withWebSearch=true درخواست شده باشد پر می‌شوند
   suggestedSpecs?: ProductSpecSuggestion[]
   sourceNote?: string
+}
+
+// docs/PRD-seller-knowledge-base.md بخش ۹.۲ (دوم، مورد ۵) — استخراج از عکس محصول
+export interface ProductAiCompleteFromPhotoResult {
+  suggestedName?: string
+  suggestedDescription: string
+  suggestedSpecs?: ProductSpecSuggestion[]
+}
+
+// بخش ۹.۲ (دوم، مورد ۶) — تکمیل خودکار همه‌ی محصولات کم‌تکمیل فروشگاه، یک‌جا
+export interface BulkCompleteResultItem {
+  productId: string
+  productName: string
+  suggestedDescription?: string
+  suggestedSpecs?: ProductSpecSuggestion[]
+  sourceNote?: string
+  error?: string
+}
+
+export interface BulkCompleteResult {
+  items: BulkCompleteResultItem[]
 }
 
 // docs/PRD-admin-product-enrichment-review.md — پیشنهاد تایید‌شده‌ی ادمین، در انتظار تصمیم فروشنده

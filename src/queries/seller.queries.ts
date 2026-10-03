@@ -4,12 +4,14 @@ import { keys } from '@/queries/keys'
 import type {
   AdPlacement,
   AdPlacementStatusResponse,
+  BulkCompleteResult,
   CardDisplayPolicy,
   ChannelStat,
   CreateKbEntryInput,
   ImportProductsResult,
   KbCandidateEntry,
   NeededAttentionConversation,
+  ProductAiCompleteFromPhotoResult,
   ProductAiCompleteResult,
   ProductEnrichmentDraft,
   ProductImportFromUrlResult,
@@ -379,6 +381,37 @@ export function useCompleteProductInfo(storeId: string) {
     mutationFn: ({ productId, withWebSearch }: { productId: string; withWebSearch?: boolean }) =>
       api
         .post<ProductAiCompleteResult>(`/v2/stores/${storeId}/products/${productId}/ai-complete`, undefined, {
+          params: withWebSearch ? { withWebSearch: true } : undefined,
+        })
+        .then(r => r.data),
+  })
+}
+
+// docs/PRD-seller-knowledge-base.md بخش ۹.۲ (دوم، مورد ۵) — نتیجه هم مثل useCompleteProductInfo
+// ذخیره نمی‌شود، فروشنده در همان مدال تأیید/ویرایش می‌کند
+export function useCompleteProductInfoFromPhoto(storeId: string) {
+  return useMutation({
+    mutationFn: ({ productId, file }: { productId: string; file: File }) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api
+        .post<ProductAiCompleteFromPhotoResult>(
+          `/v2/stores/${storeId}/products/${productId}/ai-complete-from-photo`,
+          form,
+          { headers: { 'Content-Type': 'multipart/form-data' } },
+        )
+        .then(r => r.data)
+    },
+  })
+}
+
+// بخش ۹.۲ (دوم، مورد ۶) — تکمیل خودکار دسته‌ای؛ چیزی خودکار persist نمی‌شود، تایید هرکدام
+// جدا با همان useUpdateProduct بالا انجام می‌شود
+export function useBulkCompleteProducts(storeId: string) {
+  return useMutation({
+    mutationFn: (withWebSearch: boolean) =>
+      api
+        .post<BulkCompleteResult>(`/v2/stores/${storeId}/products/ai-complete-bulk`, undefined, {
           params: withWebSearch ? { withWebSearch: true } : undefined,
         })
         .then(r => r.data),

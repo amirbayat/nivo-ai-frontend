@@ -6,12 +6,146 @@ import { toEnglishDigits, formatThousands } from '@/lib/digits'
 import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
   useAddProductImagesFromUrl,
+  useBulkCompleteProducts,
   useCreateProduct,
   useImportProductFromUrl,
   useImportProducts,
   useProducts,
+  useUpdateProduct,
 } from '@/queries/seller.queries'
+import type { BulkCompleteResultItem } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
+
+// docs/PRD-seller-knowledge-base.md بخش ۹.۲ (دوم، مورد ۶) — تولید پیشنهاد برای حداکثر ۲۰
+// محصول کم‌تکمیل این فروشگاه در یک درخواست، بعد مرور/تایید دسته‌ای این‌جا (نه تک‌تک مثل
+// AiCompleteAssist) — تایید هرکدام همان useUpdateProduct معمولی را صدا می‌زند، چیزی خودکار
+// persist نمی‌شود تا فروشنده فرصت رد‌کردن هرکدام را داشته باشد
+function BulkCompleteSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+  const bulkComplete = useBulkCompleteProducts(storeId)
+  const updateProduct = useUpdateProduct(storeId)
+  const startedRef = useRef(false)
+  const [decided, setDecided] = useState<Record<string, 'applied' | 'rejected'>>({})
+
+  useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
+    bulkComplete.mutate(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const items = bulkComplete.data?.items ?? []
+  const pendingItems = items.filter(i => !!i.suggestedDescription && !decided[i.productId])
+
+  function approve(item: BulkCompleteResultItem) {
+    if (!item.suggestedDescription) return
+    updateProduct.mutate(
+      {
+        productId: item.productId,
+        dto: { description: item.suggestedDescription, specs: item.suggestedSpecs?.length ? item.suggestedSpecs : null },
+      },
+      { onSuccess: () => setDecided(prev => ({ ...prev, [item.productId]: 'applied' })) },
+    )
+  }
+  function reject(item: BulkCompleteResultItem) {
+    setDecided(prev => ({ ...prev, [item.productId]: 'rejected' }))
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="shrink-0 p-5 pb-3">
+          <h2 className="mb-1.5 text-lg font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.products.aiCompleteAllTitle}</h2>
+          <p className="text-xs text-slate-500">{fa.seller.panel.products.aiCompleteAllHint}</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5">
+          {bulkComplete.isPending && (
+            <p className="py-8 text-center text-sm text-slate-400">{fa.seller.panel.products.aiCompleteAllLoading}</p>
+          )}
+          {bulkComplete.isError && (
+            <p className="py-8 text-center text-sm text-red-400">
+              {extractErrorMessage(bulkComplete.error, fa.seller.panel.products.aiCompleteAllError)}
+            </p>
+          )}
+          {bulkComplete.data && items.length === 0 && (
+            <p className="py-8 text-center text-sm text-slate-400">{fa.seller.panel.products.aiCompleteAllEmpty}</p>
+          )}
+
+          {pendingItems.length > 1 && (
+            <button
+              onClick={() => pendingItems.forEach(approve)}
+              disabled={updateProduct.isPending}
+              className="mb-3 w-full rounded-xl bg-emerald-500/20 py-2 text-xs font-bold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
+            >
+              {fa.seller.panel.products.aiCompleteAllApproveAll}
+            </button>
+          )}
+
+          <div className="flex flex-col gap-3">
+            {items.map(item => (
+              <div
+                key={item.productId}
+                className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 p-3.5"
+              >
+                <p className="mb-2 text-sm font-bold text-slate-100 light:text-slate-900">{item.productName}</p>
+                {item.error && <p className="text-xs text-red-400">{fa.seller.panel.products.aiCompleteAllItemError}</p>}
+                {item.suggestedDescription && (
+                  <>
+                    <p className="mb-2 text-sm text-slate-300 light:text-slate-700">{item.suggestedDescription}</p>
+                    {!!item.suggestedSpecs?.length && (
+                      <div className="mb-3 flex flex-col gap-1">
+                        {item.suggestedSpecs.map((s, i) => (
+                          <p key={i} className="text-xs text-slate-400 light:text-slate-600">
+                            <span className="font-semibold">{s.label}:</span> {s.value}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {decided[item.productId] ? (
+                      <p className="text-xs font-semibold text-slate-400">
+                        {decided[item.productId] === 'applied'
+                          ? fa.seller.panel.products.aiCompleteAllApplied
+                          : fa.seller.panel.products.aiCompleteAllRejected}
+                      </p>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => approve(item)}
+                          disabled={updateProduct.isPending}
+                          className="flex-1 rounded-xl bg-emerald-500/20 py-2 text-xs font-bold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
+                        >
+                          {fa.seller.panel.products.aiCompleteAllApprove}
+                        </button>
+                        <button
+                          onClick={() => reject(item)}
+                          className="flex-1 rounded-xl border border-slate-700 light:border-slate-300 py-2 text-xs font-bold text-slate-300 light:text-slate-600"
+                        >
+                          {fa.seller.panel.products.aiCompleteAllReject}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {bulkComplete.data && (
+            <button
+              onClick={onClose}
+              className="mt-4 w-full rounded-2xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700"
+            >
+              {fa.seller.panel.products.aiCompleteAllDone}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ورود سریع محصول از لینک صفحه‌ی موجود (docs/PRD-seller-knowledge-base.md بخش ۲.۵) — فقط
 // پیش‌نمایش، خودِ افزودن با همان useCreateProduct موجود انجام می‌شود؛ عکس‌ها فقط بعد از
@@ -147,6 +281,7 @@ export function SellerProductsPage() {
   const [importResult, setImportResult] = useState<{ created: number; errorCount: number } | null>(null)
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null)
   const [importFromUrlOpen, setImportFromUrlOpen] = useState(false)
+  const [bulkCompleteOpen, setBulkCompleteOpen] = useState(false)
 
   async function copyProductLink(productId: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/shop/${storeSlug}?product=${productId}`)
@@ -181,13 +316,21 @@ export function SellerProductsPage() {
           }}
         />
       </div>
-      <div className="mb-5">
+      <div className="mb-5 flex flex-col gap-2">
         <button
           onClick={() => setImportFromUrlOpen(true)}
           className="w-full rounded-xl border border-dashed border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400"
         >
           {fa.seller.panel.products.importFromUrl}
         </button>
+        {!!products.data?.length && (
+          <button
+            onClick={() => setBulkCompleteOpen(true)}
+            className="w-full rounded-xl border border-dashed border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400"
+          >
+            ✨ {fa.seller.panel.products.aiCompleteAllButton}
+          </button>
+        )}
       </div>
 
       {importResult && (
@@ -235,6 +378,7 @@ export function SellerProductsPage() {
       </div>
 
       {importFromUrlOpen && <ImportFromUrlSheet storeId={storeId} onClose={() => setImportFromUrlOpen(false)} />}
+      {bulkCompleteOpen && <BulkCompleteSheet storeId={storeId} onClose={() => setBulkCompleteOpen(false)} />}
     </div>
   )
 }
