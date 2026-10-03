@@ -11,6 +11,8 @@ const VITE_EVENTS_API_URL = import.meta.env.VITE_EVENTS_API_URL as string | unde
 const VITE_EVENTS_WRITE_KEY = import.meta.env.VITE_EVENTS_WRITE_KEY as string | undefined
 // Microsoft Clarity — عمداً اختیاری، بدون این env فقط heatmap/session-recording غیرفعال می‌ماند
 const VITE_CLARITY_PROJECT_ID = import.meta.env.VITE_CLARITY_PROJECT_ID as string | undefined
+// Sentry (مانیتورینگ خطا) — عمداً اختیاری، بدون این env فقط ارسال خطا به Sentry غیرفعال می‌ماند
+const VITE_SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined
 // docs/PRD-telegram-bot-channel.md — یوزرنیم بات مشترک تلگرام (بدون @). تا وقتی ست نشده،
 // لینک تلگرام در تب «بیشتر»/قدم۴ ویزارد نمایش داده نمی‌شود (نه یک لینک شکسته)
 const VITE_TELEGRAM_BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined
@@ -22,4 +24,5 @@ export const env = {
   VITE_SALES_BOT_ENABLED, VITE_LANDING_STATS_ENABLED,
   VITE_EVENTS_API_URL, VITE_EVENTS_WRITE_KEY,
   VITE_CLARITY_PROJECT_ID, VITE_TELEGRAM_BOT_USERNAME,
+  VITE_SENTRY_DSN,
 }
