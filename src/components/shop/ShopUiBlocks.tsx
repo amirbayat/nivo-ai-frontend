@@ -224,9 +224,11 @@ function ProductCardBlock({
     <div className="mt-2 flex flex-col gap-2">
       {products.map((p) => {
         // docs/PRD-product-video.md بخش ۴ — ویدیو(ها) قبل از عکس‌ها (تصمیم ترتیب‌نمایش)
+        // محصول در این کارت از JSON پیام‌های قدیمی‌تر مکالمه هم می‌تواند بیاید (payload تاریخی،
+        // از قبل از افزوده‌شدن فیلد videos به محصول) — پس videos/images ممکن است اصلاً وجود نداشته باشد
         const mediaItems: MediaItem[] = [
-          ...p.videos.map((v) => ({ type: 'video' as const, src: productVideoUrl(p.id, v.key) })),
-          ...p.images.map((key) => ({ type: 'image' as const, src: productImageUrl(p.id, key) })),
+          ...(p.videos ?? []).map((v) => ({ type: 'video' as const, src: productVideoUrl(p.id, v.key) })),
+          ...(p.images ?? []).map((key) => ({ type: 'image' as const, src: productImageUrl(p.id, key) })),
         ]
         return (
           <div key={p.id} className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
@@ -304,8 +306,8 @@ function ProductPhotosBlock({
 }) {
   const [zoom, setZoom] = useState<{ items: MediaItem[]; index: number } | null>(null)
   const mediaItems: MediaItem[] = [
-    ...videos.map((v) => ({ type: 'video' as const, src: productVideoUrl(productId, v.key) })),
-    ...images.map((key) => ({ type: 'image' as const, src: productImageUrl(productId, key) })),
+    ...(videos ?? []).map((v) => ({ type: 'video' as const, src: productVideoUrl(productId, v.key) })),
+    ...(images ?? []).map((key) => ({ type: 'image' as const, src: productImageUrl(productId, key) })),
   ]
   if (mediaItems.length > 1) {
     return (
