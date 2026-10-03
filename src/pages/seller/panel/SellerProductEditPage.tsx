@@ -210,10 +210,12 @@ function ProductVideo({
 function AiCompleteAssist({
   productId,
   storeId,
+  description,
   onApplyDescription,
 }: {
   productId: string
   storeId: string
+  description: string
   onApplyDescription: (text: string) => void
 }) {
   const complete = useCompleteProductInfo(storeId)
@@ -221,6 +223,15 @@ function AiCompleteAssist({
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set())
   const [withWebSearch, setWithWebSearch] = useState(false)
+  // فیدبک کاربر/PRD بخش ۹.۲ مورد ۴ — سه کلیک به یک کلیک: به‌جای دکمه‌ی جدای «اعمال»، پیشنهاد
+  // همون لحظه که رسید مستقیم در فیلد توضیح می‌نشیند؛ مقدار قبلی اینجا نگه داشته می‌شود تا
+  // دکمه‌ی «برگردون به قبل» بتواند آن را برگرداند
+  const descriptionBeforeApplyRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!complete.data) return
+    onApplyDescription(complete.data.suggestedDescription)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [complete.data])
 
   // docs/PRD-admin-product-enrichment-review.md — اگر ادمین قبلاً یک پیشنهاد تایید‌کرده برای
   // این محصول منتظر تصمیم فروشنده باشد، به‌جای دکمه‌ی «شروع تکمیل با AI» مستقیم همان را نشان
@@ -328,7 +339,10 @@ function AiCompleteAssist({
           {withWebSearch && <p className="mb-2 text-[11px] text-slate-500">{fa.seller.panel.products.aiWebSearchHint}</p>}
           <button
             type="button"
-            onClick={() => complete.mutate({ productId, withWebSearch })}
+            onClick={() => {
+              descriptionBeforeApplyRef.current = description
+              complete.mutate({ productId, withWebSearch })
+            }}
             disabled={complete.isPending}
             className="w-full rounded-2xl border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
           >
@@ -345,13 +359,14 @@ function AiCompleteAssist({
       {complete.data && (
         <div className="mt-3 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 p-3.5">
           <p className="mb-1.5 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedDescription}</p>
+          <p className="mb-1.5 text-[11px] text-emerald-400 light:text-emerald-700">{fa.seller.panel.products.aiAppliedNotice}</p>
           <p className="mb-2 text-sm text-slate-200 light:text-slate-800">{complete.data.suggestedDescription}</p>
           <button
             type="button"
-            onClick={() => onApplyDescription(complete.data!.suggestedDescription)}
-            className="mb-3 text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline"
+            onClick={() => onApplyDescription(descriptionBeforeApplyRef.current ?? '')}
+            className="mb-3 text-xs font-semibold text-slate-400 light:text-slate-600 hover:underline"
           >
-            {fa.seller.panel.products.aiApplyDescription}
+            {fa.seller.panel.products.aiUndoApply}
           </button>
 
           {!!complete.data.suggestedSpecs?.length && (
@@ -523,9 +538,19 @@ export function SellerProductEditPage() {
   const isNew = id === 'new'
 
   // نتیجه‌ی آپلود عکس/ایجاد را مستقیم override می‌کنیم تا منتظر invalidate+refetch نباشیم
-  // (همون دلیل A1 قبلی) — با عوض‌شدن id (مثلاً از لیست یک محصول دیگر باز شد) ریست می‌شود
+  // (همون دلیل A1 قبلی) — با عوض‌شدن id (مثلاً از لیست یک محصول دیگر باز شد) ریست می‌شود.
+  // استثنا: وقتی خودمان بعد از ساخت محصول تازه id را به شناسه‌ی واقعی عوض می‌کنیم (پایین،
+  // docs/PRD-seller-knowledge-base.md بخش ۹.۲ مورد ۲)، override را نگه می‌داریم تا صفحه بدون
+  // فلیکر «در حال بارگذاری» مستقیم به حالت ویرایش سوییچ کند
   const [override, setOverride] = useState<SellerProduct | null>(null)
-  useEffect(() => setOverride(null), [id])
+  const justCreatedIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (justCreatedIdRef.current === id) {
+      justCreatedIdRef.current = null
+      return
+    }
+    setOverride(null)
+  }, [id])
 
   const found = isNew ? 'new' : (override ?? products.data?.find(p => p.id === id) ?? null)
 
@@ -587,7 +612,15 @@ export function SellerProductEditPage() {
       persuasionTechniquesEnabled,
     }
     if (isNew) {
-      create.mutate(dto, { onSuccess: goBack })
+      // فیدبک کاربر/تصمیم PRD بخش ۹.۲ مورد ۲ — بعد از ذخیره‌ی محصول تازه به لیست برنمی‌گردیم؛
+      // همان صفحه فوراً به حالت ویرایش محصول واقعی سوییچ می‌شود (بدون رفت‌وبرگشت)
+      create.mutate(dto, {
+        onSuccess: created => {
+          justCreatedIdRef.current = created.id
+          setOverride(created)
+          navigate(`/seller/panel/products/${created.id}`, { replace: true })
+        },
+      })
     } else if (product && product !== 'new') {
       update.mutate({ productId: product.id, dto }, { onSuccess: goBack })
     }
@@ -643,7 +676,7 @@ export function SellerProductEditPage() {
       </div>
 
       <div className="mb-5">
-        <Input label={fa.seller.step3.nameLabel} value={name} onChange={e => setName(e.target.value)} maxLength={NAME_MAX_LENGTH} />
+        <Input label={fa.seller.panel.products.nameLabel} value={name} onChange={e => setName(e.target.value)} maxLength={NAME_MAX_LENGTH} />
       </div>
       <div className="mb-5">
         <Input
@@ -656,7 +689,7 @@ export function SellerProductEditPage() {
       </div>
       <div className="mb-6 grid grid-cols-2 gap-3">
         <Input
-          label={fa.seller.step3.priceLabel}
+          label={fa.seller.panel.products.priceLabel}
           value={formatThousands(price)}
           onChange={e => setPrice(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
           dir="ltr"
@@ -664,7 +697,7 @@ export function SellerProductEditPage() {
           className="text-center"
         />
         <Input
-          label={fa.seller.step3.stockLabel}
+          label={fa.seller.panel.products.stockLabel}
           value={stock}
           onChange={e => setStock(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
           dir="ltr"
@@ -673,7 +706,7 @@ export function SellerProductEditPage() {
         />
       </div>
 
-      {!isNew && product && product !== 'new' && (
+      {product && product !== 'new' && (
         <>
           <ProductImages product={product} onProductUpdated={setOverride} />
           <ProductVideo product={product} onProductUpdated={setOverride} />
@@ -692,8 +725,13 @@ export function SellerProductEditPage() {
         />
       </div>
 
-      {!isNew && product && product !== 'new' && (
-        <AiCompleteAssist productId={product.id} storeId={storeId} onApplyDescription={setDescription} />
+      {product && product !== 'new' && (
+        <AiCompleteAssist
+          productId={product.id}
+          storeId={storeId}
+          description={description}
+          onApplyDescription={setDescription}
+        />
       )}
 
       <div className="mb-6">

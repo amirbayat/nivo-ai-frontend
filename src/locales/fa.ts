@@ -463,20 +463,12 @@ export const fa = {
       ownerNameLabel: 'نام صاحب حساب',
     },
     step3: {
-      heading: 'اولین محصولت رو وارد کن',
-      subheading: 'همین یک محصول کافیه تا لینکت آماده شه — بقیه‌ی محصولات رو بعداً از پنل اضافه می‌کنی.',
-      nameLabel: 'نام محصول',
-      priceLabel: 'قیمت (تومان)',
-      stockLabel: 'موجودی',
-      excelUpload: 'آپلود اکسل (به‌زودی)',
-    },
-    step4: {
       heading: 'لینک فروشگاهت آماده است',
       subheading: 'همین لینک رو برای مشتری‌هایی که از دایرکت پیام می‌دن بفرست.',
       copyLink: 'کپی لینک',
       linkCopied: 'لینک کپی شد',
-      shareLink: 'ارسال به دایرکت/تلگرام',
-      goToDashboard: 'برو به پنل فروشگاه',
+      addFirstProduct: 'افزودن اولین محصول',
+      skipToDashboard: 'بعداً از پنل اضافه می‌کنم',
     },
     errorGeneric: 'مشکلی پیش آمد، دوباره تلاش کنید',
     panel: {
@@ -502,6 +494,10 @@ export const fa = {
         completenessChecklistPhoto: 'حداقل یک محصول با عکس',
         completenessChecklistKb: 'حداقل ۳ مورد در باکس دانش',
         completenessChecklistShipping: 'سیاست ارسال ثبت‌شده',
+        // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — محافظ در برابر فروشگاه‌های خالی رها‌شده
+        noProductsTitle: 'هنوز محصولی نداری',
+        noProductsSubtitle: 'بدون محصول، لینک فروشگاهت برای مشتری خالیه',
+        noProductsCta: 'افزودن محصول',
       },
       orders: {
         filterAll: 'همه',
@@ -531,7 +527,10 @@ export const fa = {
           errorCount > 0
             ? `${created.toLocaleString('fa-IR')} محصول اضافه شد، ${errorCount.toLocaleString('fa-IR')} ردیف با خطا`
             : `${created.toLocaleString('fa-IR')} محصول با موفقیت اضافه شد`,
-        importColumnsHint: 'ستون‌های اکسل: نام، قیمت، موجودی (اختیاری)',
+        importColumnsHint: 'ستون‌های اکسل: نام، قیمت، موجودی (اختیاری)، توضیح (اختیاری)',
+        nameLabel: 'نام محصول',
+        priceLabel: 'قیمت (تومان)',
+        stockLabel: 'موجودی',
         addImage: 'افزودن عکس',
         maxImages: 'حداکثر ۴ عکس برای هر محصول',
         // docs/PRD-product-video.md
@@ -554,7 +553,8 @@ export const fa = {
         aiSuggestedDescription: 'توضیح پیشنهادی',
         aiSuggestedQuestions: 'سؤالات رایج مشتری‌ها — جواب بده تا به باکس دانش اضافه شود',
         aiQuestionAnswerPlaceholder: 'جواب (اختیاری)',
-        aiApplyDescription: 'استفاده از این توضیح',
+        aiAppliedNotice: 'این توضیح همین الان در فیلد پایین نشسته — می‌تونی ویرایشش کنی',
+        aiUndoApply: 'برگردون به قبل',
         aiWebSearchToggle: 'جستجوی وب هم انجام بده',
         aiWebSearchHint: 'برای محصولات برند‌دار/شناخته‌شده دقیق‌تر است — از اعتبار هوش مصنوعی فروشگاه کم می‌شود',
         // docs/PRD-sales-agent-persuasion-principles.md بخش ۶.۴ — حتی وقتی کلید کلی فروشگاه

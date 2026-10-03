@@ -92,7 +92,7 @@ function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onClose: ()
               </div>
             )}
             <div className="mb-4">
-              <Input label={fa.seller.step3.nameLabel} value={name} onChange={e => setName(e.target.value)} />
+              <Input label={fa.seller.panel.products.nameLabel} value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div className="mb-4">
               <Input

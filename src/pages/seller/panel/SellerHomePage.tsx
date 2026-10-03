@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { useNeededAttention, useOrders, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
+import { useNeededAttention, useOrders, useProducts, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 
 // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱ — چک‌لیست ۳موردی، هر ردیف یک ✓/— ساده
@@ -18,11 +18,13 @@ function ChecklistRow({ done, label }: { done: boolean; label: string }) {
 }
 
 export function SellerHomePage() {
+  const navigate = useNavigate()
   const { storeId, storeName, storeSlug } = useSellerStore()
   const pending = useOrders(storeId, 'RECEIPT_SUBMITTED')
   const attention = useNeededAttention(storeId)
   const credit = useStoreCredit(storeId)
   const completeness = useStoreCompleteness(storeId)
+  const products = useProducts(storeId)
   const [copied, setCopied] = useState(false)
 
   const chatLink = `${window.location.origin}/shop/${storeSlug}`
@@ -61,6 +63,19 @@ export function SellerHomePage() {
         </div>
       </div>
 
+      {products.data?.length === 0 && (
+        <button
+          onClick={() => navigate('/seller/panel/products/new')}
+          className="mb-6 w-full rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-right"
+        >
+          <p className="text-sm font-bold text-amber-300 light:text-amber-700">{fa.seller.panel.home.noProductsTitle}</p>
+          <p className="mt-1 text-xs text-amber-400/80 light:text-amber-700/80">{fa.seller.panel.home.noProductsSubtitle}</p>
+          <span className="mt-2 inline-block rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-300 light:text-amber-700">
+            {fa.seller.panel.home.noProductsCta}
+          </span>
+        </button>
+      )}
+
       {completeness.data && (
         <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
           <p className="mb-3 text-sm font-bold text-slate-100 light:text-slate-900">
@@ -97,7 +112,7 @@ export function SellerHomePage() {
       </div>
 
       <button onClick={copyLink} className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-[14px] font-semibold text-slate-200 light:text-slate-800 hover:border-slate-600 light:hover:border-slate-400">
-        {copied ? fa.seller.step4.linkCopied : fa.seller.step4.copyLink}
+        {copied ? fa.seller.step3.linkCopied : fa.seller.step3.copyLink}
       </button>
       <button onClick={shareLink} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-[15px] font-bold text-white hover:bg-emerald-600">
         {fa.seller.panel.home.shareLink}

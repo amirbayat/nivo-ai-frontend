@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
-import { toEnglishDigits, formatThousands, formatCardNumberGroups } from '@/lib/digits'
-import { useCheckSlugAvailable, useCreateProduct, useCreateStore } from '@/queries/seller.queries'
+import { toEnglishDigits, formatCardNumberGroups } from '@/lib/digits'
+import { useCheckSlugAvailable, useCreateStore } from '@/queries/seller.queries'
 
-const TOTAL_STEPS = 4
+// docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
+// فروشنده بعد از ساخت فروشگاه مستقیم به صفحه‌ی واقعی ساخت محصول در پنل هدایت می‌شود
+const TOTAL_STEPS = 3
 const CATEGORIES = fa.seller.step1.categories
 
 // طبق CLAUDE.md — سایت RTL است: شورون «بازگشت» رو به راست، «ادامه» رو به چپ اشاره می‌کند
@@ -74,11 +76,7 @@ export function SellerOnboardingPage() {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [cardNumber, setCardNumber] = useState('')
   const [ownerName, setOwnerName] = useState('')
-  const [storeId, setStoreId] = useState<string | null>(null)
   const [storeSlug, setStoreSlug] = useState<string | null>(null)
-  const [productName, setProductName] = useState('')
-  const [productPrice, setProductPrice] = useState('')
-  const [productStock, setProductStock] = useState('')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -87,7 +85,6 @@ export function SellerOnboardingPage() {
   }, [slug])
 
   const slugCheck = useCheckSlugAvailable(debouncedSlug)
-  const createProduct = useCreateProduct(storeId ?? '')
 
   function goBack() {
     if (step === 1) {
@@ -108,19 +105,8 @@ export function SellerOnboardingPage() {
       telegramUrl: telegramUrl || undefined,
       websiteUrl: websiteUrl || undefined,
     })
-    setStoreId(store.id)
     setStoreSlug(store.slug)
     setStep(3)
-  }
-
-  async function submitProduct() {
-    if (!storeId) return
-    await createProduct.mutateAsync({
-      name: productName,
-      basePrice: Number(toEnglishDigits(productPrice)) || 0,
-      stock: productStock ? Number(toEnglishDigits(productStock)) : undefined,
-    })
-    setStep(4)
   }
 
   const chatLink = storeSlug ? `${window.location.origin}/shop/${storeSlug}` : ''
@@ -129,18 +115,6 @@ export function SellerOnboardingPage() {
     await navigator.clipboard.writeText(chatLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  async function shareLink() {
-    if (navigator.share) {
-      try {
-        await navigator.share({ url: chatLink, title: name })
-        return
-      } catch {
-        // کاربر شیت اشتراک‌گذاری را بست — چیزی نمایش نمی‌دهیم
-      }
-    }
-    await copyLink()
   }
 
   const cardNumberValid = /^[0-9]{16}$/.test(toEnglishDigits(cardNumber))
@@ -248,66 +222,30 @@ export function SellerOnboardingPage() {
         )}
 
         {step === 3 && (
-          <>
-            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step3.heading}</h1>
-            <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step3.subheading}</p>
-
-            <div className="mb-5">
-              <Input label={fa.seller.step3.nameLabel} value={productName} onChange={e => setProductName(e.target.value)} />
-            </div>
-            <div className="mb-5 grid grid-cols-2 gap-3">
-              <Input
-                label={fa.seller.step3.priceLabel}
-                value={formatThousands(productPrice)}
-                onChange={e => setProductPrice(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-                dir="ltr"
-                inputMode="numeric"
-                className="text-center"
-              />
-              <Input
-                label={fa.seller.step3.stockLabel}
-                value={productStock}
-                onChange={e => setProductStock(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-                dir="ltr"
-                inputMode="numeric"
-                className="text-center"
-              />
-            </div>
-
-            <button disabled className="mb-2 w-full rounded-2xl border border-dashed border-slate-700 light:border-slate-300 py-3.5 text-[13px] font-medium text-slate-600 light:text-slate-400">
-              {fa.seller.step3.excelUpload}
-            </button>
-
-            {createProduct.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.errorGeneric}</p>}
-
-            <NextButton onClick={submitProduct} disabled={!productName || !productPrice} loading={createProduct.isPending}>
-              {fa.seller.next}
-            </NextButton>
-          </>
-        )}
-
-        {step === 4 && (
           <div className="text-center">
             <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 light:text-emerald-600">
               <svg viewBox="0 0 24 24" fill="none" className="size-7">
                 <path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step4.heading}</h1>
-            <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step4.subheading}</p>
+            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step3.heading}</h1>
+            <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step3.subheading}</p>
 
             <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 px-4 py-4">
               <p dir="ltr" className="break-all text-center text-[15px] font-mono text-emerald-300 light:text-emerald-700">{chatLink}</p>
             </div>
 
             <button onClick={copyLink} className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-[14px] font-semibold text-slate-200 light:text-slate-800 hover:border-slate-600 light:hover:border-slate-400">
-              {copied ? fa.seller.step4.linkCopied : fa.seller.step4.copyLink}
+              {copied ? fa.seller.step3.linkCopied : fa.seller.step3.copyLink}
             </button>
-            <button onClick={shareLink} className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-[15px] font-bold text-white hover:bg-emerald-600">
-              {fa.seller.step4.shareLink}
+
+            {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — CTA اصلی دیگر «برو به داشبورد»
+                نیست، مستقیم به فرم کامل ساخت محصول واقعی در پنل می‌رود */}
+            <button onClick={() => navigate('/seller/panel/products/new')} className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-[15px] font-bold text-white hover:bg-emerald-600">
+              {fa.seller.step3.addFirstProduct}
             </button>
             <button onClick={() => navigate('/seller/panel/home')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
-              {fa.seller.step4.goToDashboard}
+              {fa.seller.step3.skipToDashboard}
             </button>
           </div>
         )}

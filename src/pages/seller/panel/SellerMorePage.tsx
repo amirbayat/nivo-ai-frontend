@@ -64,7 +64,7 @@ export function SellerMorePage() {
         <p dir="ltr" className="break-all text-center text-[14px] font-mono text-emerald-300 light:text-emerald-700">{chatLink}</p>
       </div>
       <button onClick={copyLink} className="mb-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-[14px] font-semibold text-slate-200 light:text-slate-800 hover:border-slate-600 light:hover:border-slate-400">
-        {copied ? fa.seller.step4.linkCopied : fa.seller.step4.copyLink}
+        {copied ? fa.seller.step3.linkCopied : fa.seller.step3.copyLink}
       </button>
 
       {telegramLink && (
@@ -74,7 +74,7 @@ export function SellerMorePage() {
             <p dir="ltr" className="break-all text-center text-[14px] font-mono text-emerald-300 light:text-emerald-700">{telegramLink}</p>
           </div>
           <button onClick={copyTelegramLink} className="mb-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-[14px] font-semibold text-slate-200 light:text-slate-800 hover:border-slate-600 light:hover:border-slate-400">
-            {telegramCopied ? fa.seller.step4.linkCopied : fa.seller.step4.copyLink}
+            {telegramCopied ? fa.seller.step3.linkCopied : fa.seller.step3.copyLink}
           </button>
         </>
       )}
