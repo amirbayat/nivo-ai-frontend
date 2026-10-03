@@ -621,7 +621,7 @@ export function useShippingRules(storeId: string) {
 }
 
 export interface CreateShippingRuleInput {
-  city?: string
+  provinces?: string[]
   cost: number
   enabled?: boolean
 }
@@ -638,7 +638,7 @@ export function useAddShippingRule(storeId: string) {
 export function useUpdateShippingRule(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ ruleId, ...dto }: { ruleId: string; cost?: number; enabled?: boolean }) =>
+    mutationFn: ({ ruleId, ...dto }: { ruleId: string; provinces?: string[]; cost?: number; enabled?: boolean }) =>
       api.patch<StoreShippingRule>(`/v2/stores/${storeId}/shipping-rules/${ruleId}`, dto).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.shippingRules(storeId) }),
   })

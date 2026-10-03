@@ -231,16 +231,35 @@ function OrderStatusBlock({ status }: { status: string }) {
 function AddressPromptBlock({
   mode,
   addresses,
+  provinces,
   summary,
   disabled,
   onSendAction,
 }: {
-  mode: 'CHOOSE_SAVED' | 'CONFIRM' | 'ASK_SAVE'
+  mode: 'CHOOSE_SAVED' | 'CHOOSE_PROVINCE' | 'CONFIRM' | 'ASK_SAVE'
   addresses?: { id: string; summary: string }[]
+  provinces?: string[]
   summary?: string
   disabled: boolean
   onSendAction: (action: ShopAction) => void
 }) {
+  if (mode === 'CHOOSE_PROVINCE') {
+    return (
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {(provinces ?? []).map(p => (
+          <button
+            key={p}
+            onClick={() => onSendAction({ type: 'SELECT_PROVINCE', province: p })}
+            disabled={disabled}
+            className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-2 py-2 text-center text-xs text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   if (mode === 'CHOOSE_SAVED') {
     return (
       <div className="mt-2 flex flex-col gap-2">
@@ -335,6 +354,7 @@ export function ShopUiBlockView({ block, disabled, onAddToCart, onConfirmCart, o
         <AddressPromptBlock
           mode={block.mode}
           addresses={block.addresses}
+          provinces={block.provinces}
           summary={block.summary}
           disabled={disabled}
           onSendAction={onSendAction}

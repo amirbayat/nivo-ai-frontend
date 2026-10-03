@@ -256,11 +256,12 @@ export interface StoreDiscountCode {
   createdAt: string
 }
 
-// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲ (فاز ۱.۵) — provinces خالی =
+// ردیف پیش‌فرض «کل ایران»؛ یک ردیف می‌تواند چند استان را هم‌زمان پوشش دهد
 export interface StoreShippingRule {
   id: string
   storeId: string
-  city: string | null // null = ردیف پیش‌فرض «سایر شهرها»
+  provinces: string[]
   cost: number
   enabled: boolean
   createdAt: string
@@ -281,11 +282,13 @@ export type ShopUiBlock =
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
   | {
       type: 'ADDRESS_PROMPT'
-      mode: 'CHOOSE_SAVED' | 'CONFIRM' | 'ASK_SAVE'
+      mode: 'CHOOSE_SAVED' | 'CHOOSE_PROVINCE' | 'CONFIRM' | 'ASK_SAVE'
       addresses?: { id: string; summary: string }[]
+      // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲ (فاز ۱.۵) — فقط CHOOSE_PROVINCE
+      provinces?: string[]
       summary?: string
       shippingCostToman?: number
-      cityCovered?: boolean
+      provinceCovered?: boolean
     }
   | { type: 'NONE' }
 
@@ -311,6 +314,8 @@ export type ShopAction =
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ — دکمه‌های فلوی آدرس
   | { type: 'SELECT_ADDRESS'; addressId: string }
   | { type: 'NEW_ADDRESS' }
+  // بخش ۲ (فاز ۱.۵) — انتخاب استان دکمه‌ای
+  | { type: 'SELECT_PROVINCE'; province: string }
   | { type: 'CONFIRM_ADDRESS' }
   | { type: 'EDIT_ADDRESS' }
   | { type: 'SAVE_ADDRESS' }
