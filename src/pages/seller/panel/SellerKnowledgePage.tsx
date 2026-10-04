@@ -4,6 +4,7 @@ import {
   useCreateKbEntry,
   useDeleteKbEntry,
   useExtractKbFile,
+  useExtractKbFromText,
   useKbEntries,
 } from '@/queries/seller.queries'
 import type { KbCandidateEntry, StoreKbKind } from '@/types/api'
@@ -134,8 +135,10 @@ export function SellerKnowledgePage() {
   const entries = useKbEntries(storeId, filter)
   const removeEntry = useDeleteKbEntry(storeId)
   const extractFile = useExtractKbFile(storeId)
+  const extractText = useExtractKbFromText(storeId)
   const [showAddForm, setShowAddForm] = useState(false)
   const [candidates, setCandidates] = useState<KbCandidateEntry[]>([])
+  const [extractRawText, setExtractRawText] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   function resolveCandidate(index: number) {
@@ -164,7 +167,7 @@ export function SellerKnowledgePage() {
         <input
           ref={fileRef}
           type="file"
-          accept=".pdf,.docx,.xlsx,.txt,.md,.csv"
+          accept=".pdf,.docx,.xlsx,.txt,.md,.csv,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac"
           hidden
           onChange={e => {
             const file = e.target.files?.[0]
@@ -175,9 +178,35 @@ export function SellerKnowledgePage() {
           }}
         />
       </div>
-      <p className="mb-5 text-xs text-slate-600 light:text-slate-400">{fa.seller.panel.knowledge.uploadFileHint}</p>
+      <p className="mb-2 text-xs text-slate-600 light:text-slate-400">{fa.seller.panel.knowledge.uploadFileHint}</p>
 
-      {extractFile.isError && <p className="mb-4 text-xs text-red-400">{fa.seller.panel.knowledge.extractError}</p>}
+      <div className="mb-5 flex gap-2">
+        <textarea
+          value={extractRawText}
+          onChange={e => setExtractRawText(e.target.value)}
+          rows={2}
+          placeholder={fa.seller.panel.knowledge.extractTextPlaceholder}
+          className="flex-1 resize-none rounded-xl border border-slate-700 light:border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-100 light:text-slate-900"
+        />
+        <button
+          onClick={() =>
+            extractText.mutate(extractRawText.trim(), {
+              onSuccess: result => {
+                setCandidates(result)
+                setExtractRawText('')
+              },
+            })
+          }
+          disabled={!extractRawText.trim() || extractText.isPending}
+          className="shrink-0 rounded-xl border border-slate-700 light:border-slate-300 px-3 text-xs font-semibold text-slate-200 light:text-slate-800 disabled:opacity-40"
+        >
+          {extractText.isPending ? fa.seller.panel.knowledge.extracting : fa.seller.panel.knowledge.extractTextButton}
+        </button>
+      </div>
+
+      {(extractFile.isError || extractText.isError) && (
+        <p className="mb-4 text-xs text-red-400">{fa.seller.panel.knowledge.extractError}</p>
+      )}
 
       {showAddForm && <AddEntryForm storeId={storeId} onDone={() => setShowAddForm(false)} />}
 

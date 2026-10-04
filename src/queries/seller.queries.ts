@@ -875,3 +875,13 @@ export function useExtractKbFile(storeId: string) {
     },
   })
 }
+
+// همان استخراج بالا برای متن مستقیم پیست‌شده (بدون فایل)
+export function useExtractKbFromText(storeId: string) {
+  return useMutation({
+    mutationFn: (rawText: string) =>
+      api
+        .post<KbCandidateEntry[]>(`/v2/stores/${storeId}/knowledge/extract-text`, { rawText })
+        .then(r => r.data),
+  })
+}
