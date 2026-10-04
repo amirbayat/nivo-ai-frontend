@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/Input'
 import { toEnglishDigits, formatCardNumberGroups } from '@/lib/digits'
 import {
   useCheckSlugAvailable,
+  useClassifyBusinessSetup,
   useCreateStore,
   useGenerateBrandIntroAi,
   useUpdateStore,
 } from '@/queries/seller.queries'
+import type { ClassifyBusinessSetupResult } from '@/types/api'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
 // فروشنده بعد از ساخت فروشگاه مستقیم به صفحه‌ی واقعی ساخت محصول در پنل هدایت می‌شود
@@ -69,6 +71,14 @@ function NextButton({ onClick, disabled, loading, children }: { onClick: () => v
   )
 }
 
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
+      <path d="M11.5 3.5a1.75 1.75 0 0 1 2.5 2.5L5.5 14.5l-3 .75.75-3Z" />
+    </svg>
+  )
+}
+
 export function SellerOnboardingPage() {
   const navigate = useNavigate()
   const createStore = useCreateStore()
@@ -76,6 +86,13 @@ export function SellerOnboardingPage() {
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [category, setCategory] = useState<string | null>(null)
+  // docs/PRD-ai-assisted-business-setup.md — قدم ۱، سه حالت نمایش بخش دسته‌بندی: توصیف آزاد
+  // (پیش‌فرض) → کارت تأیید AI (فقط confidence=HIGH) → چیپ‌های دستی (fallback یا ویرایش)
+  const [bizMode, setBizMode] = useState<'describe' | 'confirm' | 'manual'>('describe')
+  const [bizRawText, setBizRawText] = useState('')
+  const [classification, setClassification] = useState<ClassifyBusinessSetupResult | null>(null)
+  const [businessType, setBusinessType] = useState<'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'>('PRODUCT_SALES')
+  const [editingFromConfirm, setEditingFromConfirm] = useState(false)
   const [slug, setSlug] = useState('')
   const [debouncedSlug, setDebouncedSlug] = useState('')
   const [instagramUrl, setInstagramUrl] = useState('')
@@ -91,6 +108,7 @@ export function SellerOnboardingPage() {
 
   const generateBrandIntro = useGenerateBrandIntroAi(storeId ?? '')
   const updateStore = useUpdateStore(storeId ?? '')
+  const classifyBusinessSetup = useClassifyBusinessSetup()
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSlug(slug), 400)
@@ -107,10 +125,19 @@ export function SellerOnboardingPage() {
     setStep(s => s - 1)
   }
 
+  async function runClassify() {
+    const result = await classifyBusinessSetup.mutateAsync(bizRawText)
+    setClassification(result)
+    setCategory(result.category)
+    setBusinessType(result.businessType)
+    setBizMode(result.confidence === 'HIGH' ? 'confirm' : 'manual')
+  }
+
   async function submitStore() {
     const store = await createStore.mutateAsync({
       name,
       category: category ?? undefined,
+      businessType,
       slug,
       bankCardNumber: cardNumber,
       bankOwnerName: ownerName,
@@ -160,22 +187,151 @@ export function SellerOnboardingPage() {
             </div>
 
             <label className="mb-3 block text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.step1.categoryLabel}</label>
-            <div className="mb-6 flex flex-wrap gap-2">
-              {CATEGORIES.map(c => (
+
+            {bizMode === 'describe' && (
+              <div className="mb-6">
+                <p className="mb-2 text-sm text-slate-300 light:text-slate-700">{fa.seller.step1.businessDescLabel}</p>
+                <textarea
+                  value={bizRawText}
+                  onChange={e => setBizRawText(e.target.value)}
+                  placeholder={fa.seller.step1.businessDescPlaceholder}
+                  rows={4}
+                  className="mb-2 w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 px-4 py-3 text-sm text-slate-200 light:text-slate-800 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                />
+                <p className="mb-3 text-xs text-slate-500">{fa.seller.step1.businessDescHint}</p>
+
+                {classifyBusinessSetup.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.step1.classifyError}</p>}
+
                 <button
-                  key={c}
-                  onClick={() => setCategory(c)}
-                  className={clsx(
-                    'rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors',
-                    category === c
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
-                      : 'border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 text-slate-400 light:text-slate-600 hover:border-slate-600 light:hover:border-slate-400',
-                  )}
+                  onClick={runClassify}
+                  disabled={!bizRawText.trim() || classifyBusinessSetup.isPending}
+                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-3.5 text-[14px] font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {c}
+                  {classifyBusinessSetup.isPending ? fa.seller.step1.classifyLoading : fa.seller.step1.classifyButton}
                 </button>
-              ))}
-            </div>
+                <button onClick={() => setBizMode('manual')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
+                  {fa.seller.step1.pickManually}
+                </button>
+              </div>
+            )}
+
+            {bizMode === 'confirm' && classification && (
+              <div className="mb-6 flex flex-col gap-3">
+                <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[12px] font-semibold text-emerald-300 light:text-emerald-700">
+                  {fa.seller.step1.aiSuggestionBadge} · {fa.seller.step1.highConfidenceBadge}
+                </div>
+
+                <div className="rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 p-4">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-xs text-slate-500">{fa.seller.step1.businessTypeFieldLabel}</span>
+                    <button
+                      onClick={() => { setEditingFromConfirm(true); setBizMode('manual') }}
+                      aria-label={fa.seller.step1.editFieldAria}
+                      className="flex size-7 items-center justify-center rounded-lg text-slate-400 hover:text-slate-200"
+                    >
+                      <PencilIcon />
+                    </button>
+                  </div>
+                  <div className="text-[15px] font-semibold text-slate-100 light:text-slate-900">
+                    {businessType === 'PRODUCT_SALES' ? fa.seller.step1.businessTypeProductSales : fa.seller.step1.businessTypeAppointmentBooking}
+                  </div>
+                  <div className="mt-1 text-xs leading-[1.7] text-slate-500">{classification.businessTypeReason}</div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 p-4">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-xs text-slate-500">{fa.seller.step1.categoryFieldLabel}</span>
+                    <button
+                      onClick={() => { setEditingFromConfirm(true); setBizMode('manual') }}
+                      aria-label={fa.seller.step1.editFieldAria}
+                      className="flex size-7 items-center justify-center rounded-lg text-slate-400 hover:text-slate-200"
+                    >
+                      <PencilIcon />
+                    </button>
+                  </div>
+                  <div className="text-[15px] font-semibold text-slate-100 light:text-slate-900">{category}</div>
+                  <div className="mt-1 text-xs leading-[1.7] text-slate-500">{classification.categoryReason}</div>
+                </div>
+
+                {classification.pricingNote && (
+                  <div className="rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">
+                    {classification.pricingNote}
+                  </div>
+                )}
+
+                {businessType === 'APPOINTMENT_BOOKING' && (
+                  <div className="rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">
+                    {fa.seller.step1.appointmentBookingComingSoon}
+                  </div>
+                )}
+
+                <button onClick={() => setBizMode('describe')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
+                  {fa.seller.step1.backToDescription}
+                </button>
+              </div>
+            )}
+
+            {bizMode === 'manual' && (
+              <div className="mb-6">
+                {classification && classification.confidence !== 'HIGH' && (
+                  <p className="mb-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">{fa.seller.step1.lowConfidenceNotice}</p>
+                )}
+
+                {editingFromConfirm && (
+                  <div className="mb-4 flex gap-2">
+                    <button
+                      onClick={() => setBusinessType('PRODUCT_SALES')}
+                      className={clsx(
+                        'flex-1 rounded-xl border px-3 py-2.5 text-[13px] font-semibold',
+                        businessType === 'PRODUCT_SALES'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
+                          : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600',
+                      )}
+                    >
+                      {fa.seller.step1.businessTypeProductSales}
+                    </button>
+                    <button
+                      onClick={() => setBusinessType('APPOINTMENT_BOOKING')}
+                      className={clsx(
+                        'flex-1 rounded-xl border px-3 py-2.5 text-[13px] font-semibold',
+                        businessType === 'APPOINTMENT_BOOKING'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
+                          : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600',
+                      )}
+                    >
+                      {fa.seller.step1.businessTypeAppointmentBooking}
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setCategory(c)}
+                      className={clsx(
+                        'rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors',
+                        category === c
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
+                          : 'border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 text-slate-400 light:text-slate-600 hover:border-slate-600 light:hover:border-slate-400',
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+
+                {businessType === 'APPOINTMENT_BOOKING' && (
+                  <div className="mt-3 rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">
+                    {fa.seller.step1.appointmentBookingComingSoon}
+                  </div>
+                )}
+
+                <button onClick={() => setBizMode('describe')} className="mt-3 w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
+                  {fa.seller.step1.backToDescription}
+                </button>
+              </div>
+            )}
 
             <div className="mb-1">
               <Input

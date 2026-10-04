@@ -7,6 +7,7 @@ import type {
   BulkCompleteResult,
   CardDisplayPolicy,
   ChannelStat,
+  ClassifyBusinessSetupResult,
   CompetitorAnalysisResult,
   CreateKbEntryInput,
   ExtractProductsResult,
@@ -42,6 +43,8 @@ import type {
 export interface CreateStoreInput {
   name: string
   category?: string
+  // docs/PRD-business-types-and-appointment-booking.md بخش ۴ — نفرستادن = پیش‌فرض PRODUCT_SALES سمت بک‌اند
+  businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
   slug: string
   bankCardNumber: string
   bankOwnerName: string
@@ -86,6 +89,15 @@ export function useCheckSlugAvailable(slug: string) {
     queryFn: () => api.get<{ available: boolean }>('/v2/stores/slug-available', { params: { slug } }).then(r => r.data.available),
     enabled: slug.length >= 3,
     staleTime: 10_000,
+  })
+}
+
+// docs/PRD-ai-assisted-business-setup.md — قدم ۱ ویزارد، قبل از ساخت فروشگاه (بدون storeId،
+// عیناً الگوی useGenerateBrandIntroAi پایین‌تر)
+export function useClassifyBusinessSetup() {
+  return useMutation({
+    mutationFn: (rawText: string) =>
+      api.post<ClassifyBusinessSetupResult>('/v2/stores/classify-business-setup', { rawText }).then(r => r.data),
   })
 }
 

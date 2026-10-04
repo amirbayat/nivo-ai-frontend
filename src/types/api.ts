@@ -155,6 +155,9 @@ export interface SellerStore {
   slug: string
   name: string
   category: string | null
+  // docs/PRD-business-types-and-appointment-booking.md بخش ۴ — فعلاً فقط PRODUCT_SALES رفتار
+  // واقعی دارد؛ APPOINTMENT_BOOKING صرفاً سیگنال تقاضاست (نوبت‌دهی هنوز ساخته نشده)
+  businessType: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
   bankCardNumber: string
   bankOwnerName: string
   instagramUrl: string | null
@@ -571,6 +574,16 @@ export interface CompetitorAnalysisResult {
 // بخش ۹ (پروفایل برند عمیق‌تر در آنبوردینگ)
 export interface GenerateBrandIntroResult {
   suggestedBrandIntro: string
+}
+
+// docs/PRD-ai-assisted-business-setup.md — قدم ۱ ویزارد، قبل از ساخت فروشگاه
+export interface ClassifyBusinessSetupResult {
+  businessType: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW'
+  category: string
+  businessTypeReason: string
+  categoryReason: string
+  pricingNote: string | null
 }
 
 // فیدبک کاربر ۱۴۰۵/۰۷/۱۱ — دستیار «نوشتن توضیحات با کمک AI» از روی یادداشت خام فروشنده
