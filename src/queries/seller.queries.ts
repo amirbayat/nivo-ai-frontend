@@ -381,11 +381,13 @@ export function useUnmuteConversation(storeId: string) {
 // فروشنده در همان شیت تأیید/ویرایش می‌کند و بعد save می‌زند)
 export function useCompleteProductInfo(storeId: string) {
   return useMutation({
-    mutationFn: ({ productId, withWebSearch }: { productId: string; withWebSearch?: boolean }) =>
+    mutationFn: ({ productId, withWebSearch, currentDraft }: { productId: string; withWebSearch?: boolean; currentDraft?: string }) =>
       api
-        .post<ProductAiCompleteResult>(`/v2/stores/${storeId}/products/${productId}/ai-complete`, undefined, {
-          params: withWebSearch ? { withWebSearch: true } : undefined,
-        })
+        .post<ProductAiCompleteResult>(
+          `/v2/stores/${storeId}/products/${productId}/ai-complete`,
+          currentDraft ? { currentDraft } : undefined,
+          { params: withWebSearch ? { withWebSearch: true } : undefined },
+        )
         .then(r => r.data),
   })
 }

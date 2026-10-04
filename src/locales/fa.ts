@@ -605,6 +605,19 @@ export const fa = {
         descriptionDictating: 'در حال ضبط... برای توقف دوباره بزن',
         descriptionTranscribing: 'در حال تبدیل گفتار به متن...',
         descriptionDictateError: 'تبدیل صدا به متن با خطا مواجه شد',
+        // docs/PRD-product-description-editor.md — ویرایشگر تمام‌صفحه‌ی توضیحات محصول،
+        // جایگزین textarea سه‌خطی + دو مدال جدای AI قبلی (DescriptionNotesAssist حذف شد)
+        descriptionCardEmptyPlaceholder: 'برای نوشتن توضیحات لمس کنید',
+        descriptionCardEditHint: 'برای ویرایش کامل لمس کنید ←',
+        descriptionModalTitle: 'توضیحات محصول',
+        descriptionModalDone: 'تمام',
+        aiImproveButton: 'بهبود نوشته‌ی من',
+        aiImproveLoading: 'در حال بهبود نوشته...',
+        aiWebCompleteButton: 'تکمیل با جستجوی وب',
+        aiWebCompleteLoading: 'در حال جستجو در وب...',
+        aiSuggestionApply: 'جایگزین کن',
+        aiSuggestionDismiss: 'نادیده بگیر',
+        aiNewProductHint: 'این محصول هنوز ذخیره نشده — دستیار هوش مصنوعی بعد از اولین «ذخیره» در پایین فرم فعال می‌شود.',
         // فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — ویرایش محصول از مودال به یک صفحه‌ی مستقل تبدیل شد
         editProduct: 'ویرایش محصول',
         backToList: 'بازگشت به لیست محصولات',

@@ -4,7 +4,6 @@ import { fa } from '@/locales/fa'
 import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
   useApproveEnrichmentDraft,
-  useCompleteProductInfo,
   useCompleteProductInfoFromPhoto,
   useCreateKbEntry,
   usePendingEnrichmentDraft,
@@ -44,12 +43,10 @@ function AiCompleteAssistModal({
   onApplyDescription: (text: string) => void
   onApplySpecs: (specs: ProductSpecSuggestion[]) => void
 }) {
-  const complete = useCompleteProductInfo(storeId)
   const completePhoto = useCompleteProductInfoFromPhoto(storeId)
   const createKb = useCreateKbEntry(storeId)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set())
-  const [withWebSearch, setWithWebSearch] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const applySnapshotRef = useRef<ApplySnapshot | null>(null)
   function undoApply() {
@@ -59,12 +56,6 @@ function AiCompleteAssistModal({
     onApplyDescription(snap.description)
     onApplySpecs(snap.specs)
   }
-  useEffect(() => {
-    if (!complete.data) return
-    onApplyDescription(complete.data.suggestedDescription)
-    if (complete.data.suggestedSpecs?.length) onApplySpecs(complete.data.suggestedSpecs)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [complete.data])
   useEffect(() => {
     if (!completePhoto.data) return
     if (completePhoto.data.suggestedName) onApplyName(completePhoto.data.suggestedName)
@@ -218,94 +209,8 @@ function AiCompleteAssistModal({
             })()
           ) : (
             <>
-              {!complete.data && (
-                <>
-                  <label className="mb-2 flex items-center gap-2 text-xs text-slate-400 light:text-slate-600">
-                    <input type="checkbox" checked={withWebSearch} onChange={e => setWithWebSearch(e.target.checked)} />
-                    {fa.seller.panel.products.aiWebSearchToggle}
-                  </label>
-                  {withWebSearch && <p className="mb-2 text-[11px] text-slate-500">{fa.seller.panel.products.aiWebSearchHint}</p>}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      applySnapshotRef.current = { description, specs }
-                      complete.mutate({ productId: product.id, withWebSearch })
-                    }}
-                    disabled={complete.isPending}
-                    className="w-full rounded-2xl border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-sm font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
-                  >
-                    {complete.isPending ? fa.seller.panel.products.aiCompleteLoading : `✨ ${fa.seller.panel.products.aiComplete}`}
-                  </button>
-                </>
-              )}
-              {complete.isError && (
-                <p className="mt-2 text-xs text-red-400">
-                  {extractErrorMessage(complete.error, fa.seller.panel.products.aiCompleteError)}
-                </p>
-              )}
-
-              {complete.data && (
-                <div className="mt-3 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 p-3.5">
-                  <p className="mb-1.5 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedDescription}</p>
-                  <p className="mb-1.5 text-[11px] text-emerald-400 light:text-emerald-700">{fa.seller.panel.products.aiAppliedNotice}</p>
-                  <p className="mb-2 text-sm text-slate-200 light:text-slate-800">{complete.data.suggestedDescription}</p>
-                  <button
-                    type="button"
-                    onClick={undoApply}
-                    className="mb-3 text-xs font-semibold text-slate-400 light:text-slate-600 hover:underline"
-                  >
-                    {fa.seller.panel.products.aiUndoApply}
-                  </button>
-
-                  {!!complete.data.suggestedSpecs?.length && (
-                    <div className="mb-3">
-                      <p className="mb-1.5 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedSpecs}</p>
-                      <div className="flex flex-col gap-1">
-                        {complete.data.suggestedSpecs.map((s, i) => (
-                          <p key={i} className="text-xs text-slate-300 light:text-slate-700">
-                            <span className="font-semibold">{s.label}:</span> {s.value}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {complete.data.sourceNote && (
-                    <p className="mb-3 text-[11px] text-slate-500">{complete.data.sourceNote}</p>
-                  )}
-
-                  <p className="mb-2 text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.aiSuggestedQuestions}</p>
-                  <div className="flex flex-col gap-2">
-                    {complete.data.suggestedQuestions.map((q, i) => (
-                      <div key={i} className="rounded-xl bg-slate-900/40 light:bg-white p-2.5">
-                        <p className="mb-1.5 text-sm text-slate-300 light:text-slate-700">{q}</p>
-                        {savedIndexes.has(i) ? (
-                          <p className="text-xs text-emerald-400">{fa.common.success}</p>
-                        ) : (
-                          <div className="flex gap-2">
-                            <input
-                              value={answers[i] ?? ''}
-                              onChange={e => setAnswers(prev => ({ ...prev, [i]: e.target.value }))}
-                              placeholder={fa.seller.panel.products.aiQuestionAnswerPlaceholder}
-                              className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 bg-transparent px-2.5 py-1.5 text-xs text-slate-200 light:text-slate-900"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveAnswer(q, i)}
-                              disabled={!answers[i]?.trim() || createKb.isPending}
-                              className="shrink-0 rounded-lg bg-emerald-500/20 px-3 text-xs font-semibold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
-                            >
-                              {fa.common.save}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {!completePhoto.data && (
-                <div className="mt-3 border-t border-slate-700/50 light:border-slate-200 pt-3">
+                <div>
                   <p className="mb-2 text-[11px] text-slate-500">{fa.seller.panel.products.aiPhotoCompleteHint}</p>
                   <input
                     ref={photoInputRef}
@@ -406,7 +311,7 @@ export function AiCompleteAssist({
             : 'border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 text-slate-200 light:text-slate-800 hover:bg-slate-800/60 light:hover:bg-slate-100',
         )}
       >
-        {pendingDraft.data ? `✨ ${fa.seller.panel.products.enrichmentDraftBadge}` : `✨ ${fa.seller.panel.products.aiComplete}`}
+        {pendingDraft.data ? `✨ ${fa.seller.panel.products.enrichmentDraftBadge}` : `📷 ${fa.seller.panel.products.aiPhotoComplete}`}
       </button>
       <AiCompleteAssistModal
         open={open}

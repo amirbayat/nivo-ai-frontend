@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
@@ -16,14 +14,13 @@ import {
   useProducts,
   useProductTelegramLink,
   useRemoveProductVideo,
-  useTranscribeAudio,
   useUpdateProduct,
   useUploadProductImages,
   useUploadProductVideo,
 } from '@/queries/seller.queries'
 import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
 import { AiCompleteAssist } from './AiCompleteAssist'
-import { DescriptionNotesAssist } from './DescriptionNotesAssist'
+import { ProductDescriptionModal } from './ProductDescriptionModal'
 import { useSellerStore } from './SellerPanelLayout'
 
 function ProductImages({
@@ -205,104 +202,6 @@ function ProductVideo({
 const NAME_MAX_LENGTH = 200
 const DESCRIPTION_MAX_LENGTH = 5000
 
-// فیدبک کاربر ۱۴۰۵/۰۷/۰۱: میکروفون برای ضبط توضیحات + پیش‌نمایش Markdown — توضیح خام هیچ‌وقت
-// مستقیم به خریدار نشان داده نمی‌شود (caption() همیشه پاسخ تازه می‌سازد)، پس این پیش‌نمایش فقط
-// برای خودِ فروشنده حین نوشتن معناست. همان الگوی ضبط ShopChatPage.tsx، بدون semantics مکالمه.
-function DescriptionEditor({
-  value,
-  onChange,
-  storeId,
-  productId,
-  maxLength,
-}: {
-  value: string
-  onChange: (text: string) => void
-  storeId: string
-  productId?: string
-  maxLength: number
-}) {
-  const transcribe = useTranscribeAudio(storeId)
-  const [recording, setRecording] = useState(false)
-  const [previewOn, setPreviewOn] = useState(false)
-  const recorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
-
-  async function toggleRecording() {
-    if (recording) {
-      recorderRef.current?.stop()
-      setRecording(false)
-      return
-    }
-    if (!navigator.mediaDevices?.getUserMedia) return
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
-      chunksRef.current = []
-      recorder.ondataavailable = e => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
-      }
-      recorder.onstop = () => {
-        stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        transcribe.mutate(blob, {
-          onSuccess: ({ text }) => {
-            const trimmed = text.trim()
-            if (trimmed) onChange(value ? `${value}\n${trimmed}` : trimmed)
-          },
-        })
-      }
-      recorderRef.current = recorder
-      recorder.start()
-      setRecording(true)
-    } catch {
-      // دسترسی میکروفون رد شد — دکمه به حالت اولیه برمی‌گردد، نیازی به alert مزاحم نیست
-    }
-  }
-
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={toggleRecording}
-          disabled={transcribe.isPending}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-            recording ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 light:bg-slate-100 text-slate-300 light:text-slate-700'
-          } disabled:opacity-40`}
-        >
-          🎙️ {recording ? fa.seller.panel.products.descriptionDictating : fa.seller.panel.products.descriptionDictateStart}
-        </button>
-        <button
-          type="button"
-          onClick={() => setPreviewOn(p => !p)}
-          className="text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline"
-        >
-          {fa.seller.panel.products.descriptionPreviewToggle}
-        </button>
-        {productId && (
-          <DescriptionNotesAssist storeId={storeId} productId={productId} onApply={onChange} />
-        )}
-      </div>
-      {transcribe.isPending && <p className="mb-2 text-xs text-slate-500">{fa.seller.panel.products.descriptionTranscribing}</p>}
-      {transcribe.isError && <p className="mb-2 text-xs text-red-400">{fa.seller.panel.products.descriptionDictateError}</p>}
-      {previewOn ? (
-        <div className="min-h-[72px] rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-900/40 light:bg-slate-50 px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 prose prose-sm prose-invert light:prose-neutral max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{value || fa.seller.panel.products.descriptionPlaceholder}</ReactMarkdown>
-        </div>
-      ) : (
-        <textarea
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={fa.seller.panel.products.descriptionPlaceholder}
-          rows={3}
-          maxLength={maxLength}
-          className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
-        />
-      )}
-    </div>
-  )
-}
-
 function BackChevron() {
   // قانون RTL پروژه: آیکون «بازگشت» باید به راست اشاره کند (CLAUDE.md)
   return (
@@ -374,6 +273,7 @@ export function SellerProductEditPage() {
   const [code, setCode] = useState('')
   const [persuasionTechniquesEnabled, setPersuasionTechniquesEnabled] = useState(true)
   const [initialized, setInitialized] = useState(false)
+  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false)
 
   // فرم فقط یک‌بار از دیتای واقعی پر می‌شود (نه هر رندر، وگرنه تایپ فروشنده با هر invalidate
   // پاک می‌شد)؛ با عوض‌شدن id دوباره مقداردهی می‌شود
@@ -524,12 +424,29 @@ export function SellerProductEditPage() {
         <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
           {fa.seller.panel.products.descriptionLabel}
         </label>
-        <DescriptionEditor
-          value={description}
-          onChange={setDescription}
+        <button
+          type="button"
+          onClick={() => setDescriptionModalOpen(true)}
+          className="block w-full rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 p-4 text-start"
+        >
+          {description ? (
+            <>
+              <p className="mb-2 line-clamp-3 text-sm leading-7 text-slate-300 light:text-slate-700">{description}</p>
+              <span className="text-xs font-semibold text-emerald-400 light:text-emerald-700">{fa.seller.panel.products.descriptionCardEditHint}</span>
+            </>
+          ) : (
+            <span className="text-sm text-slate-500">{fa.seller.panel.products.descriptionCardEmptyPlaceholder}</span>
+          )}
+        </button>
+        <ProductDescriptionModal
+          open={descriptionModalOpen}
+          onClose={() => setDescriptionModalOpen(false)}
           storeId={storeId}
           productId={existingProduct?.id}
+          value={description}
           maxLength={DESCRIPTION_MAX_LENGTH}
+          onApply={setDescription}
+          onApplySpecs={setSpecs}
         />
       </div>
 
