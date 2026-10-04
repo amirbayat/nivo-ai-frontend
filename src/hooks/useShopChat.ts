@@ -233,9 +233,12 @@ export function useShopChat(slug: string, productId?: string) {
     // docs/PRD-customer-comments-and-discounts.md بخش الف/۳ — تایید سفارش (AWAITING_SELLER_APPROVAL
     // → COMPLETED) هم مثل HANDOFF_HUMAN یک پیام async از سمت فروشنده/سیستم است که بدون پیام
     // تازه‌ی مشتری تولید می‌شود (اینجا: پیام پیگیریِ نظرخواهی) — بدون پالینگ، مشتری در وب
-    // اصلاً نمی‌دید سفارشش تایید شده مگر صفحه را رفرش کند
+    // اصلاً نمی‌دید سفارشش تایید شده مگر صفحه را رفرش کند. REJECTED هم همینه — بعد از رد سفارش
+    // فروشنده ممکنه از پنل/تلگرام دستی جواب بده (isMutedForHuman)، باید بدون رفرش دیده شود
     if (
-      (state !== 'HANDOFF_HUMAN' && state !== 'AWAITING_SELLER_APPROVAL') ||
+      (state !== 'HANDOFF_HUMAN' &&
+        state !== 'AWAITING_SELLER_APPROVAL' &&
+        state !== 'REJECTED') ||
       viewingHistory
     ) {
       return

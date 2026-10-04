@@ -8,9 +8,12 @@ import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import type { PublicProduct, ShopHistoryEntry, ShopMessage } from '@/types/api'
 
-// HANDOFF_HUMAN عمداً اینجا نیست — بعد از escalate، مشتری باید بتواند مستقیم با فروشنده
-// چت کند (پنل فروشنده، تب «نیاز به توجه»)؛ فقط COMPLETED/REJECTED واقعاً پایانی‌اند
-const TERMINAL_STATES = ['COMPLETED', 'REJECTED']
+// HANDOFF_HUMAN/REJECTED عمداً اینجا نیستند — بعد از escalate یا رد سفارش، مشتری باید بتواند
+// مستقیم با فروشنده چت کند (پنل فروشنده، تب «نیاز به توجه»؛ بک‌اند با isMutedForHuman پیام را
+// از موتور مکالمه‌ی رباتی رد نمی‌کند)؛ فقط COMPLETED واقعاً پایانی است
+const TERMINAL_STATES = ['COMPLETED']
+// حالت‌هایی که دیگر ربات جواب نمی‌دهد و انسان (فروشنده) پاسخ‌گوست — برای بنر «منتقل شد»
+const HUMAN_HANDLING_STATES = ['HANDOFF_HUMAN', 'REJECTED']
 
 // عمومی، بدون auth — عیناً همون الگوی productImageUrl در ShopUiBlocks.tsx
 function storeLogoUrl(storeId: string, key: string): string {
@@ -532,7 +535,7 @@ export function ShopChatPage() {
         {error && <p className="text-center text-xs text-red-400 light:text-red-600">{error}</p>}
       </div>
 
-      {(TERMINAL_STATES.includes(state) || state === 'HANDOFF_HUMAN') && (
+      {(TERMINAL_STATES.includes(state) || HUMAN_HANDLING_STATES.includes(state)) && (
         <div className="border-t border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-slate-50 px-4 py-2 text-center text-xs text-slate-500">
           {fa.shop.conversationEnded}
         </div>
