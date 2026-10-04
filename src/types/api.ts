@@ -205,6 +205,13 @@ export interface StoreCreditStatus {
   trialEndsAt: string | null
 }
 
+// docs/PRD-seller-telegram-management-bot.md — اتصال خودش داخل بات انجام می‌شود (اشتراک
+// شماره + OTP)، این فقط برای نمایش وضعیت/قطع اتصال در پنل وب است
+export interface SellerBotStatus {
+  linked: boolean
+  linkedAt: string | null
+}
+
 // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۱.۱
 export interface SellerDashboard {
   revenueTodayToman: number

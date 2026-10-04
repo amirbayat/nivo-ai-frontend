@@ -111,6 +111,7 @@ export const keys = {
       ['seller', 'product-ad-placement', storeId, productId] as const,
     enrichmentDraft: (storeId: string, productId: string) =>
       ['seller', 'enrichment-draft', storeId, productId] as const,
+    sellerBotStatus: (storeId: string) => ['seller', 'seller-bot-status', storeId] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

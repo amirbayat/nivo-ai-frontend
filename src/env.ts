@@ -16,6 +16,9 @@ const VITE_SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined
 // docs/PRD-telegram-bot-channel.md — یوزرنیم بات مشترک تلگرام (بدون @). تا وقتی ست نشده،
 // لینک تلگرام در تب «بیشتر»/قدم۴ ویزارد نمایش داده نمی‌شود (نه یک لینک شکسته)
 const VITE_TELEGRAM_BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined
+// docs/PRD-seller-telegram-management-bot.md — یوزرنیم بات دوم (مدیریت پنل، نه مشتری‌محور بالا).
+// تا وقتی ست نشده، دکمه‌ی اتصال در تب «بیشتر» نمایش داده نمی‌شود
+const VITE_SELLER_BOT_USERNAME = import.meta.env.VITE_SELLER_BOT_USERNAME as string | undefined
 
 if (!VITE_API_URL) throw new Error('Missing env: VITE_API_URL')
 
@@ -23,6 +26,6 @@ export const env = {
   VITE_API_URL, VITE_DEFAULT_MODEL, VITE_ENAMAD_ID, VITE_ENAMAD_CODE,
   VITE_SALES_BOT_ENABLED, VITE_LANDING_STATS_ENABLED,
   VITE_EVENTS_API_URL, VITE_EVENTS_WRITE_KEY,
-  VITE_CLARITY_PROJECT_ID, VITE_TELEGRAM_BOT_USERNAME,
+  VITE_CLARITY_PROJECT_ID, VITE_TELEGRAM_BOT_USERNAME, VITE_SELLER_BOT_USERNAME,
   VITE_SENTRY_DSN,
 }

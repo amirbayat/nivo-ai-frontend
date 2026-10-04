@@ -765,6 +765,14 @@ export const fa = {
         dashboard: 'داشبورد فروش',
         telegramConnect: 'اتصال تلگرام برای اعلان‌ها',
         telegramConnectError: 'ساخت لینک اتصال با خطا مواجه شد',
+        // docs/PRD-seller-telegram-management-bot.md — بات دوم، مدیریت پنل (نه فقط اعلان)
+        sellerBotTitle: 'بات مدیریت پنل (تلگرام)',
+        sellerBotDescription: 'تایید/رد سفارش، موجودی و اعتبار رو از همین‌جا توی تلگرام مدیریت کن',
+        sellerBotLinked: (date: string) => `متصل ✅ از ${date}`,
+        sellerBotNotLinked: 'هنوز وصل نشده',
+        sellerBotConnectButton: 'باز کردن بات',
+        sellerBotDisconnectButton: 'قطع اتصال',
+        sellerBotDisconnectConfirm: 'اتصال این فروشگاه به بات مدیریت قطع بشه؟',
         // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۳ — مرکز راهنمای فروشنده
         helpCenter: 'راهنمای استفاده از پنل',
         logout: 'خروج از حساب',

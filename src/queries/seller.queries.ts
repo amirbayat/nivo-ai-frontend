@@ -21,6 +21,7 @@ import type {
   ProductAiCompleteResult,
   ProductEnrichmentDraft,
   ProductImportFromUrlResult,
+  SellerBotStatus,
   SellerConversationDetail,
   SellerDashboard,
   SellerOrder,
@@ -871,6 +872,25 @@ export function useCreateTelegramConnectToken(storeId: string) {
   return useMutation({
     mutationFn: () =>
       api.post<{ token: string }>(`/v2/stores/${storeId}/telegram-connect-token`).then(r => r.data),
+  })
+}
+
+// docs/PRD-seller-telegram-management-bot.md — بات دوم (مدیریت پنل)؛ اتصال خودش از داخل بات
+// انجام می‌شود (اشتراک شماره + OTP)، این فقط وضعیت را نشان می‌دهد/قطع می‌کند
+export function useSellerBotStatus(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.sellerBotStatus(storeId),
+    queryFn: () => api.get<SellerBotStatus>(`/v2/stores/${storeId}/seller-bot-status`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
+export function useDisconnectSellerBot(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      api.post<SellerBotStatus>(`/v2/stores/${storeId}/seller-bot-disconnect`).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.sellerBotStatus(storeId) }),
   })
 }
 

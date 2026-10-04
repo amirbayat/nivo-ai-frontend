@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useLogout } from '@/queries/auth.queries'
-import { useCreateTelegramConnectToken } from '@/queries/seller.queries'
+import { useCreateTelegramConnectToken, useDisconnectSellerBot, useSellerBotStatus } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 
 function ExternalLinkRow({ label, value }: { label: string; value: string }) {
@@ -22,6 +23,8 @@ export function SellerMorePage() {
   const { storeId, storeName, storeSlug, instagramUrl, telegramUrl, websiteUrl } = useSellerStore()
   const logout = useLogout()
   const createConnectToken = useCreateTelegramConnectToken(storeId)
+  const sellerBotStatus = useSellerBotStatus(storeId)
+  const disconnectSellerBot = useDisconnectSellerBot(storeId)
   const [copied, setCopied] = useState(false)
   const [telegramCopied, setTelegramCopied] = useState(false)
   const chatLink = `${window.location.origin}/shop/${storeSlug}`
@@ -197,6 +200,42 @@ export function SellerMorePage() {
       )}
       {createConnectToken.isError && (
         <p className="mb-3 text-xs text-red-400">{fa.seller.panel.more.telegramConnectError}</p>
+      )}
+
+      {env.VITE_SELLER_BOT_USERNAME && (
+        <div className="mb-3 rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-sm font-semibold text-slate-200 light:text-slate-900">
+              {fa.seller.panel.more.sellerBotTitle}
+            </span>
+            <span className={clsx('text-xs', sellerBotStatus.data?.linked ? 'text-emerald-400' : 'text-slate-500')}>
+              {sellerBotStatus.data?.linked
+                ? fa.seller.panel.more.sellerBotLinked(new Date(sellerBotStatus.data.linkedAt!).toLocaleDateString('fa-IR'))
+                : fa.seller.panel.more.sellerBotNotLinked}
+            </span>
+          </div>
+          <p className="mb-3 text-xs text-slate-500">{fa.seller.panel.more.sellerBotDescription}</p>
+          {sellerBotStatus.data?.linked ? (
+            <button
+              onClick={() => {
+                if (confirm(fa.seller.panel.more.sellerBotDisconnectConfirm)) disconnectSellerBot.mutate()
+              }}
+              disabled={disconnectSellerBot.isPending}
+              className="w-full rounded-lg border border-red-500/30 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+            >
+              {fa.seller.panel.more.sellerBotDisconnectButton}
+            </button>
+          ) : (
+            <a
+              href={`https://t.me/${env.VITE_SELLER_BOT_USERNAME}`}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-full rounded-lg bg-emerald-500/15 py-2.5 text-center text-xs font-semibold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/25"
+            >
+              {fa.seller.panel.more.sellerBotConnectButton}
+            </a>
+          )}
+        </div>
       )}
 
       <button
