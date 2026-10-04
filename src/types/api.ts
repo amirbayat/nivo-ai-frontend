@@ -300,6 +300,9 @@ export interface StoreDiscountCode {
   // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۵ مورد ۵ — تخفیف پلکانی
   minQuantity: number | null
   createdAt: string
+  // docs/PRD-customer-comments-and-discounts.md بخش ۱۳ — محدود کردن کد به یک محصول خاص
+  productId: string | null
+  product: { id: string; name: string } | null
 }
 
 // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲ (فاز ۱.۵) — provinces خالی =

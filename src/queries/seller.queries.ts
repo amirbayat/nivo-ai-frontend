@@ -791,6 +791,8 @@ export interface CreateDiscountCodeInput {
   expiresAt?: string
   // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۵ مورد ۵ — تخفیف پلکانی
   minQuantity?: number
+  // docs/PRD-customer-comments-and-discounts.md بخش ۱۳ — محدود کردن کد به یک محصول خاص
+  productId?: string
 }
 
 export function useAddDiscountCode(storeId: string) {

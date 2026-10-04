@@ -880,6 +880,10 @@ export const fa = {
         minQuantityLabel: 'حداقل تعداد خرید',
         minQuantityPlaceholder: 'خالی = بدون حداقل (مثلاً ۳ برای «۳ عدد بخر، تخفیف بگیر»)',
         minQuantityHint: (minQuantity: number) => `فقط برای خرید حداقل ${minQuantity.toLocaleString('fa-IR')} عدد`,
+        // docs/PRD-customer-comments-and-discounts.md بخش ۱۳ — محدود کردن کد به یک محصول خاص
+        productLabel: 'محدود به یک محصول خاص',
+        productPlaceholder: 'همه محصولات (کل فروشگاه)',
+        productHint: (productName: string) => `فقط برای «${productName}»`,
         save: 'ذخیره',
         cancel: 'انصراف',
         activate: 'فعال کردن',

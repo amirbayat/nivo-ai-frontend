@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { clsx } from 'clsx'
+import DatePicker from 'react-multi-date-picker'
+import persian from 'react-date-object/calendars/persian'
+import persian_fa from 'react-date-object/locales/persian_fa'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { toEnglishDigits } from '@/lib/digits'
@@ -7,10 +10,17 @@ import type { DiscountKind, StoreDiscountCode } from '@/types/api'
 import {
   useAddDiscountCode,
   useDiscountCodes,
+  useProducts,
   useUpdateDiscountCode,
   type CreateDiscountCodeInput,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+
+// همون کلاس‌های Input.tsx، چون DatePicker کتابخانه‌ی خودش را رندر می‌کند نه <input> ما را
+const DATE_INPUT_CLASS =
+  'w-full rounded-xl border bg-slate-800/80 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 ' +
+  'transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 light:bg-white light:text-slate-900 ' +
+  'light:placeholder:text-slate-400 border-slate-700 hover:border-slate-600 light:border-slate-300 light:hover:border-slate-400'
 
 function valueLabel(code: StoreDiscountCode): string {
   return code.kind === 'PERCENT'
@@ -59,6 +69,11 @@ function DiscountCodeRow({ code, storeId }: { code: StoreDiscountCode; storeId: 
           {fa.seller.panel.discountCodes.minQuantityHint(code.minQuantity)}
         </p>
       )}
+      {code.product && (
+        <p className="mt-0.5 text-xs text-slate-500">
+          {fa.seller.panel.discountCodes.productHint(code.product.name)}
+        </p>
+      )}
 
       <button
         onClick={toggleActive}
@@ -74,12 +89,14 @@ function DiscountCodeRow({ code, storeId }: { code: StoreDiscountCode; storeId: 
 
 function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () => void }) {
   const add = useAddDiscountCode(storeId)
+  const products = useProducts(storeId)
   const [code, setCode] = useState('')
   const [kind, setKind] = useState<DiscountKind>('PERCENT')
   const [value, setValue] = useState('')
   const [maxRedemptions, setMaxRedemptions] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
   const [minQuantity, setMinQuantity] = useState('')
+  const [productId, setProductId] = useState('')
 
   const numericValue = Number(toEnglishDigits(value))
   const valid =
@@ -93,8 +110,9 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
       kind,
       value: numericValue,
       ...(maxRedemptions ? { maxRedemptions: Number(toEnglishDigits(maxRedemptions)) } : {}),
-      ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
+      ...(expiresAt ? { expiresAt } : {}),
       ...(minQuantity ? { minQuantity: Number(toEnglishDigits(minQuantity)) } : {}),
+      ...(productId ? { productId } : {}),
     }
     add.mutate(dto, { onSuccess: onDone })
   }
@@ -148,12 +166,19 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
           inputMode="numeric"
         />
       </div>
-      <div className="mb-3">
-        <Input
-          type="date"
-          label={fa.seller.panel.discountCodes.expiresAtLabel}
-          value={expiresAt}
-          onChange={e => setExpiresAt(e.target.value)}
+      <div className="mb-3 flex flex-col gap-1.5">
+        <label className="text-sm text-slate-400 light:text-slate-600">
+          {fa.seller.panel.discountCodes.expiresAtLabel}
+        </label>
+        <DatePicker
+          calendar={persian}
+          locale={persian_fa}
+          editable={false}
+          value={expiresAt ? new Date(expiresAt) : ''}
+          onChange={date => setExpiresAt(date ? date.toDate().toISOString() : '')}
+          placeholder={fa.seller.panel.discountCodes.expiresAtPlaceholder}
+          inputClass={DATE_INPUT_CLASS}
+          containerClassName="w-full"
         />
       </div>
       <div className="mb-3">
@@ -164,6 +189,21 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
           onChange={e => setMinQuantity(e.target.value.replace(/\D/g, ''))}
           inputMode="numeric"
         />
+      </div>
+      <div className="mb-3 flex flex-col gap-1.5">
+        <label className="text-sm text-slate-400 light:text-slate-600">
+          {fa.seller.panel.discountCodes.productLabel}
+        </label>
+        <select
+          value={productId}
+          onChange={e => setProductId(e.target.value)}
+          className={DATE_INPUT_CLASS}
+        >
+          <option value="">{fa.seller.panel.discountCodes.productPlaceholder}</option>
+          {products.data?.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
       </div>
       {add.isError && <p className="mb-3 text-xs text-red-400">{fa.seller.panel.discountCodes.addError}</p>}
       <div className="flex gap-2">
