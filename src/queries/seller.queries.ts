@@ -866,15 +866,6 @@ export function useUpdateCardPolicy(storeId: string) {
   })
 }
 
-// docs/PRD-telegram-bot-channel.md بخش ۹.۱ — توکن یک‌بارمصرف برای دیپ‌لینک اتصال تلگرام
-// شخصی فروشنده؛ نیازی به invalidate نیست چون خودش هیچ‌جا cache نمی‌شود، فقط یک‌بار مصرف می‌شود
-export function useCreateTelegramConnectToken(storeId: string) {
-  return useMutation({
-    mutationFn: () =>
-      api.post<{ token: string }>(`/v2/stores/${storeId}/telegram-connect-token`).then(r => r.data),
-  })
-}
-
 // docs/PRD-seller-telegram-management-bot.md — بات دوم (مدیریت پنل)؛ اتصال خودش از داخل بات
 // انجام می‌شود (اشتراک شماره + OTP)، این فقط وضعیت را نشان می‌دهد/قطع می‌کند
 export function useSellerBotStatus(storeId: string) {

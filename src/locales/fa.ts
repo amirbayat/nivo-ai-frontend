@@ -763,11 +763,10 @@ export const fa = {
         advertising: 'تبلیغات',
         channelStats: 'آمار وب و تلگرام',
         dashboard: 'داشبورد فروش',
-        telegramConnect: 'اتصال تلگرام برای اعلان‌ها',
-        telegramConnectError: 'ساخت لینک اتصال با خطا مواجه شد',
-        // docs/PRD-seller-telegram-management-bot.md — بات دوم، مدیریت پنل (نه فقط اعلان)
+        // docs/PRD-seller-telegram-management-bot.md — بات دوم، مدیریت پنل + اعلان‌های سفارش/
+        // گفتگوهای نیازمند توجه (جایگزین کامل «اتصال تلگرام برای اعلان‌ها»ی بات قبلی)
         sellerBotTitle: 'بات مدیریت پنل (تلگرام)',
-        sellerBotDescription: 'تایید/رد سفارش، موجودی و اعتبار رو از همین‌جا توی تلگرام مدیریت کن',
+        sellerBotDescription: 'اعلان سفارش/رسید، گفتگوهای نیازمند توجه، موجودی و اعتبار رو از همین‌جا توی تلگرام مدیریت کن',
         sellerBotLinked: (date: string) => `متصل ✅ از ${date}`,
         sellerBotNotLinked: 'هنوز وصل نشده',
         sellerBotConnectButton: 'باز کردن بات',
