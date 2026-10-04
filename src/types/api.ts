@@ -434,6 +434,9 @@ export interface ShopMessage {
   // فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — پیام صوتیِ خودِ خریدار (نه پاسخ ایجنت). وقتی true و text خالی
   // است یعنی هنوز در حال تبدیل گفتار به متن (ASR سمت سرور) — useShopChat.ts's sendVoiceMessage
   isVoice?: boolean
+  // عکسی که خریدار در حالت «صحبت با فروشنده» فرستاده — قبل از رسیدن پاسخ سرور یک object URL
+  // محلی است، بعد از رفرش/پالینگ آدرس واقعی سرور (useShopChat.ts chatImageUrl) جایگزینش می‌شود
+  imageUrl?: string
 }
 
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس
@@ -494,7 +497,8 @@ export interface ShopSavedProductsResponse {
 
 export interface ShopConversationEvent {
   type: 'CUSTOMER_MESSAGE' | 'SELLER_MESSAGE' | 'AGENT_REPLY' | 'TOOL_CALL' | 'STATE_TRANSITION' | 'SYSTEM'
-  payload: { text?: string; uiBlock?: ShopUiBlock }
+  // imageKey فقط روی CUSTOMER_MESSAGE می‌آید — عکسی که خریدار در حالت «صحبت با فروشنده» فرستاده
+  payload: { text?: string; uiBlock?: ShopUiBlock; imageKey?: string }
   createdAt: string
 }
 

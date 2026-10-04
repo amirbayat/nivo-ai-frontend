@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
@@ -240,6 +240,7 @@ export function ShopChatPage() {
     sendMessage,
     sendAction,
     uploadReceipt,
+    sendImageMessage,
     sendVoiceMessage,
     markVoiceHeard,
     startNewChat,
@@ -258,6 +259,7 @@ export function ShopChatPage() {
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   // 100vh/100dvh روی خیلی از مرورگرهای موبایل با بازشدن کیبورد صفحه شرینک نمی‌شه (مخصوصاً
   // سافاری قدیمی‌تر) — یعنی اینپوت پایین یک کادر که دیگه بزرگ‌تر از ویوپورت واقعی‌ست میره،
@@ -309,6 +311,15 @@ export function ShopChatPage() {
     if (!text || disabled) return
     setInput('')
     void sendMessage(text)
+  }
+
+  // فقط در حالت «صحبت با فروشنده» معنا دارد — بک‌اند هم دقیقاً همین شرط (isMutedForHuman) را
+  // چک می‌کند، این فقط جلوی یک درخواست بی‌فایده را می‌گیرد
+  function onPickImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || disabled) return
+    void sendImageMessage(file)
   }
 
   function handleNewChat() {
@@ -488,19 +499,30 @@ export function ShopChatPage() {
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'customer' ? 'justify-start' : 'justify-end'}`}>
             <div className="max-w-[85%]">
-              <div
-                dir="auto"
-                className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
-                  m.role === 'agent'
-                    ? 'rounded-tr-sm bg-slate-700/70 text-slate-200 light:bg-slate-100 light:text-slate-800'
-                    : 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100 light:text-emerald-900'
-                } ${m.isVoice && !m.text ? 'italic text-emerald-200/70 light:text-emerald-900/60' : ''}`}
-              >
-                {/* فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — تا transcript برسد (isVoice && !text)، یک وضعیت
-                    pending نشان می‌دهیم؛ بعد از آن میکروفون کنار متن واقعی می‌ماند تا خریدار
-                    بفهمد این پیام از وویس آمده، نه تایپ */}
-                {m.isVoice && !m.text ? fa.shop.customerVoiceTranscribing : m.isVoice ? `🎙️ ${m.text}` : m.text}
-              </div>
+              {m.imageUrl && (
+                <a href={m.imageUrl} target="_blank" rel="noreferrer">
+                  <img
+                    src={m.imageUrl}
+                    alt={fa.shop.customerImageAlt}
+                    className="mb-1 max-h-72 rounded-2xl rounded-tl-sm border border-emerald-500/20 object-cover"
+                  />
+                </a>
+              )}
+              {(m.text || !m.imageUrl) && (
+                <div
+                  dir="auto"
+                  className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
+                    m.role === 'agent'
+                      ? 'rounded-tr-sm bg-slate-700/70 text-slate-200 light:bg-slate-100 light:text-slate-800'
+                      : 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100 light:text-emerald-900'
+                  } ${m.isVoice && !m.text ? 'italic text-emerald-200/70 light:text-emerald-900/60' : ''}`}
+                >
+                  {/* فیدبک کاربر ۱۴۰۵/۰۷/۰۱ — تا transcript برسد (isVoice && !text)، یک وضعیت
+                      pending نشان می‌دهیم؛ بعد از آن میکروفون کنار متن واقعی می‌ماند تا خریدار
+                      بفهمد این پیام از وویس آمده، نه تایپ */}
+                  {m.isVoice && !m.text ? fa.shop.customerVoiceTranscribing : m.isVoice ? `🎙️ ${m.text}` : m.text}
+                </div>
+              )}
               {conversationId && m.role === 'agent' && (
                 <VoiceIndicator message={m} conversationId={conversationId} onPlay={markVoiceHeard} />
               )}
@@ -588,6 +610,27 @@ export function ShopChatPage() {
           dir="auto"
           className="flex-1 resize-none rounded-xl border border-slate-600/60 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 outline-none placeholder:text-slate-500 disabled:opacity-50"
         />
+        {HUMAN_HANDLING_STATES.includes(state) && (
+          <>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={onPickImage}
+              className="hidden"
+            />
+            <button
+              onClick={() => imageInputRef.current?.click()}
+              disabled={disabled}
+              title={fa.shop.attachImage}
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-600/60 light:border-slate-300 text-slate-300 light:text-slate-700 hover:border-slate-500 disabled:opacity-30"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                <path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </>
+        )}
         <button
           onClick={() => void toggleRecording()}
           disabled={disabled}

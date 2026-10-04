@@ -20,11 +20,23 @@ import type {
 // (src/lib/api.ts)؛ اینجا هویت فقط X-Session-Token است.
 const KICKOFF_MESSAGE = 'سلام، محصولاتتون رو نشون بدید'
 
-function eventsToMessages(events: ShopConversationEvent[]): ShopMessage[] {
+// کلید ذخیره‌سازی شامل پیشوند «conversationId/» است (storage.service.ts uploadImage) — باید
+// encode شود وگرنه «/» داخلش روت :key را به چند سگمنت می‌شکند و 404 می‌گیرد (عیناً voiceAudioUrl
+// در ShopChatPage.tsx)
+function chatImageUrl(conversationId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/chat/${conversationId}/image/${encodeURIComponent(key)}`
+}
+
+function eventsToMessages(events: ShopConversationEvent[], conversationId: string): ShopMessage[] {
   const messages: ShopMessage[] = []
   events.forEach((e, i) => {
-    if (e.type === 'CUSTOMER_MESSAGE' && e.payload.text) {
-      messages.push({ id: `c-${i}`, role: 'customer', text: e.payload.text })
+    if (e.type === 'CUSTOMER_MESSAGE' && (e.payload.text || e.payload.imageKey)) {
+      messages.push({
+        id: `c-${i}`,
+        role: 'customer',
+        text: e.payload.text ?? '',
+        imageUrl: e.payload.imageKey ? chatImageUrl(conversationId, e.payload.imageKey) : undefined,
+      })
     } else if ((e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE') && e.payload.text) {
       // مشتری فرق ربات/فروشنده‌ی انسانی را از نظر بصری نمی‌بیند — هر دو حباب «agent» هستند
       messages.push({
@@ -226,7 +238,7 @@ export function useShopChat(slug: string, productId?: string) {
     setStoreName(data.storeName)
     setStoreLogoKey(data.storeLogoKey)
     setResponseStrategyState(data.responseStrategy)
-    setMessages(eventsToMessages(data.events))
+    setMessages(eventsToMessages(data.events, session.conversationId))
   }, [])
 
   useEffect(() => {
@@ -274,6 +286,39 @@ export function useShopChat(slug: string, productId?: string) {
       }
     },
     [sending, applyReply],
+  )
+
+  // عکسی که خریدار در حالت «صحبت با فروشنده» (isMutedForHuman) می‌فرستد — بدون applyReply،
+  // چون سرور همیشه reply خالی برمی‌گرداند (مثل پیام متنیِ muted در sendMessage بک‌اند)؛ اگر
+  // applyReply صدا می‌زدیم یک حباب «agent» خالی اضافه می‌شد. فقط state را به‌روز می‌کنیم
+  const sendImageMessage = useCallback(
+    async (file: File) => {
+      const session = sessionRef.current
+      if (!session || sending || viewingHistoryRef.current) return
+      const pendingId = `img-${Date.now()}`
+      const previewUrl = URL.createObjectURL(file)
+      setMessages((prev) => [...prev, { id: pendingId, role: 'customer', text: '', imageUrl: previewUrl }])
+      setSending(true)
+      setError(null)
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/image`, {
+          method: 'POST',
+          headers: { 'X-Session-Token': session.sessionToken },
+          body: form,
+        })
+        if (!res.ok) throw new Error('request failed')
+        const data = (await res.json()) as ShopSendMessageResponse
+        setState(data.state)
+      } catch {
+        setMessages((prev) => prev.filter((m) => m.id !== pendingId))
+        setError(fa.common.error)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending],
   )
 
   // ضبط صدا از وب (بخش ۲.۲) — blob از MediaRecorder، فرمت هرچی مرورگر بدهد (معمولاً webm)،
@@ -520,6 +565,7 @@ export function useShopChat(slug: string, productId?: string) {
     sendMessage,
     sendAction,
     uploadReceipt,
+    sendImageMessage,
     sendVoiceMessage,
     markVoiceHeard,
     startNewChat,

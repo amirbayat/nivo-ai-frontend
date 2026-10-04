@@ -1043,6 +1043,8 @@ export const fa = {
     conversationEnded: 'این مکالمه به یکی از همکارهای فروشگاه منتقل شد — می‌تونی همینجا باهاش صحبت کنی.',
     voicePreparing: '🔊 در حال آماده‌سازی صدا...',
     customerVoiceTranscribing: '🎙️ در حال تبدیل گفتار به متن...',
+    customerImageAlt: 'عکس ارسالی خریدار',
+    attachImage: 'ارسال عکس به فروشنده',
     voiceRecording: 'در حال ضبط... برای فرستادن دوباره بزن',
     micNotSupported: 'ضبط صدا روی این مرورگر پشتیبانی نمی‌شود',
     recordingLabel: 'در حال ضبط',

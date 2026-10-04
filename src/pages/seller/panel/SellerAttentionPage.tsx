@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import {
@@ -21,6 +22,11 @@ function BackChevron() {
       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
     </svg>
   )
+}
+
+// کلید شامل پیشوند «conversationId/» است — باید encode شود (عیناً chatImageUrl در useShopChat.ts)
+function chatImageUrl(conversationId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/chat/${conversationId}/image/${encodeURIComponent(key)}`
 }
 
 function ConversationChat({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
@@ -63,17 +69,30 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
           .filter(e => e.type === 'CUSTOMER_MESSAGE' || e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE')
           .map((e, i) => (
             <div key={i} className={`flex ${e.type === 'CUSTOMER_MESSAGE' ? 'justify-start' : 'justify-end'}`}>
-              <div
-                dir="auto"
-                className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
-                  e.type === 'CUSTOMER_MESSAGE'
-                    ? 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100 light:text-emerald-900'
-                    : e.type === 'SELLER_MESSAGE'
-                      ? 'rounded-tr-sm bg-sky-600/70 light:bg-sky-100 text-sky-50 light:text-sky-900'
-                      : 'rounded-tr-sm bg-slate-700/70 light:bg-slate-100 text-slate-200 light:text-slate-800'
-                }`}
-              >
-                {e.payload.text}
+              <div className="flex max-w-[85%] flex-col gap-1">
+                {e.payload.imageKey && (
+                  <a href={chatImageUrl(conversationId, e.payload.imageKey)} target="_blank" rel="noreferrer">
+                    <img
+                      src={chatImageUrl(conversationId, e.payload.imageKey)}
+                      alt={fa.shop.customerImageAlt}
+                      className="max-h-72 rounded-2xl rounded-tl-sm border border-emerald-500/20 object-cover"
+                    />
+                  </a>
+                )}
+                {e.payload.text && (
+                  <div
+                    dir="auto"
+                    className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
+                      e.type === 'CUSTOMER_MESSAGE'
+                        ? 'rounded-tl-sm border border-emerald-500/20 bg-emerald-500/20 text-emerald-100 light:text-emerald-900'
+                        : e.type === 'SELLER_MESSAGE'
+                          ? 'rounded-tr-sm bg-sky-600/70 light:bg-sky-100 text-sky-50 light:text-sky-900'
+                          : 'rounded-tr-sm bg-slate-700/70 light:bg-slate-100 text-slate-200 light:text-slate-800'
+                    }`}
+                  >
+                    {e.payload.text}
+                  </div>
+                )}
               </div>
             </div>
           ))}
