@@ -14,6 +14,8 @@ interface StoreProductGridProps {
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
   savedProductIds: Set<string>
   onToggleSave: (productId: string) => void
+  // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم از روی محصول
+  onWriteReview: (product: PublicProduct) => void
 }
 
 export function StoreProductGrid({
@@ -23,6 +25,7 @@ export function StoreProductGrid({
   onAskSeller,
   savedProductIds,
   onToggleSave,
+  onWriteReview,
 }: StoreProductGridProps) {
   const { items, query, setQuery, loading, error, hasMore, loadMore } = useStoreProducts(slug, true)
   const [selected, setSelected] = useState<PublicProduct | null>(null)
@@ -105,6 +108,7 @@ export function StoreProductGrid({
           }}
           saved={savedProductIds.has(selected.id)}
           onToggleSave={() => onToggleSave(selected.id)}
+          onWriteReview={() => onWriteReview(selected)}
         />
       )}
     </div>
@@ -121,6 +125,7 @@ function ProductDetailSheet({
   onAskSeller,
   saved,
   onToggleSave,
+  onWriteReview,
 }: {
   product: PublicProduct
   disabled: boolean
@@ -129,6 +134,7 @@ function ProductDetailSheet({
   onAskSeller: (product: PublicProduct) => void
   saved: boolean
   onToggleSave: () => void
+  onWriteReview: () => void
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
@@ -176,6 +182,12 @@ function ProductDetailSheet({
             {fa.shop.storeModeAskSeller}
           </button>
         </div>
+        <button
+          onClick={onWriteReview}
+          className="mt-2 w-full py-2 text-xs font-medium text-emerald-400 hover:underline"
+        >
+          {fa.shop.writeReviewButton}
+        </button>
       </div>
     </div>
   )

@@ -55,6 +55,7 @@ import { SellerChannelStatsPage } from '@/pages/seller/panel/SellerChannelStatsP
 import { SellerDashboardPage } from '@/pages/seller/panel/SellerDashboardPage'
 import { SellerHelpCenterPage } from '@/pages/seller/panel/SellerHelpCenterPage'
 import { ShopChatPage } from '@/pages/shop/ShopChatPage'
+import { ShopOrdersPage } from '@/pages/shop/ShopOrdersPage'
 import { ExploreHomePage } from '@/pages/marketplace/ExploreHomePage'
 import { MyOrdersPage } from '@/pages/marketplace/MyOrdersPage'
 import type { ReactNode } from 'react'
@@ -142,6 +143,9 @@ export function AppRouter() {
       {/* docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی مشتری، کاملاً بدون لاگین؛ نمی‌شود
           /chat/:slug باشد چون آن مسیر از قبل برای چت لاگین‌شده‌ی نیوو گرفته شده (پایین‌تر) */}
       <Route path="/shop/:slug" element={<ShopChatPage />} />
+      {/* docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۲ — صفحه‌ی مستقل «سفارش‌های من»،
+          خارج از AI/چت، تا دکمه‌ی برگشت مرورگر هم درست کار کند */}
+      <Route path="/shop/:slug/orders" element={<ShopOrdersPage />} />
 
       {/* docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — لایه‌ی اکسپلور،
           بدون لاگین، جدا از چت تک‌فروشگاهی بالا */}

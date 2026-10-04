@@ -8,6 +8,7 @@ import type {
   ShopGetConversationResponse,
   ShopHistoryEntry,
   ShopMessage,
+  ShopOrderSummary,
   ShopResponseStrategy,
   ShopSavedProductsResponse,
   ShopSendMessageResponse,
@@ -585,6 +586,48 @@ export function useShopChat(slug: string, productId?: string) {
     [],
   )
 
+  // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۲ — صفحه‌ی مستقل «سفارش‌های من»،
+  // خارج از AI/چت؛ مثل sendBuyerOtp، چت را دستکاری نمی‌کند، فقط JSON خام برمی‌گرداند
+  const listMyOrders = useCallback(async (): Promise<ShopOrderSummary[]> => {
+    const session = sessionRef.current
+    if (!session) return []
+    try {
+      const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/orders`, {
+        headers: { 'X-Session-Token': session.sessionToken },
+      })
+      if (!res.ok) return []
+      return (await res.json()) as ShopOrderSummary[]
+    } catch {
+      return []
+    }
+  }, [])
+
+  // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم، مستقل از پیام
+  // پیگیریِ چت؛ بک‌اند اگر خریدار آن محصول را نخریده بود پیام خطای مشخص برمی‌گرداند (message)
+  const submitComment = useCallback(
+    async (
+      productId: string | undefined,
+      text: string,
+      rating?: number,
+    ): Promise<{ ok: boolean; message: string }> => {
+      const session = sessionRef.current
+      if (!session) return { ok: false, message: fa.common.error }
+      try {
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          body: JSON.stringify({ productId, text, rating }),
+        })
+        const data = (await res.json().catch(() => null)) as { message?: string } | null
+        if (!res.ok) return { ok: false, message: data?.message ?? fa.common.error }
+        return { ok: true, message: fa.shop.reviewSuccess }
+      } catch {
+        return { ok: false, message: fa.common.error }
+      }
+    },
+    [],
+  )
+
   return {
     storeId,
     storeName,
@@ -610,6 +653,8 @@ export function useShopChat(slug: string, productId?: string) {
     markVoiceHeard,
     sendBuyerOtp,
     verifyBuyerOtp,
+    listMyOrders,
+    submitComment,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,

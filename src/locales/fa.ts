@@ -1099,6 +1099,15 @@ export const fa = {
     registerChangePhone: 'تغییر شماره',
     registerClose: 'بستن',
     registerSuccess: 'ثبت‌نام با موفقیت انجام شد ✅',
+    // docs/PRD-buyer-orders-page-and-direct-order.md — صفحه‌ی مستقل «سفارش‌های من» + ثبت نظر مستقیم
+    myOrdersPageTitle: 'سفارش‌های من',
+    myOrdersBack: 'بازگشت به گفتگو',
+    writeReviewButton: '✍️ ثبت نظر',
+    reviewModalTitle: 'ثبت نظر',
+    reviewRatingLabel: 'امتیازت؟ (اختیاری)',
+    reviewTextPlaceholder: 'نظرت رو بنویس...',
+    reviewSubmitButton: 'ثبت نظر',
+    reviewSuccess: 'نظرت ثبت شد، ممنون! 🙏 بعد از بررسی نمایش داده می‌شه',
   },
   // docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — صفحه‌ی اکسپلور/فهرست
   // فروشگاه‌ها + «سفارش‌های من، همه‌ی فروشگاه‌ها»؛ جدا از namespace بالا چون صفحه‌ی مستقلی

@@ -517,6 +517,18 @@ export interface ShopGetConversationResponse {
   events: ShopConversationEvent[]
 }
 
+// docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۲ — پاسخ GET /v2/chat/:conversationId/orders،
+// صفحه‌ی مستقل «سفارش‌های من» (خارج از AI/چت). distinctProductId فقط وقتی سفارش دقیقاً یک محصول
+// داشت پر می‌شود — برای پیش‌پرکردن productId فرم «ثبت نظر»
+export interface ShopOrderSummary {
+  id: string
+  createdAt: string
+  items: { productId: string; name: string; unitPrice: number; qty: number }[]
+  totalAmount: number
+  status: string
+  distinctProductId: string | null
+}
+
 // docs/PRD-conversation-history.md بخش ۳ — یک ردیف در تاریخچه (فعال یا آرشیوشده)
 export interface ShopHistoryEntry {
   conversationId: string

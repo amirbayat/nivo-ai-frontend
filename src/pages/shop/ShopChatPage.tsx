@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
 import { StoreProductGrid } from '@/components/shop/StoreProductGrid'
+import { CommentModal } from '@/components/shop/CommentModal'
 import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
@@ -338,6 +339,7 @@ function RegisterModal({
 
 export function ShopChatPage() {
   const { slug = '' } = useParams<{ slug: string }>()
+  const navigate = useNavigate()
   // فیدبک اول پایلوت — لینک اختصاصی یک محصول («فروشنده در استوری گذاشته»): /shop/:slug?product=<id>
   const [searchParams] = useSearchParams()
   const productId = searchParams.get('product') ?? undefined
@@ -364,6 +366,7 @@ export function ShopChatPage() {
     markVoiceHeard,
     sendBuyerOtp,
     verifyBuyerOtp,
+    submitComment,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,
@@ -373,6 +376,8 @@ export function ShopChatPage() {
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [registerOpen, setRegisterOpen] = useState(false)
+  // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم از روی محصول
+  const [reviewProduct, setReviewProduct] = useState<PublicProduct | null>(null)
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»: نخ چت مینیمم به حباب شناور
   const [storeMode, setStoreMode] = useState(false)
   const [storeModeUnread, setStoreModeUnread] = useState(false)
@@ -522,10 +527,9 @@ export function ShopChatPage() {
       style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
       dir="rtl"
     >
-      <div className="relative flex items-center justify-end border-b border-slate-800 light:border-slate-200 px-4 py-3">
-        {/* فیدبک کاربر — عکس پروفایل فروشگاه وسط هدر؛ absolute تا عرض دکمه‌های کنار (تاریخچه/
-            چت جدید) جابه‌جایش نکند */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 flex max-w-[48vw] -translate-x-1/2 -translate-y-1/2 items-center gap-2">
+      <div className="flex items-center justify-between border-b border-slate-800 light:border-slate-200 px-4 py-3">
+        {/* فیدبک کاربر — اسم/عنوان کنار آواتار در سمت راست (start در RTL)، نه وسط‌چین */}
+        <div className="flex min-w-0 items-center gap-2">
           {storeId && storeLogoKey ? (
             <img
               src={storeLogoUrl(storeId, storeLogoKey)}
@@ -537,8 +541,7 @@ export function ShopChatPage() {
               {avatarInitials(storeName)}
             </div>
           )}
-          {/* فروشگاه بدون عکس هم باید وسط بماند، نه فقط وقتی لوگو هست — min-w-0 برای truncate */}
-          <div className="min-w-0 text-center">
+          <div className="min-w-0 text-start">
             <p className="truncate text-sm font-semibold text-slate-200 light:text-slate-900">{storeName}</p>
             <p className="text-xs text-slate-500">دستیار فروش</p>
           </div>
@@ -604,6 +607,10 @@ export function ShopChatPage() {
         <RegisterModal onClose={() => setRegisterOpen(false)} onSendOtp={sendBuyerOtp} onVerifyOtp={verifyBuyerOtp} />
       )}
 
+      {reviewProduct && (
+        <CommentModal productId={reviewProduct.id} onClose={() => setReviewProduct(null)} onSubmit={submitComment} />
+      )}
+
       {viewingHistory && (
         <div className="flex items-center justify-between gap-2 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
           <span>{fa.shop.viewingHistoryBanner}</span>
@@ -625,6 +632,7 @@ export function ShopChatPage() {
           onAskSeller={handleAskSeller}
           savedProductIds={savedProductIds}
           onToggleSave={toggleSaveProduct}
+          onWriteReview={setReviewProduct}
         />
       )}
 
@@ -714,9 +722,8 @@ export function ShopChatPage() {
           بدون نیاز به اکشن/endpoint تازه برای «صحبت با فروشنده» */}
       <div className="flex gap-1.5 overflow-x-auto border-t border-slate-800 light:border-slate-200 px-3 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
-          onClick={() => void sendAction({ type: 'VIEW_ORDERS' })}
-          disabled={disabled}
-          className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 light:border-slate-300 px-3 py-1.5 text-xs text-slate-300 light:text-slate-700 disabled:opacity-40"
+          onClick={() => navigate(`/shop/${slug}/orders`)}
+          className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 light:border-slate-300 px-3 py-1.5 text-xs text-slate-300 light:text-slate-700"
         >
           {fa.shop.quickChipOrders}
         </button>

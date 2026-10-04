@@ -573,10 +573,13 @@ function VariantPromptBlock({
 }
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۲) — سفارش مجدد با یک دکمه
-function OrderListBlock({
+// docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۲ — export شد تا ShopOrdersPage.tsx
+// (صفحه‌ی مستقل «سفارش‌های من») هم همین کارت را عیناً استفاده کند، بدون دوبار نوشتن UI
+export function OrderListBlock({
   orders,
   disabled,
   onReorder,
+  onWriteReview,
 }: {
   orders: {
     id: string
@@ -584,9 +587,13 @@ function OrderListBlock({
     items: { productId: string; name: string; unitPrice: number; qty: number }[]
     totalAmount: number
     status: string
+    distinctProductId?: string | null
   }[]
   disabled: boolean
   onReorder: (orderId: string) => void
+  // فقط در صفحه‌ی مستقل «سفارش‌های من» پر می‌شود (بخش ۲.۳)؛ در داخل چت (مصرف اصلی/قدیمی این
+  // بلاک) عمداً خالی می‌ماند — ثبت نظر از دل چت نیازی ندارد
+  onWriteReview?: (orderId: string, distinctProductId: string | null) => void
 }) {
   if (orders.length === 0) {
     return <p className="mt-2 text-xs text-slate-500">{fa.shop.orderListEmpty}</p>
@@ -610,13 +617,23 @@ function OrderListBlock({
             <span className="text-xs font-semibold text-slate-200 light:text-slate-900">
               {o.totalAmount.toLocaleString('fa-IR')} تومان
             </span>
-            <button
-              onClick={() => onReorder(o.id)}
-              disabled={disabled}
-              className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-            >
-              {fa.shop.reorderButton}
-            </button>
+            <div className="flex items-center gap-2">
+              {onWriteReview && (
+                <button
+                  onClick={() => onWriteReview(o.id, o.distinctProductId ?? null)}
+                  className="rounded-lg border border-slate-600/60 light:border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-300 light:text-slate-700"
+                >
+                  {fa.shop.writeReviewButton}
+                </button>
+              )}
+              <button
+                onClick={() => onReorder(o.id)}
+                disabled={disabled}
+                className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
+              >
+                {fa.shop.reorderButton}
+              </button>
+            </div>
           </div>
         </div>
       ))}
