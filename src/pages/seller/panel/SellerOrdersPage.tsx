@@ -15,9 +15,20 @@ const FILTERS: { value: SellerOrderStatus | undefined; label: string }[] = [
 
 function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; storeId: string; onClose: () => void }) {
   const [showReceipt, setShowReceipt] = useState(false)
+  const [showRejectReason, setShowRejectReason] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
   const approve = useApproveOrder(storeId)
   const reject = useRejectOrder(storeId)
   const canDecide = order.status === 'RECEIPT_SUBMITTED'
+  // فیدبک کاربر — بعد از رد اشتباهی، فروشنده راهی برای تایید دوباره‌ی سفارش نداشت
+  const canReapprove = order.status === 'REJECTED'
+  const recipientAddress = [order.shippingProvince, order.shippingAddress, order.postalCode]
+    .filter(Boolean)
+    .join('، ')
+
+  const submitReject = () => {
+    reject.mutate({ orderId: order.id, reason: rejectReason.trim() || undefined }, { onSuccess: onClose })
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
@@ -43,6 +54,20 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           <span>{order.totalAmount.toLocaleString('fa-IR')} {fa.common.toman}</span>
         </div>
 
+        {order.recipientName && (
+          <div className="mb-4 rounded-xl border border-slate-700/60 light:border-slate-200 p-3 text-sm text-slate-300 light:text-slate-700">
+            <p className="mb-1 font-semibold text-slate-200 light:text-slate-900">{fa.seller.panel.orders.recipientTitle}</p>
+            <p>{order.recipientName} · {order.recipientPhone}</p>
+            {recipientAddress && <p className="mt-1 text-xs text-slate-400 light:text-slate-600">{recipientAddress}</p>}
+          </div>
+        )}
+
+        {order.status === 'REJECTED' && order.rejectReason && (
+          <p className="mb-4 rounded-xl bg-red-500/10 p-3 text-xs text-red-300">
+            {fa.seller.panel.orders.rejectReasonLabel}: {order.rejectReason}
+          </p>
+        )}
+
         {order.receiptImageKey ? (
           <button
             onClick={() => setShowReceipt(true)}
@@ -54,10 +79,10 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           <p className="mb-4 text-center text-xs text-slate-500">{fa.seller.panel.orders.noReceipt}</p>
         )}
 
-        {canDecide && (
+        {canDecide && !showRejectReason && (
           <div className="flex gap-3">
             <button
-              onClick={() => reject.mutate({ orderId: order.id }, { onSuccess: onClose })}
+              onClick={() => setShowRejectReason(true)}
               disabled={approve.isPending || reject.isPending}
               className="flex-1 rounded-2xl bg-red-500/15 py-3.5 text-sm font-bold text-red-400 hover:bg-red-500/25 disabled:opacity-40"
             >
@@ -71,6 +96,44 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
               {fa.seller.panel.orders.approve}
             </button>
           </div>
+        )}
+
+        {canDecide && showRejectReason && (
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder={fa.seller.panel.orders.rejectReasonPlaceholder}
+              rows={2}
+              className="w-full resize-none rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white p-3 text-sm text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRejectReason(false)}
+                disabled={reject.isPending}
+                className="flex-1 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-sm font-bold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400 disabled:opacity-40"
+              >
+                {fa.seller.panel.orders.cancel}
+              </button>
+              <button
+                onClick={submitReject}
+                disabled={reject.isPending}
+                className="flex-1 rounded-2xl bg-red-500 py-3.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-40"
+              >
+                {fa.seller.panel.orders.confirmReject}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {canReapprove && (
+          <button
+            onClick={() => approve.mutate(order.id, { onSuccess: onClose })}
+            disabled={approve.isPending}
+            className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+          >
+            {fa.seller.panel.orders.reapprove}
+          </button>
         )}
       </div>
 

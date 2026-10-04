@@ -681,6 +681,11 @@ export interface SellerOrder {
   status: SellerOrderStatus
   receiptImageKey: string | null
   rejectReason: string | null
+  recipientName: string | null
+  recipientPhone: string | null
+  shippingProvince: string | null
+  shippingAddress: string | null
+  postalCode: string | null
   createdAt: string
   updatedAt: string
 }
