@@ -22,7 +22,8 @@ import { useSellerStore } from './SellerPanelLayout'
 // محصول کم‌تکمیل این فروشگاه در یک درخواست، بعد مرور/تایید دسته‌ای این‌جا (نه تک‌تک مثل
 // AiCompleteAssist) — تایید هرکدام همان useUpdateProduct معمولی را صدا می‌زند، چیزی خودکار
 // persist نمی‌شود تا فروشنده فرصت رد‌کردن هرکدام را داشته باشد
-function BulkCompleteSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+// export موقت فقط برای این‌که دکمه‌ی صداکننده‌اش کامنت شده بدون خطای "unused" کامپایل شود
+export function BulkCompleteSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
   const bulkComplete = useBulkCompleteProducts(storeId)
   const updateProduct = useUpdateProduct(storeId)
   const startedRef = useRef(false)
@@ -151,7 +152,8 @@ function BulkCompleteSheet({ storeId, onClose }: { storeId: string; onClose: () 
 
 // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (رصد رقبا) — استاتلس (مثل
 // completeProductInfo)؛ هر بار باز شدن این شیت یک فراخوان تازه (و هزینه‌ی تازه) است
-function CompetitorAnalysisSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+// export موقت فقط برای این‌که دکمه‌ی صداکننده‌اش کامنت شده بدون خطای "unused" کامپایل شود
+export function CompetitorAnalysisSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
   const analyze = useAnalyzeCompetitors(storeId)
   const startedRef = useRef(false)
 
@@ -226,7 +228,8 @@ function CompetitorAnalysisSheet({ storeId, onClose }: { storeId: string; onClos
 // ورود سریع محصول از لینک صفحه‌ی موجود (docs/PRD-seller-knowledge-base.md بخش ۲.۵) — فقط
 // پیش‌نمایش، خودِ افزودن با همان useCreateProduct موجود انجام می‌شود؛ عکس‌ها فقط بعد از
 // تأیید فروشنده دانلود+آپلود می‌شوند (useAddProductImagesFromUrl)
-function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+// export موقت فقط برای این‌که دکمه‌ی صداکننده‌اش کامنت شده بدون خطای "unused" کامپایل شود
+export function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
   const importFromUrl = useImportProductFromUrl(storeId)
   const createProduct = useCreateProduct(storeId)
   const addImagesFromUrl = useAddProductImagesFromUrl(storeId)
@@ -356,9 +359,10 @@ export function SellerProductsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [importResult, setImportResult] = useState<{ created: number; errorCount: number } | null>(null)
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null)
-  const [importFromUrlOpen, setImportFromUrlOpen] = useState(false)
-  const [bulkCompleteOpen, setBulkCompleteOpen] = useState(false)
-  const [competitorAnalysisOpen, setCompetitorAnalysisOpen] = useState(false)
+  // کامنت موقت طبق درخواست کاربر — این سه قابلیت فعلاً از فرانت مخفی شدند
+  // const [importFromUrlOpen, setImportFromUrlOpen] = useState(false)
+  // const [bulkCompleteOpen, setBulkCompleteOpen] = useState(false)
+  // const [competitorAnalysisOpen, setCompetitorAnalysisOpen] = useState(false)
 
   async function copyProductLink(productId: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/shop/${storeSlug}?product=${productId}`)
@@ -395,6 +399,7 @@ export function SellerProductsPage() {
           }}
         />
       </div>
+      {/* کامنت موقت طبق درخواست کاربر — افزودن از لینک / تکمیل خودکار / تحلیل رقبا فعلاً مخفی‌اند
       <div className="mb-5 flex flex-col gap-2">
         <button
           onClick={() => setImportFromUrlOpen(true)}
@@ -417,6 +422,7 @@ export function SellerProductsPage() {
           {fa.seller.panel.products.competitorAnalysisButton}
         </button>
       </div>
+      */}
 
       {importResult && (
         <p className="mb-4 rounded-xl bg-slate-800/60 light:bg-slate-100 px-3 py-2 text-xs text-slate-300 light:text-slate-700">
@@ -469,9 +475,11 @@ export function SellerProductsPage() {
         ))}
       </div>
 
+      {/* کامنت موقت طبق درخواست کاربر
       {importFromUrlOpen && <ImportFromUrlSheet storeId={storeId} onClose={() => setImportFromUrlOpen(false)} />}
       {bulkCompleteOpen && <BulkCompleteSheet storeId={storeId} onClose={() => setBulkCompleteOpen(false)} />}
       {competitorAnalysisOpen && <CompetitorAnalysisSheet storeId={storeId} onClose={() => setCompetitorAnalysisOpen(false)} />}
+      */}
     </div>
   )
 }
