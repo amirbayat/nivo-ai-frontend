@@ -545,6 +545,46 @@ export function useShopChat(slug: string, productId?: string) {
     }).catch(() => {})
   }, [])
 
+  // docs/PRD-buyer-phone-otp-registration.md — جدا از sendMessage/sendAction چون چت را
+  // دستکاری نمی‌کند (نه applyReply، نه optimistic bubble)؛ فقط موفقیت/پیام خطا را برای مودال
+  // ثبت‌نام برمی‌گرداند
+  const sendBuyerOtp = useCallback(async (phone: string): Promise<{ ok: boolean; message: string }> => {
+    const session = sessionRef.current
+    if (!session) return { ok: false, message: fa.common.error }
+    try {
+      const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/register/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+        body: JSON.stringify({ phone }),
+      })
+      const data = (await res.json().catch(() => null)) as { message?: string } | null
+      if (!res.ok) return { ok: false, message: data?.message ?? fa.common.error }
+      return { ok: true, message: data?.message ?? '' }
+    } catch {
+      return { ok: false, message: fa.common.error }
+    }
+  }, [])
+
+  const verifyBuyerOtp = useCallback(
+    async (phone: string, code: string, fullName?: string): Promise<{ ok: boolean; message: string }> => {
+      const session = sessionRef.current
+      if (!session) return { ok: false, message: fa.common.error }
+      try {
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/register/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          body: JSON.stringify({ phone, code, fullName }),
+        })
+        const data = (await res.json().catch(() => null)) as { message?: string } | null
+        if (!res.ok) return { ok: false, message: data?.message ?? fa.common.error }
+        return { ok: true, message: data?.message ?? '' }
+      } catch {
+        return { ok: false, message: fa.common.error }
+      }
+    },
+    [],
+  )
+
   return {
     storeId,
     storeName,
@@ -568,6 +608,8 @@ export function useShopChat(slug: string, productId?: string) {
     sendImageMessage,
     sendVoiceMessage,
     markVoiceHeard,
+    sendBuyerOtp,
+    verifyBuyerOtp,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,

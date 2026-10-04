@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
@@ -14,6 +15,7 @@ const FILTERS: { value: SellerOrderStatus | undefined; label: string }[] = [
 ]
 
 function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; storeId: string; onClose: () => void }) {
+  const navigate = useNavigate()
   const [showReceipt, setShowReceipt] = useState(false)
   const [showRejectReason, setShowRejectReason] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
@@ -40,6 +42,13 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.shop.orderStatusLabels[order.status]}</span>
           <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">{fa.seller.panel.orders.close}</button>
         </div>
+
+        <button
+          onClick={() => navigate(`/seller/panel/attention?conversationId=${order.conversationId}`)}
+          className="mb-4 text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline"
+        >
+          {fa.seller.panel.orders.viewConversation}
+        </button>
 
         <div className="mb-4 flex flex-col gap-1.5">
           {order.items.map(i => (
@@ -153,6 +162,22 @@ export function SellerOrdersPage() {
   const [filter, setFilter] = useState<SellerOrderStatus | undefined>(undefined)
   const [openOrder, setOpenOrder] = useState<SellerOrder | null>(null)
   const orders = useOrders(storeId, filter)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱ — لینک از تب «نیاز به توجه»؛ فیلتر فعلی
+  // ممکن است این سفارش را پنهان کند (مثلاً فیلتر «تاییدشده» روی یک سفارش «در انتظار»)، پس همان
+  // لحظه فیلتر را هم «همه» می‌کنیم تا سفارش واقعاً پیدا شود
+  useEffect(() => {
+    const orderId = searchParams.get('orderId')
+    if (!orderId || !orders.data) return
+    const match = orders.data.find(o => o.id === orderId)
+    if (match) {
+      setOpenOrder(match)
+      setSearchParams({}, { replace: true })
+    } else if (filter !== undefined) {
+      setFilter(undefined)
+    }
+  }, [searchParams, setSearchParams, orders.data, filter])
 
   return (
     <div className="px-5 py-6">

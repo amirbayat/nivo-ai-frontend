@@ -217,6 +217,125 @@ function HistoryDrawer({
   )
 }
 
+// docs/PRD-buyer-phone-otp-registration.md — ثبت‌نام اختیاری با شماره+OTP؛ مودال ساده‌ی
+// سه‌مرحله‌ای (شماره → کد+اسم → موفقیت)، عیناً الگوی bottom-sheet موجود (HistoryDrawer/
+// SellerOrdersPage's OrderDetailSheet را در پنل فروشنده ببین)
+function RegisterModal({
+  onClose,
+  onSendOtp,
+  onVerifyOtp,
+}: {
+  onClose: () => void
+  onSendOtp: (phone: string) => Promise<{ ok: boolean; message: string }>
+  onVerifyOtp: (phone: string, code: string, fullName?: string) => Promise<{ ok: boolean; message: string }>
+}) {
+  const [step, setStep] = useState<'phone' | 'code' | 'done'>('phone')
+  const [phone, setPhone] = useState('')
+  const [code, setCode] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function submitPhone() {
+    if (!phone.trim() || busy) return
+    setBusy(true)
+    setError(null)
+    const res = await onSendOtp(phone.trim())
+    setBusy(false)
+    if (res.ok) setStep('code')
+    else setError(res.message)
+  }
+
+  async function submitCode() {
+    if (!code.trim() || busy) return
+    setBusy(true)
+    setError(null)
+    const res = await onVerifyOtp(phone.trim(), code.trim(), fullName.trim() || undefined)
+    setBusy(false)
+    if (res.ok) setStep('done')
+    else setError(res.message)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="w-full max-w-lg rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white p-5 pb-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.shop.registerTitle}</span>
+          <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
+            {fa.shop.registerClose}
+          </button>
+        </div>
+
+        {step === 'done' ? (
+          <p className="py-6 text-center text-sm font-semibold text-emerald-400">{fa.shop.registerSuccess}</p>
+        ) : (
+          <>
+            <p className="mb-4 text-xs text-slate-400 light:text-slate-600">{fa.shop.registerIntro}</p>
+
+            {step === 'phone' && (
+              <div className="flex flex-col gap-2">
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  dir="ltr"
+                  placeholder={fa.shop.registerPhonePlaceholder}
+                  className="rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                />
+                {error && <p className="text-xs text-red-400">{error}</p>}
+                <button
+                  onClick={() => void submitPhone()}
+                  disabled={busy || !phone.trim()}
+                  className="rounded-2xl bg-emerald-500 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+                >
+                  {fa.shop.registerSendCodeButton}
+                </button>
+              </div>
+            )}
+
+            {step === 'code' && (
+              <div className="flex flex-col gap-2">
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  dir="ltr"
+                  placeholder={fa.shop.registerCodePlaceholder}
+                  className="rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                />
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder={fa.shop.registerNamePlaceholder}
+                  className="rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+                />
+                {error && <p className="text-xs text-red-400">{error}</p>}
+                <button
+                  onClick={() => void submitCode()}
+                  disabled={busy || !code.trim()}
+                  className="rounded-2xl bg-emerald-500 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+                >
+                  {fa.shop.registerConfirmButton}
+                </button>
+                <button
+                  onClick={() => {
+                    setStep('phone')
+                    setError(null)
+                  }}
+                  className="text-xs text-slate-400 hover:underline"
+                >
+                  {fa.shop.registerChangePhone}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function ShopChatPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   // فیدبک اول پایلوت — لینک اختصاصی یک محصول («فروشنده در استوری گذاشته»): /shop/:slug?product=<id>
@@ -243,6 +362,8 @@ export function ShopChatPage() {
     sendImageMessage,
     sendVoiceMessage,
     markVoiceHeard,
+    sendBuyerOtp,
+    verifyBuyerOtp,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,
@@ -251,6 +372,7 @@ export function ShopChatPage() {
   const [recording, setRecording] = useState(false)
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [registerOpen, setRegisterOpen] = useState(false)
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»: نخ چت مینیمم به حباب شناور
   const [storeMode, setStoreMode] = useState(false)
   const [storeModeUnread, setStoreModeUnread] = useState(false)
@@ -465,8 +587,22 @@ export function ShopChatPage() {
               <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
           </button>
+          <button
+            onClick={() => setRegisterOpen(true)}
+            title={fa.shop.registerButton}
+            className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="size-4.5">
+              <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M4 17c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {registerOpen && (
+        <RegisterModal onClose={() => setRegisterOpen(false)} onSendOtp={sendBuyerOtp} onVerifyOtp={verifyBuyerOtp} />
+      )}
 
       {viewingHistory && (
         <div className="flex items-center justify-between gap-2 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">

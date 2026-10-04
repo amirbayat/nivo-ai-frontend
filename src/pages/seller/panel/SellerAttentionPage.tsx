@@ -1,5 +1,5 @@
-import { useState, type KeyboardEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, type KeyboardEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
@@ -31,6 +31,7 @@ function chatImageUrl(conversationId: string, key: string): string {
 
 function ConversationChat({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
   const { storeId } = useSellerStore()
+  const navigate = useNavigate()
   const { data } = useSellerConversation(storeId, conversationId)
   const sendMessage = useSendSellerMessage(storeId, conversationId)
   const unmute = useUnmuteConversation(storeId)
@@ -55,6 +56,14 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
       <div className="flex items-center gap-3 border-b border-slate-800 light:border-slate-200 px-4 py-3">
         <button onClick={onBack} className="text-slate-400 hover:text-slate-200 light:hover:text-slate-800"><BackChevron /></button>
         <p className="flex-1 text-sm font-semibold text-slate-200 light:text-slate-900">{data?.customerLabel}</p>
+        {data?.orderId && (
+          <button
+            onClick={() => navigate(`/seller/panel/orders?orderId=${data.orderId}`)}
+            className="rounded-lg bg-slate-800 light:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-200 light:text-slate-800 hover:bg-slate-700 light:hover:bg-slate-200"
+          >
+            {fa.seller.panel.attention.viewOrder}
+          </button>
+        )}
         <button
           onClick={() => unmute.mutate(conversationId, { onSuccess: onBack })}
           disabled={unmute.isPending}
@@ -70,6 +79,11 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
           .map((e, i) => (
             <div key={i} className={`flex ${e.type === 'CUSTOMER_MESSAGE' ? 'justify-start' : 'justify-end'}`}>
               <div className="flex max-w-[85%] flex-col gap-1">
+                {e.payload.imageKey && e.payload.reattachedToOrder && (
+                  <p className="text-xs font-semibold text-amber-400 light:text-amber-700">
+                    {fa.seller.panel.attention.newReceiptNotice}
+                  </p>
+                )}
                 {e.payload.imageKey && (
                   <a href={chatImageUrl(conversationId, e.payload.imageKey)} target="_blank" rel="noreferrer">
                     <img
@@ -126,6 +140,16 @@ export function SellerAttentionPage() {
   const attention = useNeededAttention(storeId)
   const products = useProducts(storeId)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱ — لینک از SellerOrdersPage به اینجا
+  useEffect(() => {
+    const conversationId = searchParams.get('conversationId')
+    if (conversationId) {
+      setOpenId(conversationId)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   if (openId) return <ConversationChat conversationId={openId} onBack={() => setOpenId(null)} />
 

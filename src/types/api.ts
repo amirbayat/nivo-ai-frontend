@@ -498,7 +498,9 @@ export interface ShopSavedProductsResponse {
 export interface ShopConversationEvent {
   type: 'CUSTOMER_MESSAGE' | 'SELLER_MESSAGE' | 'AGENT_REPLY' | 'TOOL_CALL' | 'STATE_TRANSITION' | 'SYSTEM'
   // imageKey فقط روی CUSTOMER_MESSAGE می‌آید — عکسی که خریدار در حالت «صحبت با فروشنده» فرستاده
-  payload: { text?: string; uiBlock?: ShopUiBlock; imageKey?: string }
+  // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۲ — reattachedToOrder یعنی این عکس
+  // جای رسید سفارش باز این مکالمه را گرفته (فروشنده باید دوباره بررسی کند)
+  payload: { text?: string; uiBlock?: ShopUiBlock; imageKey?: string; reattachedToOrder?: boolean }
   createdAt: string
 }
 
@@ -702,6 +704,7 @@ export interface NeededAttentionConversation {
   customerLabel: string
   currentState: string
   updatedAt: string
+  orderId: string | null
 }
 
 export interface SellerConversationDetail {
@@ -709,6 +712,7 @@ export interface SellerConversationDetail {
   isMutedForHuman: boolean
   currentState: string
   customerLabel: string
+  orderId: string | null
   events: ShopConversationEvent[]
 }
 

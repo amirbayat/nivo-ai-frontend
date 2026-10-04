@@ -551,11 +551,16 @@ export const fa = {
         cancel: 'انصراف',
         confirmReject: 'ثبت رد سفارش',
         reapprove: 'تایید دوباره‌ی سفارش',
+        // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱
+        viewConversation: 'مشاهده گفتگو',
       },
       attention: {
         empty: 'مکالمه‌ای نیاز به توجه نیست',
         inputPlaceholder: 'پیامت رو بنویس...',
         backToBot: 'برگردون به ربات',
+        // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱/۲.۲
+        viewOrder: 'مشاهده سفارش',
+        newReceiptNotice: 'خریدار یک عکس رسید جدید فرستاد',
         // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱ — هشدار موجودی کم (سبک)
         lowStockSectionTitle: 'موجودی رو به اتمام',
       },
@@ -1082,6 +1087,18 @@ export const fa = {
     quickChipProducts: '🛍 دیدن محصولات',
     quickChipTalkToSeller: '💬 صحبت با فروشنده',
     talkToSellerMessage: 'می‌خوام با یکی از همکاراتون صحبت کنم',
+    // docs/PRD-buyer-phone-otp-registration.md
+    registerButton: 'ثبت‌نام برای خدمات بهتر',
+    registerTitle: 'ثبت‌نام',
+    registerIntro: 'با شماره موبایلت ثبت‌نام کن تا فروشنده بشناستت و خدمات بهتری بگیری.',
+    registerPhonePlaceholder: 'شماره موبایل',
+    registerSendCodeButton: 'ارسال کد',
+    registerCodePlaceholder: 'کد ۶ رقمی',
+    registerNamePlaceholder: 'اسمت چیه؟ (اختیاری)',
+    registerConfirmButton: 'تایید و ثبت‌نام',
+    registerChangePhone: 'تغییر شماره',
+    registerClose: 'بستن',
+    registerSuccess: 'ثبت‌نام با موفقیت انجام شد ✅',
   },
   // docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — صفحه‌ی اکسپلور/فهرست
   // فروشگاه‌ها + «سفارش‌های من، همه‌ی فروشگاه‌ها»؛ جدا از namespace بالا چون صفحه‌ی مستقلی
