@@ -58,6 +58,17 @@ export interface CreateProductInput {
   persuasionTechniquesEnabled?: boolean
 }
 
+// docs/PRD-product-display-focus-and-variations.md §۴.۱ — همیشه جایگزین کامل (نه patch)
+export interface ReplaceProductVariantsInput {
+  optionTypes: { name: string; values: string[] }[]
+  variants: {
+    optionValues: Record<string, string>
+    stock: number
+    priceOverride?: number | null
+    sku?: string
+  }[]
+}
+
 export function useMyStores() {
   return useQuery({
     queryKey: keys.seller.stores(),
@@ -185,6 +196,16 @@ export function useUpdateProduct(storeId: string) {
   return useMutation({
     mutationFn: ({ productId, dto }: { productId: string; dto: UpdateProductInput }) =>
       api.patch<SellerProduct>(`/v2/stores/${storeId}/products/${productId}`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) }),
+  })
+}
+
+// docs/PRD-product-display-focus-and-variations.md §۴.۱
+export function useReplaceProductVariants(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, dto }: { productId: string; dto: ReplaceProductVariantsInput }) =>
+      api.put<SellerProduct>(`/v2/stores/${storeId}/products/${productId}/variants`, dto).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) }),
   })
 }

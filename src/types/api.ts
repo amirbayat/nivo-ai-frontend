@@ -128,6 +128,25 @@ export interface SellerProduct {
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶ — کلید به‌ازای این محصول (AND با
   // SellerStore.persuasionTechniquesEnabled)
   persuasionTechniquesEnabled: boolean
+  // docs/PRD-product-display-focus-and-variations.md §۴.۱ — فقط GET /v2/stores/:id/products
+  // این را پر می‌کند (عیناً مثل completeness بالا)؛ خالی/نبودن یعنی محصول ساده (بدون گزینه) است
+  optionTypes?: ProductOptionType[]
+  variants?: ProductVariant[]
+}
+
+export interface ProductOptionType {
+  id: string
+  name: string
+  position: number
+  values: { id: string; value: string; position: number }[]
+}
+
+export interface ProductVariant {
+  id: string
+  optionValues: Record<string, string>
+  priceOverride: number | null
+  stock: number
+  sku: string | null
 }
 
 export interface SellerStore {
@@ -303,7 +322,13 @@ export type ShopUiBlock =
   // عکس هر محصول را می‌دهد، این بلاک همه‌ی عکس‌های یک محصول را حمل می‌کند (وقتی مشتری صریح
   // عکس بیشتر خواسته). docs/PRD-product-video.md بخش ۴ — videos هم اضافه شد
   | { type: 'PRODUCT_PHOTOS'; productId: string; productName: string; images: string[]; videos: ProductVideoItem[] }
-  | { type: 'CART_SUMMARY'; items: { productId: string; name: string; unitPrice: number; qty: number }[]; total: number }
+  | {
+      type: 'CART_SUMMARY'
+      // docs/PRD-product-display-focus-and-variations.md §۴ — variantId/variantLabel اختیاری؛
+      // محصول بدون واریانت این دو را ندارد
+      items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
+      total: number
+    }
   | { type: 'PAYMENT_INSTRUCTIONS'; cardNumber: string; ownerName: string; amount: number }
   | { type: 'ORDER_STATUS'; orderId: string; status: string }
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
@@ -323,7 +348,7 @@ export type ShopUiBlock =
       orders: {
         id: string
         createdAt: string
-        items: { productId: string; name: string; unitPrice: number; qty: number }[]
+        items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
         totalAmount: number
         status: string
       }[]
@@ -332,6 +357,18 @@ export type ShopUiBlock =
   | {
       type: 'COMPARE_CARD'
       products: { id: string; name: string; basePrice: number; stock: number; specs: ProductSpecSuggestion[] }[]
+    }
+  // docs/PRD-product-display-focus-and-variations.md §۴.۲ — چیپ انتخاب سریع واریانت؛
+  // mode=DIMENSION یعنی values مقادیر یک گزینه (سایز) هستند، mode=ALTERNATIVES یعنی ترکیب
+  // انتخابی تمام شده و values معادل‌های موجود — هر دو با همون SELECT_VARIANT_VALUE جواب داده می‌شوند
+  | {
+      type: 'VARIANT_PROMPT'
+      productId: string
+      productName: string
+      optionName: string | null
+      values: { label: string; value: string }[]
+      selectedSoFar: Record<string, string>
+      mode: 'DIMENSION' | 'ALTERNATIVES'
     }
   | { type: 'NONE' }
 
@@ -411,6 +448,8 @@ export type ShopAction =
   | { type: 'VIEW_ORDERS' }
   | { type: 'TOGGLE_SAVE_PRODUCT'; productId: string }
   | { type: 'REORDER'; orderId: string }
+  // docs/PRD-product-display-focus-and-variations.md §۴.۲ — جواب چیپ VARIANT_PROMPT
+  | { type: 'SELECT_VARIANT_VALUE'; value: string }
 
 export interface ShopStartChatResponse {
   conversationId: string

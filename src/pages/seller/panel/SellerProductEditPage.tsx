@@ -14,9 +14,11 @@ import {
   useProducts,
   useProductTelegramLink,
   useRemoveProductVideo,
+  useReplaceProductVariants,
   useUpdateProduct,
   useUploadProductImages,
   useUploadProductVideo,
+  type ReplaceProductVariantsInput,
 } from '@/queries/seller.queries'
 import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
 import { AiCompleteAssist } from './AiCompleteAssist'
@@ -192,6 +194,264 @@ function ProductVideo({
           e.target.value = ''
         }}
       />
+    </div>
+  )
+}
+
+// docs/PRD-product-display-focus-and-variations.md §۴.۱ — فاز ۱ حداکثر ۲ بعد (سایز/رنگ)
+const MAX_OPTION_TYPES = 2
+
+type DraftOptionType = { name: string; values: string[] }
+type DraftVariantRow = { stock: string; priceOverride: string; sku: string }
+
+function comboKey(optionValues: Record<string, string>): string {
+  return Object.keys(optionValues).sort().map(k => `${k}=${optionValues[k]}`).join('|')
+}
+
+// ترکیب دکارتی — فقط وقتی همه‌ی گزینه‌ها حداقل یک مقدار دارند تولید می‌شود، وگرنه حین
+// تایپ (گزینه‌ی تازه‌ساخته‌شده‌ی هنوز بدون مقدار) ترکیب‌های ناقص/گمراه‌کننده نشان داده می‌شود
+function cartesianCombos(optionTypes: DraftOptionType[]): Record<string, string>[] {
+  const valid = optionTypes.filter(o => o.name.trim() && o.values.length > 0)
+  if (valid.length === 0 || valid.length !== optionTypes.length) return []
+  return valid.reduce<Record<string, string>[]>((acc, opt) => {
+    if (acc.length === 0) return opt.values.map(v => ({ [opt.name]: v }))
+    return acc.flatMap(combo => opt.values.map(v => ({ ...combo, [opt.name]: v })))
+  }, [])
+}
+
+// سوئیچ «چند حالت داره؟» + فرم دستی گزینه/مقدار + جدول ترکیب‌ها (docs/PRD-product-display-focus-and-variations.md
+// §۴.۱). استخراج متنی آزاد (§۴.۱.۱) عمداً اینجا نیست — طبق فازبندی §۴.۴، آن فاز ۲ است.
+function ProductVariantsEditor({
+  product,
+  storeId,
+  onProductUpdated,
+}: {
+  product: SellerProduct
+  storeId: string
+  onProductUpdated: (product: SellerProduct) => void
+}) {
+  const replaceVariants = useReplaceProductVariants(storeId)
+  const [enabled, setEnabled] = useState((product.optionTypes?.length ?? 0) > 0)
+  const [optionTypes, setOptionTypes] = useState<DraftOptionType[]>([])
+  const [rowsByKey, setRowsByKey] = useState<Record<string, DraftVariantRow>>({})
+  const [newValueDrafts, setNewValueDrafts] = useState<Record<number, string>>({})
+  const [initialized, setInitialized] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => { setInitialized(false) }, [product.id])
+  useEffect(() => {
+    if (initialized) return
+    setEnabled((product.optionTypes?.length ?? 0) > 0)
+    setOptionTypes(
+      (product.optionTypes ?? [])
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map(o => ({ name: o.name, values: o.values.slice().sort((a, b) => a.position - b.position).map(v => v.value) })),
+    )
+    const rows: Record<string, DraftVariantRow> = {}
+    for (const v of product.variants ?? []) {
+      rows[comboKey(v.optionValues)] = {
+        stock: String(v.stock),
+        priceOverride: v.priceOverride != null ? String(v.priceOverride) : '',
+        sku: v.sku ?? '',
+      }
+    }
+    setRowsByKey(rows)
+    setInitialized(true)
+  }, [initialized, product.optionTypes, product.variants])
+
+  const combos = enabled ? cartesianCombos(optionTypes) : []
+
+  function addOptionType() {
+    if (optionTypes.length >= MAX_OPTION_TYPES) return
+    setOptionTypes(prev => [...prev, { name: '', values: [] }])
+  }
+  function removeOptionType(index: number) {
+    setOptionTypes(prev => prev.filter((_, i) => i !== index))
+  }
+  function renameOptionType(index: number, name: string) {
+    setOptionTypes(prev => prev.map((o, i) => (i === index ? { ...o, name } : o)))
+  }
+  function addValue(index: number) {
+    const draft = (newValueDrafts[index] ?? '').trim()
+    if (!draft) return
+    setOptionTypes(prev =>
+      prev.map((o, i) => (i === index && !o.values.includes(draft) ? { ...o, values: [...o.values, draft] } : o)),
+    )
+    setNewValueDrafts(prev => ({ ...prev, [index]: '' }))
+  }
+  function removeValue(index: number, value: string) {
+    setOptionTypes(prev => prev.map((o, i) => (i === index ? { ...o, values: o.values.filter(v => v !== value) } : o)))
+  }
+  function removeCombo(key: string) {
+    setRowsByKey(prev => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    setExcludedKeys(prev => new Set(prev).add(key))
+  }
+  const [excludedKeys, setExcludedKeys] = useState<Set<string>>(new Set())
+  const visibleCombos = combos.filter(c => !excludedKeys.has(comboKey(c)))
+
+  function rowFor(key: string): DraftVariantRow {
+    return rowsByKey[key] ?? { stock: '0', priceOverride: '', sku: '' }
+  }
+  function updateRow(key: string, patch: Partial<DraftVariantRow>) {
+    setRowsByKey(prev => ({ ...prev, [key]: { ...rowFor(key), ...patch } }))
+    setExcludedKeys(prev => {
+      if (!prev.has(key)) return prev
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+  }
+
+  const allZeroStock = enabled && visibleCombos.length > 0 && visibleCombos.every(c => (Number(toEnglishDigits(rowFor(comboKey(c)).stock)) || 0) === 0)
+
+  function save() {
+    const dto: ReplaceProductVariantsInput = enabled
+      ? {
+          optionTypes: optionTypes
+            .filter(o => o.name.trim() && o.values.length > 0)
+            .map(o => ({ name: o.name.trim(), values: o.values })),
+          variants: visibleCombos.map(ov => {
+            const row = rowFor(comboKey(ov))
+            return {
+              optionValues: ov,
+              stock: Number(toEnglishDigits(row.stock)) || 0,
+              priceOverride: row.priceOverride ? Number(toEnglishDigits(row.priceOverride)) || 0 : null,
+              sku: row.sku.trim() || undefined,
+            }
+          }),
+        }
+      : { optionTypes: [], variants: [] }
+    replaceVariants.mutate(
+      { productId: product.id, dto },
+      {
+        onSuccess: updated => {
+          onProductUpdated(updated)
+          setExcludedKeys(new Set())
+          setSaved(true)
+          setTimeout(() => setSaved(false), 2000)
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="mb-6">
+      <div className="divide-y divide-slate-800 light:divide-slate-200">
+        <ToggleRow label={fa.seller.panel.products.variantsToggleLabel} checked={enabled} onChange={setEnabled} />
+      </div>
+      <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.variantsToggleHint}</p>
+
+      {enabled && (
+        <div className="mt-4 flex flex-col gap-4">
+          {optionTypes.map((opt, i) => (
+            <div key={i} className="rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <Input
+                  placeholder={fa.seller.panel.products.variantsOptionNamePlaceholder}
+                  value={opt.name}
+                  onChange={e => renameOptionType(i, e.target.value)}
+                  className="flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeOptionType(i)}
+                  className="shrink-0 text-slate-500 hover:text-red-400"
+                  aria-label={fa.seller.panel.products.variantsRemoveOption}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {opt.values.map(v => (
+                  <span key={v} className="flex items-center gap-1 rounded-full bg-slate-700/60 light:bg-slate-200 px-2.5 py-1 text-xs text-slate-200 light:text-slate-800">
+                    {v}
+                    <button type="button" onClick={() => removeValue(i, v)} className="text-slate-400 hover:text-red-400">×</button>
+                  </span>
+                ))}
+              </div>
+              <input
+                placeholder={fa.seller.panel.products.variantsOptionValuesPlaceholder}
+                value={newValueDrafts[i] ?? ''}
+                onChange={e => setNewValueDrafts(prev => ({ ...prev, [i]: e.target.value }))}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addValue(i)
+                  }
+                }}
+                className="w-full rounded-lg border border-slate-700 light:border-slate-300 bg-transparent px-3 py-1.5 text-xs text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          ))}
+          {optionTypes.length < MAX_OPTION_TYPES ? (
+            <button
+              type="button"
+              onClick={addOptionType}
+              className="rounded-xl border border-dashed border-slate-600 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500"
+            >
+              {fa.seller.panel.products.variantsAddOptionType}
+            </button>
+          ) : (
+            <p className="text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.variantsMaxOptionTypes}</p>
+          )}
+
+          {visibleCombos.length > 0 && (
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.panel.products.variantsCombinationsTitle}</p>
+              <p className="mb-2 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.variantsCombinationsHint}</p>
+              <div className="flex flex-col gap-2">
+                {visibleCombos.map(ov => {
+                  const key = comboKey(ov)
+                  const row = rowFor(key)
+                  return (
+                    <div key={key} className="flex items-center gap-2 rounded-xl bg-slate-800/40 light:bg-slate-50 p-2">
+                      <span className="min-w-0 flex-1 truncate text-xs text-slate-300 light:text-slate-700">
+                        {Object.entries(ov).map(([k, v]) => `${k}: ${v}`).join('، ')}
+                      </span>
+                      <input
+                        value={row.stock}
+                        onChange={e => updateRow(key, { stock: toEnglishDigits(e.target.value).replace(/\D/g, '') })}
+                        placeholder={fa.seller.panel.products.variantsStockPlaceholder}
+                        dir="ltr"
+                        inputMode="numeric"
+                        className="w-16 shrink-0 rounded-lg border border-slate-700 light:border-slate-300 bg-transparent px-2 py-1.5 text-center text-xs text-slate-200 light:text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCombo(key)}
+                        className="shrink-0 text-slate-500 hover:text-red-400"
+                        aria-label={fa.seller.panel.products.variantsRemoveCombination}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+              {allZeroStock && (
+                <p className="mt-2 text-[11px] text-amber-500">{fa.seller.panel.products.variantsZeroStockWarning}</p>
+              )}
+            </div>
+          )}
+          {optionTypes.length > 0 && visibleCombos.length === 0 && (
+            <p className="text-xs text-slate-500">{fa.seller.panel.products.variantsNoCombinations}</p>
+          )}
+
+          <button
+            type="button"
+            onClick={save}
+            disabled={replaceVariants.isPending}
+            className="rounded-xl border border-emerald-500/60 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40"
+          >
+            {saved ? fa.seller.panel.products.variantsSaved : fa.seller.panel.products.variantsSave}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -489,6 +749,10 @@ export function SellerProductEditPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {product && product !== 'new' && (
+        <ProductVariantsEditor product={product} storeId={storeId} onProductUpdated={setOverride} />
       )}
 
       <div className="mb-6">

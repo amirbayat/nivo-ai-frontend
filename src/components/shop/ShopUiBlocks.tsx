@@ -342,7 +342,7 @@ function CartSummaryBlock({
   disabled,
   onConfirmCart,
 }: {
-  items: { productId: string; name: string; unitPrice: number; qty: number }[]
+  items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
   total: number
   disabled: boolean
   onConfirmCart: () => void
@@ -351,9 +351,10 @@ function CartSummaryBlock({
     <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
       <div className="mb-2 flex flex-col gap-1.5">
         {items.map((i) => (
-          <div key={i.productId} className="flex items-center justify-between text-xs text-slate-300 light:text-slate-600">
+          <div key={`${i.productId}-${i.variantId ?? ''}`} className="flex items-center justify-between text-xs text-slate-300 light:text-slate-600">
             <span>
-              {i.name} × {i.qty}
+              {i.name}
+              {i.variantLabel ? <span className="text-slate-500"> ({i.variantLabel})</span> : null} × {i.qty}
             </span>
             <span>{(i.unitPrice * i.qty).toLocaleString('fa-IR')} تومان</span>
           </div>
@@ -543,6 +544,34 @@ function AddressPromptBlock({
   )
 }
 
+// docs/PRD-product-display-focus-and-variations.md §۴.۲ — عیناً سبک AddressPromptBlock's
+// CHOOSE_PROVINCE بالا: چیپ‌چین ساده؛ هر دو mode (DIMENSION/ALTERNATIVES) همون
+// SELECT_VARIANT_VALUE را می‌فرستند، فرق را فقط سرور از روی ctx می‌داند
+function VariantPromptBlock({
+  values,
+  disabled,
+  onSendAction,
+}: {
+  values: { label: string; value: string }[]
+  disabled: boolean
+  onSendAction: (action: ShopAction) => void
+}) {
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {values.map(v => (
+        <button
+          key={v.value}
+          onClick={() => onSendAction({ type: 'SELECT_VARIANT_VALUE', value: v.value })}
+          disabled={disabled}
+          className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-2 py-2 text-center text-xs text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+        >
+          {v.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۲) — سفارش مجدد با یک دکمه
 function OrderListBlock({
   orders,
@@ -706,6 +735,8 @@ export function ShopUiBlockView({
       )
     case 'COMPARE_CARD':
       return <CompareCardBlock products={block.products} />
+    case 'VARIANT_PROMPT':
+      return <VariantPromptBlock values={block.values} disabled={disabled} onSendAction={onSendAction} />
     default:
       return null
   }
