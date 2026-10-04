@@ -579,6 +579,13 @@ export const fa = {
         // docs/PRD-product-display-focus-and-variations.md §۴.۱
         variantsToggleLabel: 'این محصول چند حالت داره؟ (مثلاً سایز یا رنگ)',
         variantsToggleHint: 'مثلاً پیراهن با سایزهای مختلف یا کیف با رنگ‌های مختلف — هر ترکیب موجودی جدای خودش رو داره',
+        // docs/PRD-product-display-focus-and-variations.md §۴.۱.۱ (فاز ۲)
+        variantsAiTextPlaceholder: 'توضیح بده (مثلاً «سایز ۳۸ تا ۴۶، رنگ‌بندی سفید، طوسی، مشکی») — AI گزینه‌ها رو می‌سازه',
+        variantsAiButton: '✨ ساخت با AI',
+        variantsAiLoading: 'در حال ساخت…',
+        variantsAiError: 'ساخت گزینه‌ها با خطا مواجه شد',
+        variantsAiAssumptionsTitle: 'فرض‌های AI (در صورت نیاز ویرایش کن)',
+        variantsAiOr: 'یا دستی اضافه کن',
         variantsAddOptionType: '+ افزودن گزینه (مثلاً سایز)',
         variantsOptionNamePlaceholder: 'اسم گزینه (مثلاً سایز)',
         variantsOptionValuesPlaceholder: 'یک مقدار بنویس و Enter بزن (مثلاً M)',

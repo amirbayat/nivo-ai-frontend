@@ -11,6 +11,7 @@ import type {
   CreateKbEntryInput,
   GenerateBrandIntroResult,
   GenerateProductDescriptionResult,
+  GenerateProductOptionsResult,
   ImportProductsResult,
   KbCandidateEntry,
   NeededAttentionConversation,
@@ -473,6 +474,18 @@ export function useGenerateProductDescriptionFromNotes(storeId: string) {
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲.۵ — فقط پیش‌نمایش، چیزی ذخیره نمی‌شود
+// docs/PRD-product-display-focus-and-variations.md §۴.۱.۱ (فاز ۲) — عیناً الگوی
+// useGenerateProductDescriptionFromNotes؛ خروجی مستقیم ذخیره نمی‌شود، فروشنده در
+// ProductVariantsEditor چیپ‌های پیش‌پرشده را تأیید/ویرایش می‌کند
+export function useGenerateProductOptionsFromText(storeId: string) {
+  return useMutation({
+    mutationFn: ({ productId, rawText }: { productId: string; rawText: string }) =>
+      api
+        .post<GenerateProductOptionsResult>(`/v2/stores/${storeId}/products/${productId}/options-from-text`, { rawText })
+        .then(r => r.data),
+  })
+}
+
 export function useImportProductFromUrl(storeId: string) {
   return useMutation({
     mutationFn: (url: string) =>

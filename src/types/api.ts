@@ -578,6 +578,13 @@ export interface GenerateProductDescriptionResult {
   suggestedDescription: string
 }
 
+// docs/PRD-product-display-focus-and-variations.md §۴.۱.۱ (فاز ۲) — پیشنهاد گزینه/مقدار واریانت
+// از توضیح متنی آزاد؛ auto-save ممنوع، فقط پیش‌پرکردن جدول ترکیب‌های ProductVariantsEditor
+export interface GenerateProductOptionsResult {
+  optionTypes: { name: string; values: string[] }[]
+  assumptions: string[]
+}
+
 // docs/PRD-admin-product-enrichment-review.md — پیشنهاد تایید‌شده‌ی ادمین، در انتظار تصمیم فروشنده
 export interface ProductEnrichmentDraft {
   id: string

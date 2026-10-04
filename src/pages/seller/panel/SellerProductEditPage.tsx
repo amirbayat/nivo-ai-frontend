@@ -11,6 +11,7 @@ import {
   useCreateProduct,
   useDeleteProduct,
   useDeleteProductImage,
+  useGenerateProductOptionsFromText,
   useProducts,
   useProductTelegramLink,
   useRemoveProductVideo,
@@ -220,7 +221,8 @@ function cartesianCombos(optionTypes: DraftOptionType[]): Record<string, string>
 }
 
 // سوئیچ «چند حالت داره؟» + فرم دستی گزینه/مقدار + جدول ترکیب‌ها (docs/PRD-product-display-focus-and-variations.md
-// §۴.۱). استخراج متنی آزاد (§۴.۱.۱) عمداً اینجا نیست — طبق فازبندی §۴.۴، آن فاز ۲ است.
+// §۴.۱) + ساخت گزینه‌ها از توضیح متنی آزاد با AI (§۴.۱.۱، فاز ۲) — کنار مسیر دستی، نه جایگزینش؛
+// auto-save ممنوع، فقط همین جدول را با چیپ‌های قابل‌ویرایش پیش‌پر می‌کند.
 function ProductVariantsEditor({
   product,
   storeId,
@@ -231,12 +233,15 @@ function ProductVariantsEditor({
   onProductUpdated: (product: SellerProduct) => void
 }) {
   const replaceVariants = useReplaceProductVariants(storeId)
+  const generateOptions = useGenerateProductOptionsFromText(storeId)
   const [enabled, setEnabled] = useState((product.optionTypes?.length ?? 0) > 0)
   const [optionTypes, setOptionTypes] = useState<DraftOptionType[]>([])
   const [rowsByKey, setRowsByKey] = useState<Record<string, DraftVariantRow>>({})
   const [newValueDrafts, setNewValueDrafts] = useState<Record<number, string>>({})
   const [initialized, setInitialized] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [aiAssumptions, setAiAssumptions] = useState<string[]>([])
 
   useEffect(() => { setInitialized(false) }, [product.id])
   useEffect(() => {
@@ -261,6 +266,20 @@ function ProductVariantsEditor({
   }, [initialized, product.optionTypes, product.variants])
 
   const combos = enabled ? cartesianCombos(optionTypes) : []
+
+  function applyAiOptions() {
+    if (!aiText.trim()) return
+    generateOptions.mutate(
+      { productId: product.id, rawText: aiText },
+      {
+        onSuccess: res => {
+          setOptionTypes(res.optionTypes.map(o => ({ name: o.name, values: o.values })))
+          setAiAssumptions(res.assumptions)
+          setExcludedKeys(new Set())
+        },
+      },
+    )
+  }
 
   function addOptionType() {
     if (optionTypes.length >= MAX_OPTION_TYPES) return
@@ -348,6 +367,35 @@ function ProductVariantsEditor({
 
       {enabled && (
         <div className="mt-4 flex flex-col gap-4">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+            <textarea
+              value={aiText}
+              onChange={e => setAiText(e.target.value)}
+              placeholder={fa.seller.panel.products.variantsAiTextPlaceholder}
+              rows={2}
+              className="w-full resize-none rounded-lg border border-slate-700 light:border-slate-300 bg-transparent px-3 py-1.5 text-xs text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+            <button
+              type="button"
+              onClick={applyAiOptions}
+              disabled={generateOptions.isPending || !aiText.trim()}
+              className="mt-2 w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 py-2 text-xs font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
+            >
+              {generateOptions.isPending ? fa.seller.panel.products.variantsAiLoading : fa.seller.panel.products.variantsAiButton}
+            </button>
+            {generateOptions.isError && (
+              <p className="mt-1.5 text-[11px] text-red-400">{extractErrorMessage(generateOptions.error, fa.seller.panel.products.variantsAiError)}</p>
+            )}
+            {aiAssumptions.length > 0 && (
+              <div className="mt-2 rounded-lg bg-slate-800/60 light:bg-slate-100 p-2">
+                <p className="mb-1 text-[11px] font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.products.variantsAiAssumptionsTitle}</p>
+                {aiAssumptions.map((a, i) => (
+                  <p key={i} className="text-[11px] text-slate-400 light:text-slate-600">· {a}</p>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="-mt-2 text-center text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.variantsAiOr}</p>
           {optionTypes.map((opt, i) => (
             <div key={i} className="rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 p-3">
               <div className="mb-2 flex items-center gap-2">
