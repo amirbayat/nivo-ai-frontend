@@ -543,6 +543,32 @@ export const fa = {
             ? `${created.toLocaleString('fa-IR')} محصول اضافه شد، ${errorCount.toLocaleString('fa-IR')} ردیف با خطا`
             : `${created.toLocaleString('fa-IR')} محصول با موفقیت اضافه شد`,
         importColumnsHint: 'ستون‌های اکسل: نام، قیمت، موجودی (اختیاری)، توضیح (اختیاری)',
+        // docs/PRD-bulk-product-import-from-document.md — افزودن/آپدیت دسته‌جمعی از فایل/متن/صوت
+        bulkImportButton: '📥 افزودن/آپدیت دسته‌جمعی با AI',
+        bulkImportModalTitle: 'افزودن یا آپدیت چند محصول با هم',
+        bulkImportModalHint:
+          'فایل PDF/Word، فایل صوتی، یا متن توضیحات چند محصول رو بده — AI لیست محصولات رو می‌سازه، تو هرکدوم رو تأیید/ویرایش می‌کنی',
+        bulkImportFileButton: 'آپلود فایل (PDF یا Word)',
+        bulkImportAudioButton: 'آپلود فایل صوتی',
+        bulkImportTextPlaceholder: 'یا متن رو اینجا پیست کن...',
+        bulkImportTextButton: 'استخراج از متن',
+        bulkImportLoading: 'در حال استخراج محصولات...',
+        bulkImportTranscribing: 'در حال تبدیل صوت به متن...',
+        bulkImportError: 'استخراج محصولات با خطا مواجه شد',
+        bulkImportEmpty: 'محصولی توی این متن/فایل پیدا نشد',
+        bulkImportAssumptionsTitle: 'فرض‌های AI',
+        bulkImportReviewTitle: (count: number) => `${count.toLocaleString('fa-IR')} محصول پیدا شد — مرور کن و تأیید بزن`,
+        bulkImportActionCreate: 'محصول جدید',
+        bulkImportActionUpdate: (name: string) => `آپدیت محصول: ${name}`,
+        bulkImportSkipToggle: 'رد شو (اعمال نشود)',
+        bulkImportMissingPrice: 'قیمت رو وارد کن',
+        bulkImportApplyButton: (count: number) => `اعمال ${count.toLocaleString('fa-IR')} مورد`,
+        bulkImportApplying: 'در حال اعمال...',
+        bulkImportApplyResult: (ok: number, fail: number) =>
+          fail > 0
+            ? `${ok.toLocaleString('fa-IR')} مورد اعمال شد، ${fail.toLocaleString('fa-IR')} مورد با خطا`
+            : `${ok.toLocaleString('fa-IR')} مورد با موفقیت اعمال شد`,
+        bulkImportDone: 'تمام',
         nameLabel: 'نام محصول',
         priceLabel: 'قیمت (تومان)',
         stockLabel: 'موجودی',

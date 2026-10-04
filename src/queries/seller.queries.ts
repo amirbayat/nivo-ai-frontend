@@ -9,6 +9,7 @@ import type {
   ChannelStat,
   CompetitorAnalysisResult,
   CreateKbEntryInput,
+  ExtractProductsResult,
   GenerateBrandIntroResult,
   GenerateProductDescriptionResult,
   GenerateProductOptionsResult,
@@ -252,6 +253,23 @@ export function useTranscribeAudio(storeId: string) {
   })
 }
 
+// docs/PRD-bulk-product-import-from-document.md — نسخه‌ی فایل‌آپلودی useTranscribeAudio بالا
+// (نه ضبط میکروفون)؛ اسم فایل واقعی فرستاده می‌شود تا extractAudio سمت بک‌اند پسوند را درست
+// تشخیص بدهد (آن تابع اسم ثابت 'voice.webm' می‌فرستد که برای فایل آپلودی درست نیست)
+export function useTranscribeAudioFile(storeId: string) {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file, file.name)
+      return api
+        .post<{ text: string }>(`/v2/stores/${storeId}/transcribe`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
+    },
+  })
+}
+
 // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه (تک‌فایل، نه آرایه)
 export function useUploadStoreLogo(storeId: string) {
   const qc = useQueryClient()
@@ -482,6 +500,33 @@ export function useGenerateProductOptionsFromText(storeId: string) {
     mutationFn: ({ productId, rawText }: { productId: string; rawText: string }) =>
       api
         .post<GenerateProductOptionsResult>(`/v2/stores/${storeId}/products/${productId}/options-from-text`, { rawText })
+        .then(r => r.data),
+  })
+}
+
+// docs/PRD-bulk-product-import-from-document.md — فایل (PDF/Word) که چند محصول را با هم
+// توصیف می‌کند → استخراج لیست محصولات؛ چیزی ذخیره نمی‌شود، فروشنده در شیت مرور هرکدام را
+// تأیید می‌کند و همان useCreateProduct/useUpdateProduct معمولی را صدا می‌زند
+export function useExtractProductsFromFile(storeId: string) {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api
+        .post<ExtractProductsResult>(`/v2/stores/${storeId}/products/extract-from-file`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then(r => r.data)
+    },
+  })
+}
+
+// همان استخراج بالا برای متن پیست‌شده یا رونویسی صوت (صوت اول با useTranscribeAudio متن می‌شود)
+export function useExtractProductsFromText(storeId: string) {
+  return useMutation({
+    mutationFn: (rawText: string) =>
+      api
+        .post<ExtractProductsResult>(`/v2/stores/${storeId}/products/extract-from-text`, { rawText })
         .then(r => r.data),
   })
 }

@@ -585,6 +585,24 @@ export interface GenerateProductOptionsResult {
   assumptions: string[]
 }
 
+// docs/PRD-bulk-product-import-from-document.md — یک ردیف استخراج‌شده از فایل/متن/صوت؛
+// هیچ‌چیز خودکار ذخیره نمی‌شود، فروشنده در شیت مرور هرکدام را تأیید می‌کند
+export interface ExtractedProductCandidate {
+  action: 'create' | 'update'
+  matchedProductId?: string
+  matchedProductName?: string
+  name: string
+  description?: string
+  basePrice?: number
+  stock?: number
+  code?: string
+}
+
+export interface ExtractProductsResult {
+  items: ExtractedProductCandidate[]
+  assumptions: string[]
+}
+
 // docs/PRD-admin-product-enrichment-review.md — پیشنهاد تایید‌شده‌ی ادمین، در انتظار تصمیم فروشنده
 export interface ProductEnrichmentDraft {
   id: string

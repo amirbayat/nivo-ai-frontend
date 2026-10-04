@@ -10,12 +10,15 @@ import {
   useAnalyzeCompetitors,
   useBulkCompleteProducts,
   useCreateProduct,
+  useExtractProductsFromFile,
+  useExtractProductsFromText,
   useImportProductFromUrl,
   useImportProducts,
   useProducts,
+  useTranscribeAudioFile,
   useUpdateProduct,
 } from '@/queries/seller.queries'
-import type { BulkCompleteResultItem } from '@/types/api'
+import type { BulkCompleteResultItem, ExtractedProductCandidate, ExtractProductsResult } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 
 // docs/PRD-seller-knowledge-base.md بخش ۹.۲ (دوم، مورد ۶) — تولید پیشنهاد برای حداکثر ۲۰
@@ -351,6 +354,274 @@ export function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onCl
   )
 }
 
+// docs/PRD-bulk-product-import-from-document.md — فایل PDF/Word، فایل صوتی، یا متن پیست‌شده
+// که چند محصول را با هم توصیف می‌کند؛ AI استخراج می‌کند و با محصولات موجود (کد/اسم) تطبیق
+// می‌دهد، ولی هیچ‌چیز خودکار ذخیره نمی‌شود — فروشنده هر ردیف را در این شیت تأیید/ویرایش
+// می‌کند و اعمال با همان useCreateProduct/useUpdateProduct معمولی انجام می‌شود
+interface BulkImportItem extends ExtractedProductCandidate {
+  included: boolean
+}
+
+export function BulkProductImportSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+  const extractFile = useExtractProductsFromFile(storeId)
+  const extractText = useExtractProductsFromText(storeId)
+  const transcribeFile = useTranscribeAudioFile(storeId)
+  const createProduct = useCreateProduct(storeId)
+  const updateProduct = useUpdateProduct(storeId)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const audioInputRef = useRef<HTMLInputElement>(null)
+  const [rawText, setRawText] = useState('')
+  const [items, setItems] = useState<BulkImportItem[] | null>(null)
+  const [assumptions, setAssumptions] = useState<string[]>([])
+  const [applying, setApplying] = useState(false)
+  const [applyResult, setApplyResult] = useState<{ ok: number; fail: number } | null>(null)
+
+  function onExtracted(res: ExtractProductsResult) {
+    setItems(res.items.map(i => ({ ...i, included: true })))
+    setAssumptions(res.assumptions)
+  }
+
+  function updateItem(index: number, patch: Partial<BulkImportItem>) {
+    setItems(prev => (prev ? prev.map((it, i) => (i === index ? { ...it, ...patch } : it)) : prev))
+  }
+
+  const includedItems = items?.filter(i => i.included) ?? []
+  const canApply =
+    includedItems.length > 0 &&
+    includedItems.every(i => i.name.trim() && (i.action === 'update' || typeof i.basePrice === 'number'))
+  const loading = extractFile.isPending || extractText.isPending
+  const error = extractFile.error ?? extractText.error
+
+  async function apply() {
+    if (!items) return
+    setApplying(true)
+    let ok = 0
+    let fail = 0
+    for (const item of items) {
+      if (!item.included) continue
+      try {
+        if (item.action === 'update' && item.matchedProductId) {
+          await updateProduct.mutateAsync({
+            productId: item.matchedProductId,
+            dto: {
+              name: item.name,
+              description: item.description || undefined,
+              basePrice: item.basePrice,
+              stock: item.stock,
+              code: item.code || undefined,
+            },
+          })
+        } else {
+          await createProduct.mutateAsync({
+            name: item.name,
+            basePrice: item.basePrice ?? 0,
+            description: item.description || undefined,
+            stock: item.stock,
+            code: item.code || undefined,
+          })
+        }
+        ok++
+      } catch {
+        fail++
+      }
+    }
+    setApplying(false)
+    setItems(null)
+    setApplyResult({ ok, fail })
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="shrink-0 p-5 pb-3">
+          <h2 className="mb-1.5 text-lg font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.products.bulkImportModalTitle}</h2>
+          <p className="text-xs text-slate-500">{fa.seller.panel.products.bulkImportModalHint}</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5">
+          {!items && !applyResult && (
+            <>
+              <div className="mb-3 flex gap-2">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  className="flex-1 rounded-xl border border-slate-700 light:border-slate-300 py-2.5 text-xs font-semibold text-slate-200 light:text-slate-800 disabled:opacity-40"
+                >
+                  {fa.seller.panel.products.bulkImportFileButton}
+                </button>
+                <button
+                  onClick={() => audioInputRef.current?.click()}
+                  disabled={loading || transcribeFile.isPending}
+                  className="flex-1 rounded-xl border border-slate-700 light:border-slate-300 py-2.5 text-xs font-semibold text-slate-200 light:text-slate-800 disabled:opacity-40"
+                >
+                  {fa.seller.panel.products.bulkImportAudioButton}
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                hidden
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) extractFile.mutate(file, { onSuccess: onExtracted })
+                  e.target.value = ''
+                }}
+              />
+              <input
+                ref={audioInputRef}
+                type="file"
+                accept="audio/*"
+                hidden
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    transcribeFile.mutate(file, {
+                      onSuccess: r => setRawText(prev => (prev ? `${prev}\n${r.text}` : r.text)),
+                    })
+                  }
+                  e.target.value = ''
+                }}
+              />
+
+              <textarea
+                value={rawText}
+                onChange={e => setRawText(e.target.value)}
+                rows={5}
+                placeholder={fa.seller.panel.products.bulkImportTextPlaceholder}
+                className="mb-3 w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900"
+              />
+              {transcribeFile.isPending && (
+                <p className="mb-3 text-xs text-slate-400">{fa.seller.panel.products.bulkImportTranscribing}</p>
+              )}
+              {!!error && <p className="mb-3 text-xs text-red-400">{extractErrorMessage(error, fa.seller.panel.products.bulkImportError)}</p>}
+
+              <button
+                onClick={() => extractText.mutate(rawText.trim(), { onSuccess: onExtracted })}
+                disabled={!rawText.trim() || loading}
+                className="w-full rounded-2xl bg-emerald-500 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+              >
+                {loading ? fa.seller.panel.products.bulkImportLoading : fa.seller.panel.products.bulkImportTextButton}
+              </button>
+            </>
+          )}
+
+          {items && items.length === 0 && (
+            <p className="py-8 text-center text-sm text-slate-400">{fa.seller.panel.products.bulkImportEmpty}</p>
+          )}
+
+          {items && items.length > 0 && (
+            <>
+              <p className="mb-3 text-sm font-semibold text-slate-200 light:text-slate-800">
+                {fa.seller.panel.products.bulkImportReviewTitle(items.length)}
+              </p>
+              {!!assumptions.length && (
+                <div className="mb-3 rounded-xl bg-amber-500/10 p-3">
+                  <p className="mb-1 text-xs font-bold text-amber-400">{fa.seller.panel.products.bulkImportAssumptionsTitle}</p>
+                  {assumptions.map((a, i) => (
+                    <p key={i} className="text-xs text-amber-300/90">• {a}</p>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3">
+                {items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`rounded-2xl border p-3.5 ${
+                      item.included
+                        ? 'border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50'
+                        : 'border-slate-800 light:border-slate-100 opacity-50'
+                    }`}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          item.action === 'create' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-sky-500/15 text-sky-400'
+                        }`}
+                      >
+                        {item.action === 'create'
+                          ? fa.seller.panel.products.bulkImportActionCreate
+                          : fa.seller.panel.products.bulkImportActionUpdate(item.matchedProductName || '')}
+                      </span>
+                      <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                        <input type="checkbox" checked={!item.included} onChange={e => updateItem(idx, { included: !e.target.checked })} />
+                        {fa.seller.panel.products.bulkImportSkipToggle}
+                      </label>
+                    </div>
+                    <div className="mb-2">
+                      <Input value={item.name} onChange={e => updateItem(idx, { name: e.target.value })} placeholder={fa.seller.panel.products.nameLabel} />
+                    </div>
+                    <div className="mb-2 flex gap-2">
+                      <Input
+                        value={item.basePrice !== undefined ? formatThousands(String(item.basePrice)) : ''}
+                        onChange={e =>
+                          updateItem(idx, { basePrice: Number(toEnglishDigits(e.target.value).replace(/\D/g, '')) || undefined })
+                        }
+                        placeholder={fa.seller.panel.products.priceLabel}
+                        dir="ltr"
+                        inputMode="numeric"
+                        className="flex-1 text-center"
+                      />
+                      <Input
+                        value={item.stock !== undefined ? String(item.stock) : ''}
+                        onChange={e =>
+                          updateItem(idx, { stock: Number(toEnglishDigits(e.target.value).replace(/\D/g, '')) || undefined })
+                        }
+                        placeholder={fa.seller.panel.products.stockLabel}
+                        dir="ltr"
+                        inputMode="numeric"
+                        className="flex-1 text-center"
+                      />
+                    </div>
+                    {item.included && item.action === 'create' && item.basePrice === undefined && (
+                      <p className="text-[11px] text-amber-400">{fa.seller.panel.products.bulkImportMissingPrice}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => setItems(null)}
+                  className="flex-1 rounded-2xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700"
+                >
+                  {fa.common.cancel}
+                </button>
+                <button
+                  onClick={apply}
+                  disabled={!canApply || applying}
+                  className="flex-[2] rounded-2xl bg-emerald-500 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+                >
+                  {applying ? fa.seller.panel.products.bulkImportApplying : fa.seller.panel.products.bulkImportApplyButton(includedItems.length)}
+                </button>
+              </div>
+            </>
+          )}
+
+          {applyResult && (
+            <>
+              <p className="py-4 text-center text-sm text-slate-200 light:text-slate-800">
+                {fa.seller.panel.products.bulkImportApplyResult(applyResult.ok, applyResult.fail)}
+              </p>
+              <button
+                onClick={onClose}
+                className="w-full rounded-2xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700"
+              >
+                {fa.seller.panel.products.bulkImportDone}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function SellerProductsPage() {
   const { storeId, storeSlug } = useSellerStore()
   const navigate = useNavigate()
@@ -359,6 +630,7 @@ export function SellerProductsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [importResult, setImportResult] = useState<{ created: number; errorCount: number } | null>(null)
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null)
+  const [bulkImportOpen, setBulkImportOpen] = useState(false)
   // کامنت موقت طبق درخواست کاربر — این سه قابلیت فعلاً از فرانت مخفی شدند
   // const [importFromUrlOpen, setImportFromUrlOpen] = useState(false)
   // const [bulkCompleteOpen, setBulkCompleteOpen] = useState(false)
@@ -424,6 +696,13 @@ export function SellerProductsPage() {
       </div>
       */}
 
+      <button
+        onClick={() => setBulkImportOpen(true)}
+        className="mb-4 w-full rounded-xl border border-dashed border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400"
+      >
+        {fa.seller.panel.products.bulkImportButton}
+      </button>
+
       {importResult && (
         <p className="mb-4 rounded-xl bg-slate-800/60 light:bg-slate-100 px-3 py-2 text-xs text-slate-300 light:text-slate-700">
           {fa.seller.panel.products.importResult(importResult.created, importResult.errorCount)}
@@ -474,6 +753,8 @@ export function SellerProductsPage() {
           </div>
         ))}
       </div>
+
+      {bulkImportOpen && <BulkProductImportSheet storeId={storeId} onClose={() => setBulkImportOpen(false)} />}
 
       {/* کامنت موقت طبق درخواست کاربر
       {importFromUrlOpen && <ImportFromUrlSheet storeId={storeId} onClose={() => setImportFromUrlOpen(false)} />}
