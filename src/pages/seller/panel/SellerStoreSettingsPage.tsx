@@ -3,9 +3,152 @@ import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { ToggleRow } from '@/components/ui/ToggleRow'
 import { extractErrorMessage, storeLogoUrl } from '@/lib/sellerProduct'
-import { useMyStores, useRemoveStoreLogo, useUpdateStore, useUploadStoreLogo } from '@/queries/seller.queries'
-import type { SellerStore } from '@/types/api'
+import {
+  useAnalyzeOwnerNotes,
+  useCreateKbEntry,
+  useMyStores,
+  useRemoveStoreLogo,
+  useUpdateStore,
+  useUploadStoreLogo,
+} from '@/queries/seller.queries'
+import type { AnalyzeOwnerNotesResult, SellerStore } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
+import { GuidePromptModal } from './GuidePromptModal'
+
+// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — پیشنهادهای تحلیل یادداشت، هرکدام جدا
+// تایید/رد می‌شود؛ هیچ‌چیز خودکار در فیلد اصلی نمی‌نشیند
+function NotesSuggestionsPanel({
+  storeId,
+  result,
+  onApplyBrandIntro,
+  onApplyShippingInfo,
+  onApplyReturnPolicy,
+  onApplyCategory,
+}: {
+  storeId: string
+  result: AnalyzeOwnerNotesResult
+  onApplyBrandIntro: (text: string) => void
+  onApplyShippingInfo: (text: string) => void
+  onApplyReturnPolicy: (text: string) => void
+  onApplyCategory: (category: string) => void
+}) {
+  const createKb = useCreateKbEntry(storeId)
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  const [addedKb, setAddedKb] = useState<Set<number>>(new Set())
+
+  const suggestionRows: { key: string; label: string; onApply: () => void }[] = []
+  if (result.brandIntroSuggestion && !dismissed.has('brandIntro')) {
+    suggestionRows.push({
+      key: 'brandIntro',
+      label: result.brandIntroSuggestion,
+      onApply: () => onApplyBrandIntro(result.brandIntroSuggestion!),
+    })
+  }
+  if (result.shippingInfoSuggestion && !dismissed.has('shippingInfo')) {
+    suggestionRows.push({
+      key: 'shippingInfo',
+      label: result.shippingInfoSuggestion,
+      onApply: () => onApplyShippingInfo(result.shippingInfoSuggestion!),
+    })
+  }
+  if (result.returnPolicySuggestion && !dismissed.has('returnPolicy')) {
+    suggestionRows.push({
+      key: 'returnPolicy',
+      label: result.returnPolicySuggestion,
+      onApply: () => onApplyReturnPolicy(result.returnPolicySuggestion!),
+    })
+  }
+
+  const hasCategory = result.categoryHint && !dismissed.has('category')
+  const kbCandidates = result.kbCandidates.filter((_, i) => !addedKb.has(i))
+
+  if (suggestionRows.length === 0 && !hasCategory && kbCandidates.length === 0) return null
+
+  return (
+    <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+      <p className="mb-3 text-xs font-semibold text-amber-400">{fa.seller.panel.guidePrompt.suggestionsTitle}</p>
+      <div className="flex flex-col gap-2.5">
+        {suggestionRows.map(row => (
+          <div key={row.key} className="rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-900/40 light:bg-white p-3">
+            <p className="mb-2 text-xs text-slate-300 light:text-slate-700">{row.label}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  row.onApply()
+                  setDismissed(prev => new Set(prev).add(row.key))
+                }}
+                className="flex-1 rounded-lg bg-emerald-500/20 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700"
+              >
+                {row.key === 'brandIntro' && fa.seller.panel.guidePrompt.applyBrandIntro}
+                {row.key === 'shippingInfo' && fa.seller.panel.guidePrompt.applyShippingInfo}
+                {row.key === 'returnPolicy' && fa.seller.panel.guidePrompt.applyReturnPolicy}
+              </button>
+              <button
+                onClick={() => setDismissed(prev => new Set(prev).add(row.key))}
+                className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 py-1.5 text-xs font-bold text-slate-400"
+              >
+                {fa.seller.panel.guidePrompt.ignore}
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {hasCategory && (
+          <div className="rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-900/40 light:bg-white p-3">
+            <p className="mb-2 text-xs text-slate-300 light:text-slate-700">{result.categoryHint}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  onApplyCategory(result.categoryHint!)
+                  setDismissed(prev => new Set(prev).add('category'))
+                }}
+                className="flex-1 rounded-lg bg-emerald-500/20 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700"
+              >
+                {fa.seller.panel.guidePrompt.applyCategory}
+              </button>
+              <button
+                onClick={() => setDismissed(prev => new Set(prev).add('category'))}
+                className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 py-1.5 text-xs font-bold text-slate-400"
+              >
+                {fa.seller.panel.guidePrompt.ignore}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {kbCandidates.map(c => {
+          const originalIndex = result.kbCandidates.indexOf(c)
+          return (
+            <div key={originalIndex} className="rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-900/40 light:bg-white p-3">
+              <p className="mb-1 text-xs font-semibold text-slate-200 light:text-slate-900">{c.question}</p>
+              <p className="mb-2 text-xs text-slate-400 light:text-slate-600">{c.answer}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    createKb.mutate(
+                      { kind: c.kind, question: c.question, answer: c.answer, tags: c.tags, source: 'AI_ENRICHMENT' },
+                      { onSuccess: () => setAddedKb(prev => new Set(prev).add(originalIndex)) },
+                    )
+                  }
+                  disabled={createKb.isPending}
+                  className="flex-1 rounded-lg bg-emerald-500/20 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
+                >
+                  {fa.seller.panel.guidePrompt.kbCandidateAdd}
+                </button>
+                <button
+                  onClick={() => setAddedKb(prev => new Set(prev).add(originalIndex))}
+                  className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 py-1.5 text-xs font-bold text-slate-400"
+                >
+                  {fa.seller.panel.guidePrompt.ignore}
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه؛ همون الگوی
 // ProductImages در SellerProductEditPage.tsx، ساده‌شده برای تک‌عکس (نه آرایه)
@@ -76,10 +219,13 @@ export function SellerStoreSettingsPage() {
   const stores = useMyStores()
   const store = stores.data?.find(s => s.id === storeId)
   const update = useUpdateStore(storeId)
+  const reanalyze = useAnalyzeOwnerNotes(storeId)
 
+  const [category, setCategory] = useState('')
   const [shippingInfo, setShippingInfo] = useState('')
   const [returnPolicy, setReturnPolicy] = useState('')
   const [brandIntro, setBrandIntro] = useState('')
+  const [ownerNotes, setOwnerNotes] = useState('')
   const [workingHoursStart, setWorkingHoursStart] = useState('')
   const [workingHoursEnd, setWorkingHoursEnd] = useState('')
   const [postPurchaseFollowUpEnabled, setPostPurchaseFollowUpEnabled] = useState(true)
@@ -87,14 +233,19 @@ export function SellerStoreSettingsPage() {
   const [persuasionTechniquesEnabled, setPersuasionTechniquesEnabled] = useState(true)
   const [requiresShipping, setRequiresShipping] = useState(true)
   const [saved, setSaved] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [notesResult, setNotesResult] = useState<AnalyzeOwnerNotesResult | null>(null)
+  const [aiTouched, setAiTouched] = useState(false)
 
   // فقط یک‌بار بعد از رسیدن دیتا مقداردهی اولیه می‌شود — ویرایش‌های در حال تایپ کاربر با
   // رفرش/invalidate پس‌زمینه‌ای بعد از useUpdateStore بازنویسی نمی‌شوند
   useEffect(() => {
     if (!store) return
+    setCategory(store.category ?? '')
     setShippingInfo(store.shippingInfo ?? '')
     setReturnPolicy(store.returnPolicy ?? '')
     setBrandIntro(store.brandIntro ?? '')
+    setOwnerNotes(store.ownerNotes ?? '')
     setWorkingHoursStart(store.workingHoursStart ?? '')
     setWorkingHoursEnd(store.workingHoursEnd ?? '')
     setPostPurchaseFollowUpEnabled(store.postPurchaseFollowUpEnabled)
@@ -107,31 +258,86 @@ export function SellerStoreSettingsPage() {
   function save() {
     update.mutate(
       {
+        category: category.trim() || undefined,
         shippingInfo: shippingInfo.trim() || undefined,
         returnPolicy: returnPolicy.trim() || undefined,
         brandIntro: brandIntro.trim() || undefined,
+        ownerNotes: ownerNotes.trim() || undefined,
         workingHoursStart: workingHoursStart || undefined,
         workingHoursEnd: workingHoursEnd || undefined,
         postPurchaseFollowUpEnabled,
         abandonedCartReminderEnabled,
         persuasionTechniquesEnabled,
         requiresShipping,
+        source: aiTouched ? 'AI_ENRICHMENT' : undefined,
       },
       {
         onSuccess: () => {
           setSaved(true)
+          setAiTouched(false)
           setTimeout(() => setSaved(false), 2000)
         },
       },
     )
   }
 
+  function reanalyzeNotes() {
+    reanalyze.mutate(
+      { entityType: 'STORE', rawText: undefined },
+      { onSuccess: setNotesResult },
+    )
+  }
+
   return (
     <div className="px-5 py-6">
-      <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.storeSettings.title}</h1>
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.storeSettings.title}</h1>
+        <button
+          type="button"
+          onClick={() => setGuideOpen(true)}
+          className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20"
+        >
+          ✨ {fa.seller.panel.guidePrompt.button}
+        </button>
+      </div>
       <p className="mb-6 text-sm text-slate-500">{fa.seller.panel.storeSettings.subtitle}</p>
 
       {store && <StoreLogoUpload store={store} />}
+
+      {notesResult && (
+        <NotesSuggestionsPanel
+          storeId={storeId}
+          result={notesResult}
+          onApplyBrandIntro={text => {
+            setBrandIntro(text)
+            setAiTouched(true)
+          }}
+          onApplyShippingInfo={text => {
+            setShippingInfo(text)
+            setAiTouched(true)
+          }}
+          onApplyReturnPolicy={text => {
+            setReturnPolicy(text)
+            setAiTouched(true)
+          }}
+          onApplyCategory={c => {
+            setCategory(c)
+            setAiTouched(true)
+          }}
+        />
+      )}
+
+      <div className="mb-5">
+        <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
+          {fa.seller.panel.storeSettings.categoryLabel}
+        </label>
+        <input
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          placeholder={fa.seller.panel.storeSettings.categoryPlaceholder}
+          className="w-full rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
+        />
+      </div>
 
       <div className="mb-6">
         <div className="divide-y divide-slate-800 light:divide-slate-200">
@@ -183,6 +389,28 @@ export function SellerStoreSettingsPage() {
           rows={2}
           className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
         />
+      </div>
+
+      <div className="mb-5">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.panel.guidePrompt.ownerNotesLabel}</label>
+          <button
+            type="button"
+            onClick={reanalyzeNotes}
+            disabled={!ownerNotes.trim() || reanalyze.isPending}
+            className="shrink-0 text-xs font-bold text-emerald-400 light:text-emerald-700 hover:underline disabled:opacity-40"
+          >
+            {reanalyze.isPending ? fa.seller.panel.guidePrompt.reanalyzing : fa.seller.panel.guidePrompt.reanalyze}
+          </button>
+        </div>
+        <textarea
+          value={ownerNotes}
+          onChange={e => setOwnerNotes(e.target.value)}
+          rows={3}
+          className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
+        />
+        <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.guidePrompt.ownerNotesHint}</p>
+        {reanalyze.isError && <p className="mt-1 text-xs text-red-400">{fa.seller.panel.guidePrompt.analyzeError}</p>}
       </div>
 
       <div className="mb-6">
@@ -246,6 +474,17 @@ export function SellerStoreSettingsPage() {
       >
         {saved ? fa.seller.panel.storeSettings.saved : fa.seller.panel.storeSettings.save}
       </button>
+
+      <GuidePromptModal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        context="store-setup"
+        storeId={storeId}
+        onResult={result => {
+          setOwnerNotes(result.ownerNotes)
+          setNotesResult(result)
+        }}
+      />
     </div>
   )
 }

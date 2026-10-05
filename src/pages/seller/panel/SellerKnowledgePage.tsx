@@ -9,6 +9,7 @@ import {
 } from '@/queries/seller.queries'
 import type { KbCandidateEntry, StoreKbKind } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
+import { GuidePromptModal } from './GuidePromptModal'
 
 const KIND_LABELS: Record<StoreKbKind, string> = {
   FAQ: fa.seller.panel.knowledge.kindFaq,
@@ -139,6 +140,7 @@ export function SellerKnowledgePage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [candidates, setCandidates] = useState<KbCandidateEntry[]>([])
   const [extractRawText, setExtractRawText] = useState('')
+  const [guideOpen, setGuideOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   function resolveCandidate(index: number) {
@@ -147,7 +149,16 @@ export function SellerKnowledgePage() {
 
   return (
     <div className="px-5 py-6">
-      <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.knowledge.title}</h1>
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.knowledge.title}</h1>
+        <button
+          type="button"
+          onClick={() => setGuideOpen(true)}
+          className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20"
+        >
+          ✨ {fa.seller.panel.guidePrompt.button}
+        </button>
+      </div>
       <p className="mb-5 text-sm text-slate-500">{fa.seller.panel.knowledge.subtitle}</p>
 
       <div className="mb-5 flex gap-2">
@@ -260,6 +271,8 @@ export function SellerKnowledgePage() {
           </div>
         ))}
       </div>
+
+      <GuidePromptModal open={guideOpen} onClose={() => setGuideOpen(false)} context="knowledge-extraction" storeId={storeId} />
     </div>
   )
 }

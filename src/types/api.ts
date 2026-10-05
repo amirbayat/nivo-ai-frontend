@@ -107,6 +107,9 @@ export interface ProductVideoItem {
   durationSec: number
 }
 
+// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۳ — فقط برای لاگ تغییرات محتوا
+export type ContentChangeSource = 'MANUAL' | 'AI_ENRICHMENT'
+
 // docs/PRD-mvp-launch-plan.md گام ۰ — فروشگاه ایجنت فروش دایرکت/تلگرام
 export interface SellerProduct {
   id: string
@@ -132,6 +135,8 @@ export interface SellerProduct {
   // این را پر می‌کند (عیناً مثل completeness بالا)؛ خالی/نبودن یعنی محصول ساده (بدون گزینه) است
   optionTypes?: ProductOptionType[]
   variants?: ProductVariant[]
+  // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — متن خام فروشنده درباره‌ی این محصول
+  ownerNotes: string | null
 }
 
 export interface ProductOptionType {
@@ -184,6 +189,8 @@ export interface SellerStore {
   createdAt: string
   updatedAt: string
   products: SellerProduct[]
+  // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — متن خام فروشنده
+  ownerNotes: string | null
 }
 
 // بخش ۳.۱ — کارت «خانه»‌ی پنل
@@ -556,6 +563,10 @@ export interface UpdateProductInput {
   specs?: ProductSpecSuggestion[] | null
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled?: boolean
+  // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — متن خام append-only
+  ownerNotes?: string
+  // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۳ — فقط برای لاگ تغییرات محتوا
+  source?: ContentChangeSource
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI
@@ -684,6 +695,7 @@ export interface CreateKbEntryInput {
   answer: string
   tags?: string[]
   relatedProductId?: string | null
+  source?: ContentChangeSource
 }
 
 // بخش ۳.۳ — کاندید استخراج‌شده از فایل، قبل از تأیید فروشنده (هنوز ذخیره نشده)
@@ -691,6 +703,28 @@ export interface KbCandidateEntry {
   kind: StoreKbKind
   question: string
   answer: string
+}
+
+// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — پیشنهادهای تحلیل یادداشت خام فروشنده
+// (append شده به ownerNotes)؛ فیلدهای store-only/product-only بسته به entityType پر می‌شوند
+export type NotesAnalysisEntityType = 'STORE' | 'PRODUCT'
+
+export interface NotesAnalysisKbCandidate {
+  question: string
+  answer: string
+  kind: StoreKbKind
+  tags: string[]
+}
+
+export interface AnalyzeOwnerNotesResult {
+  ownerNotes: string
+  brandIntroSuggestion?: string | null
+  shippingInfoSuggestion?: string | null
+  returnPolicySuggestion?: string | null
+  categoryHint?: string | null
+  descriptionSuggestion?: string | null
+  specsSuggestion?: ProductSpecSuggestion[] | null
+  kbCandidates: NotesAnalysisKbCandidate[]
 }
 
 export interface ImportProductsResult {

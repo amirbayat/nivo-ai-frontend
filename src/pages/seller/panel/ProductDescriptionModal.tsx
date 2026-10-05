@@ -6,15 +6,18 @@ import { fa } from '@/locales/fa'
 import { extractErrorMessage } from '@/lib/sellerProduct'
 import {
   useCompleteProductInfo,
+  useCreateKbEntry,
   useGenerateProductDescriptionFromNotes,
   useTranscribeAudio,
 } from '@/queries/seller.queries'
-import type { ProductSpecSuggestion } from '@/types/api'
+import type { NotesAnalysisKbCandidate, ProductSpecSuggestion } from '@/types/api'
+import { GuidePromptModal } from './GuidePromptModal'
 
 type Suggestion = {
   description: string
   specs?: ProductSpecSuggestion[]
   sourceNote?: string
+  kbCandidates?: NotesAnalysisKbCandidate[]
 }
 
 // docs/PRD-product-description-editor.md — جایگزین textarea سه‌خطی قبلی + دو مدال جدای AI
@@ -50,6 +53,7 @@ export function ProductDescriptionModal({
     if (open) {
       setDraft(value)
       setSuggestion(null)
+      setAddedKb(new Set())
       setPreviewOn(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,6 +98,9 @@ export function ProductDescriptionModal({
 
   const improve = useGenerateProductDescriptionFromNotes(storeId)
   const webComplete = useCompleteProductInfo(storeId)
+  const createKb = useCreateKbEntry(storeId)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [addedKb, setAddedKb] = useState<Set<number>>(new Set())
 
   function clickImprove() {
     if (!productId || !draft.trim()) return
@@ -221,6 +228,13 @@ export function ProductDescriptionModal({
             >
               {webComplete.isPending ? fa.seller.panel.products.aiWebCompleteLoading : `🔍 ${fa.seller.panel.products.aiWebCompleteButton}`}
             </button>
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              className="w-full rounded-2xl border border-emerald-500/40 bg-emerald-500/10 py-3 text-sm font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20"
+            >
+              ✨ {fa.seller.panel.guidePrompt.button} (ChatGPT)
+            </button>
             <p className="px-0.5 text-[11px] text-slate-500 light:text-slate-400">{fa.seller.panel.products.aiWebSearchHint}</p>
             {improve.isError && (
               <p className="text-xs text-red-400">{extractErrorMessage(improve.error, fa.seller.panel.products.aiDescribeFromNotesError)}</p>
@@ -269,7 +283,59 @@ export function ProductDescriptionModal({
             </div>
           </div>
         )}
+
+        {!!suggestion?.kbCandidates?.filter((_, i) => !addedKb.has(i)).length && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3.5">
+            <p className="mb-2 text-xs font-semibold text-amber-400">{fa.seller.panel.guidePrompt.suggestionsTitle}</p>
+            <div className="flex flex-col gap-2">
+              {suggestion.kbCandidates.map((c, i) =>
+                addedKb.has(i) ? null : (
+                  <div key={i} className="rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-900/40 light:bg-white p-3">
+                    <p className="mb-1 text-xs font-semibold text-slate-200 light:text-slate-900">{c.question}</p>
+                    <p className="mb-2 text-xs text-slate-400 light:text-slate-600">{c.answer}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          createKb.mutate(
+                            { kind: c.kind, question: c.question, answer: c.answer, tags: c.tags, relatedProductId: productId, source: 'AI_ENRICHMENT' },
+                            { onSuccess: () => setAddedKb(prev => new Set(prev).add(i)) },
+                          )
+                        }
+                        disabled={createKb.isPending}
+                        className="flex-1 rounded-lg bg-emerald-500/20 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
+                      >
+                        {fa.seller.panel.guidePrompt.kbCandidateAdd}
+                      </button>
+                      <button
+                        onClick={() => setAddedKb(prev => new Set(prev).add(i))}
+                        className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 py-1.5 text-xs font-bold text-slate-400"
+                      >
+                        {fa.seller.panel.guidePrompt.ignore}
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      <GuidePromptModal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        context="product"
+        storeId={storeId}
+        productId={productId}
+        onResult={result => {
+          setSuggestion({
+            description: result.descriptionSuggestion ?? draft,
+            specs: result.specsSuggestion ?? undefined,
+            kbCandidates: result.kbCandidates,
+          })
+          setAddedKb(new Set())
+        }}
+      />
     </div>
   )
 }

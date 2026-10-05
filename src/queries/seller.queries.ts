@@ -4,12 +4,15 @@ import { keys } from '@/queries/keys'
 import type {
   AdPlacement,
   AdPlacementStatusResponse,
+  AnalyzeOwnerNotesResult,
   BulkCompleteResult,
   CardDisplayPolicy,
   ChannelStat,
   ClassifyBusinessSetupResult,
   CompetitorAnalysisResult,
+  ContentChangeSource,
   CreateKbEntryInput,
+  NotesAnalysisEntityType,
   ExtractProductsResult,
   GenerateBrandIntroResult,
   GenerateProductDescriptionResult,
@@ -113,9 +116,14 @@ export function useCreateStore() {
 // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲ — فیلدهای ساختاریافته‌ی فروشگاه (ارسال/
 // مرجوعی/معرفی برند/ساعت پاسخ‌گویی)، قابل ویرایش بعد از ثبت‌نام
 export interface UpdateStoreInput {
+  // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — قبلاً فقط در ساخت فروشگاه قابل‌تنظیم بود
+  category?: string
   shippingInfo?: string
   returnPolicy?: string
   brandIntro?: string
+  // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲/۱.۳
+  ownerNotes?: string
+  source?: ContentChangeSource
   workingHoursStart?: string
   workingHoursEnd?: string
   postPurchaseFollowUpEnabled?: boolean
@@ -501,6 +509,16 @@ export function useGenerateProductDescriptionFromNotes(storeId: string) {
       api
         .post<GenerateProductDescriptionResult>(`/v2/stores/${storeId}/products/${productId}/describe-from-notes`, { rawText })
         .then(r => r.data),
+  })
+}
+
+// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — فروشنده نتیجه‌ی ChatGPT بیرونی (یا
+// یادداشت دستی) را این‌جا پیست می‌کند؛ append به ownerNotes + پیشنهاد برای فیلدهای دیگر.
+// rawText اختیاری: خالی برای دکمه‌ی «تحلیل دوباره» (فقط ownerNotes فعلی را دوباره تحلیل می‌کند)
+export function useAnalyzeOwnerNotes(storeId: string) {
+  return useMutation({
+    mutationFn: (dto: { entityType: NotesAnalysisEntityType; productId?: string; rawText?: string }) =>
+      api.post<AnalyzeOwnerNotesResult>(`/v2/stores/${storeId}/notes-analysis`, dto).then(r => r.data),
   })
 }
 
