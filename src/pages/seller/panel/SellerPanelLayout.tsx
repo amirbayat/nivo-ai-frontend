@@ -14,6 +14,12 @@ interface SellerStoreCtx {
   instagramUrl: string | null
   telegramUrl: string | null
   websiteUrl: string | null
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۱/۳.۳
+  category: string | null
+  goldWageType: 'PERCENT' | 'FIXED_PER_GRAM' | null
+  goldWageValue: number | null
+  goldProfitPercent: number | null
+  goldVatPercent: number
 }
 
 const SellerStoreContext = createContext<SellerStoreCtx | null>(null)
@@ -128,6 +134,11 @@ export function SellerPanelLayout() {
         instagramUrl: store.instagramUrl,
         telegramUrl: store.telegramUrl,
         websiteUrl: store.websiteUrl,
+        category: store.category,
+        goldWageType: store.goldWageType,
+        goldWageValue: store.goldWageValue,
+        goldProfitPercent: store.goldProfitPercent,
+        goldVatPercent: store.goldVatPercent,
       }}
     >
       <div className="flex min-h-screen flex-col lg:flex-row bg-slate-950 light:bg-white" dir="rtl">

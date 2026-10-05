@@ -128,6 +128,11 @@ export interface SellerProduct {
   createdAt: string
   // فقط GET /v2/stores/:id/products این را پر می‌کند (نه SellerStore.products از GET me)
   completeness?: ProductCompleteness
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۲/۳ — basePrice برای این
+  // مدل نادیده گرفته می‌شود؛ قیمت at-request-time از وزن/عیار محاسبه می‌شود
+  pricingModel: 'FIXED' | 'WEIGHT_BASED_FORMULA'
+  weightGrams: number | null
+  purityKarat: number | null
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶ — کلید به‌ازای این محصول (AND با
   // SellerStore.persuasionTechniquesEnabled)
   persuasionTechniquesEnabled: boolean
@@ -152,6 +157,10 @@ export interface ProductVariant {
   priceOverride: number | null
   stock: number
   sku: string | null
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۴ — خالی = از مقدار
+  // سطح محصول (Product.weightGrams/purityKarat) استفاده کن
+  weightGrams: number | null
+  purityKarat: number | null
 }
 
 export interface SellerStore {
@@ -191,6 +200,12 @@ export interface SellerStore {
   products: SellerProduct[]
   // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — متن خام فروشنده
   ownerNotes: string | null
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳ — اجرت/سود/مالیات
+  // طلا، یک‌بار برای کل فروشگاه؛ فقط وقتی محصول WEIGHT_BASED_FORMULA دارد معنی پیدا می‌کند
+  goldWageType: 'PERCENT' | 'FIXED_PER_GRAM' | null
+  goldWageValue: number | null
+  goldProfitPercent: number | null
+  goldVatPercent: number
 }
 
 // بخش ۳.۱ — کارت «خانه»‌ی پنل
@@ -397,11 +412,19 @@ export type ShopUiBlock =
 export interface PublicProduct {
   id: string
   name: string
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۲.۳/۴.۱ — برای محصولات
+  // طلا این عدد محاسبه‌شده‌ی لحظه‌ای است (basePrice خام هیچ‌وقت مستقیم نشان داده نمی‌شود)
   basePrice: number
   stock: number
   images: string[]
   videos: ProductVideoItem[]
   description: string | null
+  isWeightBasedPricing: boolean
+  weightGrams: number | null
+  purityKarat: number | null
+  // true یعنی نرخ لحظه‌ای/تنظیمات فروشگاه موقتاً در دسترس نبود؛ basePrice در این حالت آخرین
+  // basePrice ذخیره‌شده (احتمالاً صفر/قدیمی) است، نه قابل‌اتکا برای نمایش قطعی
+  priceUnavailable: boolean
 }
 
 export interface PublicProductsPage {
@@ -567,6 +590,10 @@ export interface UpdateProductInput {
   ownerNotes?: string
   // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۳ — فقط برای لاگ تغییرات محتوا
   source?: ContentChangeSource
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۲/۳
+  pricingModel?: 'FIXED' | 'WEIGHT_BASED_FORMULA'
+  weightGrams?: number
+  purityKarat?: number
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI
@@ -1304,5 +1331,22 @@ export interface VideoEditConfig {
   maxConcurrentJobsPerUser: number
   maxJobsPerDayPerUser: number | null
   updatedAt: string
+}
+
+// docs/PRD-gold-silver-price-ticker.md — GET /market-prices/gold (عمومی، بدون auth)
+export interface GoldPriceItem {
+  symbol: string
+  name: string
+  name_en: string
+  price: number
+  change_value: number
+  change_percent: number
+  unit: string
+}
+
+export interface GoldPricesResult {
+  items: GoldPriceItem[]
+  updatedAt: string | null
+  source: 'live' | 'unavailable'
 }
 

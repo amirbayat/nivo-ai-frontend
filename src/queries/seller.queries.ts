@@ -65,6 +65,10 @@ export interface CreateProductInput {
   code?: string
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled?: boolean
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۲/۳
+  pricingModel?: 'FIXED' | 'WEIGHT_BASED_FORMULA'
+  weightGrams?: number
+  purityKarat?: number
 }
 
 // docs/PRD-product-display-focus-and-variations.md §۴.۱ — همیشه جایگزین کامل (نه patch)
@@ -75,6 +79,10 @@ export interface ReplaceProductVariantsInput {
     stock: number
     priceOverride?: number | null
     sku?: string
+    // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۴ — فقط برای محصول
+    // WEIGHT_BASED_FORMULA، خالی = از مقدار سطح محصول استفاده کن
+    weightGrams?: number
+    purityKarat?: number
   }[]
 }
 
@@ -132,6 +140,11 @@ export interface UpdateStoreInput {
   persuasionTechniquesEnabled?: boolean
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱
   requiresShipping?: boolean
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳ — یک‌بار برای کل فروشگاه
+  goldWageType?: 'PERCENT' | 'FIXED_PER_GRAM'
+  goldWageValue?: number
+  goldProfitPercent?: number
+  goldVatPercent?: number
 }
 
 export function useUpdateStore(storeId: string) {
@@ -526,6 +539,21 @@ export function useAnalyzeOwnerNotes(storeId: string) {
 // docs/PRD-product-display-focus-and-variations.md §۴.۱.۱ (فاز ۲) — عیناً الگوی
 // useGenerateProductDescriptionFromNotes؛ خروجی مستقیم ذخیره نمی‌شود، فروشنده در
 // ProductVariantsEditor چیپ‌های پیش‌پرشده را تأیید/ویرایش می‌کند
+// docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۲ — پیش‌نمایش زنده‌ی
+// قیمت طلا حین پرکردن فرم، قبل از ذخیره
+export function useGoldPricePreview(storeId: string, weightGrams: number | null, purityKarat: number | null) {
+  return useQuery({
+    queryKey: ['seller', 'goldPricePreview', storeId, weightGrams, purityKarat],
+    queryFn: () =>
+      api
+        .get<{ price: number | null; error: string | null }>(`/v2/stores/${storeId}/gold-price-preview`, {
+          params: { weightGrams, purityKarat },
+        })
+        .then(r => r.data),
+    enabled: !!storeId && !!weightGrams && !!purityKarat,
+  })
+}
+
 export function useGenerateProductOptionsFromText(storeId: string) {
   return useMutation({
     mutationFn: ({ productId, rawText }: { productId: string; rawText: string }) =>

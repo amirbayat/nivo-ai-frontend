@@ -601,9 +601,20 @@ export const fa = {
             ? `${ok.toLocaleString('fa-IR')} مورد اعمال شد، ${fail.toLocaleString('fa-IR')} مورد با خطا`
             : `${ok.toLocaleString('fa-IR')} مورد با موفقیت اعمال شد`,
         bulkImportDone: 'تمام',
+        // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۵ — افزودن تکی با متن
+        aiTextAddTitle: 'یا متنشو بنویس، خودمون پر می‌کنیم',
+        aiTextAddPlaceholder: 'مثلاً: گردنبند طلای ۱۸ عیار، ۵۰۰ هزار تومان، ۳ عدد موجود',
+        aiTextAddButton: '✨ پر کردن فرم از روی متن',
         nameLabel: 'نام محصول',
         priceLabel: 'قیمت (تومان)',
         stockLabel: 'موجودی',
+        // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳
+        weightBasedToggleLabel: 'قیمت این محصول بر اساس وزن طلا/نقره محاسبه بشه؟',
+        weightGramsLabel: 'وزن (گرم)',
+        purityKaratLabel: 'عیار',
+        goldSettingsMissing: 'برای محاسبه‌ی قیمت باید اول اجرت و درصد سود طلا رو در تنظیمات فروشگاه مشخص کنی.',
+        goldSettingsMissingLink: 'رفتن به تنظیمات',
+        goldPricePreviewLabel: '⏱ قیمت محاسبه‌شده بر اساس نرخ لحظه‌ای:',
         addImage: 'افزودن عکس',
         maxImages: 'حداکثر ۴ عکس برای هر محصول',
         // docs/PRD-product-video.md بخش ۴ — چندویدیویی (سقف ۴ تا)
@@ -1013,6 +1024,16 @@ export const fa = {
         subtitle: 'این اطلاعات همیشه در دسترس ایجنت فروش هستند و لازم نیست تک‌تک به باکس دانش اضافه شوند',
         requiresShippingLabel: 'این فروشگاه نیاز به ارسال کالا دارد',
         requiresShippingHint: 'اگر محصولاتت حضوری/دیجیتالی تحویل داده می‌شوند، این را خاموش کن تا موقع خرید آدرس پرسیده نشود؛ تنظیم هزینه‌ی ارسال به‌تفکیک استان از «بیشتر ← هزینه ارسال» در دسترس است',
+        // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳
+        goldPricingTitle: 'قیمت‌گذاری طلا',
+        goldPricingHint: 'این مقادیر یک‌بار برای کل فروشگاه تنظیم می‌شوند و برای همه‌ی محصولاتی که «قیمت بر اساس وزن» روشن دارند استفاده می‌شوند.',
+        goldWageTypeLabel: 'نوع اجرت',
+        goldWageTypePercent: 'درصدی',
+        goldWageTypeFixedPerGram: 'مبلغ ثابت هر گرم',
+        goldWageValuePercentLabel: 'درصد اجرت',
+        goldWageValueFixedLabel: 'اجرت هر گرم (تومان)',
+        goldProfitPercentLabel: 'درصد سود فروشنده',
+        goldVatPercentLabel: 'درصد مالیات بر ارزش‌افزوده',
         // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — قبلاً فقط در ثبت‌نام قابل‌تنظیم بود
         categoryLabel: 'دسته‌بندی فروشگاه',
         categoryPlaceholder: 'مثلاً: پوشاک زنانه',
@@ -1124,6 +1145,13 @@ export const fa = {
     storeModeBackToChat: 'بازگشت به گفتگو',
     storeModeAskSeller: 'پرسیدن از فروشنده',
     storeModeAddedToCart: 'به سبد اضافه شد',
+    // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۴
+    goldPriceTickerTitle: 'نرخ امروز',
+    goldPriceTickerUpdatedAt: 'آخرین به‌روزرسانی: چند لحظه پیش',
+    goldPriceUnavailable: 'نرخ لحظه‌ای طلا موقتاً در دسترس نیست',
+    weightBasedPriceBadge: '⏱ قیمت لحظه‌ای',
+    weightBasedPriceDetail: (weightGrams: number, purityKarat: number) =>
+      `وزن: ${weightGrams.toLocaleString('fa-IR')} گرم، عیار ${purityKarat.toLocaleString('fa-IR')}`,
     // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸)
     checkoutSteps: ['سبد', 'آدرس', 'پرداخت', 'تأیید'],
     orderListEmpty: 'هنوز سفارشی ثبت نشده',

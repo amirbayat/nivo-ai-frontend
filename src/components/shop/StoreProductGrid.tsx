@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { fa } from '@/locales/fa'
 import { useStoreProducts } from '@/hooks/useStoreProducts'
 import { productImageUrl } from './ShopUiBlocks'
+import { GoldPriceTicker } from './GoldPriceTicker'
 import type { PublicProduct } from '@/types/api'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»، «فاز ۱»: فقط گرید ساده
@@ -29,9 +30,11 @@ export function StoreProductGrid({
 }: StoreProductGridProps) {
   const { items, query, setQuery, loading, error, hasMore, loadMore } = useStoreProducts(slug, true)
   const [selected, setSelected] = useState<PublicProduct | null>(null)
+  const hasGoldProducts = items.some((p) => p.isWeightBasedPricing)
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
+      {hasGoldProducts && <GoldPriceTicker />}
       <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 p-3 backdrop-blur light:border-slate-200 light:bg-white/95">
         <input
           value={query}
@@ -59,9 +62,16 @@ export function StoreProductGrid({
                   )}
                   <div className="flex flex-col gap-0.5 p-2">
                     <span className="truncate text-xs font-medium text-slate-200 light:text-slate-900">{p.name}</span>
-                    <span className="text-[11px] text-slate-400 light:text-slate-600">
-                      {p.basePrice.toLocaleString('fa-IR')} تومان
-                    </span>
+                    {p.priceUnavailable ? (
+                      <span className="text-[11px] text-slate-500">{fa.shop.goldPriceUnavailable}</span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 light:text-slate-600">
+                        {p.basePrice.toLocaleString('fa-IR')} تومان
+                      </span>
+                    )}
+                    {p.isWeightBasedPricing && (
+                      <span className="text-[10px] text-amber-400">{fa.shop.weightBasedPriceBadge}</span>
+                    )}
                   </div>
                 </button>
                 {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد» */}
@@ -162,7 +172,16 @@ function ProductDetailSheet({
             </svg>
           </button>
         </div>
-        <p className="mb-2 text-sm font-bold text-emerald-400">{product.basePrice.toLocaleString('fa-IR')} تومان</p>
+        {product.priceUnavailable ? (
+          <p className="mb-2 text-sm text-slate-500">{fa.shop.goldPriceUnavailable}</p>
+        ) : (
+          <p className="mb-0.5 text-sm font-bold text-emerald-400">{product.basePrice.toLocaleString('fa-IR')} تومان</p>
+        )}
+        {product.isWeightBasedPricing && product.weightGrams != null && product.purityKarat != null && (
+          <p className="mb-2 text-[11px] text-amber-400">
+            {fa.shop.weightBasedPriceBadge} — {fa.shop.weightBasedPriceDetail(product.weightGrams, product.purityKarat)}
+          </p>
+        )}
         {product.description && (
           <p className="mb-3 text-sm text-slate-400 light:text-slate-600">{product.description}</p>
         )}

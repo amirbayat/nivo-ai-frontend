@@ -6,6 +6,7 @@ import { extractErrorMessage, storeLogoUrl } from '@/lib/sellerProduct'
 import {
   useAnalyzeOwnerNotes,
   useMyStores,
+  useProducts,
   useRemoveStoreLogo,
   useUpdateStore,
   useUploadStoreLogo,
@@ -85,8 +86,17 @@ export function SellerStoreSettingsPage() {
   const store = stores.data?.find(s => s.id === storeId)
   const update = useUpdateStore(storeId)
   const reanalyze = useAnalyzeOwnerNotes(storeId)
+  const products = useProducts(storeId)
 
   const [category, setCategory] = useState('')
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳
+  const [goldWageType, setGoldWageType] = useState<'PERCENT' | 'FIXED_PER_GRAM'>('PERCENT')
+  const [goldWageValue, setGoldWageValue] = useState('')
+  const [goldProfitPercent, setGoldProfitPercent] = useState('')
+  const [goldVatPercent, setGoldVatPercent] = useState('10')
+  // بخش ۳.۳ سند — فقط وقتی دسته‌ی طلا/جواهر انتخاب شده یا حداقل یک محصول وزن‌محور دارد نمایش داده می‌شود
+  const showGoldPricingSection =
+    category === 'جواهرات و اکسسوری' || (products.data?.some(p => p.pricingModel === 'WEIGHT_BASED_FORMULA') ?? false)
   const [shippingInfo, setShippingInfo] = useState('')
   const [returnPolicy, setReturnPolicy] = useState('')
   const [brandIntro, setBrandIntro] = useState('')
@@ -117,6 +127,10 @@ export function SellerStoreSettingsPage() {
     setAbandonedCartReminderEnabled(store.abandonedCartReminderEnabled)
     setPersuasionTechniquesEnabled(store.persuasionTechniquesEnabled)
     setRequiresShipping(store.requiresShipping)
+    if (store.goldWageType) setGoldWageType(store.goldWageType)
+    setGoldWageValue(store.goldWageValue != null ? String(store.goldWageValue) : '')
+    setGoldProfitPercent(store.goldProfitPercent != null ? String(store.goldProfitPercent) : '')
+    setGoldVatPercent(String(store.goldVatPercent))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store?.id])
 
@@ -134,6 +148,10 @@ export function SellerStoreSettingsPage() {
         abandonedCartReminderEnabled,
         persuasionTechniquesEnabled,
         requiresShipping,
+        goldWageType: showGoldPricingSection ? goldWageType : undefined,
+        goldWageValue: showGoldPricingSection && goldWageValue ? Number(goldWageValue) : undefined,
+        goldProfitPercent: showGoldPricingSection && goldProfitPercent ? Number(goldProfitPercent) : undefined,
+        goldVatPercent: showGoldPricingSection && goldVatPercent ? Number(goldVatPercent) : undefined,
         source: aiTouched ? 'AI_ENRICHMENT' : undefined,
       },
       {
@@ -216,6 +234,64 @@ export function SellerStoreSettingsPage() {
           {fa.seller.panel.storeSettings.requiresShippingHint}
         </p>
       </div>
+
+      {showGoldPricingSection && (
+        <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <p className="mb-1 text-sm font-semibold text-amber-300">{fa.seller.panel.storeSettings.goldPricingTitle}</p>
+          <p className="mb-3 text-[11px] text-slate-500">{fa.seller.panel.storeSettings.goldPricingHint}</p>
+
+          <label className="mb-1.5 block text-xs font-semibold text-slate-300 light:text-slate-700">
+            {fa.seller.panel.storeSettings.goldWageTypeLabel}
+          </label>
+          <div className="mb-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setGoldWageType('PERCENT')}
+              className={`flex-1 rounded-lg border py-2 text-xs font-semibold ${goldWageType === 'PERCENT' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-slate-700 light:border-slate-300 text-slate-400'}`}
+            >
+              {fa.seller.panel.storeSettings.goldWageTypePercent}
+            </button>
+            <button
+              type="button"
+              onClick={() => setGoldWageType('FIXED_PER_GRAM')}
+              className={`flex-1 rounded-lg border py-2 text-xs font-semibold ${goldWageType === 'FIXED_PER_GRAM' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-slate-700 light:border-slate-300 text-slate-400'}`}
+            >
+              {fa.seller.panel.storeSettings.goldWageTypeFixedPerGram}
+            </button>
+          </div>
+
+          <div className="mb-3 grid grid-cols-2 gap-3">
+            <Input
+              label={
+                goldWageType === 'PERCENT'
+                  ? fa.seller.panel.storeSettings.goldWageValuePercentLabel
+                  : fa.seller.panel.storeSettings.goldWageValueFixedLabel
+              }
+              value={goldWageValue}
+              onChange={e => setGoldWageValue(e.target.value.replace(/[^\d.]/g, ''))}
+              dir="ltr"
+              inputMode="decimal"
+              className="text-center"
+            />
+            <Input
+              label={fa.seller.panel.storeSettings.goldProfitPercentLabel}
+              value={goldProfitPercent}
+              onChange={e => setGoldProfitPercent(e.target.value.replace(/[^\d.]/g, ''))}
+              dir="ltr"
+              inputMode="decimal"
+              className="text-center"
+            />
+          </div>
+          <Input
+            label={fa.seller.panel.storeSettings.goldVatPercentLabel}
+            value={goldVatPercent}
+            onChange={e => setGoldVatPercent(e.target.value.replace(/[^\d.]/g, ''))}
+            dir="ltr"
+            inputMode="decimal"
+            className="w-1/2 text-center"
+          />
+        </div>
+      )}
 
       <div className="mb-5">
         <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">

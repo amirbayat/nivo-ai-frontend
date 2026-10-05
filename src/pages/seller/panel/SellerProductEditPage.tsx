@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
@@ -11,7 +11,9 @@ import {
   useCreateProduct,
   useDeleteProduct,
   useDeleteProductImage,
+  useExtractProductsFromText,
   useGenerateProductOptionsFromText,
+  useGoldPricePreview,
   useProducts,
   useProductTelegramLink,
   useRemoveProductVideo,
@@ -203,7 +205,7 @@ function ProductVideo({
 const MAX_OPTION_TYPES = 2
 
 type DraftOptionType = { name: string; values: string[] }
-type DraftVariantRow = { stock: string; priceOverride: string; sku: string }
+type DraftVariantRow = { stock: string; priceOverride: string; sku: string; weightGrams: string; purityKarat: string }
 
 function comboKey(optionValues: Record<string, string>): string {
   return Object.keys(optionValues).sort().map(k => `${k}=${optionValues[k]}`).join('|')
@@ -259,6 +261,8 @@ function ProductVariantsEditor({
         stock: String(v.stock),
         priceOverride: v.priceOverride != null ? String(v.priceOverride) : '',
         sku: v.sku ?? '',
+        weightGrams: v.weightGrams != null ? String(v.weightGrams) : '',
+        purityKarat: v.purityKarat != null ? String(v.purityKarat) : '',
       }
     }
     setRowsByKey(rows)
@@ -314,7 +318,7 @@ function ProductVariantsEditor({
   const visibleCombos = combos.filter(c => !excludedKeys.has(comboKey(c)))
 
   function rowFor(key: string): DraftVariantRow {
-    return rowsByKey[key] ?? { stock: '0', priceOverride: '', sku: '' }
+    return rowsByKey[key] ?? { stock: '0', priceOverride: '', sku: '', weightGrams: '', purityKarat: '' }
   }
   function updateRow(key: string, patch: Partial<DraftVariantRow>) {
     setRowsByKey(prev => ({ ...prev, [key]: { ...rowFor(key), ...patch } }))
@@ -341,6 +345,8 @@ function ProductVariantsEditor({
               stock: Number(toEnglishDigits(row.stock)) || 0,
               priceOverride: row.priceOverride ? Number(toEnglishDigits(row.priceOverride)) || 0 : null,
               sku: row.sku.trim() || undefined,
+              weightGrams: row.weightGrams ? Number(toEnglishDigits(row.weightGrams)) || undefined : undefined,
+              purityKarat: row.purityKarat ? Number(row.purityKarat) || undefined : undefined,
             }
           }),
         }
@@ -461,6 +467,16 @@ function ProductVariantsEditor({
                       <span className="min-w-0 flex-1 truncate text-xs text-slate-300 light:text-slate-700">
                         {Object.entries(ov).map(([k, v]) => `${k}: ${v}`).join('، ')}
                       </span>
+                      {product.pricingModel === 'WEIGHT_BASED_FORMULA' && (
+                        <input
+                          value={row.weightGrams}
+                          onChange={e => updateRow(key, { weightGrams: toEnglishDigits(e.target.value).replace(/[^\d.]/g, '') })}
+                          placeholder={fa.seller.panel.products.weightGramsLabel}
+                          dir="ltr"
+                          inputMode="decimal"
+                          className="w-16 shrink-0 rounded-lg border border-amber-500/40 bg-transparent px-2 py-1.5 text-center text-xs text-slate-200 light:text-slate-900"
+                        />
+                      )}
                       <input
                         value={row.stock}
                         onChange={e => updateRow(key, { stock: toEnglishDigits(e.target.value).replace(/\D/g, '') })}
@@ -509,6 +525,95 @@ function ProductVariantsEditor({
 // این‌جا فقط برای فیدبک فوری به فروشنده قبل از Save تکرار شده
 const NAME_MAX_LENGTH = 200
 const DESCRIPTION_MAX_LENGTH = 5000
+// docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۱ — از همان ۱۸ دسته‌ی
+// ثابت ثبت‌نام استفاده می‌شود (fa.ts:449-454)، نه یک لیست موازی جدید
+const GOLD_CATEGORY_NAMES = ['جواهرات و اکسسوری']
+const PURITY_KARAT_OPTIONS = [18, 21, 22, 24]
+
+// docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۲ — فیلدهای وزن/عیار +
+// پیش‌نمایش زنده به‌جای فیلد «قیمت» وقتی pricingModel=WEIGHT_BASED_FORMULA است
+function GoldPricingFields({
+  storeId,
+  weightGrams,
+  setWeightGrams,
+  purityKarat,
+  setPurityKarat,
+  stock,
+  setStock,
+  goldPricingConfigured,
+}: {
+  storeId: string
+  weightGrams: string
+  setWeightGrams: (v: string) => void
+  purityKarat: string
+  setPurityKarat: (v: string) => void
+  stock: string
+  setStock: (v: string) => void
+  goldPricingConfigured: boolean
+}) {
+  const preview = useGoldPricePreview(
+    storeId,
+    weightGrams ? Number(toEnglishDigits(weightGrams)) : null,
+    purityKarat ? Number(purityKarat) : null,
+  )
+
+  return (
+    <div className="mb-6">
+      <div className="mb-3 grid grid-cols-2 gap-3">
+        <Input
+          label={fa.seller.panel.products.weightGramsLabel}
+          value={weightGrams}
+          onChange={e => setWeightGrams(toEnglishDigits(e.target.value).replace(/[^\d.]/g, ''))}
+          dir="ltr"
+          inputMode="decimal"
+          className="text-center"
+        />
+        <Input
+          label={fa.seller.panel.products.stockLabel}
+          value={stock}
+          onChange={e => setStock(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+          dir="ltr"
+          inputMode="numeric"
+          className="text-center"
+        />
+      </div>
+      <label className="mb-1.5 block text-sm font-semibold text-slate-300 light:text-slate-700">
+        {fa.seller.panel.products.purityKaratLabel}
+      </label>
+      <div className="mb-3 flex gap-2">
+        {PURITY_KARAT_OPTIONS.map(k => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setPurityKarat(String(k))}
+            className={`flex-1 rounded-lg border py-2 text-sm font-semibold ${
+              Number(purityKarat) === k
+                ? 'border-amber-500 bg-amber-500/10 text-amber-300'
+                : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600'
+            }`}
+          >
+            {k}
+          </button>
+        ))}
+      </div>
+
+      {!goldPricingConfigured ? (
+        <p className="rounded-xl bg-amber-500/10 p-3 text-xs text-amber-300">
+          {fa.seller.panel.products.goldSettingsMissing}{' '}
+          <Link to="/seller/panel/store-settings" className="font-semibold underline">
+            {fa.seller.panel.products.goldSettingsMissingLink}
+          </Link>
+        </p>
+      ) : preview.data?.error ? (
+        <p className="rounded-xl bg-slate-800/40 light:bg-slate-50 p-3 text-xs text-slate-500">{preview.data.error}</p>
+      ) : preview.data?.price != null ? (
+        <p className="rounded-xl bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300">
+          {fa.seller.panel.products.goldPricePreviewLabel} {preview.data.price.toLocaleString('fa-IR')} {fa.common.toman}
+        </p>
+      ) : null}
+    </div>
+  )
+}
 
 function BackChevron() {
   // قانون RTL پروژه: آیکون «بازگشت» باید به راست اشاره کند (CLAUDE.md)
@@ -525,7 +630,7 @@ function BackChevron() {
 export function SellerProductEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { storeId, storeSlug } = useSellerStore()
+  const { storeId, storeSlug, category, goldWageType, goldWageValue, goldProfitPercent } = useSellerStore()
   const products = useProducts(storeId)
   const isNew = id === 'new'
 
@@ -550,6 +655,11 @@ export function SellerProductEditPage() {
   const create = useCreateProduct(storeId)
   const remove = useDeleteProduct(storeId)
   const pending = update.isPending || create.isPending || remove.isPending
+
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۵ — افزودن تکی با متن؛
+  // همان endpoint بولک موجود را صدا می‌زند و فقط نتیجه‌ی اول آرایه را مصرف می‌کند (تصمیم کاربر)
+  const extractFromText = useExtractProductsFromText(storeId)
+  const [aiProductText, setAiProductText] = useState('')
 
   // همون الگوی کپی لینک وب در SellerProductsPage.tsx — این‌جا هم تکرار شده تا از صفحه‌ی
   // ویرایش محصول (بدون برگشت به لیست) قابل کپی باشد
@@ -583,6 +693,12 @@ export function SellerProductEditPage() {
   const [initialized, setInitialized] = useState(false)
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false)
 
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۱ — پیش‌فرض خاموش؛ فقط
+  // برای محصول تازه در دسته‌ی طلا/جواهر پیشنهاد نرم روشن می‌شود (کاملاً قابل‌تغییر فروشنده)
+  const [isWeightBased, setIsWeightBased] = useState(false)
+  const [weightGrams, setWeightGrams] = useState('')
+  const [purityKarat, setPurityKarat] = useState('18')
+
   // فرم فقط یک‌بار از دیتای واقعی پر می‌شود (نه هر رندر، وگرنه تایپ فروشنده با هر invalidate
   // پاک می‌شد)؛ با عوض‌شدن id دوباره مقداردهی می‌شود
   useEffect(() => {
@@ -598,9 +714,15 @@ export function SellerProductEditPage() {
       setSpecs(product.specs ?? [])
       setCode(product.code ?? '')
       setPersuasionTechniquesEnabled(product.persuasionTechniquesEnabled)
+      setIsWeightBased(product.pricingModel === 'WEIGHT_BASED_FORMULA')
+      setWeightGrams(product.weightGrams != null ? String(product.weightGrams) : '')
+      setPurityKarat(product.purityKarat != null ? String(product.purityKarat) : '18')
+    } else if (GOLD_CATEGORY_NAMES.includes(category ?? '')) {
+      // بخش ۳.۱ سند — پیشنهاد نرم برای محصول تازه در دسته‌ی طلا/جواهر، نه قفل
+      setIsWeightBased(true)
     }
     setInitialized(true)
-  }, [initialized, product])
+  }, [initialized, product, category])
 
   function goBack() {
     navigate('/seller/panel/products')
@@ -609,12 +731,15 @@ export function SellerProductEditPage() {
   function save() {
     const dto = {
       name,
-      basePrice: Number(toEnglishDigits(price)) || 0,
+      basePrice: isWeightBased ? 0 : Number(toEnglishDigits(price)) || 0,
       stock: stock ? Number(toEnglishDigits(stock)) : undefined,
       description: description || undefined,
       specs: specs.length ? specs : null,
       code: code.trim() || undefined,
       persuasionTechniquesEnabled,
+      pricingModel: (isWeightBased ? 'WEIGHT_BASED_FORMULA' : 'FIXED') as 'WEIGHT_BASED_FORMULA' | 'FIXED',
+      weightGrams: isWeightBased ? Number(toEnglishDigits(weightGrams)) || undefined : undefined,
+      purityKarat: isWeightBased ? Number(purityKarat) : undefined,
     }
     if (isNew) {
       // فیدبک کاربر/تصمیم PRD بخش ۹.۲ مورد ۲ — بعد از ذخیره‌ی محصول تازه به لیست برنمی‌گردیم؛
@@ -658,6 +783,24 @@ export function SellerProductEditPage() {
 
   const existingProduct = product !== 'new' ? product : null
 
+  function applyAiProductText() {
+    if (!aiProductText.trim()) return
+    extractFromText.mutate(
+      aiProductText,
+      {
+        onSuccess: res => {
+          const first = res.items[0]
+          if (!first) return
+          setName(first.name)
+          if (first.description) setDescription(first.description)
+          if (first.basePrice != null) setPrice(String(first.basePrice))
+          if (first.stock != null) setStock(String(first.stock))
+          if (first.code) setCode(first.code)
+        },
+      },
+    )
+  }
+
   return (
     <div className="px-5 py-6">
       <button onClick={goBack} className="mb-5 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 light:text-slate-500 light:hover:text-slate-800">
@@ -690,6 +833,30 @@ export function SellerProductEditPage() {
         )}
       </div>
 
+      {isNew && (
+        <div className="mb-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+          <p className="mb-2 text-xs font-semibold text-emerald-400">{fa.seller.panel.products.aiTextAddTitle}</p>
+          <textarea
+            value={aiProductText}
+            onChange={e => setAiProductText(e.target.value)}
+            placeholder={fa.seller.panel.products.aiTextAddPlaceholder}
+            rows={3}
+            className="w-full resize-none rounded-lg border border-slate-700 light:border-slate-300 bg-transparent px-3 py-1.5 text-xs text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <button
+            type="button"
+            onClick={applyAiProductText}
+            disabled={extractFromText.isPending || !aiProductText.trim()}
+            className="mt-2 w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 py-2 text-xs font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
+          >
+            {extractFromText.isPending ? fa.common.loading : fa.seller.panel.products.aiTextAddButton}
+          </button>
+          {extractFromText.isError && (
+            <p className="mt-1.5 text-[11px] text-red-400">{extractErrorMessage(extractFromText.error, fa.common.error)}</p>
+          )}
+        </div>
+      )}
+
       <div className="mb-5">
         <Input label={fa.seller.panel.products.nameLabel} value={name} onChange={e => setName(e.target.value)} maxLength={NAME_MAX_LENGTH} />
       </div>
@@ -702,24 +869,45 @@ export function SellerProductEditPage() {
           dir="ltr"
         />
       </div>
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <Input
-          label={fa.seller.panel.products.priceLabel}
-          value={formatThousands(price)}
-          onChange={e => setPrice(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-          dir="ltr"
-          inputMode="numeric"
-          className="text-center"
-        />
-        <Input
-          label={fa.seller.panel.products.stockLabel}
-          value={stock}
-          onChange={e => setStock(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-          dir="ltr"
-          inputMode="numeric"
-          className="text-center"
+      <div className="mb-3">
+        <ToggleRow
+          label={fa.seller.panel.products.weightBasedToggleLabel}
+          checked={isWeightBased}
+          onChange={setIsWeightBased}
         />
       </div>
+
+      {isWeightBased ? (
+        <GoldPricingFields
+          storeId={storeId}
+          weightGrams={weightGrams}
+          setWeightGrams={setWeightGrams}
+          purityKarat={purityKarat}
+          setPurityKarat={setPurityKarat}
+          stock={stock}
+          setStock={setStock}
+          goldPricingConfigured={!!goldWageType && goldWageValue != null && goldProfitPercent != null}
+        />
+      ) : (
+        <div className="mb-6 grid grid-cols-2 gap-3">
+          <Input
+            label={fa.seller.panel.products.priceLabel}
+            value={formatThousands(price)}
+            onChange={e => setPrice(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+            dir="ltr"
+            inputMode="numeric"
+            className="text-center"
+          />
+          <Input
+            label={fa.seller.panel.products.stockLabel}
+            value={stock}
+            onChange={e => setStock(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+            dir="ltr"
+            inputMode="numeric"
+            className="text-center"
+          />
+        </div>
+      )}
 
       {product && product !== 'new' && (
         <>
