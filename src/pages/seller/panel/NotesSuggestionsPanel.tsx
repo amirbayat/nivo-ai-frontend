@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { fa } from '@/locales/fa'
-import { useCreateKbEntry } from '@/queries/seller.queries'
+import { useAddShippingRule, useCreateKbEntry } from '@/queries/seller.queries'
 import type { AnalyzeOwnerNotesResult } from '@/types/api'
 
 // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — پیشنهادهای تحلیل یادداشت، هرکدام جدا
 // تایید/رد می‌شود؛ هیچ‌چیز خودکار در فیلد اصلی نمی‌نشیند. مشترک بین SellerStoreSettingsPage
 // و SellerOnboardingPage (فیدبک کاربر ۱۴۰۵/۰۷/۱۵ — onboarding هم باید همه‌ی پیشنهادها را نشان
 // بدهد، نه فقط brandIntro، وگرنه سیاست ارسال/مرجوعی/دسته‌بندی/باکس دانشی که فروشنده پیست کرده گم می‌شود)
+// فیدبک کاربر ۱۴۰۵/۰۷/۱۵ — shippingInfoSuggestion فقط متن آزاد «سیاست ارسال» است و قوانین
+// ساخت‌یافته‌ی هزینه‌ی ارسال به تفکیک استان (StoreShippingRule) را پر نمی‌کند؛ shippingRuleSuggestions
+// همان جزئیات را اگر به تفکیک شهر/استان بود جدا استخراج می‌کند تا این‌جا با یک کلیک قانون واقعی ساخته شود
 export function NotesSuggestionsPanel({
   storeId,
   result,
@@ -23,8 +26,10 @@ export function NotesSuggestionsPanel({
   onApplyCategory: (category: string) => void
 }) {
   const createKb = useCreateKbEntry(storeId)
+  const addShippingRule = useAddShippingRule(storeId)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const [addedKb, setAddedKb] = useState<Set<number>>(new Set())
+  const [addedShippingRules, setAddedShippingRules] = useState<Set<number>>(new Set())
 
   const suggestionRows: { key: string; label: string; onApply: () => void }[] = []
   if (result.brandIntroSuggestion && !dismissed.has('brandIntro')) {
@@ -51,8 +56,17 @@ export function NotesSuggestionsPanel({
 
   const hasCategory = result.categoryHint && !dismissed.has('category')
   const kbCandidates = result.kbCandidates.filter((_, i) => !addedKb.has(i))
+  const shippingRuleSuggestions = (result.shippingRuleSuggestions ?? []).filter(
+    (_, i) => !addedShippingRules.has(i),
+  )
 
-  if (suggestionRows.length === 0 && !hasCategory && kbCandidates.length === 0) return null
+  if (
+    suggestionRows.length === 0 &&
+    !hasCategory &&
+    kbCandidates.length === 0 &&
+    shippingRuleSuggestions.length === 0
+  )
+    return null
 
   return (
     <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
@@ -105,6 +119,39 @@ export function NotesSuggestionsPanel({
             </div>
           </div>
         )}
+
+        {shippingRuleSuggestions.map(rule => {
+          const originalIndex = (result.shippingRuleSuggestions ?? []).indexOf(rule)
+          const provincesText =
+            rule.provinces.length > 0 ? rule.provinces.join('، ') : fa.seller.panel.guidePrompt.shippingRuleAllProvinces
+          return (
+            <div key={originalIndex} className="rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-900/40 light:bg-white p-3">
+              <p className="mb-2 text-xs text-slate-300 light:text-slate-700">
+                {fa.seller.panel.guidePrompt.shippingRuleSuggestionLabel(provincesText, rule.cost)}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    addShippingRule.mutate(
+                      { provinces: rule.provinces, cost: rule.cost },
+                      { onSuccess: () => setAddedShippingRules(prev => new Set(prev).add(originalIndex)) },
+                    )
+                  }
+                  disabled={addShippingRule.isPending}
+                  className="flex-1 rounded-lg bg-emerald-500/20 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 disabled:opacity-40"
+                >
+                  {fa.seller.panel.guidePrompt.shippingRuleAdd}
+                </button>
+                <button
+                  onClick={() => setAddedShippingRules(prev => new Set(prev).add(originalIndex))}
+                  className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 py-1.5 text-xs font-bold text-slate-400"
+                >
+                  {fa.seller.panel.guidePrompt.ignore}
+                </button>
+              </div>
+            </div>
+          )
+        })}
 
         {kbCandidates.map(c => {
           const originalIndex = result.kbCandidates.indexOf(c)

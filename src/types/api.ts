@@ -722,6 +722,7 @@ export interface AnalyzeOwnerNotesResult {
   shippingInfoSuggestion?: string | null
   returnPolicySuggestion?: string | null
   categoryHint?: string | null
+  shippingRuleSuggestions?: { provinces: string[]; cost: number }[]
   descriptionSuggestion?: string | null
   specsSuggestion?: ProductSpecSuggestion[] | null
   kbCandidates: NotesAnalysisKbCandidate[]

@@ -828,6 +828,10 @@ export const fa = {
         applySpecs: 'اعمال مشخصات فنی',
         ignore: 'نادیده بگیر',
         kbCandidateAdd: 'افزودن به باکس دانش',
+        shippingRuleAdd: 'افزودن قانون ارسال',
+        shippingRuleAllProvinces: 'سایر استان‌ها (نرخ پیش‌فرض)',
+        shippingRuleSuggestionLabel: (provincesText: string, cost: number) =>
+          `${provincesText} — ${cost.toLocaleString('fa-IR')} تومان`,
         ownerNotesLabel: 'یادداشت‌های شما',
         ownerNotesHint: 'هرچی این‌جا بنویسی یا از ChatGPT پیست کنی کامل نگه داشته می‌شود و می‌تواند دوباره تحلیل شود',
         reanalyze: 'تحلیل دوباره',
