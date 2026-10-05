@@ -11,8 +11,9 @@ import {
   useGenerateBrandIntroAi,
   useUpdateStore,
 } from '@/queries/seller.queries'
-import type { ClassifyBusinessSetupResult } from '@/types/api'
+import type { AnalyzeOwnerNotesResult, ClassifyBusinessSetupResult } from '@/types/api'
 import { GuidePromptModal } from './panel/GuidePromptModal'
+import { NotesSuggestionsPanel } from './panel/NotesSuggestionsPanel'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
 // فروشنده بعد از ساخت فروشگاه مستقیم به صفحه‌ی واقعی ساخت محصول در پنل هدایت می‌شود
@@ -107,6 +108,7 @@ export function SellerOnboardingPage() {
   const [brandRawText, setBrandRawText] = useState('')
   const [brandIntroDraft, setBrandIntroDraft] = useState<string | null>(null)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [notesResult, setNotesResult] = useState<AnalyzeOwnerNotesResult | null>(null)
 
   const generateBrandIntro = useGenerateBrandIntroAi(storeId ?? '')
   const updateStore = useUpdateStore(storeId ?? '')
@@ -419,6 +421,17 @@ export function SellerOnboardingPage() {
             </div>
             <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step3Brand.subheading}</p>
 
+            {storeId && notesResult && (
+              <NotesSuggestionsPanel
+                storeId={storeId}
+                result={notesResult}
+                onApplyBrandIntro={text => setBrandIntroDraft(text)}
+                onApplyShippingInfo={text => updateStore.mutate({ shippingInfo: text })}
+                onApplyReturnPolicy={text => updateStore.mutate({ returnPolicy: text })}
+                onApplyCategory={c => updateStore.mutate({ category: c })}
+              />
+            )}
+
             {brandIntroDraft === null ? (
               <>
                 <textarea
@@ -463,9 +476,7 @@ export function SellerOnboardingPage() {
                 onClose={() => setGuideOpen(false)}
                 context="store-setup"
                 storeId={storeId}
-                onResult={result => {
-                  if (result.brandIntroSuggestion) setBrandIntroDraft(result.brandIntroSuggestion)
-                }}
+                onResult={setNotesResult}
               />
             )}
           </>
