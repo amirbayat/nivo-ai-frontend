@@ -605,6 +605,12 @@ export const fa = {
         aiTextAddTitle: 'یا متنشو بنویس، خودمون پر می‌کنیم',
         aiTextAddPlaceholder: 'مثلاً: گردنبند طلای ۱۸ عیار، ۵۰۰ هزار تومان، ۳ عدد موجود',
         aiTextAddButton: '✨ پر کردن فرم از روی متن',
+        // فیدبک کاربر ۱۴۰۵/۰۷/۱۵ (دور دوم) — ضبط/آپلود صدا بالای همین متن
+        aiTextAddVoiceRecord: 'ضبط صدا',
+        aiTextAddVoiceRecording: 'در حال ضبط... برای توقف دوباره بزن',
+        aiTextAddVoiceUpload: 'آپلود فایل صوتی',
+        aiTextAddVoiceTranscribing: 'در حال تبدیل صدا به متن...',
+        aiTextAddVoiceError: 'تبدیل صدا به متن با خطا مواجه شد',
         nameLabel: 'نام محصول',
         priceLabel: 'قیمت (تومان)',
         stockLabel: 'موجودی',

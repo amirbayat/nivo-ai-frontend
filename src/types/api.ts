@@ -665,10 +665,16 @@ export interface GenerateProductDescriptionResult {
   suggestedDescription: string
 }
 
+// فیدبک کاربر ۱۴۰۵/۰۷/۱۵ — موجودی هر حالت («سایز M سه تا») هم استخراج می‌شود، نه فقط اسم حالت
+export interface ExtractedVariantOption {
+  name: string
+  values: { value: string; stock?: number }[]
+}
+
 // docs/PRD-product-display-focus-and-variations.md §۴.۱.۱ (فاز ۲) — پیشنهاد گزینه/مقدار واریانت
 // از توضیح متنی آزاد؛ auto-save ممنوع، فقط پیش‌پرکردن جدول ترکیب‌های ProductVariantsEditor
 export interface GenerateProductOptionsResult {
-  optionTypes: { name: string; values: string[] }[]
+  optionTypes: ExtractedVariantOption[]
   assumptions: string[]
 }
 
@@ -683,6 +689,13 @@ export interface ExtractedProductCandidate {
   basePrice?: number
   stock?: number
   code?: string
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۵ — پیش‌پرکردن فیلدهای طلا/واریانت از همان متن آزاد افزودن تکی محصول
+  weightGrams?: number
+  purityKarat?: number
+  goldWageType?: 'PERCENT' | 'FIXED_PER_GRAM'
+  goldWageValue?: number
+  goldProfitPercent?: number
+  variantOptions?: ExtractedVariantOption[]
 }
 
 export interface ExtractProductsResult {

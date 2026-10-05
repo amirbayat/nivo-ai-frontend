@@ -14,6 +14,8 @@ import {
   useExtractProductsFromText,
   useGenerateProductOptionsFromText,
   useGoldPricePreview,
+  useTranscribeAudio,
+  useTranscribeAudioFile,
   useProducts,
   useProductTelegramLink,
   useRemoveProductVideo,
@@ -24,7 +26,7 @@ import {
   type CreateProductInput,
   type ReplaceProductVariantsInput,
 } from '@/queries/seller.queries'
-import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
+import type { ExtractedVariantOption, ProductSpecSuggestion, SellerProduct } from '@/types/api'
 import { AiCompleteAssist } from './AiCompleteAssist'
 import { ProductDescriptionModal } from './ProductDescriptionModal'
 import { useSellerStore } from './SellerPanelLayout'
@@ -230,10 +232,14 @@ function ProductVariantsEditor({
   product,
   storeId,
   onProductUpdated,
+  aiPrefill,
 }: {
   product: SellerProduct
   storeId: string
   onProductUpdated: (product: SellerProduct) => void
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۵ — اگر فروشنده همین حالت‌ها را قبلاً در متن افزودن تکی محصول گفته
+  // بود (مثلاً «سایز M سه تا»)، همین‌جا بعد از ساخت محصول پایه یک‌بار پیش‌پر شود
+  aiPrefill?: ExtractedVariantOption[]
 }) {
   const replaceVariants = useReplaceProductVariants(storeId)
   const generateOptions = useGenerateProductOptionsFromText(storeId)
@@ -245,8 +251,9 @@ function ProductVariantsEditor({
   const [saved, setSaved] = useState(false)
   const [aiText, setAiText] = useState('')
   const [aiAssumptions, setAiAssumptions] = useState<string[]>([])
+  const aiPrefillAppliedRef = useRef(false)
 
-  useEffect(() => { setInitialized(false) }, [product.id])
+  useEffect(() => { setInitialized(false); aiPrefillAppliedRef.current = false }, [product.id])
   useEffect(() => {
     if (initialized) return
     setEnabled((product.optionTypes?.length ?? 0) > 0)
@@ -272,15 +279,43 @@ function ProductVariantsEditor({
 
   const combos = enabled ? cartesianCombos(optionTypes) : []
 
+  // تک‌دیزاین مشترک بین دکمه‌ی «استخراج از متن» همین کامپوننت و پیش‌پرشدن خودکار بعد از
+  // افزودن تکی محصول با متن؛ فقط وقتی دقیقاً یک نوع گزینه برگردد موجودی هر مقدار هم ست می‌شود
+  // (برای ۲ نوع گزینه، موجودی مال کدام ترکیب است از متن مشخص نیست، پس دست‌نخورده صفر می‌ماند)
+  function applyExtractedOptions(options: ExtractedVariantOption[]) {
+    setOptionTypes(options.map(o => ({ name: o.name, values: o.values.map(v => v.value) })))
+    if (options.length === 1) {
+      const only = options[0]
+      setRowsByKey(prev => {
+        const next = { ...prev }
+        for (const v of only.values) {
+          if (v.stock == null) continue
+          const key = comboKey({ [only.name]: v.value })
+          next[key] = { ...(next[key] ?? { stock: '0', priceOverride: '', sku: '', weightGrams: '', purityKarat: '' }), stock: String(v.stock) }
+        }
+        return next
+      })
+    }
+    setExcludedKeys(new Set())
+  }
+
+  useEffect(() => {
+    if (!initialized || aiPrefillAppliedRef.current) return
+    if (aiPrefill && aiPrefill.length > 0 && (product.optionTypes?.length ?? 0) === 0) {
+      aiPrefillAppliedRef.current = true
+      setEnabled(true)
+      applyExtractedOptions(aiPrefill)
+    }
+  }, [initialized, aiPrefill, product.optionTypes])
+
   function applyAiOptions() {
     if (!aiText.trim()) return
     generateOptions.mutate(
       { productId: product.id, rawText: aiText },
       {
         onSuccess: res => {
-          setOptionTypes(res.optionTypes.map(o => ({ name: o.name, values: o.values })))
+          applyExtractedOptions(res.optionTypes)
           setAiAssumptions(res.assumptions)
-          setExcludedKeys(new Set())
         },
       },
     )
@@ -735,6 +770,52 @@ export function SellerProductEditPage() {
   // همان endpoint بولک موجود را صدا می‌زند و فقط نتیجه‌ی اول آرایه را مصرف می‌کند (تصمیم کاربر)
   const extractFromText = useExtractProductsFromText(storeId)
   const [aiProductText, setAiProductText] = useState('')
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۵ — اگر همین متن حالت‌هایی (سایز/رنگ) هم داشت، بعد از ساخت محصول
+  // پایه به ProductVariantsEditor پاس داده می‌شود تا خودش را با آن پیش‌پر کند
+  const [pendingVariantOptions, setPendingVariantOptions] = useState<ExtractedVariantOption[]>([])
+
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۵ (دور دوم) — بالای همین متن، ضبط صدا یا آپلود فایل صوتی هم ممکن
+  // باشد؛ عیناً الگوی ProductDescriptionModal.tsx (ضبط با MediaRecorder) و
+  // BulkProductImportSheet در SellerProductsPage.tsx (آپلود فایل صوتی)، فقط هر دو این‌جا کنار هم
+  const transcribeAudio = useTranscribeAudio(storeId)
+  const transcribeAudioFile = useTranscribeAudioFile(storeId)
+  const [aiVoiceRecording, setAiVoiceRecording] = useState(false)
+  const aiVoiceRecorderRef = useRef<MediaRecorder | null>(null)
+  const aiVoiceChunksRef = useRef<Blob[]>([])
+  const aiVoiceFileInputRef = useRef<HTMLInputElement>(null)
+
+  function appendAiProductText(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    setAiProductText(prev => (prev ? `${prev}\n${trimmed}` : trimmed))
+  }
+
+  async function toggleAiVoiceRecording() {
+    if (aiVoiceRecording) {
+      aiVoiceRecorderRef.current?.stop()
+      setAiVoiceRecording(false)
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      aiVoiceChunksRef.current = []
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) aiVoiceChunksRef.current.push(e.data)
+      }
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(aiVoiceChunksRef.current, { type: 'audio/webm' })
+        transcribeAudio.mutate(blob, { onSuccess: ({ text }) => appendAiProductText(text) })
+      }
+      aiVoiceRecorderRef.current = recorder
+      recorder.start()
+      setAiVoiceRecording(true)
+    } catch {
+      // دسترسی میکروفون رد شد — دکمه به حالت اولیه برمی‌گردد
+    }
+  }
 
   // همون الگوی کپی لینک وب در SellerProductsPage.tsx — این‌جا هم تکرار شده تا از صفحه‌ی
   // ویرایش محصول (بدون برگشت به لیست) قابل کپی باشد
@@ -891,6 +972,21 @@ export function SellerProductEditPage() {
           if (first.basePrice != null) setPrice(String(first.basePrice))
           if (first.stock != null) setStock(String(first.stock))
           if (first.code) setCode(first.code)
+          if (first.weightGrams != null || first.purityKarat != null) {
+            setIsWeightBased(true)
+            if (first.weightGrams != null) setWeightGrams(String(first.weightGrams))
+            if (first.purityKarat != null) setPurityKarat(String(first.purityKarat))
+          }
+          if (first.goldWageType && first.goldWageValue != null && first.goldProfitPercent != null) {
+            setIsWeightBased(true)
+            setHasCustomGoldWage(true)
+            setProductGoldWageType(first.goldWageType)
+            setProductGoldWageValue(String(first.goldWageValue))
+            setProductGoldProfitPercent(String(first.goldProfitPercent))
+          }
+          if (first.variantOptions && first.variantOptions.length > 0) {
+            setPendingVariantOptions(first.variantOptions)
+          }
         },
       },
     )
@@ -931,6 +1027,45 @@ export function SellerProductEditPage() {
       {isNew && (
         <div className="mb-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3">
           <p className="mb-2 text-xs font-semibold text-emerald-400">{fa.seller.panel.products.aiTextAddTitle}</p>
+          <div className="mb-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => void toggleAiVoiceRecording()}
+              disabled={transcribeAudio.isPending || transcribeAudioFile.isPending}
+              className={`flex-1 rounded-lg border py-1.5 text-[11px] font-semibold disabled:opacity-40 ${
+                aiVoiceRecording
+                  ? 'border-red-500/50 bg-red-500/10 text-red-400'
+                  : 'border-slate-700 light:border-slate-300 text-slate-300 light:text-slate-700'
+              }`}
+            >
+              🎙️ {aiVoiceRecording ? fa.seller.panel.products.aiTextAddVoiceRecording : fa.seller.panel.products.aiTextAddVoiceRecord}
+            </button>
+            <button
+              type="button"
+              onClick={() => aiVoiceFileInputRef.current?.click()}
+              disabled={aiVoiceRecording || transcribeAudio.isPending || transcribeAudioFile.isPending}
+              className="flex-1 rounded-lg border border-slate-700 light:border-slate-300 py-1.5 text-[11px] font-semibold text-slate-300 light:text-slate-700 disabled:opacity-40"
+            >
+              {fa.seller.panel.products.aiTextAddVoiceUpload}
+            </button>
+            <input
+              ref={aiVoiceFileInputRef}
+              type="file"
+              accept="audio/*"
+              hidden
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) transcribeAudioFile.mutate(file, { onSuccess: ({ text }) => appendAiProductText(text) })
+                e.target.value = ''
+              }}
+            />
+          </div>
+          {(transcribeAudio.isPending || transcribeAudioFile.isPending) && (
+            <p className="mb-2 text-[11px] text-slate-400">{fa.seller.panel.products.aiTextAddVoiceTranscribing}</p>
+          )}
+          {(transcribeAudio.isError || transcribeAudioFile.isError) && (
+            <p className="mb-2 text-[11px] text-red-400">{fa.seller.panel.products.aiTextAddVoiceError}</p>
+          )}
           <textarea
             value={aiProductText}
             onChange={e => setAiProductText(e.target.value)}
@@ -1091,7 +1226,7 @@ export function SellerProductEditPage() {
       )}
 
       {product && product !== 'new' && (
-        <ProductVariantsEditor product={product} storeId={storeId} onProductUpdated={setOverride} />
+        <ProductVariantsEditor product={product} storeId={storeId} onProductUpdated={setOverride} aiPrefill={pendingVariantOptions} />
       )}
 
       <div className="mb-6">
@@ -1113,7 +1248,7 @@ export function SellerProductEditPage() {
 
       <button
         onClick={save}
-        disabled={!name || !price || pending}
+        disabled={!name || (!isWeightBased && !price) || pending}
         className="mb-3 w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
       >
         {fa.common.save}

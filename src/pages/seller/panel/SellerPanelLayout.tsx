@@ -3,6 +3,7 @@ import { NavLink, Navigate, Outlet } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { useMyStores, useNeededAttention, useProducts } from '@/queries/seller.queries'
+import { GoldPriceTicker } from '@/components/shop/GoldPriceTicker'
 
 // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱
 const LOW_STOCK_THRESHOLD = 3
@@ -125,6 +126,13 @@ export function SellerPanelLayout() {
   if (isLoading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
   if (!store) return <Navigate to="/seller/onboarding" replace />
 
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۴.۲ — فیدبک کاربر
+  // ۱۴۰۵/۰۷/۱۵: نوار قیمت لحظه‌ای طلا یک نوار واحد بالای کل پنل باشد، نه فقط داخل فرم محصول.
+  // همان شرط SellerStoreSettingsPage.tsx:99 — دسته‌بندی طلا/جواهر یا حداقل یک محصول وزنی موجود
+  const showGoldTicker =
+    store.category === 'جواهرات و اکسسوری' ||
+    (products.data?.some(p => p.pricingModel === 'WEIGHT_BASED_FORMULA') ?? false)
+
   return (
     <SellerStoreContext.Provider
       value={{
@@ -141,39 +149,43 @@ export function SellerPanelLayout() {
         goldVatPercent: store.goldVatPercent,
       }}
     >
-      <div className="flex min-h-screen flex-col lg:flex-row bg-slate-950 light:bg-white" dir="rtl">
-        {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۵ — از lg به بالا، سایدبار سمت راست جایگزین bottom nav */}
-        <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-l lg:border-slate-800 light:lg:border-slate-200 lg:px-3 lg:py-6">
-          <SidebarItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
-          <SidebarItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
-          <SidebarItem
-            to="/seller/panel/attention"
-            icon={<AttentionIcon />}
-            label={fa.seller.panel.nav.attention}
-            badge={attentionBadge}
-          />
-          <SidebarItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
-          <SidebarItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />
-        </aside>
+      <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
+        {showGoldTicker && <GoldPriceTicker />}
 
-        <div className="flex-1 pb-16 lg:pb-0">
-          <div className="lg:mx-auto lg:max-w-4xl">
-            <Outlet />
+        <div className="flex flex-1 flex-col lg:flex-row">
+          {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۵ — از lg به بالا، سایدبار سمت راست جایگزین bottom nav */}
+          <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-l lg:border-slate-800 light:lg:border-slate-200 lg:px-3 lg:py-6">
+            <SidebarItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
+            <SidebarItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+            <SidebarItem
+              to="/seller/panel/attention"
+              icon={<AttentionIcon />}
+              label={fa.seller.panel.nav.attention}
+              badge={attentionBadge}
+            />
+            <SidebarItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
+            <SidebarItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />
+          </aside>
+
+          <div className="flex-1 pb-16 lg:pb-0">
+            <div className="lg:mx-auto lg:max-w-4xl">
+              <Outlet />
+            </div>
           </div>
-        </div>
 
-        <nav className="fixed inset-x-0 bottom-0 flex lg:hidden border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur">
-          <NavItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
-          <NavItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
-          <NavItem
-            to="/seller/panel/attention"
-            icon={<AttentionIcon />}
-            label={fa.seller.panel.nav.attention}
-            badge={attentionBadge}
-          />
-          <NavItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
-          <NavItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />
-        </nav>
+          <nav className="fixed inset-x-0 bottom-0 flex lg:hidden border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur">
+            <NavItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
+            <NavItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+            <NavItem
+              to="/seller/panel/attention"
+              icon={<AttentionIcon />}
+              label={fa.seller.panel.nav.attention}
+              badge={attentionBadge}
+            />
+            <NavItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
+            <NavItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />
+          </nav>
+        </div>
       </div>
     </SellerStoreContext.Provider>
   )
