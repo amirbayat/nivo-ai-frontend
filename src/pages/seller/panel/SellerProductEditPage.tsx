@@ -21,6 +21,7 @@ import {
   useUpdateProduct,
   useUploadProductImages,
   useUploadProductVideo,
+  type CreateProductInput,
   type ReplaceProductVariantsInput,
 } from '@/queries/seller.queries'
 import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
@@ -541,6 +542,14 @@ function GoldPricingFields({
   stock,
   setStock,
   goldPricingConfigured,
+  hasCustomGoldWage,
+  setHasCustomGoldWage,
+  productGoldWageType,
+  setProductGoldWageType,
+  productGoldWageValue,
+  setProductGoldWageValue,
+  productGoldProfitPercent,
+  setProductGoldProfitPercent,
 }: {
   storeId: string
   weightGrams: string
@@ -550,11 +559,26 @@ function GoldPricingFields({
   stock: string
   setStock: (v: string) => void
   goldPricingConfigured: boolean
+  hasCustomGoldWage: boolean
+  setHasCustomGoldWage: (v: boolean) => void
+  productGoldWageType: 'PERCENT' | 'FIXED_PER_GRAM'
+  setProductGoldWageType: (v: 'PERCENT' | 'FIXED_PER_GRAM') => void
+  productGoldWageValue: string
+  setProductGoldWageValue: (v: string) => void
+  productGoldProfitPercent: string
+  setProductGoldProfitPercent: (v: string) => void
 }) {
   const preview = useGoldPricePreview(
     storeId,
     weightGrams ? Number(toEnglishDigits(weightGrams)) : null,
     purityKarat ? Number(purityKarat) : null,
+    hasCustomGoldWage
+      ? {
+          goldWageType: productGoldWageType,
+          goldWageValue: productGoldWageValue ? Number(toEnglishDigits(productGoldWageValue)) : undefined,
+          goldProfitPercent: productGoldProfitPercent ? Number(toEnglishDigits(productGoldProfitPercent)) : undefined,
+        }
+      : undefined,
   )
 
   return (
@@ -597,7 +621,58 @@ function GoldPricingFields({
         ))}
       </div>
 
-      {!goldPricingConfigured ? (
+      <div className="mb-3">
+        <ToggleRow
+          label={fa.seller.panel.products.customGoldWageToggleLabel}
+          checked={hasCustomGoldWage}
+          onChange={setHasCustomGoldWage}
+        />
+      </div>
+
+      {hasCustomGoldWage && (
+        <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+          <div className="mb-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setProductGoldWageType('PERCENT')}
+              className={`flex-1 rounded-lg border py-2 text-xs font-semibold ${productGoldWageType === 'PERCENT' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-slate-700 light:border-slate-300 text-slate-400'}`}
+            >
+              {fa.seller.panel.storeSettings.goldWageTypePercent}
+            </button>
+            <button
+              type="button"
+              onClick={() => setProductGoldWageType('FIXED_PER_GRAM')}
+              className={`flex-1 rounded-lg border py-2 text-xs font-semibold ${productGoldWageType === 'FIXED_PER_GRAM' ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-slate-700 light:border-slate-300 text-slate-400'}`}
+            >
+              {fa.seller.panel.storeSettings.goldWageTypeFixedPerGram}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label={
+                productGoldWageType === 'PERCENT'
+                  ? fa.seller.panel.storeSettings.goldWageValuePercentLabel
+                  : fa.seller.panel.storeSettings.goldWageValueFixedLabel
+              }
+              value={productGoldWageValue}
+              onChange={e => setProductGoldWageValue(e.target.value.replace(/[^\d.]/g, ''))}
+              dir="ltr"
+              inputMode="decimal"
+              className="text-center"
+            />
+            <Input
+              label={fa.seller.panel.storeSettings.goldProfitPercentLabel}
+              value={productGoldProfitPercent}
+              onChange={e => setProductGoldProfitPercent(e.target.value.replace(/[^\d.]/g, ''))}
+              dir="ltr"
+              inputMode="decimal"
+              className="text-center"
+            />
+          </div>
+        </div>
+      )}
+
+      {!hasCustomGoldWage && !goldPricingConfigured ? (
         <p className="rounded-xl bg-amber-500/10 p-3 text-xs text-amber-300">
           {fa.seller.panel.products.goldSettingsMissing}{' '}
           <Link to="/seller/panel/store-settings" className="font-semibold underline">
@@ -698,6 +773,12 @@ export function SellerProductEditPage() {
   const [isWeightBased, setIsWeightBased] = useState(false)
   const [weightGrams, setWeightGrams] = useState('')
   const [purityKarat, setPurityKarat] = useState('18')
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۴ — اجرت/سود می‌تواند بین محصولات فرق کند؛ پیش‌فرض خاموش (یعنی از
+  // تنظیمات فروشگاه استفاده کن)
+  const [hasCustomGoldWage, setHasCustomGoldWage] = useState(false)
+  const [productGoldWageType, setProductGoldWageType] = useState<'PERCENT' | 'FIXED_PER_GRAM'>('PERCENT')
+  const [productGoldWageValue, setProductGoldWageValue] = useState('')
+  const [productGoldProfitPercent, setProductGoldProfitPercent] = useState('')
 
   // فرم فقط یک‌بار از دیتای واقعی پر می‌شود (نه هر رندر، وگرنه تایپ فروشنده با هر invalidate
   // پاک می‌شد)؛ با عوض‌شدن id دوباره مقداردهی می‌شود
@@ -717,6 +798,10 @@ export function SellerProductEditPage() {
       setIsWeightBased(product.pricingModel === 'WEIGHT_BASED_FORMULA')
       setWeightGrams(product.weightGrams != null ? String(product.weightGrams) : '')
       setPurityKarat(product.purityKarat != null ? String(product.purityKarat) : '18')
+      setHasCustomGoldWage(product.goldWageType != null)
+      if (product.goldWageType) setProductGoldWageType(product.goldWageType)
+      setProductGoldWageValue(product.goldWageValue != null ? String(product.goldWageValue) : '')
+      setProductGoldProfitPercent(product.goldProfitPercent != null ? String(product.goldProfitPercent) : '')
     } else if (GOLD_CATEGORY_NAMES.includes(category ?? '')) {
       // بخش ۳.۱ سند — پیشنهاد نرم برای محصول تازه در دسته‌ی طلا/جواهر، نه قفل
       setIsWeightBased(true)
@@ -740,11 +825,21 @@ export function SellerProductEditPage() {
       pricingModel: (isWeightBased ? 'WEIGHT_BASED_FORMULA' : 'FIXED') as 'WEIGHT_BASED_FORMULA' | 'FIXED',
       weightGrams: isWeightBased ? Number(toEnglishDigits(weightGrams)) || undefined : undefined,
       purityKarat: isWeightBased ? Number(purityKarat) : undefined,
+      // فیدبک کاربر ۱۴۰۵/۰۷/۱۴ — اجرت/سود اختصاصی؛ وقتی سوئیچ خاموش است برای محصول موجود
+      // صریح null می‌فرستیم تا override قبلی پاک شود (برگشت به پیش‌فرض فروشگاه)، برای محصول
+      // تازه undefined کافی‌ست (اصلاً override‌ای وجود نداشته)
+      goldWageType: hasCustomGoldWage ? productGoldWageType : isNew ? undefined : null,
+      goldWageValue: hasCustomGoldWage ? Number(toEnglishDigits(productGoldWageValue)) || undefined : isNew ? undefined : null,
+      goldProfitPercent: hasCustomGoldWage
+        ? Number(toEnglishDigits(productGoldProfitPercent)) || undefined
+        : isNew
+          ? undefined
+          : null,
     }
     if (isNew) {
       // فیدبک کاربر/تصمیم PRD بخش ۹.۲ مورد ۲ — بعد از ذخیره‌ی محصول تازه به لیست برنمی‌گردیم؛
       // همان صفحه فوراً به حالت ویرایش محصول واقعی سوییچ می‌شود (بدون رفت‌وبرگشت)
-      create.mutate(dto, {
+      create.mutate(dto as CreateProductInput, {
         onSuccess: created => {
           justCreatedIdRef.current = created.id
           setOverride(created)
@@ -887,6 +982,14 @@ export function SellerProductEditPage() {
           stock={stock}
           setStock={setStock}
           goldPricingConfigured={!!goldWageType && goldWageValue != null && goldProfitPercent != null}
+          hasCustomGoldWage={hasCustomGoldWage}
+          setHasCustomGoldWage={setHasCustomGoldWage}
+          productGoldWageType={productGoldWageType}
+          setProductGoldWageType={setProductGoldWageType}
+          productGoldWageValue={productGoldWageValue}
+          setProductGoldWageValue={setProductGoldWageValue}
+          productGoldProfitPercent={productGoldProfitPercent}
+          setProductGoldProfitPercent={setProductGoldProfitPercent}
         />
       ) : (
         <div className="mb-6 grid grid-cols-2 gap-3">

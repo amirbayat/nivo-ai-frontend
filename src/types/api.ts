@@ -133,6 +133,10 @@ export interface SellerProduct {
   pricingModel: 'FIXED' | 'WEIGHT_BASED_FORMULA'
   weightGrams: number | null
   purityKarat: number | null
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۴ — اجرت/سود اختصاصی این محصول؛ null = از پیش‌فرض فروشگاه استفاده کن
+  goldWageType: 'PERCENT' | 'FIXED_PER_GRAM' | null
+  goldWageValue: number | null
+  goldProfitPercent: number | null
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶ — کلید به‌ازای این محصول (AND با
   // SellerStore.persuasionTechniquesEnabled)
   persuasionTechniquesEnabled: boolean
@@ -594,6 +598,10 @@ export interface UpdateProductInput {
   pricingModel?: 'FIXED' | 'WEIGHT_BASED_FORMULA'
   weightGrams?: number
   purityKarat?: number
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۴ — null صریح = برگشت به پیش‌فرض فروشگاه
+  goldWageType?: 'PERCENT' | 'FIXED_PER_GRAM' | null
+  goldWageValue?: number | null
+  goldProfitPercent?: number | null
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI

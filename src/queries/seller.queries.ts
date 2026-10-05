@@ -69,6 +69,10 @@ export interface CreateProductInput {
   pricingModel?: 'FIXED' | 'WEIGHT_BASED_FORMULA'
   weightGrams?: number
   purityKarat?: number
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۴ — اجرت/سود اختصاصی این محصول؛ خالی = پیش‌فرض فروشگاه
+  goldWageType?: 'PERCENT' | 'FIXED_PER_GRAM'
+  goldWageValue?: number
+  goldProfitPercent?: number
 }
 
 // docs/PRD-product-display-focus-and-variations.md §۴.۱ — همیشه جایگزین کامل (نه patch)
@@ -541,13 +545,20 @@ export function useAnalyzeOwnerNotes(storeId: string) {
 // ProductVariantsEditor چیپ‌های پیش‌پرشده را تأیید/ویرایش می‌کند
 // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۲ — پیش‌نمایش زنده‌ی
 // قیمت طلا حین پرکردن فرم، قبل از ذخیره
-export function useGoldPricePreview(storeId: string, weightGrams: number | null, purityKarat: number | null) {
+// فیدبک کاربر ۱۴۰۵/۰۷/۱۴ — اگر فروشنده اجرت/سود اختصاصی این محصول را هم‌زمان تایپ می‌کند،
+// پیش‌نمایش باید همان مقادیر در-حال-تایپ را منعکس کند، نه فقط پیش‌فرض ذخیره‌شده‌ی فروشگاه
+export function useGoldPricePreview(
+  storeId: string,
+  weightGrams: number | null,
+  purityKarat: number | null,
+  productGoldOverride?: { goldWageType?: 'PERCENT' | 'FIXED_PER_GRAM'; goldWageValue?: number; goldProfitPercent?: number },
+) {
   return useQuery({
-    queryKey: ['seller', 'goldPricePreview', storeId, weightGrams, purityKarat],
+    queryKey: ['seller', 'goldPricePreview', storeId, weightGrams, purityKarat, productGoldOverride],
     queryFn: () =>
       api
         .get<{ price: number | null; error: string | null }>(`/v2/stores/${storeId}/gold-price-preview`, {
-          params: { weightGrams, purityKarat },
+          params: { weightGrams, purityKarat, ...productGoldOverride },
         })
         .then(r => r.data),
     enabled: !!storeId && !!weightGrams && !!purityKarat,

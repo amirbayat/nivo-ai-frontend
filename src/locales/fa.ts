@@ -615,6 +615,7 @@ export const fa = {
         goldSettingsMissing: 'برای محاسبه‌ی قیمت باید اول اجرت و درصد سود طلا رو در تنظیمات فروشگاه مشخص کنی.',
         goldSettingsMissingLink: 'رفتن به تنظیمات',
         goldPricePreviewLabel: '⏱ قیمت محاسبه‌شده بر اساس نرخ لحظه‌ای:',
+        customGoldWageToggleLabel: 'اجرت/سود این محصول با بقیه فرق داره؟',
         addImage: 'افزودن عکس',
         maxImages: 'حداکثر ۴ عکس برای هر محصول',
         // docs/PRD-product-video.md بخش ۴ — چندویدیویی (سقف ۴ تا)
