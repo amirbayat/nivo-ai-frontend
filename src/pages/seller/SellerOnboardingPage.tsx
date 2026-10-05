@@ -12,6 +12,7 @@ import {
   useUpdateStore,
 } from '@/queries/seller.queries'
 import type { ClassifyBusinessSetupResult } from '@/types/api'
+import { GuidePromptModal } from './panel/GuidePromptModal'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
 // فروشنده بعد از ساخت فروشگاه مستقیم به صفحه‌ی واقعی ساخت محصول در پنل هدایت می‌شود
@@ -105,6 +106,7 @@ export function SellerOnboardingPage() {
   const [copied, setCopied] = useState(false)
   const [brandRawText, setBrandRawText] = useState('')
   const [brandIntroDraft, setBrandIntroDraft] = useState<string | null>(null)
+  const [guideOpen, setGuideOpen] = useState(false)
 
   const generateBrandIntro = useGenerateBrandIntroAi(storeId ?? '')
   const updateStore = useUpdateStore(storeId ?? '')
@@ -403,7 +405,18 @@ export function SellerOnboardingPage() {
 
         {step === 3 && (
           <>
-            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step3Brand.heading}</h1>
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <h1 className="text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step3Brand.heading}</h1>
+              {storeId && (
+                <button
+                  type="button"
+                  onClick={() => setGuideOpen(true)}
+                  className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20"
+                >
+                  ✨ {fa.seller.panel.guidePrompt.button}
+                </button>
+              )}
+            </div>
             <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step3Brand.subheading}</p>
 
             {brandIntroDraft === null ? (
@@ -443,6 +456,18 @@ export function SellerOnboardingPage() {
             <button onClick={() => setStep(4)} className="mt-3 w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
               {fa.seller.step3Brand.skip}
             </button>
+
+            {storeId && (
+              <GuidePromptModal
+                open={guideOpen}
+                onClose={() => setGuideOpen(false)}
+                context="store-setup"
+                storeId={storeId}
+                onResult={result => {
+                  if (result.brandIntroSuggestion) setBrandIntroDraft(result.brandIntroSuggestion)
+                }}
+              />
+            )}
           </>
         )}
 
