@@ -20,6 +20,7 @@ import {
 } from '@/queries/seller.queries'
 import type { BulkCompleteResultItem, ExtractedProductCandidate, ExtractProductsResult } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
+import { GuidePromptModal } from './GuidePromptModal'
 
 // docs/PRD-seller-knowledge-base.md بخش ۹.۲ (دوم، مورد ۶) — تولید پیشنهاد برای حداکثر ۲۰
 // محصول کم‌تکمیل این فروشگاه در یک درخواست، بعد مرور/تایید دسته‌ای این‌جا (نه تک‌تک مثل
@@ -376,6 +377,7 @@ export function BulkProductImportSheet({ storeId, onClose }: { storeId: string; 
   const [assumptions, setAssumptions] = useState<string[]>([])
   const [applying, setApplying] = useState(false)
   const [applyResult, setApplyResult] = useState<{ ok: number; fail: number } | null>(null)
+  const [guideOpen, setGuideOpen] = useState(false)
 
   function onExtracted(res: ExtractProductsResult) {
     setItems(res.items.map(i => ({ ...i, included: true })))
@@ -438,9 +440,20 @@ export function BulkProductImportSheet({ storeId, onClose }: { storeId: string; 
         onClick={e => e.stopPropagation()}
       >
         <div className="shrink-0 p-5 pb-3">
-          <h2 className="mb-1.5 text-lg font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.products.bulkImportModalTitle}</h2>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.products.bulkImportModalTitle}</h2>
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20"
+            >
+              ✨ {fa.seller.panel.guidePrompt.button}
+            </button>
+          </div>
           <p className="text-xs text-slate-500">{fa.seller.panel.products.bulkImportModalHint}</p>
         </div>
+
+        <GuidePromptModal open={guideOpen} onClose={() => setGuideOpen(false)} context="bulk-import" storeId={storeId} />
 
         <div className="flex-1 overflow-y-auto px-5 pb-5">
           {!items && !applyResult && (

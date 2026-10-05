@@ -134,9 +134,11 @@ export function GuidePromptModal({
           {fa.seller.panel.guidePrompt.openChatGpt} ↗
         </a>
 
-        {context === 'knowledge-extraction' ? (
+        {context === 'knowledge-extraction' || context === 'bulk-import' ? (
           <p className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 px-3.5 py-3 text-xs leading-relaxed text-slate-400 light:text-slate-600">
-            {fa.seller.panel.guidePrompt.knowledgeExtractionHint}
+            {context === 'knowledge-extraction'
+              ? fa.seller.panel.guidePrompt.knowledgeExtractionHint
+              : fa.seller.panel.guidePrompt.bulkImportExtractionHint}
           </p>
         ) : (
           <>
