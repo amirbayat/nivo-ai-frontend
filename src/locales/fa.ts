@@ -434,6 +434,9 @@ export const fa = {
     categoryInvalid: 'این لینک دمو معتبر نیست',
     settingUp: 'در حال آماده‌سازی فروشگاه نمونه...',
     setupError: 'آماده‌سازی دمو انجام نشد، دوباره تلاش کن',
+    // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۷.۱/فاز ۴ — صفحه‌ی میانی انتخاب دسته
+    pickerHeading: 'پنل فروشنده‌ی نیوو رو با کدوم دسته‌بندی امتحان کنی؟',
+    pickerSubheading: 'یکی رو انتخاب کن تا یک فروشگاه نمونه‌ی مخصوص خودت در همون دسته بسازیم.',
   },
   seller: {
     landing: {
@@ -1306,6 +1309,11 @@ export const fa = {
     invoices: 'فاکتورها',
     viewInvoices: 'مشاهده فاکتورها',
     viewProfile: 'مشاهده پروفایل',
+    // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۷.۲/فاز ۴ — ردیف‌های جدید فوتر Sidebar
+    sellerNav: 'برای فروشنده‌ها',
+    sellerNavSub: 'فروشگاهت رو بساز',
+    myOrdersNav: 'سفارش‌های من',
+    myOrdersNavSub: 'سفارش‌هات رو ببین',
   },
   invoice: {
     title: 'فاکتورها',

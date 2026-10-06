@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/auth/LoginPage'
 import { OtpPage } from '@/pages/auth/OtpPage'
 import { ImpersonateConsumePage } from '@/pages/auth/ImpersonateConsumePage'
 import { DemoEntryPage } from '@/pages/demo/DemoEntryPage'
+import { DemoCategoryPickerPage } from '@/pages/demo/DemoCategoryPickerPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
@@ -162,6 +163,8 @@ export function AppRouter() {
       {/* docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۲.۲، ۵.۲ — لینک‌های
           دمو؛ عمداً GuestRoute/ProtectedRoute نیست (DemoEntryPage خودش فرم شماره/OTP دارد و
           باید فارغ از سشن فعلی این مرورگر کار کند، دقیقاً مثل /seller/login) */}
+      {/* فاز ۴ — صفحه‌ی میانی انتخاب دسته، مقصد کارت Hub/ردیف Sidebar «برای فروشنده‌ها» */}
+      <Route path="/demo/seller" element={<DemoCategoryPickerPage />} />
       <Route path="/demo/seller/:category" element={<DemoEntryPage role="seller" />} />
       <Route path="/demo/buyer/:category" element={<DemoEntryPage role="buyer" />} />
 

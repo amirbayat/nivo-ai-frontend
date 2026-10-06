@@ -6,9 +6,12 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 
 // Main entry for logged-in users and guests (router/index.tsx: HomeRoute).
-// Card order: video studio, image studio, chat, auto captions, Nivo Cal.
+// Card order: video studio, image studio, chat, auto captions, prompts, Nivo Cal, sell with Nivo.
 // Video studio goes to VideoStudioPage at /video. Nivo Cal opens cal.nivoai.ir
 // (separate app, own auth) and does not send guests through this domain's /login.
+// "می‌خوای با نیوو بفروشی؟" (docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md فاز ۴)
+// عمداً از goToSection استفاده نمی‌کند — مقصدش (/demo/seller) یک جریان عمومی/دموی مستقل با
+// OTP خودش است، نه بخشی از اپ اصلی که نیاز به لاگین با این دامنه داشته باشد.
 export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const navigate = useNavigate()
 
@@ -149,6 +152,18 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           href="https://cal.nivoai.ir"
           onClick={() => track('nivo_cal_nav_clicked')}
         />
+        <HubCard
+          title="می‌خوای با نیوو بفروشی؟"
+          description="یک پنل فروشنده با یک فروشگاه نمونه امتحان کن — با شماره‌ات وارد می‌شی، صفر هزینه."
+          accentColor="var(--brand)"
+          borderColor="rgba(16,185,129,0.30)"
+          glowColor="rgba(16,185,129,0.08)"
+          gradientColor="rgba(16,185,129,0.10)"
+          iconBg="rgba(16,185,129,0.14)"
+          iconColor="var(--brand)"
+          icon={<SellerIcon />}
+          onClick={() => { track('seller_demo_nav_clicked'); navigate('/demo/seller') }}
+        />
       </div>
 
       <SiteFooter pricingHref="/landing#pricing" />
@@ -260,6 +275,16 @@ function CalorieIcon() {
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 8a2 2 0 012-2h1.5l1-1.5h7l1 1.5H18a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" />
       <circle cx="12" cy="12.5" r="3.2" />
+    </svg>
+  )
+}
+
+function SellerIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5l1.3-4.5h15.4l1.3 4.5" />
+      <path d="M4 9.5V19a1 1 0 001 1h14a1 1 0 001-1V9.5" />
+      <path d="M3 9.5a2.3 2.3 0 004.5.6 2.3 2.3 0 004.5 0 2.3 2.3 0 004.5 0 2.3 2.3 0 004.5-.6" />
     </svg>
   )
 }

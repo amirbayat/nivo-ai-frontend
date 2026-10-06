@@ -236,6 +236,80 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           </svg>
         </button>
 
+        {/* docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۷.۲/فاز ۴ */}
+        <button
+          onClick={() => navigate("/demo/seller")}
+          className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 light:hover:bg-slate-100 transition-colors text-right"
+        >
+          <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+            <svg viewBox="0 0 20 20" fill="none" className="size-4">
+              <path
+                d="M3 8.3l1-3.3h12l1 3.3M3.6 8.3v6.7a1 1 0 001 1h10.8a1 1 0 001-1V8.3M3 8.3a1.7 1.7 0 003.3.4 1.7 1.7 0 003.4 0 1.7 1.7 0 003.4 0 1.7 1.7 0 003.3-.4"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-xs font-medium text-slate-200 light:text-slate-900">
+              {fa.settings.sellerNav}
+            </span>
+            <span className="text-[10px] text-slate-500 light:text-slate-400">
+              {fa.settings.sellerNavSub}
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="size-4 shrink-0 text-slate-500 light:text-slate-400"
+          >
+            <path
+              fillRule="evenodd"
+              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+
+        <button
+          onClick={() => navigate("/explore/orders")}
+          className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-700/50 light:hover:bg-slate-100 transition-colors text-right"
+        >
+          <div className="size-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 light:bg-slate-200 light:text-slate-700 shrink-0">
+            <svg viewBox="0 0 20 20" fill="none" className="size-4">
+              <path
+                d="M5 3.5h10a1 1 0 011 1V17l-3-1.8-2 1.8-2-1.8-2 1.8-3-1.8V4.5a1 1 0 011-1z"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path d="M7 7h6M7 9.5h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-xs font-medium text-slate-200 light:text-slate-900">
+              {fa.settings.myOrdersNav}
+            </span>
+            <span className="text-[10px] text-slate-500 light:text-slate-400">
+              {fa.settings.myOrdersNavSub}
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="size-4 shrink-0 text-slate-500 light:text-slate-400"
+          >
+            <path
+              fillRule="evenodd"
+              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+
         {isPayAsYouGo && (
           <button
             onClick={() => navigate("/settings/wallet")}
