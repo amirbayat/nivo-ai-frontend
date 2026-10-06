@@ -4,6 +4,7 @@ import { ChatLayout } from '@/components/layout/ChatLayout'
 import { SettingsLayout } from '@/components/layout/SettingsLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { OtpPage } from '@/pages/auth/OtpPage'
+import { ImpersonateConsumePage } from '@/pages/auth/ImpersonateConsumePage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
@@ -151,6 +152,11 @@ export function AppRouter() {
           بدون لاگین، جدا از چت تک‌فروشگاهی بالا */}
       <Route path="/explore" element={<ExploreHomePage />} />
       <Route path="/explore/orders" element={<MyOrdersPage />} />
+
+      {/* docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — فقط مقصد کد یک‌بارمصرف
+          ادمین است؛ عمداً GuestRoute/ProtectedRoute نیست چون باید فارغ از سشن فعلی این مرورگر
+          (اگر از قبل توکنی داشت) اجرا شود و آن را با توکن کاربر هدف جایگزین کند */}
+      <Route path="/auth/impersonate" element={<ImpersonateConsumePage />} />
 
       {/* guest */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
