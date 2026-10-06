@@ -609,6 +609,7 @@ export function useShopChat(slug: string, productId?: string) {
       productId: string | undefined,
       text: string,
       rating?: number,
+      media?: { imageKey?: string; videoKey?: string; audioKey?: string },
     ): Promise<{ ok: boolean; message: string }> => {
       const session = sessionRef.current
       if (!session) return { ok: false, message: fa.common.error }
@@ -616,13 +617,36 @@ export function useShopChat(slug: string, productId?: string) {
         const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
-          body: JSON.stringify({ productId, text, rating }),
+          body: JSON.stringify({ productId, text, rating, ...media }),
         })
         const data = (await res.json().catch(() => null)) as { message?: string } | null
         if (!res.ok) return { ok: false, message: data?.message ?? fa.common.error }
         return { ok: true, message: fa.shop.reviewSuccess }
       } catch {
         return { ok: false, message: fa.common.error }
+      }
+    },
+    [],
+  )
+
+  // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — آپلود رسانه‌ی نظر،
+  // قبل از submitComment بالا؛ عیناً الگوی FormData در sendImageMessage بالا
+  const uploadCommentMedia = useCallback(
+    async (file: File): Promise<{ key: string; kind: 'image' | 'video' | 'audio' } | null> => {
+      const session = sessionRef.current
+      if (!session) return null
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/comment-media`, {
+          method: 'POST',
+          headers: { 'X-Session-Token': session.sessionToken },
+          body: form,
+        })
+        if (!res.ok) return null
+        return (await res.json()) as { key: string; kind: 'image' | 'video' | 'audio' }
+      } catch {
+        return null
       }
     },
     [],
@@ -655,6 +679,7 @@ export function useShopChat(slug: string, productId?: string) {
     verifyBuyerOtp,
     listMyOrders,
     submitComment,
+    uploadCommentMedia,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,

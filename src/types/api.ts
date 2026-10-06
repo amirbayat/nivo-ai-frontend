@@ -459,6 +459,18 @@ export interface PublicProductsPage {
   pageSize: number
 }
 
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — GET
+// stores/:slug/products/:productId/reviews (عمومی)؛ فقط نظرات ADMIN_APPROVED
+export interface ProductReview {
+  id: string
+  text: string
+  rating: number | null
+  imageKey: string | null
+  videoKey: string | null
+  audioKey: string | null
+  createdAt: string
+}
+
 // docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — GET /v2/marketplace/stores
 // (عمومی، بدون auth)؛ فهرست ساده‌ی فروشگاه‌های فعال، بدون جست‌وجو/دسته‌بندی
 export interface MarketplaceStore {

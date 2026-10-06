@@ -12,7 +12,8 @@ import type { ShopOrderSummary } from '@/types/api'
 export function ShopOrdersPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { loading, conversationId, sending, listMyOrders, submitComment, sendAction } = useShopChat(slug)
+  const { loading, conversationId, sending, listMyOrders, submitComment, uploadCommentMedia, sendAction } =
+    useShopChat(slug)
   const [orders, setOrders] = useState<ShopOrderSummary[] | null>(null)
   const [reviewOrder, setReviewOrder] = useState<{ orderId: string; productId: string | null } | null>(null)
 
@@ -68,6 +69,7 @@ export function ShopOrdersPage() {
           productId={reviewOrder.productId ?? undefined}
           onClose={() => setReviewOrder(null)}
           onSubmit={submitComment}
+          onUploadMedia={uploadCommentMedia}
         />
       )}
     </div>

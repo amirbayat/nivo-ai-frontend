@@ -367,6 +367,7 @@ export function ShopChatPage() {
     sendBuyerOtp,
     verifyBuyerOtp,
     submitComment,
+    uploadCommentMedia,
     startNewChat,
     viewHistoryEntry,
     returnToCurrentChat,
@@ -608,7 +609,12 @@ export function ShopChatPage() {
       )}
 
       {reviewProduct && (
-        <CommentModal productId={reviewProduct.id} onClose={() => setReviewProduct(null)} onSubmit={submitComment} />
+        <CommentModal
+          productId={reviewProduct.id}
+          onClose={() => setReviewProduct(null)}
+          onSubmit={submitComment}
+          onUploadMedia={uploadCommentMedia}
+        />
       )}
 
       {viewingHistory && (

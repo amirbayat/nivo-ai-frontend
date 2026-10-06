@@ -1232,6 +1232,15 @@ export const fa = {
     reviewTextPlaceholder: 'نظرت رو بنویس...',
     reviewSubmitButton: 'ثبت نظر',
     reviewSuccess: 'نظرت ثبت شد، ممنون! 🙏 بعد از بررسی نمایش داده می‌شه',
+    // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — رسانه‌ی اختیاری نظر
+    reviewAddMediaButton: '+ افزودن عکس/ویدیو/صدا (اختیاری)',
+    reviewMediaUploading: 'در حال آپلود...',
+    reviewMediaUploadError: 'آپلود رسانه با خطا مواجه شد',
+    reviewMediaRemove: 'حذف',
+    viewReviewsButton: '🗨️ مشاهده نظرات خریداران قبلی',
+    reviewsModalTitle: 'نظرات خریداران',
+    reviewsEmpty: 'هنوز نظری ثبت نشده',
+    reviewsLoadError: 'دریافت نظرات با خطا مواجه شد',
   },
   // docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — صفحه‌ی اکسپلور/فهرست
   // فروشگاه‌ها + «سفارش‌های من، همه‌ی فروشگاه‌ها»؛ جدا از namespace بالا چون صفحه‌ی مستقلی

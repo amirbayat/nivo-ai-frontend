@@ -29,6 +29,13 @@ export function productVideoUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/video/${key}`
 }
 
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — رسانه‌ی نظرات؛ کلید
+// شامل پیشوند «conversationId/» است (چون از همان storage.uploadImage آپلود شده) — باید encode
+// شود عیناً chatImageUrl در useShopChat.ts، وگرنه «/» مسیر را می‌شکند
+export function reviewMediaUrl(commentId: string, key: string): string {
+  return `${env.VITE_API_URL}/v2/comments/${commentId}/media/${encodeURIComponent(key)}`
+}
+
 // docs/PRD-product-video.md بخش ۴ — چندرسانه‌ای (چند عکس + چند ویدیو) یکجا، ویدیو(ها) اول
 type MediaItem = { type: 'image' | 'video'; src: string }
 
