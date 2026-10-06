@@ -88,6 +88,10 @@ export function SellerHomePage() {
             <ChecklistRow done={completeness.data.checklist.hasProductWithPhoto} label={fa.seller.panel.home.completenessChecklistPhoto} />
             <ChecklistRow done={completeness.data.checklist.hasEnoughKbEntries} label={fa.seller.panel.home.completenessChecklistKb} />
             <ChecklistRow done={completeness.data.checklist.hasShippingPolicy} label={fa.seller.panel.home.completenessChecklistShipping} />
+            <ChecklistRow done={completeness.data.checklist.hasReturnPolicy} label={fa.seller.panel.home.completenessChecklistReturnPolicy} />
+            <ChecklistRow done={completeness.data.checklist.hasBrandIntro} label={fa.seller.panel.home.completenessChecklistBrandIntro} />
+            <ChecklistRow done={completeness.data.checklist.hasOwnerNotes} label={fa.seller.panel.home.completenessChecklistOwnerNotes} />
+            <ChecklistRow done={completeness.data.checklist.hasWorkingHours} label={fa.seller.panel.home.completenessChecklistWorkingHours} />
           </ul>
         </div>
       )}

@@ -4,6 +4,7 @@ import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import {
+  useAttentionSuggestions,
   useNeededAttention,
   useProducts,
   useSellerConversation,
@@ -139,6 +140,7 @@ export function SellerAttentionPage() {
   const { storeId } = useSellerStore()
   const attention = useNeededAttention(storeId)
   const products = useProducts(storeId)
+  const suggestions = useAttentionSuggestions(storeId)
   const [openId, setOpenId] = useState<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -163,6 +165,31 @@ export function SellerAttentionPage() {
 
       <FirstVisitTooltip id="attention" text={fa.seller.panel.helpCenter.tooltips.attention} />
 
+      {!!suggestions.data?.topics.length && (
+        <div className="mb-5">
+          <p className="mb-1 text-xs font-semibold text-slate-500">{fa.seller.panel.attention.suggestionsSectionTitle}</p>
+          <p className="mb-2.5 text-xs text-slate-500">{fa.seller.panel.attention.suggestionsSectionSubtitle}</p>
+          <div className="flex flex-col gap-2.5">
+            {suggestions.data.topics.map((t, i) => (
+              <button
+                key={i}
+                onClick={() => navigate('/seller/panel/store-settings')}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-sky-500/30 light:border-sky-300 bg-sky-500/10 light:bg-sky-50 px-4 py-3.5 text-start hover:border-sky-500/50 light:hover:border-sky-400"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{t.topic}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{t.summary}</p>
+                  <p className="mt-1 text-xs text-sky-400 light:text-sky-700">{fa.seller.panel.attention.suggestionOccurrences(t.occurrences)}</p>
+                </div>
+                <span className="shrink-0 rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-300 light:text-sky-700">
+                  {fa.seller.panel.attention.suggestionCta}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!!lowStockProducts.length && (
         <div className="mb-5">
           <p className="mb-2.5 text-xs font-semibold text-slate-500">{fa.seller.panel.attention.lowStockSectionTitle}</p>
@@ -183,7 +210,7 @@ export function SellerAttentionPage() {
         </div>
       )}
 
-      {attention.data?.length === 0 && !lowStockProducts.length && (
+      {attention.data?.length === 0 && !lowStockProducts.length && !suggestions.data?.topics.length && (
         <p className="py-10 text-center text-sm text-slate-500">{fa.seller.panel.attention.empty}</p>
       )}
 

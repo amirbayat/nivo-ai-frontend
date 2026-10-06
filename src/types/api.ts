@@ -222,7 +222,25 @@ export interface StoreCompleteness {
     hasProductWithPhoto: boolean
     hasEnoughKbEntries: boolean
     hasShippingPolicy: boolean
+    hasReturnPolicy: boolean
+    hasBrandIntro: boolean
+    hasOwnerNotes: boolean
+    hasWorkingHours: boolean
   }
+}
+
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۳.۳/۳.۴ — پیشنهادهای
+// aggregator، تب «توجه»
+export interface AttentionSuggestionTopic {
+  topic: string
+  field: 'brandIntro' | 'returnPolicy' | 'shippingInfo' | 'ownerNotes' | 'workingHours' | 'other'
+  summary: string
+  occurrences: number
+}
+
+export interface AttentionSuggestions {
+  topics: AttentionSuggestionTopic[]
+  computedAt: string | null
 }
 
 export interface StoreCreditStatus {

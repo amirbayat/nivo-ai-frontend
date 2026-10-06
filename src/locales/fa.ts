@@ -544,6 +544,11 @@ export const fa = {
         completenessChecklistPhoto: 'حداقل یک محصول با عکس',
         completenessChecklistKb: 'حداقل ۳ مورد در باکس دانش',
         completenessChecklistShipping: 'سیاست ارسال ثبت‌شده',
+        // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۳.۳/فاز ۳ — گسترش چک‌لیست
+        completenessChecklistReturnPolicy: 'قوانین مرجوعی ثبت‌شده',
+        completenessChecklistBrandIntro: 'معرفی کوتاه برند ثبت‌شده',
+        completenessChecklistOwnerNotes: 'یادداشت‌های فروشنده ثبت‌شده',
+        completenessChecklistWorkingHours: 'ساعت پاسخ‌گویی ثبت‌شده',
         // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — محافظ در برابر فروشگاه‌های خالی رها‌شده
         noProductsTitle: 'هنوز محصولی نداری',
         noProductsSubtitle: 'بدون محصول، لینک فروشگاهت برای مشتری خالیه',
@@ -585,6 +590,12 @@ export const fa = {
         newReceiptNotice: 'خریدار یک عکس رسید جدید فرستاد',
         // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱ — هشدار موجودی کم (سبک)
         lowStockSectionTitle: 'موجودی رو به اتمام',
+        // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۳.۴/فاز ۳ — پیشنهادهای
+        // aggregator (موضوعات تکرارشونده‌ای که ربات گیر کرده)
+        suggestionsSectionTitle: 'پیشنهاد تکمیل پروفایل',
+        suggestionsSectionSubtitle: 'مشتری‌ها چندبار در این موضوعات گیر کرده‌اند — با تکمیل پروفایل، دفعه‌ی بعد ربات خودش جواب می‌دهد',
+        suggestionOccurrences: (n: number) => `${n.toLocaleString('fa-IR')} بار تکرار شده`,
+        suggestionCta: 'تکمیل پروفایل',
       },
       products: {
         empty: 'هنوز محصولی اضافه نکردی',

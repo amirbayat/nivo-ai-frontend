@@ -5,6 +5,7 @@ import type {
   AdPlacement,
   AdPlacementStatusResponse,
   AnalyzeOwnerNotesResult,
+  AttentionSuggestions,
   BulkCompleteResult,
   CardDisplayPolicy,
   ChannelStat,
@@ -165,6 +166,17 @@ export function useStoreCompleteness(storeId: string) {
     queryKey: keys.seller.completeness(storeId),
     queryFn: () => api.get<StoreCompleteness>(`/v2/stores/${storeId}/completeness`).then(r => r.data),
     enabled: !!storeId,
+  })
+}
+
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۳.۳/۳.۴ — پیشنهادهای
+// aggregator (سمت بک‌اند خودش ۲۴ساعته کش می‌شود، پس staleTime بالا کافی است)
+export function useAttentionSuggestions(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.attentionSuggestions(storeId),
+    queryFn: () => api.get<AttentionSuggestions>(`/v2/stores/${storeId}/attention-suggestions`).then(r => r.data),
+    enabled: !!storeId,
+    staleTime: 10 * 60 * 1000,
   })
 }
 

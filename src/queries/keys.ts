@@ -105,6 +105,7 @@ export const keys = {
     shippingRules: (storeId: string) => ['seller', 'shipping-rules', storeId] as const,
     channelStats: (storeId: string) => ['seller', 'channel-stats', storeId] as const,
     completeness: (storeId: string) => ['seller', 'completeness', storeId] as const,
+    attentionSuggestions: (storeId: string) => ['seller', 'attention-suggestions', storeId] as const,
     dashboard: (storeId: string) => ['seller', 'dashboard', storeId] as const,
     adPlacement: (storeId: string) => ['seller', 'ad-placement', storeId] as const,
     productAdPlacement: (storeId: string, productId: string) =>
