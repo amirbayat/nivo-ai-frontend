@@ -5,6 +5,7 @@ import { SettingsLayout } from '@/components/layout/SettingsLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { OtpPage } from '@/pages/auth/OtpPage'
 import { ImpersonateConsumePage } from '@/pages/auth/ImpersonateConsumePage'
+import { DemoEntryPage } from '@/pages/demo/DemoEntryPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
 import { HubPage } from '@/pages/hub/HubPage'
 import { ImageStudioPage } from '@/pages/image-studio/ImageStudioPage'
@@ -157,6 +158,12 @@ export function AppRouter() {
           ادمین است؛ عمداً GuestRoute/ProtectedRoute نیست چون باید فارغ از سشن فعلی این مرورگر
           (اگر از قبل توکنی داشت) اجرا شود و آن را با توکن کاربر هدف جایگزین کند */}
       <Route path="/auth/impersonate" element={<ImpersonateConsumePage />} />
+
+      {/* docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۲.۲، ۵.۲ — لینک‌های
+          دمو؛ عمداً GuestRoute/ProtectedRoute نیست (DemoEntryPage خودش فرم شماره/OTP دارد و
+          باید فارغ از سشن فعلی این مرورگر کار کند، دقیقاً مثل /seller/login) */}
+      <Route path="/demo/seller/:category" element={<DemoEntryPage role="seller" />} />
+      <Route path="/demo/buyer/:category" element={<DemoEntryPage role="buyer" />} />
 
       {/* guest */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />

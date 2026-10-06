@@ -210,6 +210,9 @@ export interface SellerStore {
   goldWageValue: number | null
   goldProfitPercent: number | null
   goldVatPercent: number
+  // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۵.۱ — کپی شخصی لینک دمو؛
+  // دکمه‌ی «فروشگاه واقعی کن» فقط وقتی نمایش داده می‌شود که این true باشد
+  isDemo: boolean
 }
 
 // بخش ۳.۱ — کارت «خانه»‌ی پنل

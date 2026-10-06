@@ -11,6 +11,7 @@ import {
   useUpdateStore,
   useUploadStoreLogo,
 } from '@/queries/seller.queries'
+import { useConvertDemoStoreToReal } from '@/queries/demo.queries'
 import type { AnalyzeOwnerNotesResult, SellerStore } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { GuidePromptModal } from './GuidePromptModal'
@@ -87,6 +88,7 @@ export function SellerStoreSettingsPage() {
   const update = useUpdateStore(storeId)
   const reanalyze = useAnalyzeOwnerNotes(storeId)
   const products = useProducts(storeId)
+  const convertToReal = useConvertDemoStoreToReal(storeId)
 
   const [category, setCategory] = useState('')
   // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳
@@ -184,6 +186,28 @@ export function SellerStoreSettingsPage() {
         </button>
       </div>
       <p className="mb-6 text-sm text-slate-500">{fa.seller.panel.storeSettings.subtitle}</p>
+
+      {store?.isDemo && (
+        <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+          <p className="text-sm text-amber-300 light:text-amber-700">{fa.seller.panel.storeSettings.demoBannerText}</p>
+          <button
+            type="button"
+            disabled={convertToReal.isPending}
+            onClick={() => {
+              if (!window.confirm(fa.seller.panel.storeSettings.convertToRealConfirm)) return
+              convertToReal.mutate()
+            }}
+            className="mt-2 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+          >
+            {fa.seller.panel.storeSettings.convertToRealButton}
+          </button>
+          {convertToReal.isError && (
+            <p className="mt-1 text-xs text-red-400">
+              {extractErrorMessage(convertToReal.error, fa.seller.panel.storeSettings.convertToRealError)}
+            </p>
+          )}
+        </div>
+      )}
 
       {store && <StoreLogoUpload store={store} />}
 

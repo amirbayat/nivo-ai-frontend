@@ -421,6 +421,20 @@ export const fa = {
       GENERAL: 'عمومی',
     },
   },
+  // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۲، ۵ — صفحه‌ی مقدمه/OTP
+  // لینک‌های /demo/seller/:category و /demo/buyer/:category
+  demo: {
+    sellerBadge: 'دموی زنده پنل فروشنده',
+    buyerBadge: 'دموی زنده چت خریدار',
+    sellerHeading: 'پنل فروشنده‌ی نیوو رو با یک فروشگاه نمونه امتحان کن',
+    buyerHeading: 'تجربه‌ی چت یک خریدار با ایجنت فروش نیوو رو ببین',
+    sellerSubheading: 'با شماره‌ات وارد می‌شی و یک کپی اختصاصی از یک فروشگاه نمونه می‌گیری — هر چی توش عوض کنی فقط مال خودته.',
+    buyerSubheading: 'با شماره‌ات وارد می‌شی و مثل یک خریدار واقعی با ایجنت فروش یک فروشگاه نمونه چت می‌کنی.',
+    startButton: 'شروع دمو',
+    categoryInvalid: 'این لینک دمو معتبر نیست',
+    settingUp: 'در حال آماده‌سازی فروشگاه نمونه...',
+    setupError: 'آماده‌سازی دمو انجام نشد، دوباره تلاش کن',
+  },
   seller: {
     landing: {
       badge: 'برای فروشنده‌های اینستاگرام و تلگرام',
@@ -1035,6 +1049,11 @@ export const fa = {
       storeSettings: {
         title: 'پروفایل فروشگاه',
         subtitle: 'این اطلاعات همیشه در دسترس ایجنت فروش هستند و لازم نیست تک‌تک به باکس دانش اضافه شوند',
+        // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۵.۳
+        demoBannerText: 'این یک فروشگاه دموی نمونه است — محصولاتش فقط برای تست است.',
+        convertToRealButton: 'این رو فروشگاه واقعی من کن',
+        convertToRealConfirm: 'بعد از این، این فروشگاه دیگر دمو نیست و می‌تونی محصولات واقعی خودت رو جایگزین کنی. ادامه بدم؟',
+        convertToRealError: 'تبدیل فروشگاه به واقعی انجام نشد',
         requiresShippingLabel: 'این فروشگاه نیاز به ارسال کالا دارد',
         requiresShippingHint: 'اگر محصولاتت حضوری/دیجیتالی تحویل داده می‌شوند، این را خاموش کن تا موقع خرید آدرس پرسیده نشود؛ تنظیم هزینه‌ی ارسال به‌تفکیک استان از «بیشتر ← هزینه ارسال» در دسترس است',
         // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳
