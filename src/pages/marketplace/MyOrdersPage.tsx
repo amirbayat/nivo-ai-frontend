@@ -1,35 +1,49 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { toEnglishDigits } from '@/lib/digits'
-import { env } from '@/env'
+import { api } from '@/lib/api'
+import { useSendOtp, useVerifyOtp } from '@/queries/auth.queries'
 import { fa } from '@/locales/fa'
 import type { MarketplaceStoreOrders } from '@/types/api'
 
-type Step = 'phone' | 'otp' | 'orders'
+type Step = 'checking' | 'phone' | 'otp' | 'orders'
 
-// docs/PRD-marketplace-explore-cross-store.md بخش ۷ (فاز ۵ MVP) — «سفارش‌های من، همه‌ی
-// فروشگاه‌ها». توکن بعد از تأیید OTP فقط در state همین صفحه نگه داشته می‌شود، نه localStorage —
-// با رفرش صفحه باید دوباره شماره تأیید شود؛ یک محدودیت پذیرفته‌شده‌ی فاز اول برای سادگی/امنیت
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۴.۲ — خریدار دیگر توکن
+// کوتاه‌مدت مخصوص این صفحه نمی‌گیرد؛ از همان /auth/send-otp + /auth/verify-otp عمومی (مثل
+// فروشنده) لاگین می‌کند و access/refresh token در localStorage ذخیره می‌شود — یعنی رفرش صفحه
+// یا برگشت چند روز بعد دیگر نیاز به تأیید دوباره‌ی شماره ندارد
 export function MyOrdersPage() {
-  const [step, setStep] = useState<Step>('phone')
+  const [step, setStep] = useState<Step>('checking')
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [stores, setStores] = useState<MarketplaceStoreOrders[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const sendOtp = useSendOtp()
+  const verifyOtp = useVerifyOtp()
+
+  const loadOrders = async () => {
+    const data = await api.get<{ stores: MarketplaceStoreOrders[] }>('/v2/marketplace/orders').then(r => r.data)
+    setStores(data.stores)
+    setStep('orders')
+  }
+
+  useEffect(() => {
+    if (!localStorage.getItem('access_token')) {
+      setStep('phone')
+      return
+    }
+    loadOrders().catch(() => setStep('phone'))
+  }, [])
+
   const requestOtp = async () => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`${env.VITE_API_URL}/v2/marketplace/orders/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      })
-      if (!res.ok) throw new Error('request failed')
+      await sendOtp.mutateAsync(phone)
       setCode('')
       setStep('otp')
     } catch {
@@ -39,26 +53,13 @@ export function MyOrdersPage() {
     }
   }
 
-  const verifyOtp = async (e: FormEvent) => {
+  const onVerifyOtp = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`${env.VITE_API_URL}/v2/marketplace/orders/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
-      })
-      if (!res.ok) throw new Error('request failed')
-      const { token } = (await res.json()) as { token: string }
-
-      const ordersRes = await fetch(`${env.VITE_API_URL}/v2/marketplace/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!ordersRes.ok) throw new Error('request failed')
-      const data = (await ordersRes.json()) as { stores: MarketplaceStoreOrders[] }
-      setStores(data.stores)
-      setStep('orders')
+      await verifyOtp.mutateAsync({ phone, code })
+      await loadOrders()
     } catch {
       setError(fa.common.error)
     } finally {
@@ -79,6 +80,10 @@ export function MyOrdersPage() {
         </Link>
         <h1 className="mb-6 text-xl font-bold text-slate-100 light:text-slate-900">{fa.marketplace.myOrdersTitle}</h1>
 
+        {step === 'checking' && (
+          <p className="py-10 text-center text-sm text-slate-500">{fa.common.loading}</p>
+        )}
+
         {step === 'phone' && (
           <form onSubmit={onSubmitPhone} className="space-y-4">
             <Input
@@ -98,7 +103,7 @@ export function MyOrdersPage() {
         )}
 
         {step === 'otp' && (
-          <form onSubmit={verifyOtp} className="space-y-4">
+          <form onSubmit={onVerifyOtp} className="space-y-4">
             <p className="text-sm text-slate-500">{fa.marketplace.otpSentTo(phone)}</p>
             <Input
               type="text"

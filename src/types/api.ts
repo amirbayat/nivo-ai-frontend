@@ -449,7 +449,7 @@ export interface MarketplaceStore {
 }
 
 // همون بخش — «سفارش‌های من، همه‌ی فروشگاه‌ها»؛ پاسخ GET /v2/marketplace/orders
-// (Authorization: Bearer <توکن کوتاه‌مدت بعد از تأیید OTP>)
+// (Authorization: Bearer <access token عمومی، همون /auth/verify-otp فروشنده>)
 export interface MarketplaceStoreOrders {
   storeId: string
   storeName: string
