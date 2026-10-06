@@ -535,12 +535,17 @@ export const fa = {
       orders: {
         filterAll: 'همه',
         filterPending: 'در انتظار',
-        filterApproved: 'تاییدشده',
+        // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۳.۲ — بعد از تایید،
+        // سفارش «آماده‌ی ارسال»ه تا دکمه‌ی «ارسال شد» زده شود (بعدش status=SHIPPED می‌شود)
+        filterApproved: 'آماده‌ی ارسال',
+        filterShipped: 'ارسال‌شده',
         filterRejected: 'ردشده',
         empty: 'سفارشی نیست',
         viewReceipt: 'مشاهده فیش واریزی',
         approve: 'تایید سفارش',
         reject: 'رد سفارش',
+        ship: 'ارسال شد',
+        shippingCostLabel: 'هزینه‌ی ارسال',
         noReceipt: 'رسیدی برای این سفارش ثبت نشده',
         total: 'مبلغ سفارش',
         close: 'بستن',
@@ -1013,6 +1018,7 @@ export const fa = {
           RECEIPT_SUBMITTED: 'رسید ارسال‌شده',
           APPROVED: 'تاییدشده',
           REJECTED: 'ردشده',
+          SHIPPED: 'ارسال‌شده',
         } as Record<string, string>,
         topProductsTitle: 'پرفروش‌ترین محصولات',
         topProductsEmpty: 'هنوز سفارش تاییدشده‌ای ثبت نشده',
@@ -1115,6 +1121,7 @@ export const fa = {
       RECEIPT_SUBMITTED: 'رسید دریافت شد',
       APPROVED: 'تایید شد',
       REJECTED: 'رد شد',
+      SHIPPED: 'ارسال شد',
     } as Record<string, string>,
     // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
     addressNewOption: '🏠 آدرس جدید',

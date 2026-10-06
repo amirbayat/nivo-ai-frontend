@@ -399,7 +399,8 @@ export function useApproveOrder(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (orderId: string) => api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/approve`),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.orders(storeId) }),
+    // پیشوند بدون فیلتر status تا همه‌ی تب‌های فیلترشده‌ی این فروشگاه (نه فقط تب «همه») رفرش شوند
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
   })
 }
 
@@ -408,7 +409,16 @@ export function useRejectOrder(storeId: string) {
   return useMutation({
     mutationFn: ({ orderId, reason }: { orderId: string; reason?: string }) =>
       api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/reject`, { reason }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.orders(storeId) }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
+  })
+}
+
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۳.۲
+export function useShipOrder(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (orderId: string) => api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/ship`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
   })
 }
 

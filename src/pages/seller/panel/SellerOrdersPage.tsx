@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
-import { useApproveOrder, useOrders, useRejectOrder } from '@/queries/seller.queries'
+import { useApproveOrder, useOrders, useRejectOrder, useShipOrder } from '@/queries/seller.queries'
+import { productImageUrl } from '@/lib/sellerProduct'
 import type { SellerOrder, SellerOrderStatus } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 
@@ -11,6 +12,7 @@ const FILTERS: { value: SellerOrderStatus | undefined; label: string }[] = [
   { value: undefined, label: fa.seller.panel.orders.filterAll },
   { value: 'RECEIPT_SUBMITTED', label: fa.seller.panel.orders.filterPending },
   { value: 'APPROVED', label: fa.seller.panel.orders.filterApproved },
+  { value: 'SHIPPED', label: fa.seller.panel.orders.filterShipped },
   { value: 'REJECTED', label: fa.seller.panel.orders.filterRejected },
 ]
 
@@ -21,9 +23,13 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
   const [rejectReason, setRejectReason] = useState('')
   const approve = useApproveOrder(storeId)
   const reject = useRejectOrder(storeId)
+  const ship = useShipOrder(storeId)
   const canDecide = order.status === 'RECEIPT_SUBMITTED'
   // فیدبک کاربر — بعد از رد اشتباهی، فروشنده راهی برای تایید دوباره‌ی سفارش نداشت
   const canReapprove = order.status === 'REJECTED'
+  // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۳.۲ — بعد از تایید، سفارش
+  // «آماده‌ی ارسال»ه تا فروشنده دکمه‌ی «ارسال شد» را بزند
+  const canShip = order.status === 'APPROVED'
   const recipientAddress = [order.shippingProvince, order.shippingAddress, order.postalCode]
     .filter(Boolean)
     .join('، ')
@@ -50,14 +56,25 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           {fa.seller.panel.orders.viewConversation}
         </button>
 
-        <div className="mb-4 flex flex-col gap-1.5">
+        <div className="mb-4 flex flex-col gap-2">
           {order.items.map(i => (
-            <div key={i.productId} className="flex items-center justify-between text-sm text-slate-300 light:text-slate-700">
-              <span>{i.name} × {i.qty}</span>
+            <div key={i.productId} className="flex items-center gap-2.5 text-sm text-slate-300 light:text-slate-700">
+              {i.imageKey ? (
+                <img src={productImageUrl(i.productId, i.imageKey)} alt="" className="size-10 shrink-0 rounded-lg object-cover" />
+              ) : (
+                <div className="size-10 shrink-0 rounded-lg bg-slate-800 light:bg-slate-100" />
+              )}
+              <span className="flex-1">{i.name} × {i.qty}</span>
               <span>{(i.unitPrice * i.qty).toLocaleString('fa-IR')} {fa.common.toman}</span>
             </div>
           ))}
         </div>
+        {order.shippingCostToman != null && (
+          <div className="mb-2 flex items-center justify-between text-sm text-slate-400 light:text-slate-600">
+            <span>{fa.seller.panel.orders.shippingCostLabel}</span>
+            <span>{order.shippingCostToman.toLocaleString('fa-IR')} {fa.common.toman}</span>
+          </div>
+        )}
         <div className="mb-5 flex items-center justify-between border-t border-slate-700/60 light:border-slate-200 pt-3 text-base font-bold text-slate-100 light:text-slate-900">
           <span>{fa.seller.panel.orders.total}</span>
           <span>{order.totalAmount.toLocaleString('fa-IR')} {fa.common.toman}</span>
@@ -142,6 +159,16 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
             className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
           >
             {fa.seller.panel.orders.reapprove}
+          </button>
+        )}
+
+        {canShip && (
+          <button
+            onClick={() => ship.mutate(order.id, { onSuccess: onClose })}
+            disabled={ship.isPending}
+            className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+          >
+            {fa.seller.panel.orders.ship}
           </button>
         )}
       </div>

@@ -781,13 +781,13 @@ export interface ImportProductsResult {
   errors: { row: number; message: string }[]
 }
 
-export type SellerOrderStatus = 'PENDING_PAYMENT' | 'RECEIPT_SUBMITTED' | 'APPROVED' | 'REJECTED'
+export type SellerOrderStatus = 'PENDING_PAYMENT' | 'RECEIPT_SUBMITTED' | 'APPROVED' | 'REJECTED' | 'SHIPPED'
 
 export interface SellerOrder {
   id: string
   storeId: string
   conversationId: string
-  items: { productId: string; name: string; unitPrice: number; qty: number }[]
+  items: { productId: string; name: string; unitPrice: number; qty: number; imageKey: string | null }[]
   totalAmount: number
   status: SellerOrderStatus
   receiptImageKey: string | null
@@ -797,6 +797,8 @@ export interface SellerOrder {
   shippingProvince: string | null
   shippingAddress: string | null
   postalCode: string | null
+  shippingCostToman: number | null
+  shippedAt: string | null
   createdAt: string
   updatedAt: string
 }
