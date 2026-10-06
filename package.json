@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:intl": "VITE_REGION=INTL vite",
     "build": "tsc -b && vite build",
+    "build:intl": "VITE_REGION=INTL tsc -b && VITE_REGION=INTL vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },

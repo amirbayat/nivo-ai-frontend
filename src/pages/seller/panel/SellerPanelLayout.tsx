@@ -15,6 +15,9 @@ interface SellerStoreCtx {
   instagramUrl: string | null
   telegramUrl: string | null
   websiteUrl: string | null
+  // docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۴.۱ — وضعیت اتصال OAuth دایرکت هوشمند
+  instagramBusinessId: string | null
+  instagramConnectedAt: string | null
   // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۱/۳.۳
   category: string | null
   goldWageType: 'PERCENT' | 'FIXED_PER_GRAM' | null
@@ -142,6 +145,8 @@ export function SellerPanelLayout() {
         instagramUrl: store.instagramUrl,
         telegramUrl: store.telegramUrl,
         websiteUrl: store.websiteUrl,
+        instagramBusinessId: store.instagramBusinessId,
+        instagramConnectedAt: store.instagramConnectedAt,
         category: store.category,
         goldWageType: store.goldWageType,
         goldWageValue: store.goldWageValue,

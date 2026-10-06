@@ -213,6 +213,10 @@ export interface SellerStore {
   // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۵.۱ — کپی شخصی لینک دمو؛
   // دکمه‌ی «فروشگاه واقعی کن» فقط وقتی نمایش داده می‌شود که این true باشد
   isDemo: boolean
+  // docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۴.۱ — عمداً بدون instagramAccessToken
+  // در این تایپ (با اینکه روی wire هست، مثل bankCardNumber بالا) — فرانت فقط وضعیت را لازم دارد
+  instagramBusinessId: string | null
+  instagramConnectedAt: string | null
 }
 
 // بخش ۳.۱ — کارت «خانه»‌ی پنل
@@ -336,6 +340,22 @@ export interface StoreBankCard {
 export interface StoreBankCardsResponse {
   policy: CardDisplayPolicy
   cards: StoreBankCard[]
+}
+
+// docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۴.۲ — مشترک بین هر دو ریجن
+export type AutomationTriggerType = 'COMMENT_KEYWORD' | 'STORY_REPLY' | 'STORY_MENTION' | 'DM_KEYWORD'
+
+export interface InstagramAutomationRule {
+  id: string
+  storeId: string
+  triggerType: AutomationTriggerType
+  targetMediaId: string | null
+  keyword: string | null
+  staticReplyText: string | null
+  staticDmText: string
+  publicReplyEnabled: boolean
+  isActive: boolean
+  createdAt: string
 }
 
 // docs/PRD-customer-comments-and-discounts.md بخش ۷/۸

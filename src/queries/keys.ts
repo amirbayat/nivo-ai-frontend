@@ -113,6 +113,14 @@ export const keys = {
     enrichmentDraft: (storeId: string, productId: string) =>
       ['seller', 'enrichment-draft', storeId, productId] as const,
     sellerBotStatus: (storeId: string) => ['seller', 'seller-bot-status', storeId] as const,
+    instagramRules: (storeId: string) => ['seller', 'instagram-rules', storeId] as const,
+  },
+  // docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۳.۱ — مینی‌پنل INTL، بدون storeId
+  // در کلید (هر کاربر دقیقاً یک فروشگاه دارد، storeId از توکن می‌آید نه از پارامتر)
+  intl: {
+    me: () => ['intl', 'me'] as const,
+    instagramStatus: () => ['intl', 'instagram-status'] as const,
+    instagramRules: () => ['intl', 'instagram-rules'] as const,
   },
   videoEdit: {
     models: () => ['video-edit', 'models'] as const,

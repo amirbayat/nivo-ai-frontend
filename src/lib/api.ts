@@ -2,6 +2,7 @@ import axios from 'axios'
 import { env } from '@/env'
 import { useToastStore } from '@/store/toast.store'
 import { fa } from '@/locales/fa'
+import { en } from '@/locales/en'
 
 export const DEFAULT_RATE_LIMIT_RETRY_SECONDS = 60
 
@@ -11,7 +12,10 @@ export const DEFAULT_RATE_LIMIT_RETRY_SECONDS = 60
 // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۴.۲ — خریدار «سفارش‌های من»
 // یک User عمومی است، نه فروشنده؛ اگر توکنش منقضی/نامعتبر شود نباید به /login (صفحه‌ی ورود
 // فروشنده/کاربر عمومی) پرت شود — خودِ MyOrdersPage با نبود access_token به‌درستی فرم شماره را نشان می‌دهد
-const GUEST_ACCESSIBLE_PATHS = ['/', '/discover', '/landing', '/contact', '/login', '/otp', '/nivo-cal/intro', '/explore/orders']
+// docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۳.۱ — روی بیلد INTL مسیر /verify
+// (ورود کد ایمیل، router/intlRouter.tsx) هم باید مهمان‌دسترس باشد؛ این مسیر روی بیلد IR
+// اصلاً وجود ندارد پس اضافه‌شدنش بی‌اثر است
+const GUEST_ACCESSIBLE_PATHS = ['/', '/discover', '/landing', '/contact', '/login', '/otp', '/verify', '/nivo-cal/intro', '/explore/orders']
 
 export const api = axios.create({
   baseURL: env.VITE_API_URL,
@@ -39,8 +43,11 @@ function refreshTokens() {
     refreshPromise = (async () => {
       const refresh = localStorage.getItem('refresh_token')
       if (!refresh) throw new Error('no refresh token')
+      // docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۳/۷.۱ — روی بیلد INTL، توکن از
+      // IntlAuthService صادر شده و باید با /intl-auth/refresh (نه /auth/refresh IR) تازه شود
+      const refreshPath = env.VITE_REGION === 'INTL' ? '/intl-auth/refresh' : '/auth/refresh'
       const { data } = await axios.post<{ accessToken: string; refreshToken: string }>(
-        `${env.VITE_API_URL}/auth/refresh`,
+        `${env.VITE_API_URL}${refreshPath}`,
         { refreshToken: refresh },
       )
       localStorage.setItem('access_token', data.accessToken)
@@ -59,7 +66,8 @@ api.interceptors.response.use(
     const original = err.config
     if (err.response?.status === 429) {
       const retryAfter = Number(err.response.headers?.['retry-after']) || DEFAULT_RATE_LIMIT_RETRY_SECONDS
-      useToastStore.getState().addToast(fa.common.tooManyRequests(retryAfter))
+      const msg = env.VITE_REGION === 'INTL' ? en.common.tooManyRequests(retryAfter) : fa.common.tooManyRequests(retryAfter)
+      useToastStore.getState().addToast(msg)
       return Promise.reject(err)
     }
     if (err.response?.status === 401 && !original._retry) {

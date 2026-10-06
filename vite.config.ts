@@ -4,11 +4,17 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 
+// docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۳.۱ — بیلد INTL باید genuinely کوچک‌تر
+// و جدا باشد (نه فقط یک if داخل همون باندل)؛ این env (نه import.meta.env) زمان اجرای خودِ
+// vite.config در Node خوانده می‌شود و entry/پلاگین‌های PWA (که فقط برای اپ موبایل‌مانند IR
+// معنا دارند) را برای بیلد INTL عوض می‌کند
+const isIntl = process.env.VITE_REGION === 'INTL'
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    VitePWA({
+    ...(isIntl ? [] : [VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false, // ثبت service worker دستی در main.tsx انجام می‌شود
       manifest: {
@@ -42,11 +48,16 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
       },
-    }),
+    })]),
   ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  build: {
+    rollupOptions: {
+      input: isIntl ? 'index.intl.html' : 'index.html',
     },
   },
   server: {
