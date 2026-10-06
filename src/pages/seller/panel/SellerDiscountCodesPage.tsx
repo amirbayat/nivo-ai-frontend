@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { clsx } from 'clsx'
-import DatePicker from 'react-multi-date-picker'
+import RawDatePickerModule from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import { fa } from '@/locales/fa'
@@ -15,6 +15,17 @@ import {
   type CreateDiscountCodeInput,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+
+// باگ باندلر: esbuild (Vite deps optimizer) نمی‌تواند named exportهای این پکیج را
+// (که همه در یک UMD comma-expression ساخته می‌شوند: exports.Calendar=X, exports.default=ne, ...)
+// استاتیک تشخیص بدهد، پس کل module.exports را به‌عنوان تک default export می‌گذارد —
+// یعنی `import DatePicker from 'react-multi-date-picker'` به‌جای خود کامپوننت
+// (forwardRef)، کل exports object را می‌دهد و رندرش با خطای React #130
+// ("Element type is invalid... got: object") کرش می‌کند (دیده‌شده در Sentry،
+// پروداکشن nivoai.ir، /seller/panel/discount-codes). یک‌بار دستی unwrap به .default
+// لازم است؛ fallback به خود ماژول برای محیطی که این باگ باندلر را ندارد.
+const DatePicker = ((RawDatePickerModule as unknown as { default?: typeof RawDatePickerModule }).default ??
+  RawDatePickerModule) as typeof RawDatePickerModule
 
 // همون کلاس‌های Input.tsx، چون DatePicker کتابخانه‌ی خودش را رندر می‌کند نه <input> ما را
 const DATE_INPUT_CLASS =
