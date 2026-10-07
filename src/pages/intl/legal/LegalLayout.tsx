@@ -9,7 +9,7 @@ export function LegalLayout({ title, children }: { title: string; children: Reac
     <div className="min-h-screen bg-slate-950 light:bg-white" dir="ltr">
       <header className="border-b border-slate-800 light:border-slate-200 px-5 py-3">
         <Link to="/" className="inline-block">
-          <Logo className="h-7" />
+          <Logo variant="intl" className="h-7" />
         </Link>
       </header>
 

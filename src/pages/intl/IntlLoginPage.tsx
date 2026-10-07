@@ -38,7 +38,7 @@ export function IntlLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-950 light:bg-white p-4" dir="ltr">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Logo className="mx-auto mb-4 w-40" />
+          <Logo variant="intl" className="mx-auto mb-4 w-60" />
           <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{en.auth.heading}</h1>
           <p className="mt-1 text-sm text-slate-500">{en.auth.subheading}</p>
         </div>

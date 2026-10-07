@@ -37,7 +37,7 @@ export function IntlPanelLayout() {
     >
       <div className="min-h-screen bg-slate-950 light:bg-white" dir="ltr">
         <header className="flex items-center justify-between border-b border-slate-800 light:border-slate-200 px-5 py-3">
-          <Logo className="h-7" />
+          <Logo variant="intl" className="h-7" />
           <nav className="flex items-center gap-4 text-sm">
             <NavLink
               to="/app/instagram"
