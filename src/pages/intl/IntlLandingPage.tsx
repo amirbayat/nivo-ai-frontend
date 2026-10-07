@@ -4,28 +4,19 @@ import { Button } from '@/components/ui/Button'
 
 const FEATURES = [
   {
-    title: 'Comment keyword replies',
-    description: 'When someone comments a keyword on your post, automatically reply publicly and send them a DM.',
-    accent: 'from-emerald-500/15 text-emerald-400 ring-emerald-500/20',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20 12a8 8 0 11-3.4-6.55M8.5 11.5h7M8.5 14.5h4.5" />
-    ),
+    title: 'Comment replies',
+    description: 'Someone comments a keyword on your post — Nivo replies publicly and follows up with a DM.',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M20 12a8 8 0 11-3.4-6.55M8.5 11.5h7M8.5 14.5h4.5" />,
   },
   {
-    title: 'Story reply automation',
-    description: 'Catch replies to your stories and answer them automatically, instantly.',
-    accent: 'from-sky-500/15 text-sky-400 ring-sky-500/20',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13 2 4.5 13.5H11L10 22l9-12.5h-7L13 2Z" />
-    ),
+    title: 'Story replies',
+    description: 'Someone replies to your story — Nivo catches it and answers instantly, before you even open the app.',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M13 2 4.5 13.5H11L10 22l9-12.5h-7L13 2Z" />,
   },
   {
-    title: 'DM keyword automation',
-    description: 'Detect keywords in incoming direct messages and send a ready-made answer.',
-    accent: 'from-violet-500/15 text-violet-400 ring-violet-500/20',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" d="m3 4 18 8-18 8 4-8-4-8Zm4 8h14" />
-    ),
+    title: 'Direct messages',
+    description: 'A keyword shows up in a DM — Nivo sends the right answer back, around the clock.',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="m3 4 18 8-18 8 4-8-4-8Zm4 8h14" />,
   },
 ]
 
@@ -33,58 +24,82 @@ const FEATURES = [
 // محصول (دایرکت هوشمند)، نه معرفی کل نیوو؛ عمومی/بدون auth، صفحه‌ی اصلی nivoai.site
 export function IntlLandingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 light:bg-white" dir="ltr">
-      <div
-        className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full opacity-25 blur-[120px] light:opacity-20"
-        style={{ background: 'radial-gradient(circle, #22E6A7 0%, #6D6BFF 45%, transparent 70%)' }}
-      />
-
-      <header className="relative mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
+    <div className="min-h-screen bg-slate-950 light:bg-white" dir="ltr">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Logo variant="intl" className="h-7" />
         <Link to="/login">
-          <Button variant="ghost" size="sm" className="ring-1 ring-slate-800 light:ring-slate-200">Sign in</Button>
+          <Button variant="ghost" size="sm">Sign in</Button>
         </Link>
       </header>
 
-      <main className="relative mx-auto max-w-2xl px-5 pb-20 pt-10 text-center sm:pt-16">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          Instagram automation
-        </span>
+      <main className="mx-auto max-w-6xl px-6 pb-24 pt-8 sm:pt-16">
+        <div className="grid items-center gap-16 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Nivo Smart DM</p>
+            <h1 className="mt-4 text-[2.5rem] font-semibold leading-[1.1] tracking-tight text-slate-100 light:text-slate-900 sm:text-5xl">
+              Reply to Instagram instantly — automatically.
+            </h1>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-slate-400 light:text-slate-600">
+              Set keyword-based rules once. Nivo replies to comments, story mentions, and direct messages the moment
+              they come in — no bots to train, no code to write.
+            </p>
 
-        <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-100 light:text-slate-900 sm:text-5xl">
-          Nivo Smart DM
-        </h1>
-        <p className="mx-auto mt-4 max-w-lg text-balance text-slate-400 light:text-slate-600">
-          Automatically reply to Instagram comments, story replies, and direct messages with rules you set up in a couple of
-          minutes — no bots to train, no code.
-        </p>
-        <Link to="/login">
-          <Button className="mt-8 shadow-[0_0_30px_-8px_rgba(16,185,129,0.6)]" size="md">
-            Get started
-          </Button>
-        </Link>
+            <div className="mt-8 flex items-center gap-4">
+              <Link to="/login">
+                <Button size="md">Get started</Button>
+              </Link>
+              <span className="text-xs text-slate-500">Free to try · 2-minute setup</span>
+            </div>
+          </div>
 
-        <div className="mt-16 grid gap-4 text-left sm:grid-cols-3">
-          {FEATURES.map(f => (
-            <div
-              key={f.title}
-              className="rounded-2xl border border-slate-800 p-5 transition-colors hover:border-slate-700 light:border-slate-200 light:hover:border-slate-300"
-            >
-              <div className={`mb-3 inline-flex size-9 items-center justify-center rounded-lg bg-gradient-to-b ring-1 ${f.accent}`}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5">
-                  {f.icon}
-                </svg>
+          <div className="relative">
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 light:border-slate-200 light:bg-slate-50">
+              <div className="flex items-center gap-2.5 border-b border-slate-800 px-4 py-3 light:border-slate-200">
+                <div className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#22E6A7] via-[#6D6BFF] to-[#A257FF] text-[11px] font-semibold text-white">
+                  C
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium text-slate-200 light:text-slate-800">customer.ig</p>
+                  <p className="text-[11px] text-slate-500">Instagram DM</p>
+                </div>
               </div>
-              <h2 className="mb-1.5 text-sm font-bold text-slate-100 light:text-slate-900">{f.title}</h2>
-              <p className="text-sm leading-relaxed text-slate-500">{f.description}</p>
+
+              <div className="space-y-3 px-4 py-5">
+                <div className="max-w-[78%] rounded-2xl rounded-bl-sm bg-slate-800 px-3.5 py-2 text-[13px] leading-snug text-slate-200 light:bg-slate-200 light:text-slate-800">
+                  Hey! Do you ship worldwide?
+                </div>
+
+                <div className="flex items-center gap-1.5 pl-1 text-[11px] text-slate-500">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="size-3">
+                    <path d="M13 2 4.5 13.5H11L10 22l9-12.5h-7L13 2Z" />
+                  </svg>
+                  keyword "shipping" detected
+                </div>
+
+                <div className="ml-auto max-w-[78%] rounded-2xl rounded-br-sm bg-emerald-500 px-3.5 py-2 text-[13px] leading-snug text-white">
+                  Yes — we ship to 30+ countries. Free shipping over $50!
+                </div>
+                <p className="pr-1 text-right text-[11px] text-slate-600">Replied automatically in 1.2s</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-24 grid gap-x-10 gap-y-12 border-t border-slate-900 pt-16 sm:grid-cols-3 light:border-slate-200">
+          {FEATURES.map(f => (
+            <div key={f.title}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="size-5 text-slate-500">
+                {f.icon}
+              </svg>
+              <h2 className="mt-3 text-[15px] font-semibold text-slate-100 light:text-slate-900">{f.title}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{f.description}</p>
             </div>
           ))}
         </div>
       </main>
 
-      <footer className="relative mx-auto max-w-2xl border-t border-slate-900 px-5 py-8 text-center text-xs text-slate-600 light:border-slate-100">
-        <nav className="flex flex-wrap justify-center gap-4">
+      <footer className="mx-auto max-w-6xl border-t border-slate-900 px-6 py-8 text-xs text-slate-600 light:border-slate-200">
+        <nav className="flex flex-wrap gap-5">
           <Link to="/privacy" className="hover:text-slate-400 light:hover:text-slate-700">Privacy Policy</Link>
           <Link to="/terms" className="hover:text-slate-400 light:hover:text-slate-700">Terms of Service</Link>
           <Link to="/data-deletion" className="hover:text-slate-400 light:hover:text-slate-700">Data Deletion</Link>
