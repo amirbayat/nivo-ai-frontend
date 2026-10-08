@@ -3,7 +3,10 @@ import { NavLink, Navigate, Outlet } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { useMyStores, useNeededAttention, useProducts } from '@/queries/seller.queries'
+import { useConvertDemoStoreToReal } from '@/queries/demo.queries'
+import { extractErrorMessage } from '@/lib/sellerProduct'
 import { GoldPriceTicker } from '@/components/shop/GoldPriceTicker'
+import type { SellerStore } from '@/types/api'
 
 // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱
 const LOW_STOCK_THRESHOLD = 3
@@ -119,6 +122,48 @@ function SidebarItem({ to, icon, label, badge }: { to: string; icon: React.React
   )
 }
 
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار ثابت بالای کل پنل دمو؛
+// قبلاً این پیام فقط داخل تنظیمات بود (فیدبک کاربر ۱۴۰۵/۰۷/۱۷: باید همه‌جا دیده بشه).
+// دکمه‌ی تبدیل همون mutation صفحه‌ی تنظیمات رو مستقیم از همینجا صدا می‌زنه، بدون نیاز به
+// رفتن به تنظیمات؛ دکمه‌ی «تست پنل خریدار» صرفاً صفحه‌ی واقعی /shop/:slug همین فروشگاه رو در
+// تب جدید باز می‌کند — پنل خریداری جدا و جدیدی در کار نیست، همون تجربه‌ی واقعی مشتری است
+function DemoBanner({ store }: { store: SellerStore }) {
+  const convertToReal = useConvertDemoStoreToReal(store.id)
+
+  return (
+    <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 lg:mx-auto lg:max-w-4xl">
+        <p className="text-sm text-amber-300 light:text-amber-700">{fa.seller.panel.demoBanner.text}</p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.open(`/shop/${store.slug}`, '_blank', 'noopener,noreferrer')}
+            className="rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-bold text-amber-300 light:text-amber-700 hover:bg-amber-500/10"
+          >
+            {fa.seller.panel.demoBanner.testBuyerButton}
+          </button>
+          <button
+            type="button"
+            disabled={convertToReal.isPending}
+            onClick={() => {
+              if (!window.confirm(fa.seller.panel.demoBanner.convertConfirm)) return
+              convertToReal.mutate()
+            }}
+            className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+          >
+            {fa.seller.panel.demoBanner.convertButton}
+          </button>
+        </div>
+      </div>
+      {convertToReal.isError && (
+        <p className="mt-1.5 text-xs text-red-400 lg:mx-auto lg:max-w-4xl">
+          {extractErrorMessage(convertToReal.error, fa.seller.panel.demoBanner.convertError)}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export function SellerPanelLayout() {
   const { data: stores, isLoading } = useMyStores()
   const store = stores?.[0]
@@ -157,6 +202,7 @@ export function SellerPanelLayout() {
       }}
     >
       <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
+        {store.isDemo && <DemoBanner store={store} />}
         {showGoldTicker && <GoldPriceTicker />}
 
         <div className="flex flex-1 flex-col lg:flex-row">

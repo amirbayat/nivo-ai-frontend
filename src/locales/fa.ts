@@ -530,6 +530,15 @@ export const fa = {
         products: 'محصولات',
         more: 'بیشتر',
       },
+      // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار بالای ثابت پنل دمو؛
+      // قبلاً این پیام فقط داخل تنظیمات بود، حالا بالای هر صفحه‌ی پنل دیده می‌شود
+      demoBanner: {
+        text: 'این یک فروشگاه آزمایشی است — محصولاتش فقط برای تست است.',
+        convertButton: 'تبدیل به فروشگاه واقعی',
+        convertConfirm: 'بعد از این، این فروشگاه دیگر دمو نیست و می‌تونی محصولات واقعی خودت رو جایگزین کنی. ادامه بدم؟',
+        convertError: 'تبدیل فروشگاه به واقعی انجام نشد',
+        testBuyerButton: 'تست پنل خریدار',
+      },
       home: {
         pendingOrders: (n: number) => `${n.toLocaleString('fa-IR')} سفارش در انتظار تایید`,
         needsAttention: (n: number) => `${n.toLocaleString('fa-IR')} مکالمه نیاز به توجه دارد`,
@@ -1102,11 +1111,6 @@ export const fa = {
       storeSettings: {
         title: 'پروفایل فروشگاه',
         subtitle: 'این اطلاعات همیشه در دسترس ایجنت فروش هستند و لازم نیست تک‌تک به باکس دانش اضافه شوند',
-        // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۵.۳
-        demoBannerText: 'این یک فروشگاه دموی نمونه است — محصولاتش فقط برای تست است.',
-        convertToRealButton: 'این رو فروشگاه واقعی من کن',
-        convertToRealConfirm: 'بعد از این، این فروشگاه دیگر دمو نیست و می‌تونی محصولات واقعی خودت رو جایگزین کنی. ادامه بدم؟',
-        convertToRealError: 'تبدیل فروشگاه به واقعی انجام نشد',
         requiresShippingLabel: 'این فروشگاه نیاز به ارسال کالا دارد',
         requiresShippingHint: 'اگر محصولاتت حضوری/دیجیتالی تحویل داده می‌شوند، این را خاموش کن تا موقع خرید آدرس پرسیده نشود؛ تنظیم هزینه‌ی ارسال به‌تفکیک استان از «بیشتر ← هزینه ارسال» در دسترس است',
         // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳
@@ -1220,6 +1224,10 @@ export const fa = {
     historyEmpty: 'گفتگوی قبلی‌ای ثبت نشده',
     viewingHistoryBanner: 'داری یک گفتگوی قدیمی رو می‌بینی — فرستادن پیام غیرفعاله',
     backToCurrentChat: 'بازگشت به گفتگوی فعلی',
+    // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار بالای صفحه‌ی چت وقتی
+    // فروشگاه یک فروشگاه دمو/نمونه است (نه فروشگاه واقعی یک فروشنده)
+    demoBuyerBannerText: 'این یک فروشگاه نمونه است — سفارش واقعی ثبت نمی‌شود، فقط برای تست قابلیت‌هاست.',
+    demoBuyerBannerCta: 'می‌خوای فروشگاه خودتو بسازی؟',
     historyNoProduct: 'بدون محصول',
     historyStatusLabels: {
       COMPLETED: 'تکمیل‌شده',

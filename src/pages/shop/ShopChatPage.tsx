@@ -347,6 +347,7 @@ export function ShopChatPage() {
     storeId,
     storeName,
     storeLogoKey,
+    isDemo,
     notFound,
     conversationId,
     messages,
@@ -617,6 +618,18 @@ export function ShopChatPage() {
           </button>
         </div>
       </div>
+
+      {isDemo && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2">
+          <span className="text-xs text-amber-300 light:text-amber-700">{fa.shop.demoBuyerBannerText}</span>
+          <button
+            onClick={() => navigate('/demo/seller')}
+            className="shrink-0 rounded-lg border border-amber-500/40 px-2.5 py-1 text-xs font-bold text-amber-300 light:text-amber-700 hover:bg-amber-500/10"
+          >
+            {fa.shop.demoBuyerBannerCta}
+          </button>
+        </div>
+      )}
 
       {registerOpen && (
         <RegisterModal onClose={() => setRegisterOpen(false)} onSendOtp={sendBuyerOtp} onVerifyOtp={verifyBuyerOtp} />

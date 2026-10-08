@@ -561,6 +561,8 @@ export interface ShopStartChatResponse {
   storeName: string
   // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — کلید MinIO، نه URL (مثل Product.images)
   storeLogoKey: string | null
+  // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار دمو روی صفحه‌ی چت
+  isDemo: boolean
   responseStrategy: ShopResponseStrategy
   // فقط وقتی لینک اختصاصی یک محصول باز شده (?product=) و آن محصول واقعاً پیدا شد
   initialReply?: string
@@ -607,6 +609,7 @@ export interface ShopGetConversationResponse {
   storeId: string
   storeName: string
   storeLogoKey: string | null
+  isDemo: boolean
   responseStrategy: ShopResponseStrategy
   events: ShopConversationEvent[]
 }
