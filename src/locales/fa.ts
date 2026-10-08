@@ -902,6 +902,23 @@ export const fa = {
         reanalyze: 'تحلیل دوباره',
         reanalyzing: 'در حال تحلیل...',
       },
+      // docs/PRD-seller-guide-assistant-modal.md بخش ۳.۳ — چت زنده‌ی راهنما، جایگزین
+      // guidePrompt بالا فقط برای store-setup/product
+      guideAssistant: {
+        inputPlaceholder: 'جواب بده یا سوال بپرس...',
+        send: 'ارسال',
+        record: '🎙️ ضبط صدا',
+        recording: 'در حال ضبط... (برای توقف دوباره بزن)',
+        transcribing: 'در حال تبدیل صدا به متن...',
+        play: '🔊 پخش',
+        playing: '🔊 در حال پخش...',
+        voiceError: 'ساخت پاسخ صوتی ناموفق بود',
+        finish: 'پایان و تحلیل',
+        finishHint: 'هر وقت آماده بودی «پایان و تحلیل» را بزن تا جواب‌هایت بررسی شود',
+        capReached: 'به سقف پیام‌های این گفتگو رسیدی — حالا «پایان و تحلیل» را بزن',
+        thinking: 'در حال نوشتن پاسخ...',
+        sendError: 'ارسال پیام با خطا مواجه شد',
+      },
       knowledge: {
         title: 'باکس دانش فروشگاه',
         subtitle: 'هرچی اینجا اضافه کنی به ربات فروش کمک می‌کند دقیق‌تر جواب بدهد',

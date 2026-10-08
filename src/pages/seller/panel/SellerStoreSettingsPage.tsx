@@ -13,7 +13,7 @@ import {
 } from '@/queries/seller.queries'
 import type { AnalyzeOwnerNotesResult, SellerStore } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
-import { GuidePromptModal } from './GuidePromptModal'
+import { GuideAssistantModal } from './GuideAssistantModal'
 import { NotesSuggestionsPanel } from './NotesSuggestionsPanel'
 
 // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه؛ همون الگوی
@@ -416,7 +416,7 @@ export function SellerStoreSettingsPage() {
         {saved ? fa.seller.panel.storeSettings.saved : fa.seller.panel.storeSettings.save}
       </button>
 
-      <GuidePromptModal
+      <GuideAssistantModal
         open={guideOpen}
         onClose={() => setGuideOpen(false)}
         context="store-setup"

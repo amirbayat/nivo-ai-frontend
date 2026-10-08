@@ -11,7 +11,7 @@ import {
   useTranscribeAudio,
 } from '@/queries/seller.queries'
 import type { NotesAnalysisKbCandidate, ProductSpecSuggestion } from '@/types/api'
-import { GuidePromptModal } from './GuidePromptModal'
+import { GuideAssistantModal } from './GuideAssistantModal'
 
 type Suggestion = {
   description: string
@@ -237,7 +237,7 @@ export function ProductDescriptionModal({
               onClick={() => setGuideOpen(true)}
               className="w-full rounded-2xl border border-emerald-500/40 bg-emerald-500/10 py-3 text-sm font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20"
             >
-              ✨ {fa.seller.panel.guidePrompt.button} (ChatGPT)
+              ✨ {fa.seller.panel.guidePrompt.button}
             </button>
             <p className="px-0.5 text-[11px] text-slate-500 light:text-slate-400">{fa.seller.panel.products.aiWebSearchHint}</p>
             {improve.isError && (
@@ -325,7 +325,7 @@ export function ProductDescriptionModal({
         )}
       </div>
 
-      <GuidePromptModal
+      <GuideAssistantModal
         open={guideOpen}
         onClose={() => setGuideOpen(false)}
         context="product"

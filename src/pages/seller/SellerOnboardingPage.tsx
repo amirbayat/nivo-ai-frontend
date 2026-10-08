@@ -12,7 +12,7 @@ import {
   useUpdateStore,
 } from '@/queries/seller.queries'
 import type { AnalyzeOwnerNotesResult, ClassifyBusinessSetupResult } from '@/types/api'
-import { GuidePromptModal } from './panel/GuidePromptModal'
+import { GuideAssistantModal } from './panel/GuideAssistantModal'
 import { NotesSuggestionsPanel } from './panel/NotesSuggestionsPanel'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
@@ -471,7 +471,7 @@ export function SellerOnboardingPage() {
             </button>
 
             {storeId && (
-              <GuidePromptModal
+              <GuideAssistantModal
                 open={guideOpen}
                 onClose={() => setGuideOpen(false)}
                 context="store-setup"
