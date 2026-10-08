@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { extractErrorMessage } from '@/lib/sellerProduct'
-import { buildGuidePrompt, GUIDE_PROMPT_TITLES } from '@/lib/guideAssistantPrompts'
+import { buildGuidePrompt, buildGuideOpeningMessage, GUIDE_PROMPT_TITLES } from '@/lib/guideAssistantPrompts'
 import { useAnalyzeOwnerNotes, useTranscribeAudio } from '@/queries/seller.queries'
 import { useGuideAssistantChat, synthesizeGuideVoice } from '@/hooks/useGuideAssistantChat'
 import type { AnalyzeOwnerNotesResult } from '@/types/api'
@@ -51,6 +51,10 @@ export function GuideAssistantModal({
   const systemPrompt = useMemo(
     () => buildGuidePrompt(context, { category, businessType, name: storeName }),
     [context, category, businessType, storeName],
+  )
+  const openingMessage = useMemo(
+    () => buildGuideOpeningMessage(context, { name: storeName }),
+    [context, storeName],
   )
 
   useEffect(() => {
@@ -194,8 +198,8 @@ export function GuideAssistantModal({
       </div>
 
       <div ref={scrollRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-        <div className="max-w-[90%] self-start rounded-2xl rounded-tr-sm border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-slate-50 px-3.5 py-3 text-xs leading-relaxed whitespace-pre-wrap text-slate-200 light:text-slate-800">
-          {systemPrompt}
+        <div className="max-w-[90%] self-start rounded-2xl rounded-tr-sm border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-slate-50 px-3.5 py-3 text-sm leading-relaxed whitespace-pre-wrap text-slate-200 light:text-slate-800">
+          {openingMessage}
         </div>
 
         {messages.map((m, i) => (
