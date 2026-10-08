@@ -623,7 +623,18 @@ export function ShopChatPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2">
           <span className="text-xs text-amber-300 light:text-amber-700">{fa.shop.demoBuyerBannerText}</span>
           <button
-            onClick={() => navigate('/demo/seller')}
+            onClick={() => {
+              // همون الگوی goToSection در HubPage.tsx — اگر از قبل لاگین واقعی دارد (این
+              // صفحه مشتری ناشناس است، نه پنل فروشنده، پس اینجا چکش نشده بود)، مستقیم به
+              // ویزارد ساخت فروشگاه واقعی برود، نه به فلوی دمو؛ وگرنه اول لاگین، بعد همان‌جا
+              const path = '/seller/onboarding'
+              if (!localStorage.getItem('access_token')) {
+                sessionStorage.setItem('nivo:pendingReturnPath', path)
+                navigate('/login')
+                return
+              }
+              navigate(path)
+            }}
             className="shrink-0 rounded-lg border border-amber-500/40 px-2.5 py-1 text-xs font-bold text-amber-300 light:text-amber-700 hover:bg-amber-500/10"
           >
             {fa.shop.demoBuyerBannerCta}

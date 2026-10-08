@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import { NavLink, Navigate, Outlet } from 'react-router-dom'
+import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { useMyStores, useNeededAttention, useProducts } from '@/queries/seller.queries'
@@ -126,8 +126,14 @@ function SidebarItem({ to, icon, label, badge }: { to: string; icon: React.React
 // قبلاً این پیام فقط داخل تنظیمات بود (فیدبک کاربر ۱۴۰۵/۰۷/۱۷: باید همه‌جا دیده بشه).
 // دکمه‌ی تبدیل همون mutation صفحه‌ی تنظیمات رو مستقیم از همینجا صدا می‌زنه، بدون نیاز به
 // رفتن به تنظیمات؛ دکمه‌ی «تست پنل خریدار» صرفاً صفحه‌ی واقعی /shop/:slug همین فروشگاه رو در
-// تب جدید باز می‌کند — پنل خریداری جدا و جدیدی در کار نیست، همون تجربه‌ی واقعی مشتری است
+// تب جدید باز می‌کند — پنل خریداری جدا و جدیدی در کار نیست، همون تجربه‌ی واقعی مشتری است.
+// فیدبک کاربر ۱۴۰۵/۰۷/۱۷ — تبدیل باید دقیقاً مثل ساخت یک فروشگاه تازه از صفر باشد: بعد از
+// flip کردن isDemo روی همین فروشگاه دمو (تا دیگر جزو سهمیه‌ی دمو حساب نشود)، کاربر مستقیم به
+// ویزارد خالی /seller/onboarding می‌رود — هیچ داده‌ای از فروشگاه دمو pre-fill نمی‌شود؛ فروشگاه
+// واقعی جدیدی از همان ویزارد معمولی ساخته می‌شود (فروشگاه دمو قبلی دست‌نخورده می‌ماند، فقط
+// isDemo آن خاموش است و دیگر در پنل اول نشان داده نمی‌شود چون useMyStores جدیدترین را اول می‌دهد)
 function DemoBanner({ store }: { store: SellerStore }) {
+  const navigate = useNavigate()
   const convertToReal = useConvertDemoStoreToReal(store.id)
 
   return (
@@ -147,7 +153,9 @@ function DemoBanner({ store }: { store: SellerStore }) {
             disabled={convertToReal.isPending}
             onClick={() => {
               if (!window.confirm(fa.seller.panel.demoBanner.convertConfirm)) return
-              convertToReal.mutate()
+              convertToReal.mutate(undefined, {
+                onSuccess: () => navigate('/seller/onboarding'),
+              })
             }}
             className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
           >
