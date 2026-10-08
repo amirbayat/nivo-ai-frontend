@@ -15,6 +15,10 @@ interface BlockProps {
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
   savedProductIds: Set<string>
   onToggleSave: (productId: string) => void
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول پیام‌های قدیمی‌تر همیشه کلیک‌پذیر می‌ماند؛ محصولی که
+  // طبق آخرین CART_SUMMARY از قبل در سبد است، دیگر دکمه‌ی فعال «افزودن» نشان نمی‌دهد (جلوگیری
+  // از دوبرابرشدن ناخواسته‌ی تعداد با کلیک دوباره روی کارت قدیمی همان محصول) — ShopChatPage.tsx
+  cartProductIds: Set<string>
 }
 
 // عمومی، بدون auth — الگوی مسیر عیناً مطابق sales-agent.controller.ts getProductImage
@@ -212,6 +216,7 @@ function ProductCardBlock({
   onAddToCart,
   savedProductIds,
   onToggleSave,
+  cartProductIds,
 }: {
   products: {
     id: string
@@ -225,6 +230,7 @@ function ProductCardBlock({
   onAddToCart: (productId: string) => void
   savedProductIds: Set<string>
   onToggleSave: (productId: string) => void
+  cartProductIds: Set<string>
 }) {
   const [zoom, setZoom] = useState<{ items: MediaItem[]; index: number } | null>(null)
   return (
@@ -283,10 +289,10 @@ function ProductCardBlock({
               </span>
               <button
                 onClick={() => onAddToCart(p.id)}
-                disabled={disabled || p.stock === 0}
+                disabled={disabled || p.stock === 0 || cartProductIds.has(p.id)}
                 className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
               >
-                {fa.shop.addToCart}
+                {cartProductIds.has(p.id) ? fa.shop.alreadyInCart : fa.shop.addToCart}
               </button>
             </div>
           </div>
@@ -710,6 +716,7 @@ export function ShopUiBlockView({
   onSendAction,
   savedProductIds,
   onToggleSave,
+  cartProductIds,
 }: BlockProps) {
   switch (block.type) {
     case 'PRODUCT_CARD':
@@ -720,6 +727,7 @@ export function ShopUiBlockView({
           onAddToCart={onAddToCart}
           savedProductIds={savedProductIds}
           onToggleSave={onToggleSave}
+          cartProductIds={cartProductIds}
         />
       )
     case 'PRODUCT_PHOTOS':

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
@@ -425,6 +425,20 @@ export function ShopChatPage() {
 
   const disabled = sending || viewingHistory || TERMINAL_STATES.includes(state)
 
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر همیشه قابل‌کلیک می‌ماند؛ کلیک
+  // دوباره روی کارت تکراری همون محصول (مثلاً وقتی همون کارت یک‌بار دیگر ضمن توضیح تخفیف
+  // دوباره پیوست می‌شود) بدون هشدار تعداد سبد را دوبرابر می‌کرد. آخرین CART_SUMMARY منبع
+  // حقیقت فعلی سبد است؛ هر کارت محصولی که همین الان توی آن هست، دیگر دکمه‌ی فعال نشان نمی‌دهد
+  const cartProductIds = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const block = messages[i].uiBlock
+      if (block?.type === 'CART_SUMMARY') {
+        return new Set(block.items.map(item => item.productId))
+      }
+    }
+    return new Set<string>()
+  }, [messages])
+
   // «پرسیدن از فروشنده» از شیت محصول گرید — چت را باز می‌کند و با نام محصول (مثل اینکه خریدار
   // تایپ کرده) همان مکانیزم موجود لنگرشدن روی محصول (doBrowse narrowing تک‌نتیجه‌ای) را فعال
   // می‌کند؛ بدون نیاز به یک اکشن/endpoint تازه‌ی «set anchor»
@@ -686,6 +700,7 @@ export function ShopChatPage() {
                   onSendAction={(action) => void sendAction(action)}
                   savedProductIds={savedProductIds}
                   onToggleSave={toggleSaveProduct}
+                  cartProductIds={cartProductIds}
                 />
               )}
             </div>

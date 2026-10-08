@@ -5,6 +5,7 @@ import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { toEnglishDigits } from '@/lib/digits'
 import type { DiscountKind, StoreDiscountCode } from '@/types/api'
 import {
@@ -201,20 +202,16 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
           inputMode="numeric"
         />
       </div>
-      <div className="mb-3 flex flex-col gap-1.5">
-        <label className="text-sm text-slate-400 light:text-slate-600">
-          {fa.seller.panel.discountCodes.productLabel}
-        </label>
-        <select
+      <div className="mb-3">
+        <Select
+          label={fa.seller.panel.discountCodes.productLabel}
           value={productId}
-          onChange={e => setProductId(e.target.value)}
-          className={DATE_INPUT_CLASS}
-        >
-          <option value="">{fa.seller.panel.discountCodes.productPlaceholder}</option>
-          {products.data?.map(p => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+          onChange={setProductId}
+          options={[
+            { value: '', label: fa.seller.panel.discountCodes.productPlaceholder },
+            ...(products.data?.map(p => ({ value: p.id, label: p.name })) ?? []),
+          ]}
+        />
       </div>
       {add.isError && <p className="mb-3 text-xs text-red-400">{fa.seller.panel.discountCodes.addError}</p>}
       <div className="flex gap-2">

@@ -15,4 +15,7 @@ export const DEMO_CATEGORY_LABELS: Record<string, string> = {
   'flowers-plants': 'گل و گیاه',
   handicrafts: 'صنایع‌دستی',
   pets: 'حیوانات خانگی',
+  'online-courses': 'دوره آموزشی و محصولات دیجیتال',
+  'carpets-antiques': 'فرش دستباف و عتیقه',
+  'repair-services': 'خدمات تعمیر',
 }
