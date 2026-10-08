@@ -74,6 +74,8 @@ export interface CreateProductInput {
   goldWageType?: 'PERCENT' | 'FIXED_PER_GRAM'
   goldWageValue?: number
   goldProfitPercent?: number
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
+  hasFulfillmentDelay?: boolean
 }
 
 // docs/PRD-product-display-focus-and-variations.md §۴.۱ — همیشه جایگزین کامل (نه patch)

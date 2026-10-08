@@ -146,6 +146,8 @@ export interface SellerProduct {
   variants?: ProductVariant[]
   // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — متن خام فروشنده درباره‌ی این محصول
   ownerNotes: string | null
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
+  hasFulfillmentDelay: boolean
 }
 
 export interface ProductOptionType {
@@ -531,6 +533,9 @@ export interface ShopMessage {
   // عکسی که خریدار در حالت «صحبت با فروشنده» فرستاده — قبل از رسیدن پاسخ سرور یک object URL
   // محلی است، بعد از رفرش/پالینگ آدرس واقعی سرور (useShopChat.ts chatImageUrl) جایگزینش می‌شود
   imageUrl?: string
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — همون الگوی
+  // imageUrl بالا، برای ویدیو
+  videoUrl?: string
 }
 
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس
@@ -578,6 +583,8 @@ export interface ShopSendMessageResponse {
   voiceEventId?: string
   // فقط پاسخ voice-message این را دارد — متن واقعی تبدیل‌شده‌ی صدای مشتری با ASR
   transcript?: string
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱
+  awaitingReview?: boolean
 }
 
 export interface ShopVoiceStatusResponse {
@@ -596,7 +603,8 @@ export interface ShopConversationEvent {
   // imageKey فقط روی CUSTOMER_MESSAGE می‌آید — عکسی که خریدار در حالت «صحبت با فروشنده» فرستاده
   // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۲ — reattachedToOrder یعنی این عکس
   // جای رسید سفارش باز این مکالمه را گرفته (فروشنده باید دوباره بررسی کند)
-  payload: { text?: string; uiBlock?: ShopUiBlock; imageKey?: string; reattachedToOrder?: boolean }
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — videoKey هم‌الگوی imageKey
+  payload: { text?: string; uiBlock?: ShopUiBlock; imageKey?: string; videoKey?: string; reattachedToOrder?: boolean }
   createdAt: string
 }
 
@@ -611,6 +619,9 @@ export interface ShopGetConversationResponse {
   storeLogoKey: string | null
   isDemo: boolean
   responseStrategy: ShopResponseStrategy
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — true یعنی
+  // الان منتظر نظر است؛ دکمه‌های پیوست عکس/ویدیو هم باید نشان داده شوند
+  awaitingReview: boolean
   events: ShopConversationEvent[]
 }
 
@@ -658,6 +669,8 @@ export interface UpdateProductInput {
   goldWageType?: 'PERCENT' | 'FIXED_PER_GRAM' | null
   goldWageValue?: number | null
   goldProfitPercent?: number | null
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
+  hasFulfillmentDelay?: boolean
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI

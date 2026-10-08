@@ -363,7 +363,9 @@ export function ShopChatPage() {
     sendAction,
     uploadReceipt,
     sendImageMessage,
+    sendVideoMessage,
     sendVoiceMessage,
+    awaitingReview,
     markVoiceHeard,
     sendBuyerOtp,
     verifyBuyerOtp,
@@ -389,6 +391,7 @@ export function ShopChatPage() {
   const chunksRef = useRef<Blob[]>([])
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
   // 100vh/100dvh روی خیلی از مرورگرهای موبایل با بازشدن کیبورد صفحه شرینک نمی‌شه (مخصوصاً
   // سافاری قدیمی‌تر) — یعنی اینپوت پایین یک کادر که دیگه بزرگ‌تر از ویوپورت واقعی‌ست میره،
@@ -424,7 +427,10 @@ export function ShopChatPage() {
     prevMessageCountRef.current = messages.length
   }, [messages.length, storeMode])
 
-  const disabled = sending || viewingHistory || TERMINAL_STATES.includes(state)
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — وقتی منتظر
+  // نظریم، با این‌که state همچنان COMPLETED (ترمینال) است، ورودی باید باز بماند تا خریدار
+  // بتواند متن/صوت/عکس/ویدیوی نظرش را همین‌جا بفرستد
+  const disabled = sending || viewingHistory || (TERMINAL_STATES.includes(state) && !awaitingReview)
 
   // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر همیشه قابل‌کلیک می‌ماند؛ کلیک
   // دوباره روی کارت تکراری همون محصول (مثلاً وقتی همون کارت یک‌بار دیگر ضمن توضیح تخفیف
@@ -456,13 +462,22 @@ export function ShopChatPage() {
     void sendMessage(text)
   }
 
-  // فقط در حالت «صحبت با فروشنده» معنا دارد — بک‌اند هم دقیقاً همین شرط (isMutedForHuman) را
-  // چک می‌کند، این فقط جلوی یک درخواست بی‌فایده را می‌گیرد
+  // در حالت «صحبت با فروشنده» یا منتظر نظر معنا دارد — بک‌اند هم دقیقاً همین شرط
+  // (isMutedForHuman || awaitingReview) را چک می‌کند، این فقط جلوی یک درخواست بی‌فایده را می‌گیرد
   function onPickImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file || disabled) return
     void sendImageMessage(file)
+  }
+
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — هم‌الگوی
+  // onPickImage بالا، برای ویدیو
+  function onPickVideo(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || disabled) return
+    void sendVideoMessage(file)
   }
 
   function handleNewChat() {
@@ -696,7 +711,14 @@ export function ShopChatPage() {
                   />
                 </a>
               )}
-              {(m.text || !m.imageUrl) && (
+              {m.videoUrl && (
+                <video
+                  src={m.videoUrl}
+                  controls
+                  className="mb-1 max-h-72 rounded-2xl rounded-tl-sm border border-emerald-500/20"
+                />
+              )}
+              {(m.text || (!m.imageUrl && !m.videoUrl)) && (
                 <div
                   dir="auto"
                   className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
@@ -746,9 +768,14 @@ export function ShopChatPage() {
         {error && <p className="text-center text-xs text-red-400 light:text-red-600">{error}</p>}
       </div>
 
-      {(TERMINAL_STATES.includes(state) || HUMAN_HANDLING_STATES.includes(state)) && (
+      {((TERMINAL_STATES.includes(state) && !awaitingReview) || HUMAN_HANDLING_STATES.includes(state)) && (
         <div className="border-t border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-slate-50 px-4 py-2 text-center text-xs text-slate-500">
           {fa.shop.conversationEnded}
+        </div>
+      )}
+      {TERMINAL_STATES.includes(state) && awaitingReview && (
+        <div className="border-t border-slate-800 light:border-slate-200 bg-emerald-500/10 px-4 py-2 text-center text-xs text-emerald-300 light:text-emerald-700">
+          {fa.shop.awaitingReviewHint}
         </div>
       )}
 
@@ -798,7 +825,7 @@ export function ShopChatPage() {
           dir="auto"
           className="flex-1 resize-none rounded-xl border border-slate-600/60 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 outline-none placeholder:text-slate-500 disabled:opacity-50"
         />
-        {HUMAN_HANDLING_STATES.includes(state) && (
+        {(HUMAN_HANDLING_STATES.includes(state) || awaitingReview) && (
           <>
             <input
               ref={imageInputRef}
@@ -815,6 +842,26 @@ export function ShopChatPage() {
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
                 <path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {/* docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ —
+                ویدیو فقط در لحظه‌ی awaitingReview معنا دارد (muted-human هم مجاز است، طبق
+                submitVideoMessage، ولی قبلاً هیچ UIای برایش نبود) */}
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              onChange={onPickVideo}
+              className="hidden"
+            />
+            <button
+              onClick={() => videoInputRef.current?.click()}
+              disabled={disabled}
+              title={fa.shop.attachVideo}
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-600/60 light:border-slate-300 text-slate-300 light:text-slate-700 hover:border-slate-500 disabled:opacity-30"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h6.5A2.25 2.25 0 0012 13.75v-7.5A2.25 2.25 0 009.75 4h-6.5zM19 7.3a1 1 0 00-1.6-.8L14 8.7v2.6l3.4 2.2a1 1 0 001.6-.8V7.3z" />
               </svg>
             </button>
           </>

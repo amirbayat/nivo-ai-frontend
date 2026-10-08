@@ -695,6 +695,9 @@ export const fa = {
         // روشن است، فروشنده می‌تواند همین یک محصول را مستثنا کند
         persuasionToggleLabel: 'تکنیک‌های متقاعدسازی برای این محصول',
         persuasionToggleHint: 'اگر خاموش کنی، حتی وقتی کلید کلی فروشگاه روشن است، ایجنت برای همین محصول از این تکنیک‌ها استفاده نمی‌کند',
+        // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
+        fulfillmentDelayToggleLabel: 'این محصول آماده‌سازی/تحویل زمان‌بر دارد (مثلاً عکاسی، فیلم‌برداری، سفارشی‌سازی)',
+        fulfillmentDelayToggleHint: 'اگر روشن باشد، درخواست نظر از خریدار بلافاصله بعد از تایید سفارش فرستاده نمی‌شود — تا وقتی دکمه‌ی «ارسال شد» را برای همین سفارش نزنی',
         // docs/PRD-product-display-focus-and-variations.md §۴.۱
         variantsToggleLabel: 'این محصول چند حالت داره؟ (مثلاً سایز یا رنگ)',
         variantsToggleHint: 'مثلاً پیراهن با سایزهای مختلف یا کیف با رنگ‌های مختلف — هر ترکیب موجودی جدای خودش رو داره',
@@ -1211,10 +1214,14 @@ export const fa = {
     addressSaveYesButton: '✅ بله، ذخیره کن',
     addressSaveNoButton: 'فقط همین‌بار',
     conversationEnded: 'این مکالمه به یکی از همکارهای فروشگاه منتقل شد — می‌تونی همینجا باهاش صحبت کنی.',
+    // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱/۳.۳
+    awaitingReviewHint: 'نظرت رو همین‌جا بفرست — متن، صوت، عکس یا ویدیو، هرکدوم راحت‌تری 🙏',
     voicePreparing: '🔊 در حال آماده‌سازی صدا...',
     customerVoiceTranscribing: '🎙️ در حال تبدیل گفتار به متن...',
     customerImageAlt: 'عکس ارسالی خریدار',
     attachImage: 'ارسال عکس به فروشنده',
+    // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱
+    attachVideo: 'ارسال ویدیو',
     voiceRecording: 'در حال ضبط... برای فرستادن دوباره بزن',
     micNotSupported: 'ضبط صدا روی این مرورگر پشتیبانی نمی‌شود',
     recordingLabel: 'در حال ضبط',
@@ -1284,8 +1291,13 @@ export const fa = {
     reviewTextPlaceholder: 'نظرت رو بنویس...',
     reviewSubmitButton: 'ثبت نظر',
     reviewSuccess: 'نظرت ثبت شد، ممنون! 🙏 بعد از بررسی نمایش داده می‌شه',
-    // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — رسانه‌ی اختیاری نظر
-    reviewAddMediaButton: '+ افزودن عکس/ویدیو/صدا (اختیاری)',
+    // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۴ — قبلاً یک
+    // دکمه‌ی عمومی «افزودن عکس/ویدیو/صدا» بود؛ حالا سه دکمه‌ی جدا تا هر ترکیبی با هم پیوست شود
+    reviewAddImageButton: '📷 عکس',
+    reviewAddVideoButton: '🎥 ویدیو',
+    reviewRecordVoiceButton: '🎙️ ضبط صدا',
+    reviewRecordingStop: '⏹️ پایان ضبط',
+    reviewVoiceAttached: 'پیام صوتی',
     reviewMediaUploading: 'در حال آپلود...',
     reviewMediaUploadError: 'آپلود رسانه با خطا مواجه شد',
     reviewMediaRemove: 'حذف',

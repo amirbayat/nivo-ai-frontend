@@ -31,12 +31,15 @@ function chatImageUrl(conversationId: string, key: string): string {
 function eventsToMessages(events: ShopConversationEvent[], conversationId: string): ShopMessage[] {
   const messages: ShopMessage[] = []
   events.forEach((e, i) => {
-    if (e.type === 'CUSTOMER_MESSAGE' && (e.payload.text || e.payload.imageKey)) {
+    if (e.type === 'CUSTOMER_MESSAGE' && (e.payload.text || e.payload.imageKey || e.payload.videoKey)) {
       messages.push({
         id: `c-${i}`,
         role: 'customer',
         text: e.payload.text ?? '',
         imageUrl: e.payload.imageKey ? chatImageUrl(conversationId, e.payload.imageKey) : undefined,
+        // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — ویدیوی
+        // چت هم از همون endpoint سرو می‌شود (getChatImage تعمیم‌یافته)
+        videoUrl: e.payload.videoKey ? chatImageUrl(conversationId, e.payload.videoKey) : undefined,
       })
     } else if ((e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE') && e.payload.text) {
       // مشتری فرق ربات/فروشنده‌ی انسانی را از نظر بصری نمی‌بیند — هر دو حباب «agent» هستند
@@ -70,6 +73,9 @@ export function useShopChat(slug: string, productId?: string) {
   // docs/PRD-sales-agent-response-strategy-ab.md بخش ۹ — سوییچ دستی خریدار برای تست زنده‌ی
   // Track A/B؛ فعلاً فقط برای تست، پیش‌فرض واقعی سرور RULE_BASED است
   const [responseStrategy, setResponseStrategyState] = useState<ShopResponseStrategy>('RULE_BASED')
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — true یعنی الان
+  // منتظر نظر است؛ تعیین می‌کند دکمه‌های پیوست عکس/ویدیو هم نشان داده شوند
+  const [awaitingReview, setAwaitingReview] = useState(false)
   const sessionRef = useRef<ShopSession | null>(null)
   // مکالمه‌ی واقعاً «فعال» — وقتی viewHistoryEntry موقتاً sessionRef را روی یک مکالمه‌ی
   // قدیمی می‌گذارد، این ref همچنان مکالمه‌ی زنده را نگه می‌دارد تا returnToCurrentChat بتواند
@@ -151,6 +157,7 @@ export function useShopChat(slug: string, productId?: string) {
   const applyReply = useCallback(
     (res: ShopSendMessageResponse) => {
       setState(res.state)
+      setAwaitingReview(!!res.awaitingReview)
       const uiBlock = res.uiBlocks.find((b) => b.type !== 'NONE')
       const id = `agent-${Date.now()}`
       setMessages((prev) => [...prev, { id, role: 'agent', text: res.reply, uiBlock, voiceEventId: res.voiceEventId }])
@@ -241,6 +248,7 @@ export function useShopChat(slug: string, productId?: string) {
     setStoreLogoKey(data.storeLogoKey)
     setIsDemo(data.isDemo)
     setResponseStrategyState(data.responseStrategy)
+    setAwaitingReview(data.awaitingReview)
     setMessages(eventsToMessages(data.events, session.conversationId))
   }, [])
 
@@ -291,9 +299,10 @@ export function useShopChat(slug: string, productId?: string) {
     [sending, applyReply],
   )
 
-  // عکسی که خریدار در حالت «صحبت با فروشنده» (isMutedForHuman) می‌فرستد — بدون applyReply،
-  // چون سرور همیشه reply خالی برمی‌گرداند (مثل پیام متنیِ muted در sendMessage بک‌اند)؛ اگر
-  // applyReply صدا می‌زدیم یک حباب «agent» خالی اضافه می‌شد. فقط state را به‌روز می‌کنیم
+  // عکسی که خریدار در حالت «صحبت با فروشنده» (isMutedForHuman) یا منتظر نظر (awaitingReview —
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱) می‌فرستد. حالت
+  // اول سرور reply خالی برمی‌گرداند (applyReply صدا نمی‌زنیم، وگرنه حباب «agent» خالی اضافه
+  // می‌شد)؛ حالت دوم reply واقعی («ممنون از نظرت») دارد و باید applyReply صدا بزنیم
   const sendImageMessage = useCallback(
     async (file: File) => {
       const session = sessionRef.current
@@ -313,7 +322,8 @@ export function useShopChat(slug: string, productId?: string) {
         })
         if (!res.ok) throw new Error('request failed')
         const data = (await res.json()) as ShopSendMessageResponse
-        setState(data.state)
+        if (data.reply) applyReply(data)
+        else setState(data.state)
       } catch {
         setMessages((prev) => prev.filter((m) => m.id !== pendingId))
         setError(fa.common.error)
@@ -321,7 +331,40 @@ export function useShopChat(slug: string, productId?: string) {
         setSending(false)
       }
     },
-    [sending],
+    [sending, applyReply],
+  )
+
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — هم‌الگوی
+  // sendImageMessage بالا، برای ویدیو (فقط در حالت muted یا awaitingReview قابل‌ارسال است)
+  const sendVideoMessage = useCallback(
+    async (file: File) => {
+      const session = sessionRef.current
+      if (!session || sending || viewingHistoryRef.current) return
+      const pendingId = `video-${Date.now()}`
+      const previewUrl = URL.createObjectURL(file)
+      setMessages((prev) => [...prev, { id: pendingId, role: 'customer', text: '', videoUrl: previewUrl }])
+      setSending(true)
+      setError(null)
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/video`, {
+          method: 'POST',
+          headers: { 'X-Session-Token': session.sessionToken },
+          body: form,
+        })
+        if (!res.ok) throw new Error('request failed')
+        const data = (await res.json()) as ShopSendMessageResponse
+        if (data.reply) applyReply(data)
+        else setState(data.state)
+      } catch {
+        setMessages((prev) => prev.filter((m) => m.id !== pendingId))
+        setError(fa.common.error)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, applyReply],
   )
 
   // ضبط صدا از وب (بخش ۲.۲) — blob از MediaRecorder، فرمت هرچی مرورگر بدهد (معمولاً webm)،
@@ -610,7 +653,7 @@ export function useShopChat(slug: string, productId?: string) {
   const submitComment = useCallback(
     async (
       productId: string | undefined,
-      text: string,
+      text: string | undefined,
       rating?: number,
       media?: { imageKey?: string; videoKey?: string; audioKey?: string },
     ): Promise<{ ok: boolean; message: string }> => {
@@ -664,6 +707,7 @@ export function useShopChat(slug: string, productId?: string) {
     conversationId: sessionRef.current?.conversationId,
     messages,
     state,
+    awaitingReview,
     loading,
     sending,
     error,
@@ -677,6 +721,7 @@ export function useShopChat(slug: string, productId?: string) {
     sendAction,
     uploadReceipt,
     sendImageMessage,
+    sendVideoMessage,
     sendVoiceMessage,
     markVoiceHeard,
     sendBuyerOtp,

@@ -846,6 +846,8 @@ export function SellerProductEditPage() {
   const [specs, setSpecs] = useState<ProductSpecSuggestion[]>([])
   const [code, setCode] = useState('')
   const [persuasionTechniquesEnabled, setPersuasionTechniquesEnabled] = useState(true)
+  // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
+  const [hasFulfillmentDelay, setHasFulfillmentDelay] = useState(false)
   const [initialized, setInitialized] = useState(false)
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false)
 
@@ -876,6 +878,7 @@ export function SellerProductEditPage() {
       setSpecs(product.specs ?? [])
       setCode(product.code ?? '')
       setPersuasionTechniquesEnabled(product.persuasionTechniquesEnabled)
+      setHasFulfillmentDelay(product.hasFulfillmentDelay)
       setIsWeightBased(product.pricingModel === 'WEIGHT_BASED_FORMULA')
       setWeightGrams(product.weightGrams != null ? String(product.weightGrams) : '')
       setPurityKarat(product.purityKarat != null ? String(product.purityKarat) : '18')
@@ -903,6 +906,7 @@ export function SellerProductEditPage() {
       specs: specs.length ? specs : null,
       code: code.trim() || undefined,
       persuasionTechniquesEnabled,
+      hasFulfillmentDelay,
       pricingModel: (isWeightBased ? 'WEIGHT_BASED_FORMULA' : 'FIXED') as 'WEIGHT_BASED_FORMULA' | 'FIXED',
       weightGrams: isWeightBased ? Number(toEnglishDigits(weightGrams)) || undefined : undefined,
       purityKarat: isWeightBased ? Number(purityKarat) : undefined,
@@ -1238,8 +1242,14 @@ export function SellerProductEditPage() {
             checked={persuasionTechniquesEnabled}
             onChange={setPersuasionTechniquesEnabled}
           />
+          <ToggleRow
+            label={fa.seller.panel.products.fulfillmentDelayToggleLabel}
+            checked={hasFulfillmentDelay}
+            onChange={setHasFulfillmentDelay}
+          />
         </div>
         <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.persuasionToggleHint}</p>
+        <p className="mt-1.5 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.products.fulfillmentDelayToggleHint}</p>
       </div>
 
       {(create.isError || update.isError) && (
