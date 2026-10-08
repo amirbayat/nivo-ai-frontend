@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { extractErrorMessage } from '@/lib/sellerProduct'
-import { CHATGPT_URL, GUIDE_PROMPTS, GUIDE_PROMPT_TITLES, type GuidePromptContext } from '@/lib/guideAssistantPrompts'
+import { buildGuidePrompt, CHATGPT_URL, GUIDE_PROMPT_TITLES, type GuidePromptContext } from '@/lib/guideAssistantPrompts'
 import { useAnalyzeOwnerNotes } from '@/queries/seller.queries'
 import type { AnalyzeOwnerNotesResult } from '@/types/api'
 
@@ -18,6 +18,9 @@ export function GuidePromptModal({
   context,
   storeId,
   productId,
+  category,
+  businessType,
+  storeName,
   onResult,
 }: {
   open: boolean
@@ -25,11 +28,15 @@ export function GuidePromptModal({
   context: GuidePromptContext
   storeId: string
   productId?: string
+  category?: string | null
+  businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
+  storeName?: string | null
   onResult?: (result: AnalyzeOwnerNotesResult) => void
 }) {
   const [copied, setCopied] = useState(false)
   const [pastedText, setPastedText] = useState('')
   const analyze = useAnalyzeOwnerNotes(storeId)
+  const prompt = buildGuidePrompt(context, { category, businessType, name: storeName })
 
   useEffect(() => {
     if (open) {
@@ -42,7 +49,7 @@ export function GuidePromptModal({
 
   async function copyPrompt() {
     try {
-      await navigator.clipboard.writeText(GUIDE_PROMPTS[context])
+      await navigator.clipboard.writeText(prompt)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -114,7 +121,7 @@ export function GuidePromptModal({
 
         <div className="relative">
           <pre className="max-h-[260px] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-900/40 light:bg-slate-50 px-3.5 py-3 text-xs leading-relaxed text-slate-200 light:text-slate-800">
-            {GUIDE_PROMPTS[context]}
+            {prompt}
           </pre>
           <button
             type="button"

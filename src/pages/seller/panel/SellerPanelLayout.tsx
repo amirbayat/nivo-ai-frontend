@@ -20,6 +20,7 @@ interface SellerStoreCtx {
   instagramConnectedAt: string | null
   // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۱/۳.۳
   category: string | null
+  businessType: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
   goldWageType: 'PERCENT' | 'FIXED_PER_GRAM' | null
   goldWageValue: number | null
   goldProfitPercent: number | null
@@ -148,6 +149,7 @@ export function SellerPanelLayout() {
         instagramBusinessId: store.instagramBusinessId,
         instagramConnectedAt: store.instagramConnectedAt,
         category: store.category,
+        businessType: store.businessType,
         goldWageType: store.goldWageType,
         goldWageValue: store.goldWageValue,
         goldProfitPercent: store.goldProfitPercent,

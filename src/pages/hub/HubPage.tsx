@@ -6,12 +6,14 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 
 // Main entry for logged-in users and guests (router/index.tsx: HomeRoute).
-// Card order: video studio, image studio, chat, auto captions, prompts, Nivo Cal, sell with Nivo.
-// Video studio goes to VideoStudioPage at /video. Nivo Cal opens cal.nivoai.ir
-// (separate app, own auth) and does not send guests through this domain's /login.
-// "می‌خوای با نیوو بفروشی؟" (docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md فاز ۴)
-// عمداً از goToSection استفاده نمی‌کند — مقصدش (/demo/seller) یک جریان عمومی/دموی مستقل با
-// OTP خودش است، نه بخشی از اپ اصلی که نیاز به لاگین با این دامنه داشته باشد.
+// Card order: sell with Nivo (real), try a seller demo, video studio, image studio, chat,
+// auto captions, prompts, Nivo Cal. Video studio goes to VideoStudioPage at /video. Nivo Cal
+// opens cal.nivoai.ir (separate app, own auth) and does not send guests through this domain's
+// /login.
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md §۱۹.۱ (۱۴۰۵/۰۷/۱۶) — دو کارت جدا:
+// اولی مستقیم به /seller (ورود/ثبت‌نام واقعی فروشنده) می‌رود، دومی به /demo/seller (دمو).
+// هیچ‌کدام از goToSection استفاده نمی‌کنند — هر دو مسیر عمومی/مستقل با OTP خودشان هستند، نه
+// بخشی از اپ اصلی که نیاز به لاگین با این دامنه داشته باشد.
 export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const navigate = useNavigate()
 
@@ -79,6 +81,30 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
 
       {/* cards */}
       <div className="relative flex flex-col flex-wrap items-center justify-center gap-5 px-6 pt-12 pb-16 sm:flex-row sm:gap-7 sm:pt-16">
+        <HubCard
+          title="می‌خوای با نیوو بفروشی؟"
+          description="فروشگاهت رو بساز و بذار ایجنت فروش نیوو با مشتری‌هات توی چت صحبت کنه — ثبت‌نام با شماره‌ات، صفر هزینه."
+          accentColor="var(--brand)"
+          borderColor="rgba(16,185,129,0.30)"
+          glowColor="rgba(16,185,129,0.08)"
+          gradientColor="rgba(16,185,129,0.10)"
+          iconBg="rgba(16,185,129,0.14)"
+          iconColor="var(--brand)"
+          icon={<SellerIcon />}
+          onClick={() => { track('seller_nav_clicked'); navigate('/seller') }}
+        />
+        <HubCard
+          title="یه دموی فروشندگی امتحان کن"
+          description="بدون ساخت فروشگاه، یک پنل فروشنده‌ی نمونه رو با یک فروشگاه از پیش پر شده امتحان کن."
+          accentColor="var(--sky-soft-text)"
+          borderColor="rgba(14,165,233,0.28)"
+          glowColor="rgba(14,165,233,0.08)"
+          gradientColor="rgba(14,165,233,0.10)"
+          iconBg="rgba(14,165,233,0.16)"
+          iconColor="var(--sky-soft-text)"
+          icon={<SellerIcon />}
+          onClick={() => { track('seller_demo_nav_clicked'); navigate('/demo/seller') }}
+        />
         <HubCard
           title="استودیو فیلم"
           description="یه ویدیو از پرامپت و عکس بساز، یا یه ویدیوی موجود رو ویرایش کن — همه با یه فرم واحد."
@@ -151,18 +177,6 @@ export function HubPage({ isLoggedIn }: { isLoggedIn: boolean }) {
           icon={<CalorieIcon />}
           href="https://cal.nivoai.ir"
           onClick={() => track('nivo_cal_nav_clicked')}
-        />
-        <HubCard
-          title="می‌خوای با نیوو بفروشی؟"
-          description="یک پنل فروشنده با یک فروشگاه نمونه امتحان کن — با شماره‌ات وارد می‌شی، صفر هزینه."
-          accentColor="var(--brand)"
-          borderColor="rgba(16,185,129,0.30)"
-          glowColor="rgba(16,185,129,0.08)"
-          gradientColor="rgba(16,185,129,0.10)"
-          iconBg="rgba(16,185,129,0.14)"
-          iconColor="var(--brand)"
-          icon={<SellerIcon />}
-          onClick={() => { track('seller_demo_nav_clicked'); navigate('/demo/seller') }}
         />
       </div>
 

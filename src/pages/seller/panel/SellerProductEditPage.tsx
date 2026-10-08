@@ -740,7 +740,7 @@ function BackChevron() {
 export function SellerProductEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { storeId, storeSlug, category, goldWageType, goldWageValue, goldProfitPercent } = useSellerStore()
+  const { storeId, storeSlug, category, businessType, goldWageType, goldWageValue, goldProfitPercent } = useSellerStore()
   const products = useProducts(storeId)
   const isNew = id === 'new'
 
@@ -1177,6 +1177,8 @@ export function SellerProductEditPage() {
           onClose={() => setDescriptionModalOpen(false)}
           storeId={storeId}
           productId={existingProduct?.id}
+          category={category}
+          businessType={businessType}
           value={description}
           maxLength={DESCRIPTION_MAX_LENGTH}
           onApply={setDescription}

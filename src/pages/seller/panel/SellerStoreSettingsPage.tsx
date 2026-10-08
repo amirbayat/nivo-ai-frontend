@@ -445,6 +445,9 @@ export function SellerStoreSettingsPage() {
         onClose={() => setGuideOpen(false)}
         context="store-setup"
         storeId={storeId}
+        category={store?.category}
+        businessType={store?.businessType}
+        storeName={store?.name}
         onResult={result => {
           setOwnerNotes(result.ownerNotes)
           setNotesResult(result)

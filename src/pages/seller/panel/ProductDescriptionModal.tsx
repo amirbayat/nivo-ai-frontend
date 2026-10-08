@@ -29,6 +29,8 @@ export function ProductDescriptionModal({
   onClose,
   storeId,
   productId,
+  category,
+  businessType,
   value,
   maxLength,
   onApply,
@@ -38,6 +40,8 @@ export function ProductDescriptionModal({
   onClose: () => void
   storeId: string
   productId?: string
+  category?: string | null
+  businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
   value: string
   maxLength: number
   onApply: (text: string) => void
@@ -327,6 +331,8 @@ export function ProductDescriptionModal({
         context="product"
         storeId={storeId}
         productId={productId}
+        category={category}
+        businessType={businessType}
         onResult={result => {
           setSuggestion({
             description: result.descriptionSuggestion ?? draft,

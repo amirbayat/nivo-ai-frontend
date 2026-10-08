@@ -2,10 +2,80 @@
 // ChatGPT بیرونی استفاده می‌کند. متن ثابت است (فاز ۱ هیچ بک‌اندی برای تولید پرامپت ندارد)،
 // فقط برای knowledge-extraction خروجی مستقیم در «ورود متن» باکس دانش پیست می‌شود؛ برای
 // store-setup/product نتیجه در همین مدال («نتیجه را این‌جا پیست کنید») تحلیل می‌شود.
+//
+// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۸ (۱۴۰۵/۰۷/۱۶) — store-setup/product دیگر
+// یک متن واحد نیستند: بر اساس «کلاستر»ی که دسته‌بندی فروشگاه در آن قرار می‌گیرد، بخش سوال
+// ارسال/تحویل (store-setup) و سوال واریانت/جزئیات کالا (product) سوییچ می‌شوند — نه کل متن،
+// چون ۱۹ دسته × ۲ context یعنی نگه‌داری غیرقابل‌دفاع. هر دسته‌ی جدید فقط باید یک سطر به
+// CLUSTER_BY_CATEGORY اضافه کند، نه یک پرامپت کامل.
 
 export type GuidePromptContext = 'store-setup' | 'product' | 'knowledge-extraction' | 'bulk-import'
 
-const STORE_SETUP_PROMPT = `نقش: تو دستیار راه‌اندازی فروشگاه آنلاین «نیوو» هستی. کارت فقط نوشتن متن نیست — کمک به فروشنده‌ای است که معمولاً نمی‌داند چه اطلاعاتی لازم است تا متن خوب از آب دربیاید. تو باید او را قدم‌به‌قدم راهنمایی کنی تا بهترین دیتا را بدهد، نه این‌که با یک جواب یک‌خطی قانع شوی.
+export type PromptCluster = 'physical-variants' | 'physical-simple' | 'digital-instant' | 'handoff' | 'appointment'
+
+// باید با BUSINESS_CATEGORIES (nivo-ai-backend/src/modules/store/business-categories.ts) هم‌گام بماند.
+const CLUSTER_BY_CATEGORY: Record<string, PromptCluster> = {
+  'پوشاک': 'physical-variants',
+  'کیف و کفش': 'physical-variants',
+  'آرایشی و بهداشتی': 'physical-variants',
+  'دیجیتال و لوازم جانبی': 'physical-variants',
+  'کودک و نوزاد': 'physical-variants',
+  'ورزش و سفر': 'physical-variants',
+  'جواهرات و اکسسوری': 'physical-variants',
+  'خانه و آشپزخانه': 'physical-simple',
+  'خوراکی و صنایع غذایی': 'physical-simple',
+  'کتاب و لوازم‌التحریر': 'physical-simple',
+  'گل و گیاه': 'physical-simple',
+  'حیوانات خانگی': 'physical-simple',
+  'دوره آموزشی و محصولات دیجیتال': 'digital-instant',
+  'فرش دستباف و عتیقه': 'handoff',
+  'خدمات تعمیر': 'handoff',
+  'صنایع‌دستی': 'handoff',
+  'پزشکی و دندان‌پزشکی': 'appointment',
+  'مشاوره': 'appointment',
+  'سالن زیبایی و آرایشگاه': 'appointment',
+  'آموزش خصوصی و مربی‌گری': 'appointment',
+}
+
+function resolveCluster(category?: string | null, businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'): PromptCluster {
+  if (businessType === 'APPOINTMENT_BOOKING') return 'appointment'
+  if (category && CLUSTER_BY_CATEGORY[category]) return CLUSTER_BY_CATEGORY[category]
+  return 'physical-variants'
+}
+
+const DEFAULT_STORE_Q3 = `۳. ارسال چطور است؟
+   - ضعیف: «سریع ارسال می‌کنیم»
+   - خوب: «با تیپاکس، از تهران ۱ روز کاری، شهرستان ۲ تا ۳ روز، هزینه با خریداره مگر بالای ۵۰۰ هزار تومن خرید کنه»`
+
+const STORE_Q3_BY_CLUSTER: Partial<Record<PromptCluster, string>> = {
+  'digital-instant': `۳. فایل/دسترسی چطور تحویل داده می‌شود؟
+   - ضعیف: «آنلاین می‌فرستیم»
+   - خوب: «بلافاصله بعد از پرداخت، لینک دانلود یا کد فعال‌سازی توی همین چت فرستاده می‌شه»`,
+  handoff: `۳. روند قیمت‌گذاری و تحویل چطور است؟
+   - ضعیف: «قیمتش توافقیه»
+   - خوب: «اول عکس/مشخصات کالا رو می‌فرستید، قیمت نهایی بعد از دیدن دقیق کالا توی همین چت اعلام می‌شه، تحویل حضوری یا پستی با هماهنگی»`,
+  appointment: `۳. ساعات کاری و نحوه‌ی رزرو نوبت چطور است؟
+   - ضعیف: «با هماهنگی وقت می‌گیریم»
+   - خوب: «شنبه تا پنج‌شنبه ۱۰ صبح تا ۸ شب، هر جلسه ۴۵ دقیقه، رزرو با پیام همین‌جا»`,
+}
+
+const DEFAULT_STORE_Q4 = `۴. شرایط مرجوعی چیست؟
+   - ضعیف: «مرجوعی داریم»
+   - خوب: «تا ۷ روز بعد از دریافت، به‌شرط دست‌نخورده و با برچسب، هزینه‌ی برگشت با خریدار»`
+
+const STORE_Q4_BY_CLUSTER: Partial<Record<PromptCluster, string>> = {
+  'digital-instant': `۴. سیاست بازگشت وجه/پشتیبانی چیست؟ (نه مرجوعی فیزیکی)
+   - ضعیف: «مرجوعی نداریم»
+   - خوب: «تا ۴۸ ساعت بعد از خرید اگه فایل مشکل داشت وجه کامل برمی‌گرده؛ برای سوال از محتوا هم پشتیبانی داریم»`,
+  handoff: `۴. شرایط گارانتی/تضمین چیست؟
+   - ضعیف: «گارانتی داریم»
+   - خوب: «۳ ماه گارانتی روی ایراد فنی، هزینه‌ی رفت‌وبرگشت در صورت ایراد با فروشنده‌ست»`,
+  appointment: `۴. شرایط لغو/جابه‌جایی نوبت چیست؟
+   - ضعیف: «می‌تونید لغو کنید»
+   - خوب: «تا ۲۴ ساعت قبل از نوبت رایگان جابه‌جا می‌شه؛ لغو دیرتر از این نیم‌بها برمی‌گرده»`,
+}
+
+const STORE_SETUP_TEMPLATE = `نقش: تو دستیار راه‌اندازی فروشگاه آنلاین «نیوو» هستی. کارت فقط نوشتن متن نیست — کمک به فروشنده‌ای است که معمولاً نمی‌داند چه اطلاعاتی لازم است تا متن خوب از آب دربیاید. تو باید او را قدم‌به‌قدم راهنمایی کنی تا بهترین دیتا را بدهد، نه این‌که با یک جواب یک‌خطی قانع شوی.
 
 ورودی‌هایی که می‌توانی بگیری (هرکدام اختیاری): لینک فروشگاه فعلی، چند خط توضیح خام، عکس لوگو/ویترین/محصولات، فایل PDF کاتالوگ.
 
@@ -18,12 +88,8 @@ const STORE_SETUP_PROMPT = `نقش: تو دستیار راه‌اندازی فر
 ۲. چه چیزی شما را از رقبا متفاوت می‌کند؟
    - ضعیف: «کیفیت بالا داریم»
    - خوب: «پارچه‌مون کتان ۱۰۰٪ ایرانیه، دو سال گارانتی رنگ‌ندادن، تولیدکننده مستقیم بدون واسطه»
-۳. ارسال چطور است؟
-   - ضعیف: «سریع ارسال می‌کنیم»
-   - خوب: «با تیپاکس، از تهران ۱ روز کاری، شهرستان ۲ تا ۳ روز، هزینه با خریداره مگر بالای ۵۰۰ هزار تومن خرید کنه»
-۴. شرایط مرجوعی چیست؟
-   - ضعیف: «مرجوعی داریم»
-   - خوب: «تا ۷ روز بعد از دریافت، به‌شرط دست‌نخورده و با برچسب، هزینه‌ی برگشت با خریدار»
+{{Q3}}
+{{Q4}}
 ۵. ساعات پاسخ‌گویی و کانال تماس؟
    - خوب: «۹ صبح تا ۹ شب، واتساپ و پیام داخل سایت»
 
@@ -45,7 +111,25 @@ const STORE_SETUP_PROMPT = `نقش: تو دستیار راه‌اندازی فر
 قانون: هیچ عدد/آمار واقعی (مثل "+۱۰۰۰۰ مشتری راضی") نساز مگر فروشنده گفته باشد.
 در پایان بپرس: «خروجی را به چه شکلی بخواهید؟ متن ساده / Word / PDF»`
 
-const PRODUCT_PROMPT = `نقش: دستیار نوشتن توضیح محصول برای فروشندگان «نیوو». کارت این است که فروشنده را طوری راهنمایی کنی که دقیق‌ترین دیتای ممکن را بدهد — خیلی از فروشنده‌ها فقط اسم محصول را می‌نویسند و انتظار متن کامل دارند؛ وظیفه‌ی تو نشان‌دادن این است که با کمی جزئیات بیشتر، متن چقدر بهتر می‌شود.
+const DEFAULT_PRODUCT_Q2 = `۲. سایزبندی/رنگ‌بندی موجود؟
+   - خوب: «سایز ۳۶ تا ۴۰، رنگ مشکی و قهوه‌ای»`
+
+const PRODUCT_Q2_BY_CLUSTER: Partial<Record<PromptCluster, string>> = {
+  'physical-simple': `۲. تاریخ تولید/انقضا و بسته‌بندی چطوره؟
+   - ضعیف: «تازه‌ست»
+   - خوب: «تاریخ تولید این هفته، انقضا ۶ ماه بعد، بسته‌بندی وکیوم»`,
+  'digital-instant': `۲. فرمت فایل و حجم دسترسی چیه؟
+   - ضعیف: «فایل خوبیه»
+   - خوب: «۱۲ ویدیوی آموزشی با کیفیت ۱۰۸۰، جمعاً ۶ ساعت، PDF جزوه هم داره، دسترسی دائمیه»`,
+  handoff: `۲. وضعیت/قدمت کالا و نکات ارزیابی چیه؟
+   - ضعیف: «وضعیتش خوبه»
+   - خوب: «فرش دستباف قدمت ۴۰ سال، یک گوشه‌ش مختصر رفو شده، قیمت نهایی بعد از دیدن از نزدیک»`,
+  appointment: `۲. مدت و نحوه‌ی برگزاری جلسه چطوره؟
+   - ضعیف: «یه جلسه معمولیه»
+   - خوب: «۴۵ دقیقه، حضوری یا آنلاین با گوگل‌میت، شامل یک جلسه پیگیری رایگان هفته‌ی بعد»`,
+}
+
+const PRODUCT_TEMPLATE = `نقش: دستیار نوشتن توضیح محصول برای فروشندگان «نیوو». کارت این است که فروشنده را طوری راهنمایی کنی که دقیق‌ترین دیتای ممکن را بدهد — خیلی از فروشنده‌ها فقط اسم محصول را می‌نویسند و انتظار متن کامل دارند؛ وظیفه‌ی تو نشان‌دادن این است که با کمی جزئیات بیشتر، متن چقدر بهتر می‌شود.
 
 ورودی: نام محصول + دسته، به‌علاوه‌ی هرکدام از این‌ها که داشت: عکس محصول، لینک محصول مشابه در فروشگاه دیگر (فقط برای مشخصات فنی، نه کپی متن)، PDF کاتالوگ سازنده، یادداشت خام.
 
@@ -55,8 +139,7 @@ const PRODUCT_PROMPT = `نقش: دستیار نوشتن توضیح محصول ب
 ۱. جنس/متریال اصلی؟
    - ضعیف: «خوبه»
    - خوب: «چرم طبیعی گاوی، آستر پارچه‌ای»
-۲. سایزبندی/رنگ‌بندی موجود؟
-   - خوب: «سایز ۳۶ تا ۴۰، رنگ مشکی و قهوه‌ای»
+{{Q2}}
 ۳. نکته‌ی متفاوت‌کننده (دست‌ساز بودن، گارانتی، اورجینال بودن، محل تولید)؟
    - ضعیف: «جنسش خوبه»
    - خوب: «دست‌دوز، ۶ ماه گارانتی درز، تولید ایران»
@@ -137,11 +220,35 @@ const BULK_IMPORT_PROMPT = `نقش: تو دستیار آماده‌سازی لی
 بین هر محصول یک خط خالی بگذار. هیچ قیمت/موجودی‌ای که فروشنده نگفته را خودت حدس نزن یا میانگین نساز.
 در پایان بگو: «این متن را کپی کن و توی بخش 'افزودن/آپدیت دسته‌جمعی با AI' فروشگاه، در کادر پیست متن بچسبان.»`
 
-export const GUIDE_PROMPTS: Record<GuidePromptContext, string> = {
-  'store-setup': STORE_SETUP_PROMPT,
-  product: PRODUCT_PROMPT,
-  'knowledge-extraction': KNOWLEDGE_EXTRACTION_PROMPT,
-  'bulk-import': BULK_IMPORT_PROMPT,
+function buildHeaderLine(category?: string | null, name?: string | null): string {
+  if (!category && !name) return ''
+  const parts: string[] = []
+  if (category) parts.push(`دسته‌ی «${category}»`)
+  if (name) parts.push(`اسمش «${name}»`)
+  return `زمینه: این فروشگاه در ${parts.join(' و ')} فعالیت می‌کند — سوال‌ها و مثال‌ها را با همین زمینه تنظیم کن، نه فرض عمومی.\n\n`
+}
+
+export function buildGuidePrompt(
+  context: GuidePromptContext,
+  opts?: { category?: string | null; businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'; name?: string | null },
+): string {
+  if (context === 'knowledge-extraction') return KNOWLEDGE_EXTRACTION_PROMPT
+  if (context === 'bulk-import') return BULK_IMPORT_PROMPT
+
+  const cluster = resolveCluster(opts?.category, opts?.businessType)
+  const header = buildHeaderLine(opts?.category, opts?.name)
+
+  if (context === 'store-setup') {
+    return (
+      header +
+      STORE_SETUP_TEMPLATE.replace('{{Q3}}', STORE_Q3_BY_CLUSTER[cluster] ?? DEFAULT_STORE_Q3).replace(
+        '{{Q4}}',
+        STORE_Q4_BY_CLUSTER[cluster] ?? DEFAULT_STORE_Q4,
+      )
+    )
+  }
+
+  return header + PRODUCT_TEMPLATE.replace('{{Q2}}', PRODUCT_Q2_BY_CLUSTER[cluster] ?? DEFAULT_PRODUCT_Q2)
 }
 
 export const GUIDE_PROMPT_TITLES: Record<GuidePromptContext, string> = {

@@ -476,6 +476,9 @@ export function SellerOnboardingPage() {
                 onClose={() => setGuideOpen(false)}
                 context="store-setup"
                 storeId={storeId}
+                category={category}
+                businessType={businessType}
+                storeName={name}
                 onResult={setNotesResult}
               />
             )}
