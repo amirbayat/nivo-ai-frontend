@@ -134,6 +134,8 @@ export function SellerMorePage() {
         </svg>
       </Link>
 
+      {/* فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — دکمه‌ی «دایرکت هوشمند اینستاگرام» موقتاً از «بیشتر» مخفی شد؛
+      خودِ صفحه/روت (/seller/panel/instagram) دست‌نخورده می‌ماند، فقط ورودی منو کامنت شده
       <Link
         to="/seller/panel/instagram"
         className="mb-3 flex items-center justify-between rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5"
@@ -143,6 +145,7 @@ export function SellerMorePage() {
           <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L8.414 11l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
       </Link>
+      */}
 
       <Link
         to="/seller/panel/shipping-rules"
@@ -154,6 +157,8 @@ export function SellerMorePage() {
         </svg>
       </Link>
 
+      {/* فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — دکمه‌ی «تبلیغات» موقتاً از «بیشتر» مخفی شد؛ خودِ صفحه/روت
+      (/seller/panel/advertising) دست‌نخورده می‌ماند، فقط ورودی منو کامنت شده
       <Link
         to="/seller/panel/advertising"
         className="mb-3 flex items-center justify-between rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5"
@@ -163,6 +168,7 @@ export function SellerMorePage() {
           <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L8.414 11l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
       </Link>
+      */}
 
       <Link
         to="/seller/panel/channel-stats"
