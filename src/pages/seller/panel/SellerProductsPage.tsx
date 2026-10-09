@@ -363,7 +363,19 @@ interface BulkImportItem extends ExtractedProductCandidate {
   included: boolean
 }
 
-export function BulkProductImportSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+export function BulkProductImportSheet({
+  storeId,
+  category,
+  businessType,
+  storeName,
+  onClose,
+}: {
+  storeId: string
+  category?: string | null
+  businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
+  storeName?: string | null
+  onClose: () => void
+}) {
   const extractFile = useExtractProductsFromFile(storeId)
   const extractText = useExtractProductsFromText(storeId)
   const transcribeFile = useTranscribeAudioFile(storeId)
@@ -453,7 +465,15 @@ export function BulkProductImportSheet({ storeId, onClose }: { storeId: string; 
           <p className="text-xs text-slate-500">{fa.seller.panel.products.bulkImportModalHint}</p>
         </div>
 
-        <GuidePromptModal open={guideOpen} onClose={() => setGuideOpen(false)} context="bulk-import" storeId={storeId} />
+        <GuidePromptModal
+          open={guideOpen}
+          onClose={() => setGuideOpen(false)}
+          context="bulk-import"
+          storeId={storeId}
+          category={category}
+          businessType={businessType}
+          storeName={storeName}
+        />
 
         <div className="flex-1 overflow-y-auto px-5 pb-5">
           {!items && !applyResult && (
@@ -636,7 +656,7 @@ export function BulkProductImportSheet({ storeId, onClose }: { storeId: string; 
 }
 
 export function SellerProductsPage() {
-  const { storeId, storeSlug } = useSellerStore()
+  const { storeId, storeSlug, storeName, category, businessType } = useSellerStore()
   const navigate = useNavigate()
   const products = useProducts(storeId)
   const importProducts = useImportProducts(storeId)
@@ -767,7 +787,15 @@ export function SellerProductsPage() {
         ))}
       </div>
 
-      {bulkImportOpen && <BulkProductImportSheet storeId={storeId} onClose={() => setBulkImportOpen(false)} />}
+      {bulkImportOpen && (
+        <BulkProductImportSheet
+          storeId={storeId}
+          category={category}
+          businessType={businessType}
+          storeName={storeName}
+          onClose={() => setBulkImportOpen(false)}
+        />
+      )}
 
       {/* کامنت موقت طبق درخواست کاربر
       {importFromUrlOpen && <ImportFromUrlSheet storeId={storeId} onClose={() => setImportFromUrlOpen(false)} />}
