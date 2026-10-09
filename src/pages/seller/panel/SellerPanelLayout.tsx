@@ -172,6 +172,34 @@ function DemoBanner({ store }: { store: SellerStore }) {
   )
 }
 
+// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶.۷ (فیدبک کاربر ۱۴۰۵/۰۷/۱۷) —
+// همان شرط BLOCKED در credit.service.ts's decideBillingMode، سمت فرانت: نه اعتبار آزمایشی
+// فعال مانده نه اعتبار واقعی. وقتی این باشد، ایجنت فروش دیگر به خریدار جدید جواب نمی‌دهد و
+// مکالمه مستقیم HANDOFF می‌شود — فروشنده باید همین‌جا، نه فقط با پوش تلگرام، متوجه شود
+function isCreditExhausted(store: SellerStore): boolean {
+  const trialActive =
+    !!store.trialEndsAt &&
+    new Date(store.trialEndsAt) > new Date() &&
+    store.trialCreditRemainingToman > 0
+  return !trialActive && store.creditBalanceToman <= 0
+}
+
+function CreditExhaustedBanner() {
+  return (
+    <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 lg:mx-auto lg:max-w-4xl">
+        <p className="text-sm text-red-300 light:text-red-700">{fa.seller.panel.creditExhaustedBanner.text}</p>
+        <NavLink
+          to="/seller/panel/credit"
+          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-400"
+        >
+          {fa.seller.panel.creditExhaustedBanner.cta}
+        </NavLink>
+      </div>
+    </div>
+  )
+}
+
 export function SellerPanelLayout() {
   const { data: stores, isLoading } = useMyStores()
   const store = stores?.[0]
@@ -211,6 +239,7 @@ export function SellerPanelLayout() {
     >
       <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
         {store.isDemo && <DemoBanner store={store} />}
+        {!store.isDemo && isCreditExhausted(store) && <CreditExhaustedBanner />}
         {showGoldTicker && <GoldPriceTicker />}
 
         <div className="flex flex-1 flex-col lg:flex-row">

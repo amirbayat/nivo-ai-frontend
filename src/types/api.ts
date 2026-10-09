@@ -186,6 +186,9 @@ export interface SellerStore {
   status: 'ACTIVE' | 'SUSPENDED'
   // docs/PRD-seller-credit-billing.md بخش ۱/۵
   creditBalanceToman: number
+  // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶.۲ — برای نمایش بنر «اعتبار تموم شد»
+  trialCreditRemainingToman: number
+  trialEndsAt: string | null
   // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲
   shippingInfo: string | null
   returnPolicy: string | null
