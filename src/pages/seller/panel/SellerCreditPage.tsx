@@ -85,6 +85,13 @@ export function SellerCreditPage() {
                     {fa.seller.panel.home.creditBalanceToman(pkg.creditToman)}
                   </p>
                   <div className="mt-1 flex items-center gap-2">
+                    {/* فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — قیمت اصلی (قبل از تخفیف) با خط‌خورده نشان داده شود؛
+                    creditToman همیشه برابر قیمت بدون تخفیف است (priceToman = creditToman × (۱ - درصد تخفیف)) */}
+                    {pkg.discountPercent > 0 && (
+                      <span className="text-xs text-slate-500 line-through">
+                        {fa.seller.panel.home.creditBalanceToman(pkg.creditToman)}
+                      </span>
+                    )}
                     <p className="text-xs text-slate-500">{fa.seller.panel.credit.priceLabel(pkg.priceToman)}</p>
                     {pkg.discountPercent > 0 && (
                       <span className="inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-400 light:text-amber-700">
