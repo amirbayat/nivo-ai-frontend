@@ -520,7 +520,7 @@ export function useShopChat(slug: string, productId?: string) {
   // نمایش فقط‌خواندنی یک گفتگوی قدیمی از تاریخچه — ارسال پیام غیرفعال می‌ماند تا برگردد؛
   // همان sessionToken مکالمه‌ی زنده کار می‌کند چون هر دو مال یک Customer‌اند
   const viewHistoryEntry = useCallback(
-    async (entry: ShopHistoryEntry) => {
+    async (entry: Pick<ShopHistoryEntry, 'conversationId'>) => {
       if (sending) return
       const live = liveSessionRef.current
       if (!live) return

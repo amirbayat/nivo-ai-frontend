@@ -640,6 +640,8 @@ export interface ShopOrderSummary {
   totalAmount: number
   status: string
   distinctProductId: string | null
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — برای باز کردن گفتگوی خودِ این سفارش (فقط‌خواندنی) از لیست سفارش‌ها
+  conversationId: string
 }
 
 // docs/PRD-conversation-history.md بخش ۳ — یک ردیف در تاریخچه (فعال یا آرشیوشده)

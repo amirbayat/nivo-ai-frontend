@@ -592,6 +592,8 @@ export const fa = {
         reapprove: 'تایید دوباره‌ی سفارش',
         // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱
         viewConversation: 'مشاهده گفتگو',
+        // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — تاریخ ثبت سفارش قبلاً هیچ‌جا (نه لیست، نه جزئیات) نشان داده نمی‌شد
+        registeredAt: (date: string) => `ثبت‌شده: ${date}`,
       },
       attention: {
         empty: 'مکالمه‌ای نیاز به توجه نیست',
@@ -1302,6 +1304,8 @@ export const fa = {
     myOrdersPageTitle: 'سفارش‌های من',
     myOrdersBack: 'بازگشت به گفتگو',
     writeReviewButton: '✍️ ثبت نظر',
+    // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — مشاهده‌ی گفتگوی همون سفارش (فقط‌خواندنی) از صفحه‌ی «سفارش‌های من»
+    viewOrderConversationButton: '💬 گفتگوی این سفارش',
     reviewModalTitle: 'ثبت نظر',
     reviewRatingLabel: 'امتیازت؟ (اختیاری)',
     reviewTextPlaceholder: 'نظرت رو بنویس...',

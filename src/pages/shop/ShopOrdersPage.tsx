@@ -29,6 +29,12 @@ export function ShopOrdersPage() {
     navigate(`/shop/${slug}`)
   }
 
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — باز کردن گفتگوی خودِ همون سفارش (فقط‌خواندنی)؛ ShopChatPage با
+  // همین query param آن را با viewHistoryEntry موجود (مکانیزم تاریخچه) باز می‌کند
+  function handleViewConversation(conversationIdToView: string) {
+    navigate(`/shop/${slug}?viewOrder=${conversationIdToView}`)
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
       <div className="flex items-center gap-2 border-b border-slate-800 light:border-slate-200 px-4 py-3">
@@ -60,6 +66,7 @@ export function ShopOrdersPage() {
             onWriteReview={(orderId, distinctProductId) =>
               setReviewOrder({ orderId, productId: distinctProductId })
             }
+            onViewConversation={handleViewConversation}
           />
         )}
       </div>

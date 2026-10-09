@@ -593,6 +593,7 @@ export function OrderListBlock({
   disabled,
   onReorder,
   onWriteReview,
+  onViewConversation,
 }: {
   orders: {
     id: string
@@ -601,12 +602,16 @@ export function OrderListBlock({
     totalAmount: number
     status: string
     distinctProductId?: string | null
+    conversationId?: string
   }[]
   disabled: boolean
   onReorder: (orderId: string) => void
   // فقط در صفحه‌ی مستقل «سفارش‌های من» پر می‌شود (بخش ۲.۳)؛ در داخل چت (مصرف اصلی/قدیمی این
   // بلاک) عمداً خالی می‌ماند — ثبت نظر از دل چت نیازی ندارد
   onWriteReview?: (orderId: string, distinctProductId: string | null) => void
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — فقط در صفحه‌ی مستقل «سفارش‌های من» پر می‌شود؛ داخل چت نیازی نیست
+  // چون کاربر همین الان داخل یک گفتگوست
+  onViewConversation?: (conversationId: string) => void
 }) {
   if (orders.length === 0) {
     return <p className="mt-2 text-xs text-slate-500">{fa.shop.orderListEmpty}</p>
@@ -631,6 +636,14 @@ export function OrderListBlock({
               {o.totalAmount.toLocaleString('fa-IR')} تومان
             </span>
             <div className="flex items-center gap-2">
+              {onViewConversation && o.conversationId && (
+                <button
+                  onClick={() => onViewConversation(o.conversationId!)}
+                  className="rounded-lg border border-slate-600/60 light:border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-300 light:text-slate-700"
+                >
+                  {fa.shop.viewOrderConversationButton}
+                </button>
+              )}
               {onWriteReview && (
                 <button
                   onClick={() => onWriteReview(o.id, o.distinctProductId ?? null)}

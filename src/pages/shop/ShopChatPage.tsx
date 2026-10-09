@@ -341,8 +341,10 @@ export function ShopChatPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   // فیدبک اول پایلوت — لینک اختصاصی یک محصول («فروشنده در استوری گذاشته»): /shop/:slug?product=<id>
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const productId = searchParams.get('product') ?? undefined
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — لینک از صفحه‌ی «سفارش‌های من» (ShopOrdersPage): /shop/:slug?viewOrder=<conversationId>
+  const viewOrderConversationId = searchParams.get('viewOrder') ?? undefined
   const {
     storeId,
     storeName,
@@ -392,6 +394,18 @@ export function ShopChatPage() {
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — وقتی از «سفارش‌های من» با ?viewOrder=<conversationId> می‌آید، همان
+  // مکانیزم فقط‌خواندنی تاریخچه (viewHistoryEntry) را صدا می‌زنیم؛ باید صبر کنیم تا مکالمه‌ی
+  // زنده واقعاً لود شده باشد (conversationId آماده) وگرنه viewHistoryEntry چیزی برای برگشتن
+  // (liveSessionRef) ندارد
+  useEffect(() => {
+    if (!viewOrderConversationId || !conversationId) return
+    if (viewOrderConversationId !== conversationId) {
+      void viewHistoryEntry({ conversationId: viewOrderConversationId })
+    }
+    setSearchParams({}, { replace: true })
+  }, [viewOrderConversationId, conversationId, viewHistoryEntry, setSearchParams])
 
   // 100vh/100dvh روی خیلی از مرورگرهای موبایل با بازشدن کیبورد صفحه شرینک نمی‌شه (مخصوصاً
   // سافاری قدیمی‌تر) — یعنی اینپوت پایین یک کادر که دیگه بزرگ‌تر از ویوپورت واقعی‌ست میره،

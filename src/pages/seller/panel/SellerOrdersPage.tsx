@@ -45,7 +45,10 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
         onClick={e => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.shop.orderStatusLabels[order.status]}</span>
+          <div>
+            <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{fa.shop.orderStatusLabels[order.status]}</span>
+            <p className="mt-0.5 text-xs text-slate-500">{fa.seller.panel.orders.registeredAt(new Date(order.createdAt).toLocaleDateString('fa-IR'))}</p>
+          </div>
           <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">{fa.seller.panel.orders.close}</button>
         </div>
 
@@ -240,6 +243,7 @@ export function SellerOrdersPage() {
             <div>
               <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{order.items.length.toLocaleString('fa-IR')} قلم</p>
               <p className="mt-0.5 text-xs text-slate-500">{fa.shop.orderStatusLabels[order.status]}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{fa.seller.panel.orders.registeredAt(new Date(order.createdAt).toLocaleDateString('fa-IR'))}</p>
             </div>
             <span className="text-sm font-bold text-emerald-300 light:text-emerald-700">{order.totalAmount.toLocaleString('fa-IR')} {fa.common.toman}</span>
           </button>
