@@ -1,50 +1,19 @@
 import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { extractErrorMessage } from '@/lib/sellerProduct'
-import { buildGuidePrompt, CHATGPT_URL, GUIDE_PROMPT_TITLES, type GuidePromptContext } from '@/lib/guideAssistantPrompts'
-import { useAnalyzeOwnerNotes } from '@/queries/seller.queries'
-import type { AnalyzeOwnerNotesResult } from '@/types/api'
+import { buildGuidePrompt, CHATGPT_URL, GUIDE_PROMPT_TITLES } from '@/lib/guideAssistantPrompts'
 
-// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۱/۱.۲ — فاز ۱ (MVP): چت زنده داخل اپ نیست؛
-// فروشنده خودش پرامپت را در ChatGPT بیرونی اجرا می‌کند و فقط نتیجه‌ی نهایی را این‌جا پیست
-// می‌کند. برای store-setup/product همین پیست، کامل به ownerNotes append می‌شود (هرگز خلاصه
-// نمی‌شود) و یک تحلیل جدا (gpt-6.1-sol) پیشنهاد می‌دهد به کجاهای دیگر هم بخورد. برای
-// knowledge-extraction چیزی تحلیل نمی‌شود — خروجی (جدول) مستقیم در «ورود متن» موجود صفحه‌ی
-// باکس دانش پیست می‌شود (فیچر production امروز).
-export function GuidePromptModal({
-  open,
-  onClose,
-  context,
-  storeId,
-  productId,
-  category,
-  businessType,
-  storeName,
-  onResult,
-}: {
-  open: boolean
-  onClose: () => void
-  context: GuidePromptContext
-  storeId: string
-  productId?: string
-  category?: string | null
-  businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
-  storeName?: string | null
-  onResult?: (result: AnalyzeOwnerNotesResult) => void
-}) {
+// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۱/۱.۲/۳.۱۱ — فاز ۱ (MVP) برای باکس دانش:
+// چت زنده داخل اپ نیست؛ فروشنده خودش پرامپت را در ChatGPT بیرونی اجرا می‌کند، خروجی (جدول) را
+// مستقیم در «ورود متن» صفحه‌ی باکس دانش پیست می‌کند (فیچر production جدا). store-setup/product
+// (GuideAssistantModal) و bulk-import (همون، بخش ۳.۱۱) دیگر از این مسیر استفاده نمی‌کنند —
+// همین الان تنها context باقی‌مانده knowledge-extraction است.
+export function GuidePromptModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
-  const [pastedText, setPastedText] = useState('')
-  const analyze = useAnalyzeOwnerNotes(storeId)
-  const prompt = buildGuidePrompt(context, { category, businessType, name: storeName })
+  const prompt = buildGuidePrompt('knowledge-extraction')
 
   useEffect(() => {
-    if (open) {
-      setCopied(false)
-      setPastedText('')
-      analyze.reset()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (open) setCopied(false)
   }, [open])
 
   async function copyPrompt() {
@@ -57,23 +26,6 @@ export function GuidePromptModal({
     }
   }
 
-  function submit() {
-    if (!pastedText.trim()) return
-    analyze.mutate(
-      {
-        entityType: context === 'product' ? 'PRODUCT' : 'STORE',
-        productId,
-        rawText: pastedText,
-      },
-      {
-        onSuccess: result => {
-          onResult?.(result)
-          onClose()
-        },
-      },
-    )
-  }
-
   const steps = fa.seller.panel.guidePrompt.steps
 
   return (
@@ -84,7 +36,7 @@ export function GuidePromptModal({
       )}
       role="dialog"
       aria-modal="true"
-      aria-label={GUIDE_PROMPT_TITLES[context]}
+      aria-label={GUIDE_PROMPT_TITLES['knowledge-extraction']}
     >
       <div
         className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700/50 light:border-slate-200 px-5 pb-4"
@@ -102,7 +54,7 @@ export function GuidePromptModal({
           </svg>
         </button>
         <span className="min-w-0 flex-1 truncate text-center text-[14px] font-bold text-white light:text-slate-900">
-          {GUIDE_PROMPT_TITLES[context]}
+          {GUIDE_PROMPT_TITLES['knowledge-extraction']}
         </span>
         <span className="w-8 shrink-0" />
       </div>
@@ -141,38 +93,9 @@ export function GuidePromptModal({
           {fa.seller.panel.guidePrompt.openChatGpt} ↗
         </a>
 
-        {context === 'knowledge-extraction' || context === 'bulk-import' ? (
-          <p className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 px-3.5 py-3 text-xs leading-relaxed text-slate-400 light:text-slate-600">
-            {context === 'knowledge-extraction'
-              ? fa.seller.panel.guidePrompt.knowledgeExtractionHint
-              : fa.seller.panel.guidePrompt.bulkImportExtractionHint}
-          </p>
-        ) : (
-          <>
-            <div className="h-px bg-slate-800 light:bg-slate-200" />
-            <label className="text-sm font-semibold text-slate-300 light:text-slate-700">
-              {fa.seller.panel.guidePrompt.pasteLabel}
-            </label>
-            <textarea
-              value={pastedText}
-              onChange={e => setPastedText(e.target.value)}
-              placeholder={fa.seller.panel.guidePrompt.pastePlaceholder}
-              rows={6}
-              className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-3 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600 outline-none"
-            />
-            {analyze.isError && (
-              <p className="text-xs text-red-400">{extractErrorMessage(analyze.error, fa.seller.panel.guidePrompt.analyzeError)}</p>
-            )}
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!pastedText.trim() || analyze.isPending}
-              className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
-            >
-              {analyze.isPending ? fa.seller.panel.guidePrompt.analyzing : fa.seller.panel.guidePrompt.submit}
-            </button>
-          </>
-        )}
+        <p className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 px-3.5 py-3 text-xs leading-relaxed text-slate-400 light:text-slate-600">
+          {fa.seller.panel.guidePrompt.knowledgeExtractionHint}
+        </p>
       </div>
     </div>
   )

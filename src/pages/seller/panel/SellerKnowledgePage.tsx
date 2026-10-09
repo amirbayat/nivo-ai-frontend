@@ -272,7 +272,7 @@ export function SellerKnowledgePage() {
         ))}
       </div>
 
-      <GuidePromptModal open={guideOpen} onClose={() => setGuideOpen(false)} context="knowledge-extraction" storeId={storeId} />
+      <GuidePromptModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   )
 }

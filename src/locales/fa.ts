@@ -875,15 +875,10 @@ export const fa = {
         copy: '📋 کپی پرامپت',
         copied: 'کپی شد ✓',
         openChatGpt: 'باز کردن ChatGPT',
-        pasteLabel: 'نتیجه‌ی ChatGPT را این‌جا پیست کنید',
-        pastePlaceholder: 'متن نهایی‌ای که ChatGPT برایت نوشت را این‌جا بچسبان...',
-        submit: 'ثبت و تحلیل',
         analyzing: 'در حال تحلیل...',
         analyzeError: 'تحلیل یادداشت با خطا مواجه شد',
         knowledgeExtractionHint:
           'وقتی ChatGPT جدول سؤال/جواب را تمام کرد، کل جدول را کپی کن و پایین همین صفحه در بخش «ورود متن» پیست کن — خودش به ردیف‌های قابل‌تایید تبدیل می‌شود.',
-        bulkImportExtractionHint:
-          'وقتی ChatGPT لیست محصولات را تمام کرد، کل متن را کپی کن و پایین همین صفحه در کادر «یا متن رو اینجا پیست کن...» پیست کن و روی «استخراج از متن» بزن.',
         suggestionsTitle: 'پیشنهادهای این تحلیل',
         applyBrandIntro: 'اعمال در «معرفی فروشگاه»',
         applyShippingInfo: 'اعمال در «سیاست ارسال»',

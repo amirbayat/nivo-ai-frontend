@@ -20,7 +20,7 @@ import {
 } from '@/queries/seller.queries'
 import type { BulkCompleteResultItem, ExtractedProductCandidate, ExtractProductsResult } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
-import { GuidePromptModal } from './GuidePromptModal'
+import { GuideAssistantModal } from './GuideAssistantModal'
 
 // docs/PRD-seller-knowledge-base.md بخش ۹.۲ (دوم، مورد ۶) — تولید پیشنهاد برای حداکثر ۲۰
 // محصول کم‌تکمیل این فروشگاه در یک درخواست، بعد مرور/تایید دسته‌ای این‌جا (نه تک‌تک مثل
@@ -465,7 +465,7 @@ export function BulkProductImportSheet({
           <p className="text-xs text-slate-500">{fa.seller.panel.products.bulkImportModalHint}</p>
         </div>
 
-        <GuidePromptModal
+        <GuideAssistantModal
           open={guideOpen}
           onClose={() => setGuideOpen(false)}
           context="bulk-import"
@@ -473,6 +473,7 @@ export function BulkProductImportSheet({
           category={category}
           businessType={businessType}
           storeName={storeName}
+          onBulkResult={onExtracted}
         />
 
         <div className="flex-1 overflow-y-auto px-5 pb-5">

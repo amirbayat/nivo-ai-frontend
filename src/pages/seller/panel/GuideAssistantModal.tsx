@@ -3,15 +3,18 @@ import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { extractErrorMessage } from '@/lib/sellerProduct'
 import { buildGuidePrompt, buildGuideOpeningMessage, GUIDE_PROMPT_TITLES } from '@/lib/guideAssistantPrompts'
-import { useAnalyzeOwnerNotes, useTranscribeAudio } from '@/queries/seller.queries'
+import { useAnalyzeOwnerNotes, useExtractProductsFromText, useTranscribeAudio } from '@/queries/seller.queries'
 import { useGuideAssistantChat, synthesizeGuideVoice } from '@/hooks/useGuideAssistantChat'
-import type { AnalyzeOwnerNotesResult } from '@/types/api'
+import type { AnalyzeOwnerNotesResult, ExtractProductsResult } from '@/types/api'
 
-// docs/PRD-seller-guide-assistant-modal.md بخش ۳.۳ — جایگزین کامل GuidePromptModal (کپی
-// پرامپت → ChatGPT بیرونی → پیست نتیجه) فقط برای store-setup/product: یک چت زنده‌ی داخل اپ،
-// متن یا صدا به‌عنوان ورودی، پخش صوتی اختیاری روی هر پاسخ. همون systemPrompt قبلی
+// docs/PRD-seller-guide-assistant-modal.md بخش ۳.۳/۳.۱۱ — جایگزین کامل GuidePromptModal (کپی
+// پرامپت → ChatGPT بیرونی → پیست نتیجه) برای store-setup/product/bulk-import: یک چت زنده‌ی
+// داخل اپ، متن یا صدا به‌عنوان ورودی، پخش صوتی اختیاری روی هر پاسخ. همون systemPrompt قبلی
 // (buildGuidePrompt) حالا به‌جای متن کپی‌شدنی، هم به‌عنوان حباب اول چت نمایش داده می‌شود هم
-// system prompt واقعی سمت سرور است — هیچ منطق پرامپتی دوباره نوشته نشد.
+// system prompt واقعی سمت سرور است — هیچ منطق پرامپتی دوباره نوشته نشد. bulk-import تنها
+// context‌ای است که در پایان به‌جای analyzeOwnerNotes، متن خام گفتگو را به
+// useExtractProductsFromText (همون استخراج محصولات لیست دسته‌جمعی) می‌دهد؛ هر دو هوک همیشه
+// صدا زده می‌شوند (قانون hooks) ولی فقط یکی‌شان .mutate می‌شود.
 export function GuideAssistantModal({
   open,
   onClose,
@@ -22,20 +25,23 @@ export function GuideAssistantModal({
   businessType,
   storeName,
   onResult,
+  onBulkResult,
 }: {
   open: boolean
   onClose: () => void
-  context: 'store-setup' | 'product'
+  context: 'store-setup' | 'product' | 'bulk-import'
   storeId: string
   productId?: string
   category?: string | null
   businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
   storeName?: string | null
   onResult?: (result: AnalyzeOwnerNotesResult) => void
+  onBulkResult?: (result: ExtractProductsResult) => void
 }) {
   const { messages, sending, error, userMessageCount, atCap, sendMessage, reset } =
     useGuideAssistantChat(storeId)
   const analyze = useAnalyzeOwnerNotes(storeId)
+  const extractProducts = useExtractProductsFromText(storeId)
   const transcribe = useTranscribeAudio(storeId)
 
   const [draft, setDraft] = useState('')
@@ -62,6 +68,7 @@ export function GuideAssistantModal({
     reset()
     setDraft('')
     analyze.reset()
+    extractProducts.reset()
     for (const url of voiceCacheRef.current.values()) URL.revokeObjectURL(url)
     voiceCacheRef.current = new Map()
     setPlayingIndex(null)
@@ -147,6 +154,17 @@ export function GuideAssistantModal({
       .map(m => m.content)
       .join('\n\n')
     if (!rawText.trim()) return
+
+    if (context === 'bulk-import') {
+      extractProducts.mutate(rawText, {
+        onSuccess: result => {
+          onBulkResult?.(result)
+          onClose()
+        },
+      })
+      return
+    }
+
     analyze.mutate(
       {
         entityType: context === 'product' ? 'PRODUCT' : 'STORE',
@@ -161,6 +179,11 @@ export function GuideAssistantModal({
       },
     )
   }
+
+  const finishing = context === 'bulk-import' ? extractProducts.isPending : analyze.isPending
+  const finishError = context === 'bulk-import' ? extractProducts.error : analyze.error
+  const finishErrorFallback =
+    context === 'bulk-import' ? fa.seller.panel.products.bulkImportError : fa.seller.panel.guidePrompt.analyzeError
 
   const t = fa.seller.panel.guideAssistant
 
@@ -227,13 +250,9 @@ export function GuideAssistantModal({
         ))}
 
         {error && <p className="text-xs text-red-400">{error}</p>}
-        {analyze.isError && (
-          <p className="text-xs text-red-400">
-            {extractErrorMessage(analyze.error, fa.seller.panel.guidePrompt.analyzeError)}
-          </p>
-        )}
+        {!!finishError && <p className="text-xs text-red-400">{extractErrorMessage(finishError, finishErrorFallback)}</p>}
 
-        {atCap && !analyze.isPending && <p className="text-xs text-amber-400">{t.capReached}</p>}
+        {atCap && !finishing && <p className="text-xs text-amber-400">{t.capReached}</p>}
       </div>
 
       <div
@@ -244,10 +263,10 @@ export function GuideAssistantModal({
           <button
             type="button"
             onClick={finish}
-            disabled={analyze.isPending}
+            disabled={finishing}
             className="w-full rounded-2xl bg-emerald-500 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-50"
           >
-            {analyze.isPending ? fa.seller.panel.guidePrompt.analyzing : t.finish}
+            {finishing ? fa.seller.panel.guidePrompt.analyzing : t.finish}
           </button>
         )}
         {userMessageCount === 0 && <p className="text-center text-[11px] text-slate-500">{t.finishHint}</p>}
