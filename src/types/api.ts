@@ -200,6 +200,8 @@ export interface SellerStore {
   abandonedCartReminderEnabled: boolean
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled: boolean
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — سوئیچ خاموش/روشن وویس ربات، دیفالت اولیه خاموش
+  voiceRepliesEnabled: boolean
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ — false = فروش حضوری/دیجیتال
   requiresShipping: boolean
   // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه (کلید MinIO، نه URL)

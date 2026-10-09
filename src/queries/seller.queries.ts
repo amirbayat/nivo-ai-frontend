@@ -145,6 +145,8 @@ export interface UpdateStoreInput {
   abandonedCartReminderEnabled?: boolean
   // docs/PRD-sales-agent-persuasion-principles.md بخش ۶
   persuasionTechniquesEnabled?: boolean
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — سوئیچ خاموش/روشن وویس ربات
+  voiceRepliesEnabled?: boolean
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱
   requiresShipping?: boolean
   // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۳ — یک‌بار برای کل فروشگاه

@@ -106,6 +106,7 @@ export function SellerStoreSettingsPage() {
   const [postPurchaseFollowUpEnabled, setPostPurchaseFollowUpEnabled] = useState(true)
   const [abandonedCartReminderEnabled, setAbandonedCartReminderEnabled] = useState(true)
   const [persuasionTechniquesEnabled, setPersuasionTechniquesEnabled] = useState(true)
+  const [voiceRepliesEnabled, setVoiceRepliesEnabled] = useState(false)
   const [requiresShipping, setRequiresShipping] = useState(true)
   const [saved, setSaved] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
@@ -126,6 +127,7 @@ export function SellerStoreSettingsPage() {
     setPostPurchaseFollowUpEnabled(store.postPurchaseFollowUpEnabled)
     setAbandonedCartReminderEnabled(store.abandonedCartReminderEnabled)
     setPersuasionTechniquesEnabled(store.persuasionTechniquesEnabled)
+    setVoiceRepliesEnabled(store.voiceRepliesEnabled)
     setRequiresShipping(store.requiresShipping)
     if (store.goldWageType) setGoldWageType(store.goldWageType)
     setGoldWageValue(store.goldWageValue != null ? String(store.goldWageValue) : '')
@@ -147,6 +149,7 @@ export function SellerStoreSettingsPage() {
         postPurchaseFollowUpEnabled,
         abandonedCartReminderEnabled,
         persuasionTechniquesEnabled,
+        voiceRepliesEnabled,
         requiresShipping,
         goldWageType: showGoldPricingSection ? goldWageType : undefined,
         goldWageValue: showGoldPricingSection && goldWageValue ? Number(goldWageValue) : undefined,
@@ -402,6 +405,20 @@ export function SellerStoreSettingsPage() {
             label={fa.seller.panel.storeSettings.persuasionToggleLabel}
             checked={persuasionTechniquesEnabled}
             onChange={setPersuasionTechniquesEnabled}
+          />
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <p className="mb-0.5 text-sm font-semibold text-slate-300 light:text-slate-700">
+          {fa.seller.panel.storeSettings.voiceLabel}
+        </p>
+        <p className="mb-1 text-[11px] text-slate-600 light:text-slate-400">{fa.seller.panel.storeSettings.voiceHint}</p>
+        <div className="divide-y divide-slate-800 light:divide-slate-200">
+          <ToggleRow
+            label={fa.seller.panel.storeSettings.voiceToggleLabel}
+            checked={voiceRepliesEnabled}
+            onChange={setVoiceRepliesEnabled}
           />
         </div>
       </div>
