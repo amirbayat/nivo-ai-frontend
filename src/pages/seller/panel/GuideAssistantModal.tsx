@@ -53,8 +53,8 @@ export function GuideAssistantModal({
     [context, category, businessType, storeName],
   )
   const openingMessage = useMemo(
-    () => buildGuideOpeningMessage(context, { name: storeName }),
-    [context, storeName],
+    () => buildGuideOpeningMessage(context, { name: storeName, category, businessType }),
+    [context, storeName, category, businessType],
   )
 
   useEffect(() => {
