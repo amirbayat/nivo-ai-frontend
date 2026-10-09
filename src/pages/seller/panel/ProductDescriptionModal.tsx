@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm'
 import { fa } from '@/locales/fa'
 import { extractErrorMessage } from '@/lib/sellerProduct'
 import {
-  useCompleteProductInfo,
+  // useCompleteProductInfo, // فیدبک کاربر ۱۴۰۵/۰۷/۱۷ — «تکمیل با جستجوی وب» فعلاً موقتاً غیرفعال است
   useCreateKbEntry,
   useGenerateProductDescriptionFromNotes,
   useTranscribeAudio,
@@ -101,7 +101,8 @@ export function ProductDescriptionModal({
   }
 
   const improve = useGenerateProductDescriptionFromNotes(storeId)
-  const webComplete = useCompleteProductInfo(storeId)
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۷ — «تکمیل با جستجوی وب» فعلاً موقتاً غیرفعال است (کامنت، نه حذف)
+  // const webComplete = useCompleteProductInfo(storeId)
   const createKb = useCreateKbEntry(storeId)
   const [guideOpen, setGuideOpen] = useState(false)
   const [addedKb, setAddedKb] = useState<Set<number>>(new Set())
@@ -114,16 +115,16 @@ export function ProductDescriptionModal({
     )
   }
 
-  function clickWebComplete() {
-    if (!productId) return
-    webComplete.mutate(
-      { productId, withWebSearch: true, currentDraft: draft },
-      {
-        onSuccess: res =>
-          setSuggestion({ description: res.suggestedDescription, specs: res.suggestedSpecs, sourceNote: res.sourceNote }),
-      },
-    )
-  }
+  // function clickWebComplete() {
+  //   if (!productId) return
+  //   webComplete.mutate(
+  //     { productId, withWebSearch: true, currentDraft: draft },
+  //     {
+  //       onSuccess: res =>
+  //         setSuggestion({ description: res.suggestedDescription, specs: res.suggestedSpecs, sourceNote: res.sourceNote }),
+  //     },
+  //   )
+  // }
 
   function applySuggestion() {
     if (!suggestion) return
@@ -137,7 +138,7 @@ export function ProductDescriptionModal({
     onClose()
   }
 
-  const aiPending = improve.isPending || webComplete.isPending
+  const aiPending = improve.isPending // || webComplete.isPending
 
   return (
     <div
@@ -224,6 +225,7 @@ export function ProductDescriptionModal({
             >
               {improve.isPending ? fa.seller.panel.products.aiImproveLoading : `✨ ${fa.seller.panel.products.aiImproveButton}`}
             </button>
+            {/* فیدبک کاربر ۱۴۰۵/۰۷/۱۷ — «تکمیل با جستجوی وب» فعلاً موقتاً غیرفعال است
             <button
               type="button"
               onClick={clickWebComplete}
@@ -232,6 +234,11 @@ export function ProductDescriptionModal({
             >
               {webComplete.isPending ? fa.seller.panel.products.aiWebCompleteLoading : `🔍 ${fa.seller.panel.products.aiWebCompleteButton}`}
             </button>
+            <p className="px-0.5 text-[11px] text-slate-500 light:text-slate-400">{fa.seller.panel.products.aiWebSearchHint}</p>
+            {webComplete.isError && (
+              <p className="text-xs text-red-400">{extractErrorMessage(webComplete.error, fa.seller.panel.products.aiCompleteError)}</p>
+            )}
+            */}
             <button
               type="button"
               onClick={() => setGuideOpen(true)}
@@ -239,12 +246,8 @@ export function ProductDescriptionModal({
             >
               ✨ {fa.seller.panel.guidePrompt.button}
             </button>
-            <p className="px-0.5 text-[11px] text-slate-500 light:text-slate-400">{fa.seller.panel.products.aiWebSearchHint}</p>
             {improve.isError && (
               <p className="text-xs text-red-400">{extractErrorMessage(improve.error, fa.seller.panel.products.aiDescribeFromNotesError)}</p>
-            )}
-            {webComplete.isError && (
-              <p className="text-xs text-red-400">{extractErrorMessage(webComplete.error, fa.seller.panel.products.aiCompleteError)}</p>
             )}
           </div>
         ) : (

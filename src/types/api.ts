@@ -324,6 +324,8 @@ export interface StoreCreditPackage {
   isBestValue: boolean
   priceToman: number
   creditToman: number
+  // فیدبک کاربر ۱۴۰۵/۰۷/۱۷ — برآورد نمایشی «حدود N چت»، بر اساس avgCostPerChatToman ادمین
+  estimatedChats?: number
 }
 
 // docs/PRD-seller-multi-bank-card-rotation.md

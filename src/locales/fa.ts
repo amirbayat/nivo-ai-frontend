@@ -550,8 +550,6 @@ export const fa = {
         // docs/PRD-seller-credit-billing.md بخش ۴
         creditBalance: 'اعتبار هوش مصنوعی',
         creditBalanceToman: (n: number) => `${n.toLocaleString('fa-IR')} تومان`,
-        creditFreeQuota: (used: number, limit: number) =>
-          `${used.toLocaleString('fa-IR')} از ${limit.toLocaleString('fa-IR')} خریدار رایگان امروز`,
         creditTopUp: 'شارژ کن',
         // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱
         completenessTitle: (percent: number) => `فروشگاه شما ${percent.toLocaleString('fa-IR')}٪ آماده‌ی فروش هوشمند است`,
@@ -945,17 +943,19 @@ export const fa = {
       // docs/PRD-seller-credit-billing.md بخش ۴/۷
       credit: {
         title: 'اعتبار هوش مصنوعی',
-        subtitle: 'بعد از تمام‌شدن سهمیه‌ی رایگان روزانه، مصرف هوش مصنوعی از همین اعتبار کم می‌شود',
+        subtitle: 'مصرف ایجنت فروش (چت با خریدار) از همین اعتبار کم می‌شود — از همان پیام اول',
         currentBalance: 'موجودی فعلی',
-        freeQuotaToday: (used: number, limit: number) =>
-          `${used.toLocaleString('fa-IR')} از ${limit.toLocaleString('fa-IR')} خریدار رایگان امروز استفاده شده`,
         packagesTitle: 'خرید اعتبار',
         packagesEmpty: 'فعلاً بسته‌ای برای خرید تعریف نشده',
         priceLabel: (n: number) => `قیمت: ${n.toLocaleString('fa-IR')} تومان`,
-        buy: 'خرید',
+        estimatedChats: (n: number) => `حدود ${n.toLocaleString('fa-IR')} چت با مشتری*`,
+        estimatedChatsFootnote: '* بر مبنای میانگین هزینه‌ی هر چت — مصرف واقعی بسته به طول مکالمه کمتر یا بیشتر می‌شود',
+        buy: 'خرید این بسته',
         redirecting: 'در حال انتقال به درگاه پرداخت...',
         purchaseError: 'خرید اعتبار با خطا مواجه شد، دوباره تلاش کن',
         discountBadge: (percent: number) => `${percent.toLocaleString('fa-IR')}٪ تخفیف`,
+        popularBadge: 'محبوب‌ترین',
+        bestValueBadge: 'به‌صرفه‌ترین',
         // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶ — دوره آزمایشی
         trialTitle: 'اعتبار هدیه‌ی دوره‌ی آزمایشی',
         trialEndsAt: (date: string) => `تا ${date} معتبر است`,

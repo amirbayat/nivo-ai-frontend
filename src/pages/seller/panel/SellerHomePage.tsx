@@ -105,9 +105,6 @@ export function SellerHomePage() {
           <p className="mt-1 text-lg font-bold text-slate-100 light:text-slate-900">
             {fa.seller.panel.home.creditBalanceToman(credit.data?.balanceToman ?? 0)}
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {fa.seller.panel.home.creditFreeQuota(credit.data?.freeQuotaUsedToday ?? 0, credit.data?.freeQuotaLimit ?? 10)}
-          </p>
         </div>
         <span className="rounded-xl bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-400 light:text-emerald-700">
           {fa.seller.panel.home.creditTopUp}
