@@ -453,6 +453,87 @@ function PaymentInstructionsBlock({
   )
 }
 
+// docs/PRD-buyer-payment-method-card-or-snapppay-link.md — جداگانه از PaymentInstructionsBlock
+// بالا (لینک قابل‌کلیک، نه شماره‌کارت)؛ دکمه‌ی آپلود همان onUploadReceipt مشترک را صدا می‌زند
+// (بک‌اند از روی Order.paymentMethod خودش تشخیص می‌دهد این اسکرین‌شات است نه رسید بانکی).
+// کد رهگیری فیلد جدا ندارد — خریدار آن را به‌صورت متن آزاد در همان چت می‌فرستد
+// (conversation-engine.service.ts's handleSnapppayTrackingCodeInput)
+function SnapppayPaymentInstructionsBlock({
+  link,
+  amount,
+  disabled,
+  onUploadReceipt,
+}: {
+  link: string
+  amount: number
+  disabled: boolean
+  onUploadReceipt: (file: File) => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  return (
+    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
+      <p className="mb-1 text-xs text-slate-500">مبلغ قابل پرداخت</p>
+      <p className="mb-3 text-sm font-bold text-emerald-300 light:text-emerald-700">{amount.toLocaleString('fa-IR')} تومان</p>
+      <a
+        href={link}
+        target="_blank"
+        rel="noreferrer"
+        className="mb-2 block w-full rounded-lg bg-emerald-500 py-2 text-center text-xs font-semibold text-white hover:bg-emerald-400"
+      >
+        {fa.shop.payWithSnapppayButton}
+      </a>
+      <p className="mb-3 text-center text-[11px] text-slate-500">{fa.shop.snapppayTrackingCodeHint}</p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onUploadReceipt(file)
+          e.target.value = ''
+        }}
+      />
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={disabled}
+        className="w-full rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+      >
+        {fa.shop.uploadSnapppayScreenshot}
+      </button>
+    </div>
+  )
+}
+
+// docs/PRD-buyer-payment-method-card-or-snapppay-link.md — فقط وقتی فروشگاه هم کارت‌به‌کارت
+// هم لینک اسنپ‌پی فعال دارد نشان داده می‌شود (بک‌اند این بلاک را در غیر این صورت اصلاً نمی‌سازد)
+function PaymentMethodPromptBlock({
+  disabled,
+  onSendAction,
+}: {
+  disabled: boolean
+  onSendAction: (action: ShopAction) => void
+}) {
+  return (
+    <div className="mt-2 flex gap-2">
+      <button
+        onClick={() => onSendAction({ type: 'SELECT_PAYMENT_METHOD', paymentMethod: 'CARD_TO_CARD' })}
+        disabled={disabled}
+        className="flex-1 rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+      >
+        {fa.shop.choosePaymentMethodCardButton}
+      </button>
+      <button
+        onClick={() => onSendAction({ type: 'SELECT_PAYMENT_METHOD', paymentMethod: 'SNAPPPAY' })}
+        disabled={disabled}
+        className="flex-1 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
+      >
+        {fa.shop.choosePaymentMethodSnapppayButton}
+      </button>
+    </div>
+  )
+}
+
 function OrderStatusBlock({ status }: { status: string }) {
   return (
     <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-3 py-2 text-xs font-semibold text-emerald-300 light:text-emerald-700">
@@ -764,6 +845,17 @@ export function ShopUiBlockView({
           onUploadReceipt={onUploadReceipt}
         />
       )
+    case 'SNAPPPAY_PAYMENT_INSTRUCTIONS':
+      return (
+        <SnapppayPaymentInstructionsBlock
+          link={block.link}
+          amount={block.amount}
+          disabled={disabled}
+          onUploadReceipt={onUploadReceipt}
+        />
+      )
+    case 'PAYMENT_METHOD_PROMPT':
+      return <PaymentMethodPromptBlock disabled={disabled} onSendAction={onSendAction} />
     case 'ORDER_STATUS':
       return <OrderStatusBlock status={block.status} />
     case 'ADDRESS_PROMPT':

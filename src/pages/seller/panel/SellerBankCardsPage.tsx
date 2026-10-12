@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
@@ -7,8 +7,10 @@ import type { CardDisplayPolicy, StoreBankCard } from '@/types/api'
 import {
   useAddBankCard,
   useBankCards,
+  useMyStores,
   useUpdateBankCard,
   useUpdateCardPolicy,
+  useUpdateStore,
   type CreateBankCardInput,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
@@ -172,6 +174,49 @@ function AddCardForm({ storeId, onDone }: { storeId: string; onDone: () => void 
   )
 }
 
+// docs/PRD-buyer-payment-method-card-or-snapppay-link.md بخش ۵ — فیلد مستقل، auto-save روی
+// onBlur (هم‌الگوی BankCardRow بالا)، نه بخشی از فرم یک‌جای SellerStoreSettingsPage، چون
+// مفهوماً کنار «روش‌های دریافت وجه» (کارت‌های بانکی) جایش طبیعی‌تر است
+function SnapppayLinkSection({ storeId }: { storeId: string }) {
+  const stores = useMyStores()
+  const store = stores.data?.find(s => s.id === storeId)
+  const update = useUpdateStore(storeId)
+  const [link, setLink] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setLink(store?.snapppayPaymentLink ?? '')
+  }, [store?.snapppayPaymentLink])
+
+  function commit() {
+    update.mutate(
+      { snapppayPaymentLink: link.trim() || undefined },
+      {
+        onSuccess: () => {
+          setSaved(true)
+          setTimeout(() => setSaved(false), 2000)
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="mt-8 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
+      <h2 className="mb-1 text-sm font-bold text-slate-200 light:text-slate-900">{fa.seller.panel.bankCards.snapppayLinkTitle}</h2>
+      <p className="mb-3 text-xs text-slate-500">{fa.seller.panel.bankCards.snapppayLinkHint}</p>
+      <Input
+        value={link}
+        onChange={e => setLink(e.target.value)}
+        onBlur={commit}
+        placeholder={fa.seller.panel.bankCards.snapppayLinkPlaceholder}
+        dir="ltr"
+      />
+      {update.isError && <p className="mt-2 text-xs text-red-400">{fa.seller.panel.bankCards.snapppayLinkError}</p>}
+      {saved && <p className="mt-2 text-xs text-emerald-400">{fa.seller.panel.bankCards.snapppayLinkSaved}</p>}
+    </div>
+  )
+}
+
 export function SellerBankCardsPage() {
   const { storeId } = useSellerStore()
   const bankCards = useBankCards(storeId)
@@ -226,6 +271,8 @@ export function SellerBankCardsPage() {
           {fa.seller.panel.bankCards.addCard}
         </button>
       )}
+
+      <SnapppayLinkSection storeId={storeId} />
     </div>
   )
 }

@@ -180,6 +180,8 @@ export interface SellerStore {
   businessType: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
   bankCardNumber: string
   bankOwnerName: string
+  // docs/PRD-buyer-payment-method-card-or-snapppay-link.md — نال یعنی این روش پرداخت غیرفعال است
+  snapppayPaymentLink: string | null
   instagramUrl: string | null
   telegramUrl: string | null
   websiteUrl: string | null
@@ -433,6 +435,11 @@ export type ShopUiBlock =
       total: number
     }
   | { type: 'PAYMENT_INSTRUCTIONS'; cardNumber: string; ownerName: string; amount: number }
+  // docs/PRD-buyer-payment-method-card-or-snapppay-link.md — بلاک جدا از PAYMENT_INSTRUCTIONS
+  // بالا (رندر کاملاً فرق دارد: لینک قابل‌کلیک، نه شماره‌کارت)
+  | { type: 'SNAPPPAY_PAYMENT_INSTRUCTIONS'; link: string; amount: number }
+  // همان سند — فقط وقتی فروشگاه هم کارت‌به‌کارت هم لینک اسنپ‌پی فعال دارد نشان داده می‌شود
+  | { type: 'PAYMENT_METHOD_PROMPT'; options: ('CARD_TO_CARD' | 'SNAPPPAY')[] }
   | { type: 'ORDER_STATUS'; orderId: string; status: string }
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
   | {
@@ -582,6 +589,8 @@ export type ShopAction =
   | { type: 'REORDER'; orderId: string }
   // docs/PRD-product-display-focus-and-variations.md §۴.۲ — جواب چیپ VARIANT_PROMPT
   | { type: 'SELECT_VARIANT_VALUE'; value: string }
+  // docs/PRD-buyer-payment-method-card-or-snapppay-link.md — جواب دکمه‌ی PAYMENT_METHOD_PROMPT
+  | { type: 'SELECT_PAYMENT_METHOD'; paymentMethod: 'CARD_TO_CARD' | 'SNAPPPAY' }
 
 export interface ShopStartChatResponse {
   conversationId: string

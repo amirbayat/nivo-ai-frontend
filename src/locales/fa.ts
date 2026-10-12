@@ -1054,6 +1054,13 @@ export const fa = {
         confirmedNoThreshold: (confirmed: number) =>
           `${confirmed.toLocaleString('fa-IR')} تومان تاییدشده — بدون سقف`,
         inactive: 'غیرفعال',
+        // docs/PRD-buyer-payment-method-card-or-snapppay-link.md بخش ۵
+        snapppayLinkTitle: 'پرداخت با اسنپ‌پی',
+        snapppayLinkHint:
+          'این لینک ثابت است و برای همه‌ی خریداران یکسان ارسال می‌شود؛ مبلغ را خریدار خودش وارد می‌کند. اگر هم این هم کارت بانکی فعال باشد، خریدار در چت یکی را انتخاب می‌کند.',
+        snapppayLinkPlaceholder: 'https://snapppay.ir/...',
+        snapppayLinkError: 'ذخیره‌ی لینک با خطا مواجه شد — آدرس را چک کن',
+        snapppayLinkSaved: 'ذخیره شد',
       },
       // docs/PRD-customer-comments-and-discounts.md بخش ۸
       discountCodes: {
@@ -1275,6 +1282,12 @@ export const fa = {
     copyCardNumber: 'کپی شماره کارت',
     cardNumberCopied: 'کپی شد',
     receiptUploadedNote: 'رسید واریز رو فرستادم',
+    // docs/PRD-buyer-payment-method-card-or-snapppay-link.md
+    payWithSnapppayButton: 'پرداخت با اسنپ‌پی (۴ قسطه)',
+    uploadSnapppayScreenshot: 'آپلود اسکرین‌شات پرداخت',
+    snapppayTrackingCodeHint: 'بعد از پرداخت، کد رهگیری‌ای که اسنپ‌پی نشون میده رو هم همین‌جا در چت بفرست',
+    choosePaymentMethodCardButton: 'کارت‌به‌کارت',
+    choosePaymentMethodSnapppayButton: 'اسنپ‌پی (۴ قسطه)',
     outOfStock: 'ناموجود',
     // عمداً بدون عدد — فروشنده نمی‌خواهد تعداد موجودی واقعی به خریدار (در ویجت فروش) نشان
     // داده شود؛ stockCount زیر فقط برای پنل خودِ فروشنده (SellerProductsPage) است

@@ -154,6 +154,8 @@ export interface UpdateStoreInput {
   goldWageValue?: number
   goldProfitPercent?: number
   goldVatPercent?: number
+  // docs/PRD-buyer-payment-method-card-or-snapppay-link.md بخش ۵
+  snapppayPaymentLink?: string
 }
 
 export function useUpdateStore(storeId: string) {
