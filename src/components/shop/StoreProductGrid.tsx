@@ -254,7 +254,7 @@ function ReviewsModal({ slug, product, onClose }: { slug: string; product: Publi
   }, [slug, product.id])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={onClose}>
       <div
         className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-slate-700 light:border-slate-200 bg-slate-900 light:bg-white p-5 pb-8"
         onClick={(e) => e.stopPropagation()}
