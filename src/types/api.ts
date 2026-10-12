@@ -442,6 +442,9 @@ export type ShopUiBlock =
   // همان سند — فقط وقتی فروشگاه هم کارت‌به‌کارت هم لینک اسنپ‌پی فعال دارد نشان داده می‌شود
   | { type: 'PAYMENT_METHOD_PROMPT'; options: ('CARD_TO_CARD' | 'SNAPPPAY')[] }
   | { type: 'ORDER_STATUS'; orderId: string; status: string }
+  // فیدبک کاربر ۱۴۰۵/۰۷/۲۰ — فروشگاه‌های leadCaptureOnly؛ بعد از ثبت لید، دکمه‌ی «مشاهده
+  // وبسایت» که در تب جدید باز می‌شود (فقط اگر فروشگاه websiteUrl داشته باشد)
+  | { type: 'VISIT_WEBSITE'; url: string }
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
   | {
       type: 'ADDRESS_PROMPT'

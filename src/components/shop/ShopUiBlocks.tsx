@@ -505,6 +505,23 @@ function SnapppayPaymentInstructionsBlock({
   )
 }
 
+// فیدبک کاربر ۱۴۰۵/۰۷/۲۰ — برای فروشگاه‌های leadCaptureOnly؛ بعد از ثبت لید، دکمه‌ی «مشاهده
+// وبسایت» که در تب جدید باز می‌شود (بک‌اند فقط وقتی فروشگاه websiteUrl دارد این بلاک را می‌سازد)
+function VisitWebsiteBlock({ url }: { url: string }) {
+  return (
+    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="block w-full rounded-lg bg-emerald-500 py-2 text-center text-xs font-semibold text-white hover:bg-emerald-400"
+      >
+        {fa.shop.visitWebsiteButton}
+      </a>
+    </div>
+  )
+}
+
 // docs/PRD-buyer-payment-method-card-or-snapppay-link.md — فقط وقتی فروشگاه هم کارت‌به‌کارت
 // هم لینک اسنپ‌پی فعال دارد نشان داده می‌شود (بک‌اند این بلاک را در غیر این صورت اصلاً نمی‌سازد)
 function PaymentMethodPromptBlock({
@@ -858,6 +875,8 @@ export function ShopUiBlockView({
       return <PaymentMethodPromptBlock disabled={disabled} onSendAction={onSendAction} />
     case 'ORDER_STATUS':
       return <OrderStatusBlock status={block.status} />
+    case 'VISIT_WEBSITE':
+      return <VisitWebsiteBlock url={block.url} />
     case 'ADDRESS_PROMPT':
       return (
         <AddressPromptBlock

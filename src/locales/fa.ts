@@ -1294,6 +1294,7 @@ export const fa = {
     snapppayTrackingCodeHint: 'بعد از پرداخت، کد رهگیری‌ای که اسنپ‌پی نشون میده رو هم همین‌جا در چت بفرست',
     choosePaymentMethodCardButton: 'کارت‌به‌کارت',
     choosePaymentMethodSnapppayButton: 'اسنپ‌پی (۴ قسطه)',
+    visitWebsiteButton: 'مشاهده وب‌سایت',
     outOfStock: 'ناموجود',
     // عمداً بدون عدد — فروشنده نمی‌خواهد تعداد موجودی واقعی به خریدار (در ویجت فروش) نشان
     // داده شود؛ stockCount زیر فقط برای پنل خودِ فروشنده (SellerProductsPage) است
