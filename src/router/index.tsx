@@ -77,14 +77,13 @@ function GuestRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// "/" همیشه هاب است — چه کاربر لاگین‌کرده باشد چه مهمان (دیگر AnonChatPage/تجربه‌ی چت
-// بدون ثبت‌نام در اینجا نشان داده نمی‌شود). کارت‌ها خودشان (HubPage) بر اساس isLoggedIn
-// تصمیم می‌گیرند: کاربر مهمان با کلیک روی هر کارت، اول به /login فرستاده می‌شود (مسیر مقصد در
-// sessionStorage['nivo:pendingReturnPath'] ذخیره می‌شود، همان الگوی بازگشت بعد از درگاه پرداخت
-// در CallbackPage.tsx) و OtpPage بعد از ورود موفق او را به همان مقصد برمی‌گرداند.
+// docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۲۱/۲۲ — «/» دیگر همیشه هاب
+// نیست. بازدیدکننده‌ی مهمان لندینگ‌پیج فروشنده (SellerLandingPage) را می‌بیند؛ کاربری که
+// واقعاً لاگین است (useMe() موفق) همچنان همان هاب چندمنظوره‌ی قبلی (HubPage) را می‌بیند —
+// جابه‌جایی به لندینگ عمومی برای کاربری که از قبل مشتری چت اصلی نیوو است تجربه‌ی بدی می‌سازد.
 // صرفاً وجود access_token در localStorage کافی نیست — ممکن است منقضی/نامعتبر باشد، برای همین
 // useMe() واقعاً اعتبار توکن را چک می‌کند؛ تا وقتی مشخص نشده، یک صفحه‌ی خالی موقت نشان داده
-// می‌شود تا از فلش نامناسب (مثلاً نمایش کوتاه دکمه‌ی ورود به کاربر لاگین‌کرده) جلوگیری شود.
+// می‌شود تا از فلش نامناسب (مثلاً نمایش کوتاه لندینگ به کاربر لاگین‌کرده) جلوگیری شود.
 // «/nivo-cal» یک مقصد ثابت نیست — بسته به وجود پروفایل تغذیه، یا صفحه‌ی اسکن فعلی (فاز ۱ + CTA
 // ساخت پروفایل) یا داشبورد روزانه‌ی جدید (فاز ۲) را نشان می‌دهد؛ همان الگوی HomeRoute بالا برای
 // شاخه‌زدن روی یک مسیر ثابت بر اساس یک query. لینک مستقیم به «/nivo-cal/scan» (مثل FAB داشبورد)
@@ -99,7 +98,8 @@ function HomeRoute() {
   const hasToken = !!localStorage.getItem('access_token')
   const { data: me, isLoading } = useMe()
   if (hasToken && isLoading) return <div className="min-h-screen bg-slate-900" />
-  return <HubPage isLoggedIn={!!me} />
+  if (!me) return <SellerLandingPage />
+  return <HubPage isLoggedIn />
 }
 
 export function AppRouter() {
