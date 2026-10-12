@@ -83,6 +83,18 @@ export function SellerDashboardPage() {
       </div>
 
       <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
+        <p className="mb-3 text-sm font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.dashboard.paymentMethodTitle}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(fa.seller.panel.dashboard.paymentMethodLabels) as (keyof SellerDashboard['orderCountsByPaymentMethod'])[]).map(method => (
+            <div key={method} className="flex items-center justify-between text-xs">
+              <span className="text-slate-500">{fa.seller.panel.dashboard.paymentMethodLabels[method]}</span>
+              <span className="font-bold text-slate-200 light:text-slate-800">{(data?.orderCountsByPaymentMethod[method] ?? 0).toLocaleString('fa-IR')}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
         <p className="mb-3 text-sm font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.dashboard.topProductsTitle}</p>
         {data?.topProducts.length === 0 && <p className="text-xs text-slate-500">{fa.seller.panel.dashboard.topProductsEmpty}</p>}
         <div className="flex flex-col gap-2">

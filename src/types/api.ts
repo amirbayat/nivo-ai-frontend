@@ -278,6 +278,7 @@ export interface SellerDashboard {
   revenueWeekToman: number
   revenueMonthToman: number
   orderCountsByStatus: Record<SellerOrderStatus, number>
+  orderCountsByPaymentMethod: Record<SellerOrderPaymentMethod, number>
   dailyRevenueTrend: { date: string; totalToman: number }[]
   topProducts: { productId: string; name: string; qty: number }[]
   uniqueCustomerCount: number
@@ -887,6 +888,9 @@ export interface ImportProductsResult {
 
 export type SellerOrderStatus = 'PENDING_PAYMENT' | 'RECEIPT_SUBMITTED' | 'APPROVED' | 'REJECTED' | 'SHIPPED'
 
+// docs/PRD-buyer-payment-method-card-or-snapppay-link.md — Prisma OrderPaymentMethod
+export type SellerOrderPaymentMethod = 'CARD_TO_CARD' | 'SNAPPPAY'
+
 export interface SellerOrder {
   id: string
   storeId: string
@@ -894,6 +898,8 @@ export interface SellerOrder {
   items: { productId: string; name: string; unitPrice: number; qty: number; imageKey: string | null }[]
   totalAmount: number
   status: SellerOrderStatus
+  paymentMethod: SellerOrderPaymentMethod
+  snapppayTrackingCode: string | null
   receiptImageKey: string | null
   rejectReason: string | null
   recipientName: string | null

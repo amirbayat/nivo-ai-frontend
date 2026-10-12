@@ -1185,6 +1185,12 @@ export const fa = {
           REJECTED: 'ردشده',
           SHIPPED: 'ارسال‌شده',
         } as Record<string, string>,
+        // docs/PRD-buyer-payment-method-card-or-snapppay-link.md بخش ۹.۱
+        paymentMethodTitle: 'سفارش‌ها به تفکیک روش پرداخت',
+        paymentMethodLabels: {
+          CARD_TO_CARD: 'کارت‌به‌کارت',
+          SNAPPPAY: 'اسنپ‌پی',
+        } as Record<string, string>,
         topProductsTitle: 'پرفروش‌ترین محصولات',
         topProductsEmpty: 'هنوز سفارش تاییدشده‌ای ثبت نشده',
         soldQty: (qty: number) => `${qty.toLocaleString('fa-IR')} فروش`,
@@ -1303,6 +1309,13 @@ export const fa = {
       REJECTED: 'رد شد',
       SHIPPED: 'ارسال شد',
     } as Record<string, string>,
+    // docs/PRD-buyer-payment-method-card-or-snapppay-link.md بخش ۹.۱ — بج روش پرداخت در
+    // جزئیات/لیست سفارش پنل فروشنده (فرم کوتاه، بدون پسوند «۴ قسطه» که مخصوص دکمه‌ی چت است)
+    paymentMethodLabels: {
+      CARD_TO_CARD: 'کارت‌به‌کارت',
+      SNAPPPAY: 'اسنپ‌پی',
+    } as Record<string, string>,
+    snapppayTrackingCodeLabel: 'کد رهگیری اسنپ‌پی',
     // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
     addressNewOption: '🏠 آدرس جدید',
     addressConfirmButton: '✅ بله، درسته',
