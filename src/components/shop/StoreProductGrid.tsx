@@ -185,9 +185,12 @@ function ProductDetailSheet({
           <p className="mb-0.5 text-sm font-bold text-emerald-400">{product.basePrice.toLocaleString('fa-IR')} تومان</p>
         )}
         {product.isWeightBasedPricing && product.weightGrams != null && product.purityKarat != null && (
-          <p className="mb-2 text-[11px] text-amber-400">
+          <p className={product.goldPricingSummary ? 'mb-0.5 text-[11px] text-amber-400' : 'mb-2 text-[11px] text-amber-400'}>
             {fa.shop.weightBasedPriceBadge} — {fa.shop.weightBasedPriceDetail(product.weightGrams, product.purityKarat)}
           </p>
+        )}
+        {product.isWeightBasedPricing && product.goldPricingSummary && (
+          <p className="mb-2 text-[11px] text-amber-400/80">{product.goldPricingSummary}</p>
         )}
         {product.description && (
           <p className="mb-3 text-sm text-slate-400 light:text-slate-600">{product.description}</p>

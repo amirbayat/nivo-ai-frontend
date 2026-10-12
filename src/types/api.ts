@@ -405,7 +405,21 @@ export interface StoreShippingRule {
 export type ShopUiBlock =
   | {
       type: 'PRODUCT_CARD'
-      products: { id: string; name: string; basePrice: number; stock: number; images: string[]; videos: ProductVideoItem[] }[]
+      products: {
+        id: string
+        name: string
+        basePrice: number
+        stock: number
+        images: string[]
+        videos: ProductVideoItem[]
+        // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۸.۱ — فقط محصولات
+        // طلا (WEIGHT_BASED_FORMULA) این‌ها را پر دارند؛ goldPricingSummary یک خط فارسیِ آماده
+        // («وزن/عیار/اجرت/سود/مالیات») است، یک‌بار فرمت‌شده در بک‌اند
+        weightGrams?: number | null
+        purityKarat?: number | null
+        isWeightBasedPricing?: boolean
+        goldPricingSummary?: string | null
+      }[]
     }
   // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۳ — برخلاف PRODUCT_CARD که فقط اولین
   // عکس هر محصول را می‌دهد، این بلاک همه‌ی عکس‌های یک محصول را حمل می‌کند (وقتی مشتری صریح
@@ -476,6 +490,9 @@ export interface PublicProduct {
   isWeightBasedPricing: boolean
   weightGrams: number | null
   purityKarat: number | null
+  // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۸.۱ — خط فارسیِ آماده‌ی
+  // «وزن/عیار/اجرت/سود/مالیات» برای محصولات طلا؛ فقط وقتی isWeightBasedPricing باشد مقدار دارد
+  goldPricingSummary: string | null
   // true یعنی نرخ لحظه‌ای/تنظیمات فروشگاه موقتاً در دسترس نبود؛ basePrice در این حالت آخرین
   // basePrice ذخیره‌شده (احتمالاً صفر/قدیمی) است، نه قابل‌اتکا برای نمایش قطعی
   priceUnavailable: boolean

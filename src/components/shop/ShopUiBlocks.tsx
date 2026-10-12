@@ -225,6 +225,8 @@ function ProductCardBlock({
     stock: number
     images: string[]
     videos: { key: string; durationSec: number }[]
+    // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۸.۱
+    goldPricingSummary?: string | null
   }[]
   disabled: boolean
   onAddToCart: (productId: string) => void
@@ -257,11 +259,16 @@ function ProductCardBlock({
                   className="size-20 shrink-0 cursor-zoom-in rounded-lg object-cover"
                 />
               )}
-              <div className="flex flex-1 items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</span>
-                <span className="text-xs text-slate-400 light:text-slate-600">
-                  {p.basePrice.toLocaleString('fa-IR')} تومان
-                </span>
+              <div className="flex flex-1 flex-col gap-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</span>
+                  <span className="text-xs text-slate-400 light:text-slate-600">
+                    {p.basePrice.toLocaleString('fa-IR')} تومان
+                  </span>
+                </div>
+                {p.goldPricingSummary && (
+                  <span className="text-[11px] text-amber-400">{p.goldPricingSummary}</span>
+                )}
               </div>
               {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد» */}
               <button
