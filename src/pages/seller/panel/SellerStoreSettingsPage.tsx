@@ -330,8 +330,8 @@ export function SellerStoreSettingsPage() {
           value={brandIntro}
           onChange={e => setBrandIntro(e.target.value)}
           placeholder={fa.seller.panel.storeSettings.brandIntroPlaceholder}
-          rows={2}
-          className="w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
+          rows={6}
+          className="w-full resize-y rounded-2xl border border-slate-700 light:border-slate-300 bg-transparent px-3.5 py-2.5 text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-600"
         />
       </div>
 
