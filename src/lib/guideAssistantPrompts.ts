@@ -1,7 +1,8 @@
-// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۶ — سه پرامپت نهایی که فروشنده خودش در
-// ChatGPT بیرونی استفاده می‌کند. متن ثابت است (فاز ۱ هیچ بک‌اندی برای تولید پرامپت ندارد)،
-// فقط برای knowledge-extraction خروجی مستقیم در «ورود متن» باکس دانش پیست می‌شود؛ برای
-// store-setup/product نتیجه در همین مدال («نتیجه را این‌جا پیست کنید») تحلیل می‌شود.
+// docs/PRD-seller-guide-assistant-modal.md بخش ۱.۶ — پرامپت‌های نهایی که فروشنده خودش در
+// ChatGPT بیرونی استفاده می‌کند. متن ثابت است (فاز ۱ هیچ بک‌اندی برای تولید پرامپت ندارد)؛
+// نتیجه در همین مدال («نتیجه را این‌جا پیست کنید») تحلیل می‌شود.
+// docs/PRD-seller-knowledge-box-redesign.md بخش ۵.۱ — context «knowledge-extraction» (راهنمای
+// کپی‌پیست ChatGPT برای باکس دانش) حذف شد؛ آپلود فایل/پیست متن مستقیم در خودِ صفحه جایگزینش شد.
 //
 // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۸ (۱۴۰۵/۰۷/۱۶) — store-setup/product دیگر
 // یک متن واحد نیستند: بر اساس «کلاستر»ی که دسته‌بندی فروشگاه در آن قرار می‌گیرد، بخش سوال
@@ -9,7 +10,7 @@
 // چون ۱۹ دسته × ۲ context یعنی نگه‌داری غیرقابل‌دفاع. هر دسته‌ی جدید فقط باید یک سطر به
 // CLUSTER_BY_CATEGORY اضافه کند، نه یک پرامپت کامل.
 
-export type GuidePromptContext = 'store-setup' | 'product' | 'knowledge-extraction' | 'bulk-import'
+export type GuidePromptContext = 'store-setup' | 'product' | 'bulk-import'
 
 export type PromptCluster = 'physical-variants' | 'physical-simple' | 'digital-instant' | 'handoff' | 'appointment'
 
@@ -147,27 +148,6 @@ const PRODUCT_TEMPLATE = `نقش: تو همین الان داری مستقیم �
 
 قوانین: قیمت/موجودی/کد محصول را خودت هرگز تولید یا حدس نزن.`
 
-const KNOWLEDGE_EXTRACTION_PROMPT = `نقش: تو دستیار ساخت «باکس دانش» فروشگاه از روی یک سند هستی (PDF کاتالوگ، قوانین گارانتی، یا حتی سوالات رایج مشتری‌ها که فروشنده برایت کپی کرده).
-
-### قبل از شروع — راهنمایی ورودی
-اگر فروشنده گفت «یه فایل دارم» ولی نفرستاد، بپرس چه نوع فایلی و مطمئن شو کامل است (نه فقط یک صفحه از کاتالوگ چندصفحه‌ای). اگر فروشنده به‌جای فایل، فقط یک جمله‌ی کلی گفت («قوانین مرجوعی معمولیه»)، بگو: «می‌تونی متن دقیق قانون مرجوعی‌ت رو بفرستی؟ حتی یه پیام قدیمی که به مشتری دادی هم کافیه — چیزی که 'معمولی' باشه رو نمی‌تونم دقیق تبدیل کنم.»
-
-### پردازش
-سند را بخوان، به آیتم‌های سؤال-جواب مستقل بشکن، هرکدام را دسته‌بندی کن:
-- FAQ: سؤال رایج مشتری
-- POLICY: ارسال/مرجوعی/گارانتی
-- PRODUCT_INFO: مربوط به یک محصول خاص (نامش را در سؤال بیاور)
-- GENERAL: معرفی برند، ساعت کاری، آدرس
-
-### دروازه‌ی کیفیت
-اگر از سند فقط چند جمله‌ی کلی و مبهم درآمد (مثلاً «مرجوعی داریم» بدون مهلت/شرط)، آن آیتم را با علامت ⚠️ مشخص کن و از فروشنده بپرس جزئیات دقیق را بدهد، به‌جای این‌که حدس بزنی.
-
-### خروجی
-| سؤال/عنوان | جواب | دسته | تگ پیشنهادی |
-|---|---|---|---|
-
-حداکثر ۲۰ آیتم مهم‌ترین/پرتکرارترین. وقتی جدول نهایی آماده شد، بگو: «این جدول را کپی کن و توی بخش 'ورود متن' صفحه‌ی باکس دانش نیوو پیست کن تا خودکار به ردیف‌های قابل‌تایید تبدیل بشه.»`
-
 // docs/PRD-seller-guide-assistant-modal.md بخش ۳.۱۰ — دقیقاً همون منطق PRODUCT_Q2_BY_CLUSTER:
 // سوال دوم («موجودی») فرض می‌کند کالا فیزیکی و قابل‌شمارش است — برای دیجیتال/یکتا این فرض
 // غلطه، پس فقط همین دو مورد override می‌شوند، نه کل سوال.
@@ -234,8 +214,6 @@ export function buildGuidePrompt(
   context: GuidePromptContext,
   opts?: { category?: string | null; businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'; name?: string | null },
 ): string {
-  if (context === 'knowledge-extraction') return KNOWLEDGE_EXTRACTION_PROMPT
-
   const cluster = resolveCluster(opts?.category, opts?.businessType)
   const header = buildHeaderLine(opts?.category, opts?.name)
 
@@ -302,7 +280,6 @@ ${q1}`
 export const GUIDE_PROMPT_TITLES: Record<GuidePromptContext, string> = {
   'store-setup': 'دستیار راه‌اندازی فروشگاه',
   product: 'دستیار نوشتن توضیح محصول',
-  'knowledge-extraction': 'راهنمای استخراج باکس دانش با ChatGPT',
   'bulk-import': 'دستیار آماده‌سازی لیست محصولات',
 }
 

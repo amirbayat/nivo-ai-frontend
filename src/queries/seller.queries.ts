@@ -19,7 +19,7 @@ import type {
   GenerateProductDescriptionResult,
   GenerateProductOptionsResult,
   ImportProductsResult,
-  KbCandidateEntry,
+  KbExtractResult,
   NeededAttentionConversation,
   ProductAiCompleteFromPhotoResult,
   ProductAiCompleteResult,
@@ -42,6 +42,7 @@ import type {
   StoreCreditStatus,
   StoreKbEntry,
   StoreKbKind,
+  UpdateKbEntryInput,
   UpdateProductInput,
 } from '@/types/api'
 
@@ -670,6 +671,17 @@ export function useCreateKbEntry(storeId: string) {
   })
 }
 
+// docs/PRD-seller-knowledge-box-redesign.md بخش ۵.۳ — چون کاندید در صف بررسی دیگر
+// inline-editable نیست، ویرایش واقعی یک entry فقط از همین مسیر (لیست پایین صفحه) ممکن است
+export function useUpdateKbEntry(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdateKbEntryInput }) =>
+      api.patch<StoreKbEntry>(`/v2/stores/${storeId}/knowledge/${id}`, dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.kbEntries(storeId) }),
+  })
+}
+
 export function useDeleteKbEntry(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
@@ -978,7 +990,7 @@ export function useExtractKbFile(storeId: string) {
       const form = new FormData()
       form.append('file', file)
       return api
-        .post<KbCandidateEntry[]>(`/v2/stores/${storeId}/knowledge/extract-file`, form, {
+        .post<KbExtractResult>(`/v2/stores/${storeId}/knowledge/extract-file`, form, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         .then(r => r.data)
@@ -991,7 +1003,7 @@ export function useExtractKbFromText(storeId: string) {
   return useMutation({
     mutationFn: (rawText: string) =>
       api
-        .post<KbCandidateEntry[]>(`/v2/stores/${storeId}/knowledge/extract-text`, { rawText })
+        .post<KbExtractResult>(`/v2/stores/${storeId}/knowledge/extract-text`, { rawText })
         .then(r => r.data),
   })
 }

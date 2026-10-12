@@ -854,11 +854,22 @@ export interface CreateKbEntryInput {
   source?: ContentChangeSource
 }
 
+// docs/PRD-seller-knowledge-box-redesign.md — ویرایش entry موجود از لیست پایین صفحه (بخش ۵.۳:
+// چون کاندید دیگر inline-editable نیست، ویرایش واقعی فقط از همین مسیر ممکن است)
+export type UpdateKbEntryInput = Partial<CreateKbEntryInput>
+
 // بخش ۳.۳ — کاندید استخراج‌شده از فایل، قبل از تأیید فروشنده (هنوز ذخیره نشده)
 export interface KbCandidateEntry {
   kind: StoreKbKind
   question: string
   answer: string
+}
+
+// docs/PRD-seller-knowledge-box-redesign.md بخش ۵.۲ — extract-file/extract-text هر دو این شکل
+// را برمی‌گردانند؛ truncated یعنی سند منبع از سقف ۲۰هزار کاراکتری بریده شده
+export interface KbExtractResult {
+  candidates: KbCandidateEntry[]
+  truncated: boolean
 }
 
 // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — پیشنهادهای تحلیل یادداشت خام فروشنده
