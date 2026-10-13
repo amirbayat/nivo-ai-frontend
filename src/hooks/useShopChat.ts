@@ -24,6 +24,15 @@ const KICKOFF_MESSAGE = 'سلام، محصولاتتون رو نشون بدید'
 // کلید ذخیره‌سازی شامل پیشوند «conversationId/» است (storage.service.ts uploadImage) — باید
 // encode شود وگرنه «/» داخلش روت :key را به چند سگمنت می‌شکند و 404 می‌گیرد (عیناً voiceAudioUrl
 // در ShopChatPage.tsx)
+// پیام خطای ثبت‌نام خریدار همیشه فارسی: متن فارسی بک‌اند عیناً نمایش داده می‌شود، ولی آرایه‌ی
+// validation یا متن انگلیسی (مثل «phone must be...») هرگز خام به کاربر نشان داده نمی‌شود
+function buyerRegisterError(status: number, message: unknown, validationFallback: string): string {
+  if (status === 429) return fa.shop.registerTooManyRequests
+  if (typeof message === 'string' && /[\u0600-\u06FF]/.test(message)) return message
+  if (status === 400 || status === 422 || Array.isArray(message)) return validationFallback
+  return fa.common.error
+}
+
 function chatImageUrl(conversationId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/chat/${conversationId}/image/${encodeURIComponent(key)}`
 }
@@ -655,9 +664,9 @@ export function useShopChat(slug: string, productId?: string) {
         headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
         body: JSON.stringify({ phone }),
       })
-      const data = (await res.json().catch(() => null)) as { message?: string } | null
-      if (!res.ok) return { ok: false, message: data?.message ?? fa.common.error }
-      return { ok: true, message: data?.message ?? '' }
+      const data = (await res.json().catch(() => null)) as { message?: unknown } | null
+      if (!res.ok) return { ok: false, message: buyerRegisterError(res.status, data?.message, fa.shop.registerInvalidPhone) }
+      return { ok: true, message: typeof data?.message === 'string' ? data.message : '' }
     } catch {
       return { ok: false, message: fa.common.error }
     }
@@ -673,9 +682,9 @@ export function useShopChat(slug: string, productId?: string) {
           headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
           body: JSON.stringify({ phone, code, fullName }),
         })
-        const data = (await res.json().catch(() => null)) as { message?: string } | null
-        if (!res.ok) return { ok: false, message: data?.message ?? fa.common.error }
-        return { ok: true, message: data?.message ?? '' }
+        const data = (await res.json().catch(() => null)) as { message?: unknown } | null
+        if (!res.ok) return { ok: false, message: buyerRegisterError(res.status, data?.message, fa.shop.registerInvalidCode) }
+        return { ok: true, message: typeof data?.message === 'string' ? data.message : '' }
       } catch {
         return { ok: false, message: fa.common.error }
       }

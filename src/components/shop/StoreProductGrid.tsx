@@ -3,6 +3,7 @@ import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useStoreProducts } from '@/hooks/useStoreProducts'
 import { productImageUrl, reviewMediaUrl } from './ShopUiBlocks'
+import { toEnglishDigits } from '@/lib/digits'
 import { GoldPriceTicker } from './GoldPriceTicker'
 import type { PublicProduct, ProductReview } from '@/types/api'
 
@@ -40,7 +41,7 @@ export function StoreProductGrid({
       <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 p-3 backdrop-blur light:border-slate-200 light:bg-white/95">
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => setQuery(toEnglishDigits(e.target.value))}
           placeholder={fa.shop.storeModeSearchPlaceholder}
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 light:border-slate-300 light:bg-slate-50 light:text-slate-900"
         />

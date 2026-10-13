@@ -1423,6 +1423,9 @@ export const fa = {
     registerChangePhone: 'تغییر شماره',
     registerClose: 'بستن',
     registerSuccess: 'ثبت‌نام با موفقیت انجام شد ✅',
+    registerInvalidPhone: 'شماره موبایل معتبر نیست؛ مثلاً ۰۹۱۲۳۴۵۶۷۸۹',
+    registerInvalidCode: 'کد وارد‌شده معتبر نیست؛ کد ۶ رقمی پیامک‌شده را وارد کن',
+    registerTooManyRequests: 'تعداد درخواست‌ها زیاد بود؛ چند دقیقه دیگر دوباره امتحان کن',
     // docs/PRD-buyer-orders-page-and-direct-order.md — صفحه‌ی مستقل «سفارش‌های من» + ثبت نظر مستقیم
     myOrdersPageTitle: 'سفارش‌های من',
     myOrdersBack: 'بازگشت به گفتگو',

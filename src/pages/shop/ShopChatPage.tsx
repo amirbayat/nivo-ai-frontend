@@ -7,6 +7,7 @@ import { StoreProductGrid } from '@/components/shop/StoreProductGrid'
 import { CommentModal } from '@/components/shop/CommentModal'
 import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
 import { env } from '@/env'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 import { fa } from '@/locales/fa'
 import type { PublicProduct, ShopHistoryEntry, ShopMessage } from '@/types/api'
 
@@ -279,10 +280,10 @@ function RegisterModal({
 
             {step === 'phone' && (
               <div className="flex flex-col gap-2">
-                <input
+                <DigitsInput
+                  kind="phone"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  dir="ltr"
+                  onChange={setPhone}
                   placeholder={fa.shop.registerPhonePlaceholder}
                   className="rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
                 />
@@ -299,10 +300,10 @@ function RegisterModal({
 
             {step === 'code' && (
               <div className="flex flex-col gap-2">
-                <input
+                <DigitsInput
+                  kind="otp"
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  dir="ltr"
+                  onChange={setCode}
                   placeholder={fa.shop.registerCodePlaceholder}
                   className="rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
                 />
