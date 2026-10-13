@@ -5,16 +5,59 @@ import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import { useApproveOrder, useOrders, useRejectOrder, useShipOrder } from '@/queries/seller.queries'
 import { productImageUrl } from '@/lib/sellerProduct'
+import { copyText } from '@/lib/clipboard'
+import { toEnglishDigits } from '@/lib/digits'
+import { ORDER_CARRIERS } from '@/lib/orderCarriers'
 import type { SellerOrder, SellerOrderStatus } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 
 const FILTERS: { value: SellerOrderStatus | undefined; label: string }[] = [
   { value: undefined, label: fa.seller.panel.orders.filterAll },
   { value: 'RECEIPT_SUBMITTED', label: fa.seller.panel.orders.filterPending },
+  { value: 'PENDING_PAYMENT', label: fa.seller.panel.orders.filterAwaitingPayment },
   { value: 'APPROVED', label: fa.seller.panel.orders.filterApproved },
   { value: 'SHIPPED', label: fa.seller.panel.orders.filterShipped },
+  { value: 'DELIVERED', label: fa.seller.panel.orders.filterDelivered },
   { value: 'REJECTED', label: fa.seller.panel.orders.filterRejected },
+  { value: 'CANCELLED', label: fa.seller.panel.orders.filterCancelled },
 ]
+
+// 3.4 — کد سفارش نمایشی؛ سفارش قدیمیِ backfill‌نشده: ۸ نویسه‌ی اول id
+function orderCodeOf(order: Pick<SellerOrder, 'id' | 'orderCode'>): string {
+  const code = order.orderCode
+  if (!code) return order.id.slice(0, 8)
+  return code.startsWith('NV') ? `NV-${code.slice(2)}` : code
+}
+
+function OrderCode({ order }: { order: Pick<SellerOrder, 'id' | 'orderCode'> }) {
+  const [copied, setCopied] = useState(false)
+  const code = orderCodeOf(order)
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span dir="ltr" className="font-mono text-sm font-bold text-slate-100 light:text-slate-900">{code}</span>
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label={fa.seller.panel.orders.copyCode}
+        onClick={e => {
+          e.stopPropagation()
+          void copyText(code).then(r => {
+            if (r === 'ok') {
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1500)
+            }
+          })
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') e.currentTarget.click()
+        }}
+        className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-emerald-400 light:text-emerald-700 hover:bg-emerald-500/10"
+      >
+        {copied ? fa.seller.panel.orders.codeCopied : fa.seller.panel.orders.copyCode}
+      </span>
+    </span>
+  )
+}
 
 function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; storeId: string; onClose: () => void }) {
   const navigate = useNavigate()
@@ -24,6 +67,9 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
   const approve = useApproveOrder(storeId)
   const reject = useRejectOrder(storeId)
   const ship = useShipOrder(storeId)
+  const [showShipForm, setShowShipForm] = useState(false)
+  const [carrier, setCarrier] = useState<string>(ORDER_CARRIERS[0])
+  const [trackingCode, setTrackingCode] = useState('')
   const canDecide = order.status === 'RECEIPT_SUBMITTED'
   // فیدبک کاربر — بعد از رد اشتباهی، فروشنده راهی برای تایید دوباره‌ی سفارش نداشت
   const canReapprove = order.status === 'REJECTED'
@@ -52,6 +98,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
                 {fa.shop.paymentMethodLabels[order.paymentMethod]}
               </span>
             </div>
+            <div className="mt-1"><OrderCode order={order} /></div>
             <p className="mt-0.5 text-xs text-slate-500">{fa.seller.panel.orders.registeredAt(new Date(order.createdAt).toLocaleDateString('fa-IR'))}</p>
           </div>
           <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">{fa.seller.panel.orders.close}</button>
@@ -102,9 +149,37 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           </p>
         )}
 
+        {order.carrier && (
+          <p className="mb-4 rounded-xl border border-slate-700/60 light:border-slate-200 p-3 text-xs text-slate-300 light:text-slate-700">
+            {fa.seller.panel.orders.shippedVia(order.carrier)}
+            {order.trackingCode && (
+              <>
+                {' · '}{fa.seller.panel.orders.trackingValue}: <span dir="ltr">{order.trackingCode}</span>
+              </>
+            )}
+          </p>
+        )}
+
+        {order.receiptType === 'MANUAL_INFO' && order.receiptManualInfo && (
+          <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200 light:text-amber-800">
+            <p className="mb-1 font-semibold">{fa.seller.panel.orders.manualReceiptBadge}</p>
+            <p>{fa.seller.panel.orders.manualReceiptCard}: <span dir="ltr">{order.receiptManualInfo.cardLast4}</span></p>
+            <p>{fa.seller.panel.orders.manualReceiptTime}: {order.receiptManualInfo.approxTime}</p>
+            {order.receiptManualInfo.trackingCode && (
+              <p>{fa.seller.panel.orders.manualReceiptTracking}: <span dir="ltr">{order.receiptManualInfo.trackingCode}</span></p>
+            )}
+          </div>
+        )}
+
         {order.status === 'REJECTED' && order.rejectReason && (
           <p className="mb-4 rounded-xl bg-red-500/10 p-3 text-xs text-red-300">
             {fa.seller.panel.orders.rejectReasonLabel}: {order.rejectReason}
+          </p>
+        )}
+
+        {order.status === 'PENDING_PAYMENT' && order.paymentDueAt && (
+          <p className="mb-4 text-center text-xs text-slate-500">
+            {fa.seller.panel.orders.paymentDueLabel}: {new Date(order.paymentDueAt).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Tehran' })}
           </p>
         )}
 
@@ -115,7 +190,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           >
             {fa.seller.panel.orders.viewReceipt}
           </button>
-        ) : (
+        ) : order.receiptType === 'MANUAL_INFO' ? null : (
           <p className="mb-4 text-center text-xs text-slate-500">{fa.seller.panel.orders.noReceipt}</p>
         )}
 
@@ -176,14 +251,57 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           </button>
         )}
 
-        {canShip && (
+        {canShip && !showShipForm && (
           <button
-            onClick={() => ship.mutate(order.id, { onSuccess: onClose })}
+            onClick={() => setShowShipForm(true)}
             disabled={ship.isPending}
             className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
           >
             {fa.seller.panel.orders.ship}
           </button>
+        )}
+
+        {canShip && showShipForm && (
+          <div className="flex flex-col gap-2">
+            <label className="text-xs text-slate-400 light:text-slate-600">{fa.seller.panel.orders.carrierLabel}</label>
+            <select
+              value={carrier}
+              onChange={e => setCarrier(e.target.value)}
+              style={{ fontSize: 16, minHeight: 44 }}
+              className="w-full rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3 text-slate-200 light:text-slate-900"
+            >
+              {ORDER_CARRIERS.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <label className="text-xs text-slate-400 light:text-slate-600">{fa.seller.panel.orders.trackingLabel}</label>
+            <input
+              type="text"
+              dir="ltr"
+              value={trackingCode}
+              onChange={e => setTrackingCode(toEnglishDigits(e.target.value).slice(0, 64))}
+              style={{ fontSize: 16, minHeight: 44 }}
+              className="w-full rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3 text-slate-200 light:text-slate-900"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowShipForm(false)}
+                disabled={ship.isPending}
+                className="flex-1 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-sm font-bold text-slate-300 light:text-slate-700 disabled:opacity-40"
+              >
+                {fa.seller.panel.orders.cancel}
+              </button>
+              <button
+                onClick={() =>
+                  ship.mutate({ orderId: order.id, carrier, trackingCode: trackingCode.trim() || undefined }, { onSuccess: onClose })
+                }
+                disabled={ship.isPending}
+                className="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+              >
+                {fa.seller.panel.orders.shipConfirm}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -202,7 +320,14 @@ export function SellerOrdersPage() {
   const { storeId } = useSellerStore()
   const [filter, setFilter] = useState<SellerOrderStatus | undefined>(undefined)
   const [openOrder, setOpenOrder] = useState<SellerOrder | null>(null)
-  const orders = useOrders(storeId, filter)
+  // 3.5 — جست‌وجو با debounce ۳۰۰ms (کد سفارش، شماره، نام)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300)
+    return () => clearTimeout(t)
+  }, [searchInput])
+  const orders = useOrders(storeId, filter, search)
   const [searchParams, setSearchParams] = useSearchParams()
 
   // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱ — لینک از تب «نیاز به توجه»؛ فیلتر فعلی
@@ -226,6 +351,18 @@ export function SellerOrdersPage() {
 
       <FirstVisitTooltip id="orders" text={fa.seller.panel.helpCenter.tooltips.orders} />
 
+      <div className="relative mb-3">
+        <input
+          type="search"
+          value={searchInput}
+          onChange={e => setSearchInput(toEnglishDigits(e.target.value).slice(0, 64))}
+          placeholder={fa.seller.panel.orders.searchPlaceholder}
+          aria-label={fa.seller.panel.orders.searchPlaceholder}
+          style={{ fontSize: 16, minHeight: 44 }}
+          className="w-full rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-4 text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+        />
+      </div>
+
       <div className="mb-5 flex gap-2 overflow-x-auto">
         {FILTERS.map(f => (
           <button
@@ -242,7 +379,31 @@ export function SellerOrdersPage() {
         ))}
       </div>
 
-      {orders.data?.length === 0 && <p className="py-10 text-center text-sm text-slate-500">{fa.seller.panel.orders.empty}</p>}
+      {orders.isError && (
+        <div className="py-10 text-center">
+          <p className="mb-3 text-sm text-red-400">{fa.seller.panel.orders.loadError}</p>
+          <button
+            onClick={() => void orders.refetch()}
+            className="min-h-11 rounded-xl border border-slate-600 light:border-slate-300 px-4 text-sm font-semibold text-slate-200 light:text-slate-800"
+          >
+            {fa.seller.panel.orders.retry}
+          </button>
+        </div>
+      )}
+
+      {!orders.isError && orders.data?.length === 0 && (
+        <div className="py-10 text-center">
+          <p className="text-sm text-slate-500">{search ? fa.seller.panel.orders.searchNotFound : fa.seller.panel.orders.empty}</p>
+          {search && (
+            <button
+              onClick={() => setSearchInput('')}
+              className="mt-2 min-h-11 text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline"
+            >
+              {fa.seller.panel.orders.searchClear}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2.5">
         {orders.data?.map(order => (
@@ -252,7 +413,12 @@ export function SellerOrdersPage() {
             className="flex items-center justify-between rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5 text-start hover:border-slate-600 light:hover:border-slate-300"
           >
             <div>
-              <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{order.items.length.toLocaleString('fa-IR')} قلم</p>
+              <OrderCode order={order} />
+              <p className="mt-0.5 text-xs text-slate-400 light:text-slate-600">
+                {order.items.length.toLocaleString('fa-IR')} قلم
+                {order.recipientName ? ` · ${order.recipientName}` : ''}
+                {order.receiptType === 'MANUAL_INFO' ? ` · ${fa.seller.panel.orders.manualReceiptBadge}` : ''}
+              </p>
               <p className="mt-0.5 text-xs text-slate-500">
                 {fa.shop.orderStatusLabels[order.status]} · {fa.shop.paymentMethodLabels[order.paymentMethod]}
               </p>

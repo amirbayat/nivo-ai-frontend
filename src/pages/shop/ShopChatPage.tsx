@@ -366,6 +366,7 @@ export function ShopChatPage() {
     sendMessage,
     sendAction,
     uploadReceipt,
+    submitManualReceipt,
     sendImageMessage,
     sendVideoMessage,
     sendVoiceMessage,
@@ -759,6 +760,7 @@ export function ShopChatPage() {
                   onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
                   onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
                   onUploadReceipt={(file) => void uploadReceipt(file)}
+                  onSubmitManualReceipt={(info) => void submitManualReceipt(info)}
                   onSendAction={(action) => void sendAction(action)}
                   savedProductIds={savedProductIds}
                   onToggleSave={toggleSaveProduct}

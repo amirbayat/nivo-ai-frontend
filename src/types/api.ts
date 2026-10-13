@@ -435,13 +435,21 @@ export type ShopUiBlock =
       items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
       total: number
     }
-  | { type: 'PAYMENT_INSTRUCTIONS'; cardNumber: string; ownerName: string; amount: number }
+  | {
+      type: 'PAYMENT_INSTRUCTIONS'
+      cardNumber: string
+      ownerName: string
+      amount: number
+      // 3.8 — کد سفارش (نمایشی با خط تیره) و مهلت پرداخت (ISO)
+      orderCode?: string
+      dueAt?: string
+    }
   // docs/PRD-buyer-payment-method-card-or-snapppay-link.md — بلاک جدا از PAYMENT_INSTRUCTIONS
   // بالا (رندر کاملاً فرق دارد: لینک قابل‌کلیک، نه شماره‌کارت)
-  | { type: 'SNAPPPAY_PAYMENT_INSTRUCTIONS'; link: string; amount: number }
+  | { type: 'SNAPPPAY_PAYMENT_INSTRUCTIONS'; link: string; amount: number; orderCode?: string; dueAt?: string }
   // همان سند — فقط وقتی فروشگاه هم کارت‌به‌کارت هم لینک اسنپ‌پی فعال دارد نشان داده می‌شود
   | { type: 'PAYMENT_METHOD_PROMPT'; options: ('CARD_TO_CARD' | 'SNAPPPAY')[] }
-  | { type: 'ORDER_STATUS'; orderId: string; status: string }
+  | { type: 'ORDER_STATUS'; orderId: string; status: string; orderCode?: string }
   // فیدبک کاربر ۱۴۰۵/۰۷/۲۰ — فروشگاه‌های leadCaptureOnly؛ بعد از ثبت لید، دکمه‌ی «مشاهده
   // وبسایت» که در تب جدید باز می‌شود (فقط اگر فروشگاه websiteUrl داشته باشد)
   | { type: 'VISIT_WEBSITE'; url: string }
@@ -465,6 +473,7 @@ export type ShopUiBlock =
         items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
         totalAmount: number
         status: string
+        orderCode?: string
       }[]
     }
   // همان بخش، مورد ۴ — مقایسه‌ی ۲-۳ محصول کنار هم
@@ -917,7 +926,14 @@ export interface ImportProductsResult {
   errors: { row: number; message: string }[]
 }
 
-export type SellerOrderStatus = 'PENDING_PAYMENT' | 'RECEIPT_SUBMITTED' | 'APPROVED' | 'REJECTED' | 'SHIPPED'
+export type SellerOrderStatus =
+  | 'PENDING_PAYMENT'
+  | 'RECEIPT_SUBMITTED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
 
 // docs/PRD-buyer-payment-method-card-or-snapppay-link.md — Prisma OrderPaymentMethod
 export type SellerOrderPaymentMethod = 'CARD_TO_CARD' | 'SNAPPPAY'
@@ -929,6 +945,16 @@ export interface SellerOrder {
   items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string; imageKey: string | null }[]
   totalAmount: number
   status: SellerOrderStatus
+  // 3.4 — null فقط برای سفارش‌های قدیمیِ backfill‌نشده (نمایش: ۸ نویسه‌ی اول id)
+  orderCode: string | null
+  carrier: string | null
+  trackingCode: string | null
+  deliveredAt: string | null
+  cancelledAt: string | null
+  paymentDueAt: string | null
+  // 3.8 — IMAGE | MANUAL_INFO («رسید ندارم»)
+  receiptType: 'IMAGE' | 'MANUAL_INFO' | null
+  receiptManualInfo: { cardLast4: string; approxTime: string; trackingCode?: string } | null
   paymentMethod: SellerOrderPaymentMethod
   snapppayTrackingCode: string | null
   receiptImageKey: string | null

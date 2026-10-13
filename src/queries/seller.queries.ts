@@ -405,12 +405,15 @@ export function useImportProducts(storeId: string) {
   })
 }
 
-export function useOrders(storeId: string, status?: SellerOrderStatus) {
+export function useOrders(storeId: string, status?: SellerOrderStatus, q?: string) {
+  const query = q?.trim() || undefined
   return useQuery({
-    queryKey: keys.seller.orders(storeId, status),
+    queryKey: keys.seller.orders(storeId, status, query),
     queryFn: () =>
       api
-        .get<SellerOrder[]>(`/v2/stores/${storeId}/orders`, { params: status ? { status } : undefined })
+        .get<SellerOrder[]>(`/v2/stores/${storeId}/orders`, {
+          params: status || query ? { ...(status ? { status } : {}), ...(query ? { q: query } : {}) } : undefined,
+        })
         .then(r => r.data),
     enabled: !!storeId,
   })
@@ -449,7 +452,9 @@ export function useRejectOrder(storeId: string) {
 export function useShipOrder(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (orderId: string) => api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/ship`),
+    // 3.5 — شرکت حمل + کد رهگیری (هر دو اختیاری)
+    mutationFn: ({ orderId, carrier, trackingCode }: { orderId: string; carrier?: string; trackingCode?: string }) =>
+      api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/ship`, { carrier, trackingCode }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
   })
 }

@@ -379,6 +379,34 @@ export function useShopChat(slug: string, productId?: string) {
     [sending, applyReply],
   )
 
+  // docs/PRD-nivo-sales-unified.md 3.8 — «رسید ندارم/عکس نگرفتم»: اطلاعات واریز به‌جای عکس؛
+  // سرور همان RECEIPT_SUBMITTED را با receiptType=MANUAL_INFO ثبت می‌کند
+  const submitManualReceipt = useCallback(
+    async (info: { cardLast4: string; approxTime: string; trackingCode?: string }) => {
+      const session = sessionRef.current
+      if (!session || sending || viewingHistoryRef.current) return
+      const bubbleId = `opt-${Date.now()}`
+      setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text: fa.shop.manualReceiptSentNote }])
+      setSending(true)
+      setError(null)
+      try {
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/receipt-manual`, {
+          method: 'POST',
+          headers: { 'X-Session-Token': session.sessionToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify(info),
+        })
+        if (!res.ok) throw new Error('request failed')
+        applyReply((await res.json()) as ShopSendMessageResponse)
+      } catch {
+        setMessages((prev) => prev.filter((m) => m.id !== bubbleId))
+        setError(fa.common.error)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, applyReply],
+  )
+
   // عکسی که خریدار در حالت «صحبت با فروشنده» (isMutedForHuman) یا منتظر نظر (awaitingReview —
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱) می‌فرستد. حالت
   // اول سرور reply خالی برمی‌گرداند (applyReply صدا نمی‌زنیم، وگرنه حباب «agent» خالی اضافه
@@ -829,6 +857,7 @@ export function useShopChat(slug: string, productId?: string) {
     sendMessage,
     sendAction,
     uploadReceipt,
+    submitManualReceipt,
     sendImageMessage,
     sendVideoMessage,
     sendVoiceMessage,

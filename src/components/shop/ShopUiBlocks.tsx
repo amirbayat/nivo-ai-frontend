@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
+import { PaymentCard, type ManualReceiptInfo } from './PaymentCard'
 import type { ShopAction, ShopUiBlock } from '@/types/api'
 
 interface BlockProps {
@@ -11,6 +12,8 @@ interface BlockProps {
   onAddToCart: (productId: string) => void
   onConfirmCart: () => void
   onUploadReceipt: (file: File) => void
+  // 3.8 — «رسید ندارم»
+  onSubmitManualReceipt: (info: ManualReceiptInfo) => void
   onSendAction: (action: ShopAction) => void
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
   savedProductIds: Set<string>
@@ -395,116 +398,6 @@ function CartSummaryBlock({
   )
 }
 
-function PaymentInstructionsBlock({
-  cardNumber,
-  ownerName,
-  amount,
-  disabled,
-  onUploadReceipt,
-}: {
-  cardNumber: string
-  ownerName: string
-  amount: number
-  disabled: boolean
-  onUploadReceipt: (file: File) => void
-}) {
-  const [copied, setCopied] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  async function copy() {
-    await navigator.clipboard.writeText(cardNumber)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
-      <p className="mb-1 text-xs text-slate-500">مبلغ قابل پرداخت</p>
-      <p className="mb-3 text-sm font-bold text-emerald-300 light:text-emerald-700">{amount.toLocaleString('fa-IR')} تومان</p>
-      <p dir="ltr" className="mb-1 break-all text-center font-mono text-sm text-slate-200 light:text-slate-900">
-        {cardNumber}
-      </p>
-      <p className="mb-3 text-center text-xs text-slate-500">{ownerName}</p>
-      <button
-        onClick={copy}
-        className="mb-2 w-full rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400"
-      >
-        {copied ? fa.shop.cardNumberCopied : fa.shop.copyCardNumber}
-      </button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) onUploadReceipt(file)
-          e.target.value = ''
-        }}
-      />
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={disabled}
-        className="w-full rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-      >
-        {fa.shop.uploadReceipt}
-      </button>
-    </div>
-  )
-}
-
-// docs/PRD-buyer-payment-method-card-or-snapppay-link.md — جداگانه از PaymentInstructionsBlock
-// بالا (لینک قابل‌کلیک، نه شماره‌کارت)؛ دکمه‌ی آپلود همان onUploadReceipt مشترک را صدا می‌زند
-// (بک‌اند از روی Order.paymentMethod خودش تشخیص می‌دهد این اسکرین‌شات است نه رسید بانکی).
-// کد رهگیری فیلد جدا ندارد — خریدار آن را به‌صورت متن آزاد در همان چت می‌فرستد
-// (conversation-engine.service.ts's handleSnapppayTrackingCodeInput)
-function SnapppayPaymentInstructionsBlock({
-  link,
-  amount,
-  disabled,
-  onUploadReceipt,
-}: {
-  link: string
-  amount: number
-  disabled: boolean
-  onUploadReceipt: (file: File) => void
-}) {
-  const fileRef = useRef<HTMLInputElement>(null)
-  return (
-    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
-      <p className="mb-1 text-xs text-slate-500">مبلغ قابل پرداخت</p>
-      <p className="mb-3 text-sm font-bold text-emerald-300 light:text-emerald-700">{amount.toLocaleString('fa-IR')} تومان</p>
-      <a
-        href={link}
-        target="_blank"
-        rel="noreferrer"
-        className="mb-2 block w-full rounded-lg bg-emerald-500 py-2 text-center text-xs font-semibold text-white hover:bg-emerald-400"
-      >
-        {fa.shop.payWithSnapppayButton}
-      </a>
-      <p className="mb-3 text-center text-[11px] text-slate-500">{fa.shop.snapppayTrackingCodeHint}</p>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) onUploadReceipt(file)
-          e.target.value = ''
-        }}
-      />
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={disabled}
-        className="w-full rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-      >
-        {fa.shop.uploadSnapppayScreenshot}
-      </button>
-    </div>
-  )
-}
-
 // فیدبک کاربر ۱۴۰۵/۰۷/۲۰ — برای فروشگاه‌های leadCaptureOnly؛ بعد از ثبت لید، دکمه‌ی «مشاهده
 // وبسایت» که در تب جدید باز می‌شود (بک‌اند فقط وقتی فروشگاه websiteUrl دارد این بلاک را می‌سازد)
 function VisitWebsiteBlock({ url }: { url: string }) {
@@ -551,10 +444,15 @@ function PaymentMethodPromptBlock({
   )
 }
 
-function OrderStatusBlock({ status }: { status: string }) {
+function OrderStatusBlock({ status, orderCode }: { status: string; orderCode?: string }) {
   return (
     <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-3 py-2 text-xs font-semibold text-emerald-300 light:text-emerald-700">
       {fa.shop.orderStatusLabels[status] ?? status}
+      {orderCode && (
+        <span dir="ltr" className="ms-2 font-mono text-[11px] text-slate-400 light:text-slate-600">
+          {orderCode}
+        </span>
+      )}
     </div>
   )
 }
@@ -706,6 +604,7 @@ export function OrderListBlock({
     items: { productId: string; name: string; unitPrice: number; qty: number; variantLabel?: string }[]
     totalAmount: number
     status: string
+    orderCode?: string
     distinctProductId?: string | null
     conversationId?: string
   }[]
@@ -728,6 +627,11 @@ export function OrderListBlock({
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-xs text-slate-400 light:text-slate-600">
               {new Date(o.createdAt).toLocaleDateString('fa-IR')}
+              {o.orderCode && (
+                <span dir="ltr" className="ms-2 font-mono text-[11px] text-slate-300 light:text-slate-700">
+                  {o.orderCode}
+                </span>
+              )}
             </span>
             <span className="rounded-full bg-slate-700/60 light:bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-300 light:text-slate-700">
               {fa.shop.orderStatusLabels[o.status] ?? o.status}
@@ -831,6 +735,7 @@ export function ShopUiBlockView({
   onAddToCart,
   onConfirmCart,
   onUploadReceipt,
+  onSubmitManualReceipt,
   onSendAction,
   savedProductIds,
   onToggleSave,
@@ -854,19 +759,26 @@ export function ShopUiBlockView({
       return <CartSummaryBlock items={block.items} total={block.total} disabled={disabled} onConfirmCart={onConfirmCart} />
     case 'PAYMENT_INSTRUCTIONS':
       return (
-        <PaymentInstructionsBlock
+        <PaymentCard
+          variant="CARD"
           cardNumber={block.cardNumber}
           ownerName={block.ownerName}
           amount={block.amount}
+          orderCode={block.orderCode}
+          dueAt={block.dueAt}
           disabled={disabled}
           onUploadReceipt={onUploadReceipt}
+          onSubmitManualReceipt={onSubmitManualReceipt}
         />
       )
     case 'SNAPPPAY_PAYMENT_INSTRUCTIONS':
       return (
-        <SnapppayPaymentInstructionsBlock
+        <PaymentCard
+          variant="SNAPPPAY"
           link={block.link}
           amount={block.amount}
+          orderCode={block.orderCode}
+          dueAt={block.dueAt}
           disabled={disabled}
           onUploadReceipt={onUploadReceipt}
         />
@@ -874,7 +786,7 @@ export function ShopUiBlockView({
     case 'PAYMENT_METHOD_PROMPT':
       return <PaymentMethodPromptBlock disabled={disabled} onSendAction={onSendAction} />
     case 'ORDER_STATUS':
-      return <OrderStatusBlock status={block.status} />
+      return <OrderStatusBlock status={block.status} orderCode={block.orderCode} />
     case 'VISIT_WEBSITE':
       return <VisitWebsiteBlock url={block.url} />
     case 'ADDRESS_PROMPT':
