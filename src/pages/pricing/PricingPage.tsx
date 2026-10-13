@@ -5,6 +5,7 @@ import { useEnabledGateways, type PaymentGatewayName } from "@/queries/plans.que
 import { GatewayPickerModal } from "@/components/payment/GatewayPickerModal";
 import { fa } from "@/locales/fa";
 import type { CreditPackage } from "@/types/api";
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 // تخمین دوستانه («حدوداً چندتا عکس/پیام میشه آورد») — نه فرمول دقیق؛ creditCost همه‌ی سبک‌های
 // عکس دیسکاوری یکسان ۱۶ نیوو است، و یک پیام معمولی چت حدود ۱ نیوو
@@ -380,13 +381,10 @@ function CustomAmountCard({
         </div>
 
         <div className="flex shrink-0 flex-col justify-center gap-3 md:w-64">
-          <input
-            type="text"
-            inputMode="numeric"
+          <DigitsInput kind="int"
             value={customCredits}
-            onChange={(e) => setCustomCredits(e.target.value.replace(/[^0-9]/g, ""))}
+            onChange={setCustomCredits}
             placeholder={`${fa.credits.customAmountPlaceholder} ${customPackage.credits.toLocaleString("fa-IR")}`}
-            dir="ltr"
             className="rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 text-center text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-fuchsia-500/50"
           />
           {/* قیمت زنده — debounce شده (۴۰۰ms)، از GET /v2/credits/quote تا فرمول واقعی

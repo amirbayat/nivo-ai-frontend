@@ -11,6 +11,7 @@ import {
   useStartCaptionRender,
   useUpdateCaptionProject,
 } from '@/queries/captionStudio.queries'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import type { CaptionProject, CaptionSegment, CaptionStyleOverrides, CaptionWord } from '@/types/api'
 
@@ -975,22 +976,20 @@ function TextEditModal({
         <div className="flex items-center gap-3">
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-[10.5px]" style={{ color: '#64748b' }}>
             شروع (ثانیه)
-            <input
-              type="number"
-              step="0.1"
+            <DigitsInput
+              kind="decimal"
               value={startSec}
-              onChange={e => setStartSec(e.target.value)}
+              onChange={setStartSec}
               className="w-full min-w-0 rounded-xl bg-black/20 px-3 py-2 text-[13px] text-white"
               style={{ border: '1px solid rgba(148,163,184,0.2)' }}
             />
           </label>
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-[10.5px]" style={{ color: '#64748b' }}>
             پایان (ثانیه)
-            <input
-              type="number"
-              step="0.1"
+            <DigitsInput
+              kind="decimal"
               value={endSec}
-              onChange={e => setEndSec(e.target.value)}
+              onChange={setEndSec}
               className="w-full min-w-0 rounded-xl bg-black/20 px-3 py-2 text-[13px] text-white"
               style={{ border: '1px solid rgba(148,163,184,0.2)' }}
             />

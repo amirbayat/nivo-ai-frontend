@@ -2,8 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSendEmailCode, useVerifyEmailCode } from '@/queries/intlAuth.queries'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { en } from '@/locales/en'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 const RESEND_SECONDS = 120
 
@@ -73,15 +73,13 @@ export function IntlVerifyCodePage() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <Input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
+          <DigitsInput kind="otp"
             placeholder="● ● ● ● ● ●"
             value={code}
-            onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
+            onChange={setCode}
             error={error}
             autoFocus
+            style={{ fontSize: 24 }}
             className="text-center text-2xl tracking-[0.5em] font-mono"
           />
           <Button type="submit" className="w-full" loading={verifyCode.isPending} disabled={code.length < 6}>

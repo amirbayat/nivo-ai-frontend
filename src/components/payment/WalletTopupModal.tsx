@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { clsx } from 'clsx'
 import { useEnabledGateways, useInitiateWalletTopup, type PaymentGatewayName } from '@/queries/plans.queries'
 import { GatewayPickerModal } from './GatewayPickerModal'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 interface Props {
   presets: number[]
@@ -100,13 +101,11 @@ export function WalletTopupModal({ presets, minActivation, minTopup, onClose }: 
           ))}
         </div>
 
-        <input
-          type="text"
-          inputMode="numeric"
+        <DigitsInput
+          kind="price"
           value={custom}
-          onChange={(e) => { setCustom(e.target.value.replace(/[^0-9]/g, '')); setError('') }}
+          onChange={(v) => { setCustom(v); setError('') }}
           placeholder="مبلغ دلخواه (تومان)"
-          dir="ltr"
           className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 text-center text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50"
         />
 

@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent, type KeyboardEvent } from 'react'
 import axios from 'axios'
 import { DropWell, FieldLabel, VideoWindowTrimmer } from './VideoEditForms'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 import type { ElementMemberValue, ShotValue } from '@/types/inputFields'
 
 // ویجت‌های عمومی تازه — فقط برای الگوهایی که در VideoEditForms.tsx معادل نداشتند (رجوع کن به
@@ -30,8 +31,6 @@ export function NumberField({
   invalid,
   value,
   onChange,
-  min,
-  max,
   step,
 }: {
   label: string
@@ -44,6 +43,9 @@ export function NumberField({
   max?: number
   step?: number
 }) {
+  // متن خام جدا از عدد نگه داشته می‌شود تا «۱.» / رشته‌ی خالی وسط تایپ خراب نشود
+  const [text, setText] = useState(value === undefined ? '' : String(value))
+  const shown = value === undefined ? '' : Number(text) === value ? text : String(value)
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel>
@@ -51,13 +53,13 @@ export function NumberField({
         {required && <span style={{ color: 'var(--rose-soft-text)' }}> *</span>}
       </FieldLabel>
       {helpText && <span className="text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>{helpText}</span>}
-      <input
-        type="number"
-        value={value ?? ''}
-        min={min}
-        max={max}
-        step={step ?? 1}
-        onChange={e => onChange(Number(e.target.value))}
+      <DigitsInput
+        kind={step !== undefined && !Number.isInteger(step) ? 'decimal' : 'int'}
+        value={shown}
+        onChange={v => {
+          setText(v)
+          onChange(Number(v))
+        }}
         className="w-full rounded-2xl p-3 text-[13.5px] text-slate-100 light:text-slate-900 focus:outline-none"
         style={{
           background: 'rgba(0,0,0,0.20)',

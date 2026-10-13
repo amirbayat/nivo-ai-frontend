@@ -3,11 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useSendOtp, useVerifyOtp } from '@/queries/auth.queries'
 import { useEnsureDemoStore } from '@/queries/demo.queries'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/ui/Logo'
-import { toEnglishDigits } from '@/lib/digits'
 import { DEMO_CATEGORY_LABELS } from '@/lib/demoCategories'
 import { fa } from '@/locales/fa'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 type DemoRole = 'seller' | 'buyer'
 
@@ -87,15 +86,12 @@ export function DemoEntryPage({ role }: { role: DemoRole }) {
 
         {step === 'phone' ? (
           <form onSubmit={onSubmitPhone} className="space-y-4">
-            <Input
-              type="tel"
+            <DigitsInput kind="phone"
               placeholder={fa.auth.phonePlaceholder}
               value={phone}
-              onChange={e => setPhone(toEnglishDigits(e.target.value))}
+              onChange={setPhone}
               error={error}
               autoFocus
-              inputMode="numeric"
-              dir="ltr"
               className="text-center tracking-widest"
             />
             <Button type="submit" className="w-full" loading={sendOtp.isPending}>
@@ -104,17 +100,14 @@ export function DemoEntryPage({ role }: { role: DemoRole }) {
           </form>
         ) : (
           <form onSubmit={onSubmitOtp} className="space-y-4">
-            <Input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
+            <DigitsInput kind="otp"
               placeholder="● ● ● ● ● ●"
               value={code}
-              onChange={e => setCode(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+              onChange={setCode}
               error={error}
               autoFocus
-              dir="ltr"
-              className="text-center text-2xl tracking-[0.5em] font-mono"
+              style={{ fontSize: 24 }}
+            className="text-center text-2xl tracking-[0.5em] font-mono"
             />
             <Button
               type="submit"

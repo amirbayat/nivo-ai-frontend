@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { track } from '@/lib/events'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 const STORAGE_KEY = 'nivo:exit-intent-shown'
 
@@ -97,13 +98,11 @@ export function ExitIntentModal() {
             </div>
 
             <div className="flex gap-2">
-              <input
+              <DigitsInput kind="phone"
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
+                onChange={setPhone}
                 onKeyDown={handleKeyDown}
                 placeholder="۰۹۱۲..."
-                type="tel"
-                inputMode="numeric"
                 className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-3.5 py-2.5
                   text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none
                   focus:border-amber-500/50 transition-colors direction-ltr text-left"

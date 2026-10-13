@@ -1,12 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { toEnglishDigits } from '@/lib/digits'
 import { api } from '@/lib/api'
 import { useSendOtp, useVerifyOtp } from '@/queries/auth.queries'
 import { fa } from '@/locales/fa'
 import type { MarketplaceStoreOrders } from '@/types/api'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 type Step = 'checking' | 'phone' | 'otp' | 'orders'
 
@@ -86,14 +85,11 @@ export function MyOrdersPage() {
 
         {step === 'phone' && (
           <form onSubmit={onSubmitPhone} className="space-y-4">
-            <Input
-              type="tel"
-              inputMode="numeric"
+            <DigitsInput kind="phone"
               placeholder={fa.marketplace.phonePlaceholder}
               value={phone}
-              onChange={e => setPhone(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+              onChange={setPhone}
               error={error}
-              dir="ltr"
               autoFocus
             />
             <Button type="submit" className="w-full" loading={loading} disabled={phone.length < 10}>
@@ -105,16 +101,13 @@ export function MyOrdersPage() {
         {step === 'otp' && (
           <form onSubmit={onVerifyOtp} className="space-y-4">
             <p className="text-sm text-slate-500">{fa.marketplace.otpSentTo(phone)}</p>
-            <Input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
+            <DigitsInput kind="otp"
               placeholder={fa.marketplace.otpPlaceholder}
               value={code}
-              onChange={e => setCode(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+              onChange={setCode}
               error={error}
-              dir="ltr"
-              className="text-center text-2xl tracking-[0.5em] font-mono"
+              style={{ fontSize: 24 }}
+            className="text-center text-2xl tracking-[0.5em] font-mono"
               autoFocus
             />
             <Button type="submit" className="w-full" loading={loading} disabled={code.length < 6}>

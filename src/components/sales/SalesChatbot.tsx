@@ -7,6 +7,7 @@ import { useMe } from '@/queries/auth.queries'
 import { CodeBlock, PrePassthrough } from '@/components/chat/CodeBlock'
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice'
 import { track } from '@/lib/events'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 function LinkNewTab({ href, children }: { href?: string; children?: React.ReactNode }) {
   return (
@@ -248,13 +249,10 @@ export function SalesChatbot({ source = 'pricing_page' }: Props) {
               🎁 یه کد تخفیف ویژه برات کنار می‌ذاریم — شماره‌ت رو بده تا برات بفرستیم.
             </p>
             <div className="flex flex-col gap-2">
-              <input
-                type="tel"
-                inputMode="numeric"
+              <DigitsInput kind="phone"
                 value={discountPhone}
-                onChange={e => setDiscountPhone(e.target.value.trim())}
+                onChange={setDiscountPhone}
                 placeholder="۰۹۱۲۳۴۵۶۷۸۹"
-                dir="ltr"
                 className="rounded-lg border border-slate-600/60 bg-slate-800/60 px-3 py-2 text-sm text-slate-200
                   placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 text-left"
                 aria-label="شماره موبایل"
