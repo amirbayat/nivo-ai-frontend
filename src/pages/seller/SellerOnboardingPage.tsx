@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
-import { toEnglishDigits, formatCardNumberGroups } from '@/lib/digits'
+import { toEnglishDigits } from '@/lib/digits'
 import {
   useCheckSlugAvailable,
   useClassifyBusinessSetup,
@@ -14,6 +14,7 @@ import {
 import type { AnalyzeOwnerNotesResult, ClassifyBusinessSetupResult } from '@/types/api'
 import { GuideAssistantModal } from './panel/GuideAssistantModal'
 import { NotesSuggestionsPanel } from './panel/NotesSuggestionsPanel'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
 // فروشنده بعد از ساخت فروشگاه مستقیم به صفحه‌ی واقعی ساخت محصول در پنل هدایت می‌شود
@@ -383,13 +384,11 @@ export function SellerOnboardingPage() {
             <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step2.subheading}</p>
 
             <div className="mb-5">
-              <Input
+              <DigitsInput kind="card"
                 label={fa.seller.step2.cardNumberLabel}
                 placeholder="6037 XXXX XXXX XXXX"
-                value={formatCardNumberGroups(cardNumber)}
-                onChange={e => setCardNumber(toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 16))}
-                dir="ltr"
-                inputMode="numeric"
+                value={cardNumber}
+                onChange={setCardNumber}
                 className="text-center tracking-widest"
               />
             </div>

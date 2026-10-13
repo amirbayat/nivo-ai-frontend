@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { Input } from '@/components/ui/Input'
 import { toEnglishDigits } from '@/lib/digits'
 import { IRAN_PROVINCES } from '@/lib/iranProvinces'
 import type { StoreShippingRule } from '@/types/api'
@@ -13,6 +12,7 @@ import {
   type CreateShippingRuleInput,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲ (فاز ۱.۵) — ۳ ستون، چک‌باکس‌های
 // قابل‌تیک‌زدن (نه دراپ‌داون تک‌انتخابی)؛ هم فرم افزودن هم ویرایش یک گروه از همین استفاده می‌کنند
@@ -92,11 +92,10 @@ function ShippingRuleRow({ rule, storeId }: { rule: StoreShippingRule; storeId: 
               <p className="mt-1.5 text-xs text-red-400">{fa.seller.panel.shippingRules.provincesEmpty}</p>
             )}
           </div>
-          <Input
+          <DigitsInput kind="int"
             label={fa.seller.panel.shippingRules.costLabel}
             value={cost}
-            onChange={e => setCost(e.target.value.replace(/\D/g, ''))}
-            inputMode="numeric"
+            onChange={setCost}
           />
           {update.isError && <p className="mt-2 text-xs text-red-400">{fa.seller.panel.shippingRules.updateError}</p>}
           <div className="mt-3 flex gap-2">
@@ -173,11 +172,10 @@ function AddShippingRuleForm({ storeId, onDone }: { storeId: string; onDone: () 
         <ProvinceCheckboxGrid selected={provinces} onToggle={toggleProvince} />
       </div>
       <div className="mb-3">
-        <Input
+        <DigitsInput kind="int"
           label={fa.seller.panel.shippingRules.costLabel}
           value={cost}
-          onChange={e => setCost(e.target.value.replace(/\D/g, ''))}
-          inputMode="numeric"
+          onChange={setCost}
         />
       </div>
       {add.isError && <p className="mb-3 text-xs text-red-400">{fa.seller.panel.shippingRules.addError}</p>}
@@ -236,11 +234,10 @@ function NationwideRuleCard({ storeId, rule }: { storeId: string; rule?: StoreSh
 
       {rule && (
         <div className="mt-3 flex items-center gap-2">
-          <Input
+          <DigitsInput kind="int"
             value={cost}
-            onChange={e => setCost(e.target.value.replace(/\D/g, ''))}
+            onChange={setCost}
             onBlur={saveCost}
-            inputMode="numeric"
             className="flex-1"
           />
           <span className="text-xs text-slate-500">تومان</span>

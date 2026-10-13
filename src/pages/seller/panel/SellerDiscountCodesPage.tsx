@@ -16,6 +16,7 @@ import {
   type CreateDiscountCodeInput,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 // باگ باندلر: esbuild (Vite deps optimizer) نمی‌تواند named exportهای این پکیج را
 // (که همه در یک UMD comma-expression ساخته می‌شوند: exports.Calendar=X, exports.default=ne, ...)
@@ -162,20 +163,18 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
         </button>
       </div>
       <div className="mb-3">
-        <Input
+        <DigitsInput kind="int"
           label={kind === 'PERCENT' ? fa.seller.panel.discountCodes.valueLabelPercent : fa.seller.panel.discountCodes.valueLabelFixedAmount}
           value={value}
-          onChange={e => setValue(e.target.value.replace(/\D/g, ''))}
-          inputMode="numeric"
+          onChange={setValue}
         />
       </div>
       <div className="mb-3">
-        <Input
+        <DigitsInput kind="int"
           label={fa.seller.panel.discountCodes.maxRedemptionsLabel}
           placeholder={fa.seller.panel.discountCodes.maxRedemptionsPlaceholder}
           value={maxRedemptions}
-          onChange={e => setMaxRedemptions(e.target.value.replace(/\D/g, ''))}
-          inputMode="numeric"
+          onChange={setMaxRedemptions}
         />
       </div>
       <div className="mb-3 flex flex-col gap-1.5">
@@ -194,12 +193,11 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
         />
       </div>
       <div className="mb-3">
-        <Input
+        <DigitsInput kind="int"
           label={fa.seller.panel.discountCodes.minQuantityLabel}
           placeholder={fa.seller.panel.discountCodes.minQuantityPlaceholder}
           value={minQuantity}
-          onChange={e => setMinQuantity(e.target.value.replace(/\D/g, ''))}
-          inputMode="numeric"
+          onChange={setMinQuantity}
         />
       </div>
       <div className="mb-3">

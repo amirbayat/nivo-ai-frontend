@@ -1,9 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fa } from '@/locales/fa'
-import { Input } from '@/components/ui/Input'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
-import { toEnglishDigits, formatThousands } from '@/lib/digits'
+import { toEnglishDigits } from '@/lib/digits'
 import { effectiveStock, extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
   useAddProductImagesFromUrl,
@@ -23,6 +22,8 @@ import type { ReplaceProductVariantsInput } from '@/queries/seller.queries'
 import type { BulkCompleteResultItem, ExtractedProductCandidate, ExtractProductsResult } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { GuideAssistantModal } from './GuideAssistantModal'
+import { Input } from '@/components/ui/Input'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 // docs/PRD-seller-knowledge-base.md بخش ۹.۲ (دوم، مورد ۶) — تولید پیشنهاد برای حداکثر ۲۰
 // محصول کم‌تکمیل این فروشگاه در یک درخواست، بعد مرور/تایید دسته‌ای این‌جا (نه تک‌تک مثل
@@ -314,12 +315,10 @@ export function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onCl
               <Input label={fa.seller.panel.products.nameLabel} value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div className="mb-4">
-              <Input
+              <DigitsInput kind="price"
                 label={fa.seller.panel.products.importPreviewPriceHintLabel}
-                value={formatThousands(price)}
-                onChange={e => setPrice(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-                dir="ltr"
-                inputMode="numeric"
+                value={price}
+                onChange={setPrice}
                 className="text-center"
               />
             </div>
@@ -622,25 +621,19 @@ export function BulkProductImportSheet({
                       <Input value={item.name} onChange={e => updateItem(idx, { name: e.target.value })} placeholder={fa.seller.panel.products.nameLabel} />
                     </div>
                     <div className="mb-2 flex gap-2">
-                      <Input
-                        value={item.basePrice !== undefined ? formatThousands(String(item.basePrice)) : ''}
-                        onChange={e =>
-                          updateItem(idx, { basePrice: Number(toEnglishDigits(e.target.value).replace(/\D/g, '')) || undefined })
-                        }
+                      <DigitsInput
+                        kind="price"
+                        value={item.basePrice !== undefined ? String(item.basePrice) : ''}
+                        onChange={v => updateItem(idx, { basePrice: Number(v) || undefined })}
                         placeholder={fa.seller.panel.products.priceLabel}
-                        dir="ltr"
-                        inputMode="numeric"
                         className="flex-1 text-center"
                       />
                       {!item.variantOptions?.length && (
-                        <Input
+                        <DigitsInput
+                          kind="int"
                           value={item.stock !== undefined ? String(item.stock) : ''}
-                          onChange={e =>
-                            updateItem(idx, { stock: Number(toEnglishDigits(e.target.value).replace(/\D/g, '')) || undefined })
-                          }
+                          onChange={v => updateItem(idx, { stock: Number(v) || undefined })}
                           placeholder={fa.seller.panel.products.stockLabel}
-                          dir="ltr"
-                          inputMode="numeric"
                           className="flex-1 text-center"
                         />
                       )}
@@ -655,10 +648,10 @@ export function BulkProductImportSheet({
                               className="flex items-center gap-1.5 rounded-full bg-slate-700/60 light:bg-slate-200 px-2.5 py-1 text-xs text-slate-200 light:text-slate-800"
                             >
                               {v.value}
-                              <input
+                              <DigitsInput
+                                kind="int"
                                 value={v.stock !== undefined ? String(v.stock) : ''}
-                                onChange={e => {
-                                  const n = toEnglishDigits(e.target.value).replace(/\D/g, '')
+                                onChange={n => {
                                   updateItem(idx, {
                                     variantOptions: item.variantOptions!.map((o, k) =>
                                       k !== oi
@@ -668,8 +661,7 @@ export function BulkProductImportSheet({
                                   })
                                 }}
                                 placeholder="۰"
-                                dir="ltr"
-                                inputMode="numeric"
+                                style={{ minHeight: 32 }}
                                 className="w-9 rounded bg-slate-900/60 light:bg-white px-1 py-0.5 text-center text-[11px]"
                               />
                             </span>

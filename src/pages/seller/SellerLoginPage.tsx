@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useSendOtp } from '@/queries/auth.queries'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/ui/Logo'
-import { toEnglishDigits } from '@/lib/digits'
 import { fa } from '@/locales/fa'
 import type { SellerStore } from '@/types/api'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 export function SellerLoginPage() {
   const [phone, setPhone] = useState('')
@@ -59,15 +58,12 @@ export function SellerLoginPage() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <Input
-            type="tel"
+          <DigitsInput kind="phone"
             placeholder={fa.auth.phonePlaceholder}
             value={phone}
-            onChange={e => setPhone(toEnglishDigits(e.target.value))}
+            onChange={setPhone}
             error={error}
             autoFocus
-            inputMode="numeric"
-            dir="ltr"
             className="text-center tracking-widest"
           />
           <Button type="submit" className="w-full" loading={sendOtp.isPending}>

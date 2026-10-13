@@ -5,7 +5,7 @@ import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { ToggleRow } from '@/components/ui/ToggleRow'
-import { toEnglishDigits, formatThousands } from '@/lib/digits'
+import { toEnglishDigits } from '@/lib/digits'
 import { extractErrorMessage, productImageUrl, productVideoUrl } from '@/lib/sellerProduct'
 import {
   useCreateProduct,
@@ -30,6 +30,7 @@ import type { ExtractedVariantOption, ProductSpecSuggestion, SellerProduct } fro
 import { AiCompleteAssist } from './AiCompleteAssist'
 import { ProductDescriptionModal } from './ProductDescriptionModal'
 import { useSellerStore } from './SellerPanelLayout'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 function ProductImages({
   product,
@@ -504,21 +505,19 @@ function ProductVariantsEditor({
                         {Object.entries(ov).map(([k, v]) => `${k}: ${v}`).join('، ')}
                       </span>
                       {product.pricingModel === 'WEIGHT_BASED_FORMULA' && (
-                        <input
+                        <DigitsInput
+                          kind="decimal"
                           value={row.weightGrams}
-                          onChange={e => updateRow(key, { weightGrams: toEnglishDigits(e.target.value).replace(/[^\d.]/g, '') })}
+                          onChange={v => updateRow(key, { weightGrams: v })}
                           placeholder={fa.seller.panel.products.weightGramsLabel}
-                          dir="ltr"
-                          inputMode="decimal"
                           className="w-16 shrink-0 rounded-lg border border-amber-500/40 bg-transparent px-2 py-1.5 text-center text-xs text-slate-200 light:text-slate-900"
                         />
                       )}
-                      <input
+                      <DigitsInput
+                        kind="int"
                         value={row.stock}
-                        onChange={e => updateRow(key, { stock: toEnglishDigits(e.target.value).replace(/\D/g, '') })}
+                        onChange={v => updateRow(key, { stock: v })}
                         placeholder={fa.seller.panel.products.variantsStockPlaceholder}
-                        dir="ltr"
-                        inputMode="numeric"
                         className="w-16 shrink-0 rounded-lg border border-slate-700 light:border-slate-300 bg-transparent px-2 py-1.5 text-center text-xs text-slate-200 light:text-slate-900"
                       />
                       <button
@@ -619,20 +618,16 @@ function GoldPricingFields({
   return (
     <div className="mb-6">
       <div className="mb-3 grid grid-cols-2 gap-3">
-        <Input
+        <DigitsInput kind="decimal"
           label={fa.seller.panel.products.weightGramsLabel}
           value={weightGrams}
-          onChange={e => setWeightGrams(toEnglishDigits(e.target.value).replace(/[^\d.]/g, ''))}
-          dir="ltr"
-          inputMode="decimal"
+          onChange={setWeightGrams}
           className="text-center"
         />
-        <Input
+        <DigitsInput kind="int"
           label={fa.seller.panel.products.stockLabel}
           value={stock}
-          onChange={e => setStock(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-          dir="ltr"
-          inputMode="numeric"
+          onChange={setStock}
           className="text-center"
         />
       </div>
@@ -683,24 +678,20 @@ function GoldPricingFields({
             </button>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Input
+            <DigitsInput kind="decimal"
               label={
                 productGoldWageType === 'PERCENT'
                   ? fa.seller.panel.storeSettings.goldWageValuePercentLabel
                   : fa.seller.panel.storeSettings.goldWageValueFixedLabel
               }
               value={productGoldWageValue}
-              onChange={e => setProductGoldWageValue(e.target.value.replace(/[^\d.]/g, ''))}
-              dir="ltr"
-              inputMode="decimal"
+              onChange={setProductGoldWageValue}
               className="text-center"
             />
-            <Input
+            <DigitsInput kind="decimal"
               label={fa.seller.panel.storeSettings.goldProfitPercentLabel}
               value={productGoldProfitPercent}
-              onChange={e => setProductGoldProfitPercent(e.target.value.replace(/[^\d.]/g, ''))}
-              dir="ltr"
-              inputMode="decimal"
+              onChange={setProductGoldProfitPercent}
               className="text-center"
             />
           </div>
@@ -1132,20 +1123,16 @@ export function SellerProductEditPage() {
         />
       ) : (
         <div className="mb-6 grid grid-cols-2 gap-3">
-          <Input
+          <DigitsInput kind="price"
             label={fa.seller.panel.products.priceLabel}
-            value={formatThousands(price)}
-            onChange={e => setPrice(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-            dir="ltr"
-            inputMode="numeric"
+            value={price}
+            onChange={setPrice}
             className="text-center"
           />
-          <Input
+          <DigitsInput kind="int"
             label={fa.seller.panel.products.stockLabel}
             value={stock}
-            onChange={e => setStock(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
-            dir="ltr"
-            inputMode="numeric"
+            onChange={setStock}
             className="text-center"
           />
         </div>

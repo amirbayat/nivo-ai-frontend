@@ -3,10 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useVerifyOtp, useSendOtp } from '@/queries/auth.queries'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { toEnglishDigits } from '@/lib/digits'
 import { fa } from '@/locales/fa'
 import type { SellerStore } from '@/types/api'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 const RESEND_SECONDS = 120
 
@@ -78,16 +77,13 @@ export function SellerOtpPage() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <Input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
+          <DigitsInput kind="otp"
             placeholder="● ● ● ● ● ●"
             value={code}
-            onChange={e => setCode(toEnglishDigits(e.target.value).replace(/\D/g, ''))}
+            onChange={setCode}
             error={error}
             autoFocus
-            dir="ltr"
+            style={{ fontSize: 24 }}
             className="text-center text-2xl tracking-[0.5em] font-mono"
           />
           <Button type="submit" className="w-full" loading={verifyOtp.isPending} disabled={code.length < 6}>

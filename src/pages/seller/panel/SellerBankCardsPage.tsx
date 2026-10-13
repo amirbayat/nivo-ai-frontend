@@ -14,6 +14,7 @@ import {
   type CreateBankCardInput,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 const POLICIES: { value: CardDisplayPolicy; label: string; hint: string }[] = [
   { value: 'EQUAL', label: fa.seller.panel.bankCards.policyEqual, hint: fa.seller.panel.bankCards.policyEqualHint },
@@ -78,22 +79,20 @@ function BankCardRow({
       {policy === 'THRESHOLD' && (
         <div className="mt-3 flex items-end gap-2">
           <div className="flex-1">
-            <Input
+            <DigitsInput kind="int"
               label={fa.seller.panel.bankCards.thresholdLabel}
               placeholder={fa.seller.panel.bankCards.thresholdPlaceholder}
               value={threshold}
-              onChange={e => setThreshold(e.target.value.replace(/\D/g, ''))}
+              onChange={setThreshold}
               onBlur={commitThreshold}
-              inputMode="numeric"
             />
           </div>
           <div className="w-20">
-            <Input
+            <DigitsInput kind="int"
               label={fa.seller.panel.bankCards.sortOrderLabel}
               value={sortOrder}
-              onChange={e => setSortOrder(e.target.value.replace(/\D/g, ''))}
+              onChange={setSortOrder}
               onBlur={commitSortOrder}
-              inputMode="numeric"
             />
           </div>
         </div>
@@ -108,12 +107,11 @@ function BankCardRow({
 
       {policy === 'PERCENTAGE' && (
         <div className="mt-3 w-28">
-          <Input
+          <DigitsInput kind="int"
             label={fa.seller.panel.bankCards.percentWeightLabel}
             value={weight}
-            onChange={e => setWeight(e.target.value.replace(/\D/g, ''))}
+            onChange={setWeight}
             onBlur={commitWeight}
-            inputMode="numeric"
           />
         </div>
       )}
@@ -144,13 +142,11 @@ function AddCardForm({ storeId, onDone }: { storeId: string; onDone: () => void 
   return (
     <div className="mb-4 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
       <div className="mb-3">
-        <Input
+        <DigitsInput kind="card"
           label={fa.seller.panel.bankCards.cardNumberLabel}
           placeholder="6037 XXXX XXXX XXXX"
-          value={formatCardNumberGroups(cardNumber)}
-          onChange={e => setCardNumber(toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 16))}
-          dir="ltr"
-          inputMode="numeric"
+          value={cardNumber}
+          onChange={setCardNumber}
           className="text-center tracking-widest"
         />
       </div>

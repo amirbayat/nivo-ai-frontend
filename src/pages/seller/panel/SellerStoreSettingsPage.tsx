@@ -15,6 +15,7 @@ import type { AnalyzeOwnerNotesResult, SellerStore } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { GuideAssistantModal } from './GuideAssistantModal'
 import { NotesSuggestionsPanel } from './NotesSuggestionsPanel'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 
 // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — عکس پروفایل فروشگاه؛ همون الگوی
 // ProductImages در SellerProductEditPage.tsx، ساده‌شده برای تک‌عکس (نه آرایه)
@@ -264,33 +265,27 @@ export function SellerStoreSettingsPage() {
           </div>
 
           <div className="mb-3 grid grid-cols-2 gap-3">
-            <Input
+            <DigitsInput kind="decimal"
               label={
                 goldWageType === 'PERCENT'
                   ? fa.seller.panel.storeSettings.goldWageValuePercentLabel
                   : fa.seller.panel.storeSettings.goldWageValueFixedLabel
               }
               value={goldWageValue}
-              onChange={e => setGoldWageValue(e.target.value.replace(/[^\d.]/g, ''))}
-              dir="ltr"
-              inputMode="decimal"
+              onChange={setGoldWageValue}
               className="text-center"
             />
-            <Input
+            <DigitsInput kind="decimal"
               label={fa.seller.panel.storeSettings.goldProfitPercentLabel}
               value={goldProfitPercent}
-              onChange={e => setGoldProfitPercent(e.target.value.replace(/[^\d.]/g, ''))}
-              dir="ltr"
-              inputMode="decimal"
+              onChange={setGoldProfitPercent}
               className="text-center"
             />
           </div>
-          <Input
+          <DigitsInput kind="decimal"
             label={fa.seller.panel.storeSettings.goldVatPercentLabel}
             value={goldVatPercent}
-            onChange={e => setGoldVatPercent(e.target.value.replace(/[^\d.]/g, ''))}
-            dir="ltr"
-            inputMode="decimal"
+            onChange={setGoldVatPercent}
             className="w-1/2 text-center"
           />
         </div>
