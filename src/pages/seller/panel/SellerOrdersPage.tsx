@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
-import { useApproveOrder, useOrders, useRejectOrder, useShipOrder } from '@/queries/seller.queries'
+import { useApproveOrder, useDeliverOrder, useOrders, useOverpayRefund, useRejectOrder, useShipOrder } from '@/queries/seller.queries'
 import { productImageUrl } from '@/lib/sellerProduct'
 import { copyText } from '@/lib/clipboard'
 import { toEnglishDigits } from '@/lib/digits'
@@ -67,6 +67,8 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
   const approve = useApproveOrder(storeId)
   const reject = useRejectOrder(storeId)
   const ship = useShipOrder(storeId)
+  const deliver = useDeliverOrder(storeId)
+  const overpay = useOverpayRefund(storeId)
   const [showShipForm, setShowShipForm] = useState(false)
   const [carrier, setCarrier] = useState<string>(ORDER_CARRIERS[0])
   const [trackingCode, setTrackingCode] = useState('')
@@ -76,6 +78,8 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
   // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۳.۲ — بعد از تایید، سفارش
   // «آماده‌ی ارسال»ه تا فروشنده دکمه‌ی «ارسال شد» را بزند
   const canShip = order.status === 'APPROVED'
+  const canDeliver = order.status === 'SHIPPED'
+  const overpaid = order.receiptCheck?.overpaidToman ?? 0
   const recipientAddress = [order.shippingProvince, order.shippingAddress, order.postalCode]
     .filter(Boolean)
     .join('، ')
@@ -183,6 +187,18 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           </p>
         )}
 
+        {order.receiptCheck && (
+          <p className="mb-4 rounded-xl border border-slate-700/60 light:border-slate-200 p-3 text-xs text-slate-300 light:text-slate-700">
+            {order.receiptCheck.match === 'OK' && fa.seller.panel.orders.receiptOk}
+            {order.receiptCheck.match === 'MISMATCH' &&
+              (overpaid
+                ? fa.seller.panel.orders.receiptOverpaid(overpaid)
+                : fa.seller.panel.orders.receiptMismatch)}
+            {order.receiptCheck.match === 'DUPLICATE' && fa.seller.panel.orders.receiptDuplicate}
+            {order.receiptCheck.match === 'UNREADABLE' && fa.seller.panel.orders.receiptUnreadable}
+          </p>
+        )}
+
         {order.receiptImageKey ? (
           <button
             onClick={() => setShowReceipt(true)}
@@ -248,6 +264,26 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
             className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
           >
             {fa.seller.panel.orders.reapprove}
+          </button>
+        )}
+
+        {overpaid > 0 && (
+          <button
+            onClick={() => overpay.mutate(order.id)}
+            disabled={overpay.isPending}
+            className="mb-3 w-full rounded-2xl border border-amber-500/50 py-3.5 text-sm font-bold text-amber-300 light:text-amber-800 disabled:opacity-40"
+          >
+            {fa.seller.panel.orders.overpayRefund}
+          </button>
+        )}
+
+        {canDeliver && (
+          <button
+            onClick={() => deliver.mutate(order.id, { onSuccess: onClose })}
+            disabled={deliver.isPending}
+            className="mb-3 w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
+          >
+            {fa.seller.panel.orders.deliver}
           </button>
         )}
 
@@ -347,7 +383,12 @@ export function SellerOrdersPage() {
 
   return (
     <div className="px-5 py-6">
-      <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.orders}</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.orders}</h1>
+        <Link to="/seller/panel/refunds" className="min-h-11 text-sm font-semibold text-emerald-400 light:text-emerald-700">
+          {fa.seller.panel.orders.refundsLink}
+        </Link>
+      </div>
 
       <FirstVisitTooltip id="orders" text={fa.seller.panel.helpCenter.tooltips.orders} />
 

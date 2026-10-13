@@ -958,6 +958,11 @@ export interface SellerOrder {
   paymentMethod: SellerOrderPaymentMethod
   snapppayTrackingCode: string | null
   receiptImageKey: string | null
+  receiptCheck: {
+    match: 'OK' | 'MISMATCH' | 'UNREADABLE' | 'DUPLICATE'
+    overpaidToman?: number
+    duplicateOrderCode?: string
+  } | null
   rejectReason: string | null
   recipientName: string | null
   recipientPhone: string | null

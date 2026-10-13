@@ -43,6 +43,8 @@ import { SellerOnboardingPage } from '@/pages/seller/SellerOnboardingPage'
 import { SellerPanelLayout } from '@/pages/seller/panel/SellerPanelLayout'
 import { SellerHomePage } from '@/pages/seller/panel/SellerHomePage'
 import { SellerOrdersPage } from '@/pages/seller/panel/SellerOrdersPage'
+import { SellerRefundsPage } from '@/pages/seller/panel/SellerRefundsPage'
+import { PublicOrderPage } from '@/pages/shop/PublicOrderPage'
 import { SellerAttentionPage } from '@/pages/seller/panel/SellerAttentionPage'
 import { SellerProductsPage } from '@/pages/seller/panel/SellerProductsPage'
 import { SellerProductEditPage } from '@/pages/seller/panel/SellerProductEditPage'
@@ -127,6 +129,7 @@ export function AppRouter() {
         <Route index element={<Navigate to="home" replace />} />
         <Route path="home" element={<SellerHomePage />} />
         <Route path="orders" element={<SellerOrdersPage />} />
+        <Route path="refunds" element={<SellerRefundsPage />} />
         <Route path="attention" element={<SellerAttentionPage />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="products/:id" element={<SellerProductEditPage />} />
@@ -149,6 +152,7 @@ export function AppRouter() {
 
       {/* docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی مشتری، کاملاً بدون لاگین؛ نمی‌شود
           /chat/:slug باشد چون آن مسیر از قبل برای چت لاگین‌شده‌ی نیوو گرفته شده (پایین‌تر) */}
+      <Route path="/o/:code" element={<PublicOrderPage />} />
       <Route path="/shop/:slug" element={<ShopChatPage />} />
       {/* docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۲ — صفحه‌ی مستقل «سفارش‌های من»،
           خارج از AI/چت، تا دکمه‌ی برگشت مرورگر هم درست کار کند */}

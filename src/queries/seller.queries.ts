@@ -449,6 +449,27 @@ export function useRejectOrder(storeId: string) {
 }
 
 // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۳.۲
+export function useDeliverOrder(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (orderId: string) =>
+      api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/deliver`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
+  })
+}
+
+export function useOverpayRefund(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (orderId: string) =>
+      api.post(`/v2/stores/${storeId}/orders/${orderId}/refund-overpay`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: ['seller', 'refunds', storeId] })
+    },
+  })
+}
+
 export function useShipOrder(storeId: string) {
   const qc = useQueryClient()
   return useMutation({

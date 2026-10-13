@@ -17,6 +17,10 @@ export const DEFAULT_RATE_LIMIT_RETRY_SECONDS = 60
 // اصلاً وجود ندارد پس اضافه‌شدنش بی‌اثر است
 const GUEST_ACCESSIBLE_PATHS = ['/', '/discover', '/landing', '/contact', '/login', '/otp', '/verify', '/nivo-cal/intro', '/explore/orders']
 
+function isGuestPath(pathname: string) {
+  return GUEST_ACCESSIBLE_PATHS.includes(pathname) || pathname.startsWith('/o/')
+}
+
 export const api = axios.create({
   baseURL: env.VITE_API_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -79,7 +83,7 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
-        if (!GUEST_ACCESSIBLE_PATHS.includes(window.location.pathname)) {
+        if (!isGuestPath(window.location.pathname)) {
           window.location.href = '/login'
         }
       }
