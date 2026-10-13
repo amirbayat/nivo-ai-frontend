@@ -70,7 +70,11 @@ export function useVerifyOtp() {
 export function useLogout() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.post('/auth/logout').then(r => r.data),
+    // 0.13f — بدون body سرور 400 می‌داد و refresh token هرگز باطل نمی‌شد
+    mutationFn: () =>
+      api
+        .post('/auth/logout', { refreshToken: localStorage.getItem('refresh_token') ?? '' })
+        .then(r => r.data),
     onSettled: () => {
       track('logout')
       localStorage.removeItem('access_token')
