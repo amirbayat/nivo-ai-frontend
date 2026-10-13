@@ -157,6 +157,17 @@ export function useShopChat(slug: string, productId?: string) {
 
   const applyReply = useCallback(
     (res: ShopSendMessageResponse) => {
+      // 0.13b — سرور مکالمه‌ی جدیدی برای این اکشن ساخته؛ از این به بعد پیام‌ها/پالینگ به همان می‌روند
+      // (مکالمه‌ی قبلی برای پیگیری سفارش در تاریخچه می‌ماند)
+      if (res.switchedConversationId && sessionRef.current) {
+        const next: ShopSession = {
+          conversationId: res.switchedConversationId,
+          sessionToken: sessionRef.current.sessionToken,
+        }
+        setShopSession(slug, next)
+        sessionRef.current = next
+        liveSessionRef.current = next
+      }
       setState(res.state)
       setAwaitingReview(!!res.awaitingReview)
       const uiBlock = res.uiBlocks.find((b) => b.type !== 'NONE')
@@ -174,7 +185,7 @@ export function useShopChat(slug: string, productId?: string) {
       ])
       if (res.voiceEventId) pollVoice(id, res.voiceEventId)
     },
-    [pollVoice],
+    [pollVoice, slug],
   )
 
   const sendMessage = useCallback(

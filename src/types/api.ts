@@ -626,6 +626,8 @@ export interface ShopSendMessageResponse {
   transcript?: string
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱
   awaitingReview?: boolean
+  // 0.13b — «سفارش مجدد»/«افزودن به سبد» روی مکالمه‌ی دارای سفارش، مکالمه‌ی تازه می‌سازد
+  switchedConversationId?: string
 }
 
 export interface ShopVoiceStatusResponse {
