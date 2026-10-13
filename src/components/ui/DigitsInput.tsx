@@ -25,7 +25,7 @@ const INPUT_MODE: Record<DigitsKind, 'numeric' | 'decimal' | 'tel'> = {
 const SEPARATORS = /[,٬،\s\-‌‎‏ ]/g
 
 /** ورودی خام (هر نوع رقم/جداکننده) ← رشته‌ی تمیز با رقم انگلیسی مطابق kind. */
-export function sanitizeDigits(kind: DigitsKind, input: string, maxLength?: number): string {
+function sanitizeDigits(kind: DigitsKind, input: string, maxLength?: number): string {
   const s = toEnglishDigits(input).replace(/٫/g, '.').replace(SEPARATORS, '')
   let out: string
   switch (kind) {
