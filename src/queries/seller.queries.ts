@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
+import { useToastStore } from '@/store/toast.store'
+import { fa } from '@/locales/fa'
 import type {
   AdPlacement,
   AdPlacementStatusResponse,
@@ -417,9 +419,20 @@ export function useOrders(storeId: string, status?: SellerOrderStatus) {
 export function useApproveOrder(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (orderId: string) => api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/approve`),
+    mutationFn: (orderId: string) =>
+      api
+        .post<SellerOrder & { stockWarnings?: { name: string }[] }>(`/v2/stores/${storeId}/orders/${orderId}/approve`)
+        .then(r => r.data),
     // پیشوند بدون فیلتر status تا همه‌ی تب‌های فیلترشده‌ی این فروشگاه (نه فقط تب «همه») رفرش شوند
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
+    onSuccess: data => {
+      // 0.3 — کمبود موجودی هنگام تایید دیگر بی‌صدا نیست
+      if (data.stockWarnings?.length) {
+        useToastStore
+          .getState()
+          .addToast(fa.seller.panel.orders.stockShortageToast(data.stockWarnings.map(w => w.name).join('، ')), 12000)
+      }
+      void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+    },
   })
 }
 
