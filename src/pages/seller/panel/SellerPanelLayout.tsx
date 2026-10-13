@@ -201,7 +201,7 @@ function CreditExhaustedBanner() {
 }
 
 export function SellerPanelLayout() {
-  const { data: stores, isLoading } = useMyStores()
+  const { data: stores, isLoading, isError, refetch } = useMyStores()
   const store = stores?.[0]
   const attention = useNeededAttention(store?.id ?? '')
   const products = useProducts(store?.id ?? '')
@@ -209,7 +209,24 @@ export function SellerPanelLayout() {
   const attentionBadge = (attention.data?.length ?? 0) + lowStockCount
 
   if (isLoading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
-  if (!store) return <Navigate to="/seller/onboarding" replace />
+  // 0.13g — خطای لود (شبکه/۵۰۰) با «بدون فروشگاه» فرق دارد؛ فروشنده‌ی موجود نباید به ویزارد
+  // ساخت فروشگاه پرت شود
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-slate-950 light:bg-white flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <p className="text-slate-300 light:text-slate-700">{fa.seller.panel.storeLoadError}</p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="min-h-[44px] px-6 rounded-xl bg-indigo-600 text-white font-medium"
+        >
+          {fa.common.retry}
+        </button>
+      </div>
+    )
+  }
+  if (!stores || stores.length === 0 || !store)
+    return <Navigate to="/seller/onboarding" replace />
 
   // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۴.۲ — فیدبک کاربر
   // ۱۴۰۵/۰۷/۱۵: نوار قیمت لحظه‌ای طلا یک نوار واحد بالای کل پنل باشد، نه فقط داخل فرم محصول.

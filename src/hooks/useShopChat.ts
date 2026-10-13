@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { compressImage } from '@/lib/compressImage'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
-import { getShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
+import { getShopSession,
+  clearShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
 import type {
   ShopAction,
   ShopConversationEvent,
@@ -209,6 +211,8 @@ export function useShopChat(slug: string, productId?: string) {
       setState(res.state)
       setAwaitingReview(!!res.awaitingReview)
       const uiBlock = res.uiBlocks.find((b) => b.type !== 'NONE')
+      // 0.13p — در حالت فروشنده‌ی انسانی سرور reply خالی می‌دهد؛ حباب خاکستری خالی نساز
+      if (!res.reply && !uiBlock) return
       const id = `agent-${Date.now()}`
       setMessages((prev) => [
         ...prev,
@@ -300,7 +304,7 @@ export function useShopChat(slug: string, productId?: string) {
     const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}`, {
       headers: { 'X-Session-Token': session.sessionToken },
     })
-    if (!res.ok) throw new Error('request failed')
+    if (!res.ok) throw Object.assign(new Error('request failed'), { status: res.status })
     const data = (await res.json()) as ShopGetConversationResponse
     setState(data.state)
     setStoreId(data.storeId)
@@ -336,22 +340,29 @@ export function useShopChat(slug: string, productId?: string) {
     async (file: File) => {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
-      setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text: fa.shop.receiptUploadedNote }])
+      const bubbleId = `opt-${Date.now()}`
+      setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text: fa.shop.receiptUploadedNote }])
       setSending(true)
       setError(null)
       try {
         const form = new FormData()
-        form.append('file', file)
+        // 0.13n — فشرده‌سازی سمت کلاینت قبل از آپلود (سقف سرور ۵MB)
+        form.append('file', await compressImage(file))
         // بدون ست‌کردن دستی Content-Type — مرورگر خودش boundary مالتی‌پارت را می‌سازد
         const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/receipt`, {
           method: 'POST',
           headers: { 'X-Session-Token': session.sessionToken },
           body: form,
         })
-        if (!res.ok) throw new Error('request failed')
+        if (!res.ok) {
+          const tooLarge = res.status === 413
+          throw Object.assign(new Error('request failed'), { tooLarge })
+        }
         applyReply((await res.json()) as ShopSendMessageResponse)
-      } catch {
-        setError(fa.common.error)
+      } catch (err) {
+        // 0.13n — رسیدی که آپلود نشد نباید به‌عنوان «رسید رو فرستادم» در چت بماند
+        setMessages((prev) => prev.filter((m) => m.id !== bubbleId))
+        setError((err as { tooLarge?: boolean }).tooLarge ? fa.shop.receiptTooLarge : fa.common.error)
       } finally {
         setSending(false)
       }
@@ -532,9 +543,30 @@ export function useShopChat(slug: string, productId?: string) {
         if (existing) {
           sessionRef.current = existing
           liveSessionRef.current = existing
-          await fetchConversation()
-          void fetchHistory()
-          void fetchSavedProducts()
+          let sessionAlive = true
+          try {
+            await fetchConversation()
+          } catch (err) {
+            const status = (err as { status?: number }).status
+            // 0.11b — session کهنه/نامعتبر: پاک و مکالمه‌ی تازه (نه چت مرده برای همیشه)
+            if (status === 401 || status === 403 || status === 404) {
+              sessionAlive = false
+              clearShopSession(slug)
+              sessionRef.current = null
+              liveSessionRef.current = null
+              await createFreshConversation(cancelledRef)
+            } else {
+              throw err
+            }
+          }
+          if (sessionAlive) {
+            void fetchHistory()
+            void fetchSavedProducts()
+            // 0.11a — خریدار برگشتی با لینک محصول (?product=): کارت همان محصول، نه چت قبلی بی‌تغییر
+            if (productId && !cancelledRef.current) {
+              void sendAction({ type: 'FOCUS_PRODUCT', productId })
+            }
+          }
         } else {
           await createFreshConversation(cancelledRef)
         }
@@ -559,6 +591,14 @@ export function useShopChat(slug: string, productId?: string) {
     if (sending) return
     const current = liveSessionRef.current
     if (!current) return
+    // 0.13o — با سفارش پرداخت‌نشده/منتظر تایید، «گفتگوی جدید» خریدار را از سفارشش جدا می‌کرد
+    // (رسید فقط از همین مکالمه آپلود می‌شد). هشدار + اشاره به صفحه‌ی سفارش‌ها؛ تصمیم با خریدار.
+    if (
+      (state === 'AWAITING_PAYMENT' || state === 'AWAITING_SELLER_APPROVAL') &&
+      !window.confirm(fa.shop.newChatWithOpenOrderWarning)
+    ) {
+      return
+    }
     setViewingHistory(false)
     setMessages([])
     setError(null)
@@ -575,7 +615,7 @@ export function useShopChat(slug: string, productId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [sending, applyStartResponse, setViewingHistory])
+  }, [sending, state, applyStartResponse, setViewingHistory])
 
   // نمایش فقط‌خواندنی یک گفتگوی قدیمی از تاریخچه — ارسال پیام غیرفعال می‌ماند تا برگردد؛
   // همان sessionToken مکالمه‌ی زنده کار می‌کند چون هر دو مال یک Customer‌اند

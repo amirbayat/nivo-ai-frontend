@@ -24,3 +24,8 @@ export function getShopSession(slug: string): ShopSession | null {
 export function setShopSession(slug: string, session: ShopSession): void {
   localStorage.setItem(key(slug), JSON.stringify(session))
 }
+
+// 0.11b — session کهنه (۴۰۱/۴۰۳/۴۰۴) باید پاک شود تا چت برای همیشه «مرده» نماند
+export function clearShopSession(slug: string): void {
+  localStorage.removeItem(key(slug))
+}

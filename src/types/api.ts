@@ -579,6 +579,8 @@ export interface ShopMessage {
 // می‌شود (فیدبک اول پایلوت — sales-agent.types.ts SalesAction)
 export type ShopAction =
   | { type: 'ADD_TO_CART'; productId: string; qty?: number }
+  // 0.11a — کارت محصول برای خریدار برگشتی با لینک محصول
+  | { type: 'FOCUS_PRODUCT'; productId: string }
   | { type: 'CONFIRM_CART' }
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ — دکمه‌های فلوی آدرس
   | { type: 'SELECT_ADDRESS'; addressId: string }
