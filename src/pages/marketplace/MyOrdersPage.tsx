@@ -157,7 +157,7 @@ export function MyOrdersPage() {
                       <ul className="mb-1 text-sm text-slate-300 light:text-slate-700">
                         {order.items.map((item, i) => (
                           <li key={i}>
-                            {item.name} × {item.qty.toLocaleString('fa-IR')}
+                            {item.name}{item.variantLabel ? ` (${item.variantLabel})` : ''} × {item.qty.toLocaleString('fa-IR')}
                           </li>
                         ))}
                       </ul>

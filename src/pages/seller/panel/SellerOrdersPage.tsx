@@ -66,13 +66,13 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
 
         <div className="mb-4 flex flex-col gap-2">
           {order.items.map(i => (
-            <div key={i.productId} className="flex items-center gap-2.5 text-sm text-slate-300 light:text-slate-700">
+            <div key={`${i.productId}:${i.variantId ?? ''}`} className="flex items-center gap-2.5 text-sm text-slate-300 light:text-slate-700">
               {i.imageKey ? (
                 <img src={productImageUrl(i.productId, i.imageKey)} alt="" className="size-10 shrink-0 rounded-lg object-cover" />
               ) : (
                 <div className="size-10 shrink-0 rounded-lg bg-slate-800 light:bg-slate-100" />
               )}
-              <span className="flex-1">{i.name} × {i.qty}</span>
+              <span className="flex-1">{i.name}{i.variantLabel ? ` (${i.variantLabel})` : ''} × {i.qty}</span>
               <span>{(i.unitPrice * i.qty).toLocaleString('fa-IR')} {fa.common.toman}</span>
             </div>
           ))}

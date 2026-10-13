@@ -703,7 +703,7 @@ export function OrderListBlock({
   orders: {
     id: string
     createdAt: string
-    items: { productId: string; name: string; unitPrice: number; qty: number }[]
+    items: { productId: string; name: string; unitPrice: number; qty: number; variantLabel?: string }[]
     totalAmount: number
     status: string
     distinctProductId?: string | null
@@ -734,7 +734,7 @@ export function OrderListBlock({
             </span>
           </div>
           <p className="mb-2 truncate text-xs text-slate-300 light:text-slate-700">
-            {o.items.map((i) => `${i.name} × ${i.qty}`).join('، ')}
+            {o.items.map((i) => `${i.name}${i.variantLabel ? ` (${i.variantLabel})` : ''} × ${i.qty}`).join('، ')}
           </p>
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-slate-200 light:text-slate-900">

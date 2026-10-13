@@ -547,7 +547,7 @@ export interface MarketplaceStoreOrders {
   orders: {
     id: string
     createdAt: string
-    items: { productId: string; name: string; unitPrice: number; qty: number }[]
+    items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
     totalAmount: number
     status: string
   }[]
@@ -679,7 +679,7 @@ export interface ShopGetConversationResponse {
 export interface ShopOrderSummary {
   id: string
   createdAt: string
-  items: { productId: string; name: string; unitPrice: number; qty: number }[]
+  items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
   totalAmount: number
   status: string
   distinctProductId: string | null
@@ -920,7 +920,7 @@ export interface SellerOrder {
   id: string
   storeId: string
   conversationId: string
-  items: { productId: string; name: string; unitPrice: number; qty: number; imageKey: string | null }[]
+  items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string; imageKey: string | null }[]
   totalAmount: number
   status: SellerOrderStatus
   paymentMethod: SellerOrderPaymentMethod
