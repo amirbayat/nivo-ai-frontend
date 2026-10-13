@@ -1,4 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
+import { effectiveStock } from '@/lib/sellerProduct'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
@@ -156,8 +157,8 @@ export function SellerAttentionPage() {
   if (openId) return <ConversationChat conversationId={openId} onBack={() => setOpenId(null)} />
 
   const lowStockProducts = (products.data ?? [])
-    .filter(p => p.stock <= LOW_STOCK_THRESHOLD)
-    .sort((a, b) => a.stock - b.stock)
+    .filter(p => effectiveStock(p) <= LOW_STOCK_THRESHOLD)
+    .sort((a, b) => effectiveStock(a) - effectiveStock(b))
 
   return (
     <div className="px-5 py-6">
@@ -201,8 +202,8 @@ export function SellerAttentionPage() {
                 className="flex items-center justify-between rounded-2xl border border-amber-500/30 light:border-amber-300 bg-amber-500/10 light:bg-amber-50 px-4 py-3.5 text-start hover:border-amber-500/50 light:hover:border-amber-400"
               >
                 <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</span>
-                <span className={`text-xs font-bold ${p.stock === 0 ? 'text-red-400 light:text-red-600' : 'text-amber-400 light:text-amber-700'}`}>
-                  {p.stock === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}
+                <span className={`text-xs font-bold ${effectiveStock(p) === 0 ? 'text-red-400 light:text-red-600' : 'text-amber-400 light:text-amber-700'}`}>
+                  {effectiveStock(p) === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}
                 </span>
               </button>
             ))}

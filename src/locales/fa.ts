@@ -702,6 +702,7 @@ export const fa = {
         bulkImportActionUpdate: (name: string) => `آپدیت محصول: ${name}`,
         bulkImportSkipToggle: 'رد شو (اعمال نشود)',
         bulkImportMissingPrice: 'قیمت رو وارد کن',
+        bulkImportVariantsLabel: (name: string) => `${name} و موجودی هر کدوم`,
         bulkImportApplyButton: (count: number) => `اعمال ${count.toLocaleString('fa-IR')} مورد`,
         bulkImportApplying: 'در حال اعمال...',
         bulkImportApplyResult: (ok: number, fail: number) =>

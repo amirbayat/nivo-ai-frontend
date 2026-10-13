@@ -11,6 +11,13 @@ export function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback
 }
 
+// فیدبک کاربر ۱۴۰۵/۰۷/۲۱ — محصول با variant (سایز/رنگ) موجودی واقعی‌اش جمع موجودی ترکیب‌هاست؛
+// Product.stock آن حالت معنی ندارد (۰ می‌ماند) و نباید باعث بج «ناموجود» شود
+export function effectiveStock(p: { stock: number; optionTypes?: unknown[]; variants?: { stock: number }[] }): number {
+  if (p.optionTypes?.length && p.variants) return p.variants.reduce((sum, v) => sum + v.stock, 0)
+  return p.stock
+}
+
 // عمومی، بدون auth — عیناً همان مسیر که ShopUiBlocks.tsx برای چت خریدار استفاده می‌کند
 export function productImageUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/images/${key}`

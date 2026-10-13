@@ -4,7 +4,7 @@ import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { useMyStores, useNeededAttention, useProducts } from '@/queries/seller.queries'
 import { useConvertDemoStoreToReal } from '@/queries/demo.queries'
-import { extractErrorMessage } from '@/lib/sellerProduct'
+import { effectiveStock, extractErrorMessage } from '@/lib/sellerProduct'
 import { GoldPriceTicker } from '@/components/shop/GoldPriceTicker'
 import type { SellerStore } from '@/types/api'
 
@@ -205,7 +205,7 @@ export function SellerPanelLayout() {
   const store = stores?.[0]
   const attention = useNeededAttention(store?.id ?? '')
   const products = useProducts(store?.id ?? '')
-  const lowStockCount = products.data?.filter(p => p.stock <= LOW_STOCK_THRESHOLD).length ?? 0
+  const lowStockCount = products.data?.filter(p => effectiveStock(p) <= LOW_STOCK_THRESHOLD).length ?? 0
   const attentionBadge = (attention.data?.length ?? 0) + lowStockCount
 
   if (isLoading) return <div className="min-h-screen bg-slate-950 light:bg-white" />

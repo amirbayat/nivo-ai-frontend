@@ -4,7 +4,7 @@ import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import { toEnglishDigits, formatThousands } from '@/lib/digits'
-import { extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
+import { effectiveStock, extractErrorMessage, productImageUrl } from '@/lib/sellerProduct'
 import {
   useAddProductImagesFromUrl,
   useAnalyzeCompetitors,
@@ -15,9 +15,11 @@ import {
   useImportProductFromUrl,
   useImportProducts,
   useProducts,
+  useReplaceProductVariants,
   useTranscribeAudioFile,
   useUpdateProduct,
 } from '@/queries/seller.queries'
+import type { ReplaceProductVariantsInput } from '@/queries/seller.queries'
 import type { BulkCompleteResultItem, ExtractedProductCandidate, ExtractProductsResult } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { GuideAssistantModal } from './GuideAssistantModal'
@@ -359,6 +361,25 @@ export function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onCl
 // که چند محصول را با هم توصیف می‌کند؛ AI استخراج می‌کند و با محصولات موجود (کد/اسم) تطبیق
 // می‌دهد، ولی هیچ‌چیز خودکار ذخیره نمی‌شود — فروشنده هر ردیف را در این شیت تأیید/ویرایش
 // می‌کند و اعمال با همان useCreateProduct/useUpdateProduct معمولی انجام می‌شود
+// ترکیب دکارتی گزینه‌ها (همان منطق cartesianCombos در SellerProductEditPage)؛ موجودی هر ترکیب =
+// موجودی مقدار گزینه‌ها (اگر دو بعد است، کمینه‌ی دو موجودی تعیین‌شده؛ هیچ‌کدام نگفته = ۰)
+function buildVariantsDto(options: NonNullable<ExtractedProductCandidate['variantOptions']>): ReplaceProductVariantsInput {
+  const combos = options.reduce<{ ov: Record<string, string>; stock?: number }[]>((acc, opt) => {
+    const next = opt.values.map(v => ({ name: opt.name, value: v.value, stock: v.stock }))
+    if (acc.length === 0) return next.map(n => ({ ov: { [n.name]: n.value }, stock: n.stock }))
+    return acc.flatMap(c =>
+      next.map(n => ({
+        ov: { ...c.ov, [n.name]: n.value },
+        stock: c.stock === undefined ? n.stock : n.stock === undefined ? c.stock : Math.min(c.stock, n.stock),
+      })),
+    )
+  }, [])
+  return {
+    optionTypes: options.map(o => ({ name: o.name, values: o.values.map(v => v.value) })),
+    variants: combos.map(c => ({ optionValues: c.ov, stock: c.stock ?? 0 })),
+  }
+}
+
 interface BulkImportItem extends ExtractedProductCandidate {
   included: boolean
 }
@@ -381,6 +402,7 @@ export function BulkProductImportSheet({
   const transcribeFile = useTranscribeAudioFile(storeId)
   const createProduct = useCreateProduct(storeId)
   const updateProduct = useUpdateProduct(storeId)
+  const replaceVariants = useReplaceProductVariants(storeId)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
@@ -415,25 +437,34 @@ export function BulkProductImportSheet({
     for (const item of items) {
       if (!item.included) continue
       try {
+        const hasVariants = !!item.variantOptions?.length
+        // با variant، موجودی سطح محصول معنی ندارد (موجودی واقعی جمع ترکیب‌هاست)
+        const stock = hasVariants ? undefined : item.stock
+        let productId: string
         if (item.action === 'update' && item.matchedProductId) {
+          productId = item.matchedProductId
           await updateProduct.mutateAsync({
-            productId: item.matchedProductId,
+            productId,
             dto: {
               name: item.name,
               description: item.description || undefined,
               basePrice: item.basePrice,
-              stock: item.stock,
+              stock,
               code: item.code || undefined,
             },
           })
         } else {
-          await createProduct.mutateAsync({
+          const created = await createProduct.mutateAsync({
             name: item.name,
             basePrice: item.basePrice ?? 0,
             description: item.description || undefined,
-            stock: item.stock,
+            stock,
             code: item.code || undefined,
           })
+          productId = created.id
+        }
+        if (hasVariants) {
+          await replaceVariants.mutateAsync({ productId, dto: buildVariantsDto(item.variantOptions!) })
         }
         ok++
       } catch {
@@ -601,17 +632,51 @@ export function BulkProductImportSheet({
                         inputMode="numeric"
                         className="flex-1 text-center"
                       />
-                      <Input
-                        value={item.stock !== undefined ? String(item.stock) : ''}
-                        onChange={e =>
-                          updateItem(idx, { stock: Number(toEnglishDigits(e.target.value).replace(/\D/g, '')) || undefined })
-                        }
-                        placeholder={fa.seller.panel.products.stockLabel}
-                        dir="ltr"
-                        inputMode="numeric"
-                        className="flex-1 text-center"
-                      />
+                      {!item.variantOptions?.length && (
+                        <Input
+                          value={item.stock !== undefined ? String(item.stock) : ''}
+                          onChange={e =>
+                            updateItem(idx, { stock: Number(toEnglishDigits(e.target.value).replace(/\D/g, '')) || undefined })
+                          }
+                          placeholder={fa.seller.panel.products.stockLabel}
+                          dir="ltr"
+                          inputMode="numeric"
+                          className="flex-1 text-center"
+                        />
+                      )}
                     </div>
+                    {item.variantOptions?.map((opt, oi) => (
+                      <div key={oi} className="mb-2">
+                        <p className="mb-1 text-[11px] text-slate-500">{fa.seller.panel.products.bulkImportVariantsLabel(opt.name)}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {opt.values.map((v, vi) => (
+                            <span
+                              key={vi}
+                              className="flex items-center gap-1.5 rounded-full bg-slate-700/60 light:bg-slate-200 px-2.5 py-1 text-xs text-slate-200 light:text-slate-800"
+                            >
+                              {v.value}
+                              <input
+                                value={v.stock !== undefined ? String(v.stock) : ''}
+                                onChange={e => {
+                                  const n = toEnglishDigits(e.target.value).replace(/\D/g, '')
+                                  updateItem(idx, {
+                                    variantOptions: item.variantOptions!.map((o, k) =>
+                                      k !== oi
+                                        ? o
+                                        : { ...o, values: o.values.map((x, j) => (j === vi ? { ...x, stock: n === '' ? undefined : Number(n) } : x)) },
+                                    ),
+                                  })
+                                }}
+                                placeholder="۰"
+                                dir="ltr"
+                                inputMode="numeric"
+                                className="w-9 rounded bg-slate-900/60 light:bg-white px-1 py-0.5 text-center text-[11px]"
+                              />
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                     {item.included && item.action === 'create' && item.basePrice === undefined && (
                       <p className="text-[11px] text-amber-400">{fa.seller.panel.products.bulkImportMissingPrice}</p>
                     )}
@@ -761,10 +826,10 @@ export function SellerProductsPage() {
                 {p.code && <span dir="ltr" className="mr-1.5 text-xs font-normal text-slate-500">#{p.code}</span>}
               </p>
               <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
-                {fa.shop.stockCount(p.stock)}
-                {p.stock <= 3 && (
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${p.stock === 0 ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
-                    {p.stock === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}
+                {fa.shop.stockCount(effectiveStock(p))}
+                {effectiveStock(p) <= 3 && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${effectiveStock(p) === 0 ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                    {effectiveStock(p) === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}
                   </span>
                 )}
               </p>
