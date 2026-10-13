@@ -4,7 +4,7 @@ import { fa } from '@/locales/fa'
 import { extractErrorMessage } from '@/lib/sellerProduct'
 import { buildGuidePrompt, buildGuideOpeningMessage, GUIDE_PROMPT_TITLES } from '@/lib/guideAssistantPrompts'
 import { useAnalyzeOwnerNotes, useExtractProductsFromText, useTranscribeAudio } from '@/queries/seller.queries'
-import { useGuideAssistantChat, synthesizeGuideVoice } from '@/hooks/useGuideAssistantChat'
+import { useGuideAssistantChat } from '@/hooks/useGuideAssistantChat'
 import type { AnalyzeOwnerNotesResult, ExtractProductsResult } from '@/types/api'
 
 // docs/PRD-seller-guide-assistant-modal.md بخش ۳.۳/۳.۱۱ — جایگزین کامل GuidePromptModal (کپی
@@ -46,12 +46,8 @@ export function GuideAssistantModal({
 
   const [draft, setDraft] = useState('')
   const [recording, setRecording] = useState(false)
-  const [voiceLoadingIndex, setVoiceLoadingIndex] = useState<number | null>(null)
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const voiceCacheRef = useRef<Map<number, string>>(new Map())
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const systemPrompt = useMemo(
@@ -69,10 +65,6 @@ export function GuideAssistantModal({
     setDraft('')
     analyze.reset()
     extractProducts.reset()
-    for (const url of voiceCacheRef.current.values()) URL.revokeObjectURL(url)
-    voiceCacheRef.current = new Map()
-    setPlayingIndex(null)
-    setVoiceLoadingIndex(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -119,32 +111,6 @@ export function GuideAssistantModal({
       setRecording(true)
     } catch {
       alert(fa.shop.micNotSupported)
-    }
-  }
-
-  async function playVoice(index: number, text: string) {
-    if (voiceLoadingIndex !== null) return
-    const audio = audioRef.current
-    if (!audio) return
-    const cached = voiceCacheRef.current.get(index)
-    if (cached) {
-      audio.src = cached
-      void audio.play()
-      setPlayingIndex(index)
-      return
-    }
-    setVoiceLoadingIndex(index)
-    try {
-      const blob = await synthesizeGuideVoice(storeId, text)
-      const url = URL.createObjectURL(blob)
-      voiceCacheRef.current.set(index, url)
-      audio.src = url
-      void audio.play()
-      setPlayingIndex(index)
-    } catch {
-      alert(fa.seller.panel.guideAssistant.voiceError)
-    } finally {
-      setVoiceLoadingIndex(null)
     }
   }
 
@@ -197,7 +163,6 @@ export function GuideAssistantModal({
       aria-modal="true"
       aria-label={GUIDE_PROMPT_TITLES[context]}
     >
-      <audio ref={audioRef} onEnded={() => setPlayingIndex(null)} className="hidden" />
 
       <div
         className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700/50 light:border-slate-200 px-5 pb-4"
@@ -236,16 +201,6 @@ export function GuideAssistantModal({
             )}
           >
             {m.content || (sending && i === messages.length - 1 ? t.thinking : '')}
-            {m.role === 'assistant' && m.content && (
-              <button
-                type="button"
-                onClick={() => void playVoice(i, m.content)}
-                disabled={voiceLoadingIndex !== null}
-                className="mt-2 block text-[11px] font-semibold text-emerald-400 hover:underline disabled:opacity-50"
-              >
-                {voiceLoadingIndex === i ? '…' : playingIndex === i ? t.playing : t.play}
-              </button>
-            )}
           </div>
         ))}
 

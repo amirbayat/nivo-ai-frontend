@@ -119,15 +119,3 @@ export function useGuideAssistantChat(storeId: string) {
 
   return { messages, sending, error, userMessageCount, atCap, sendMessage, reset }
 }
-
-// docs/PRD-seller-guide-assistant-modal.md بخش ۳.۳/۳.۴ — پخش با کلیک دستی روی یک حباب پاسخ،
-// نتیجه در خودِ کامپوننت cache می‌شود تا کلیک دوباره دوباره تولید نکند
-export async function synthesizeGuideVoice(storeId: string, text: string): Promise<Blob> {
-  const res = await fetch(`${env.VITE_API_URL}/v2/stores/${storeId}/guide-assistant/tts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ text }),
-  })
-  if (!res.ok) throw new Error(fa.seller.panel.guideAssistant.voiceError)
-  return res.blob()
-}
