@@ -48,6 +48,7 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
         role: 'agent',
         text: e.payload.text,
         uiBlock: e.payload.uiBlock?.type !== 'NONE' ? e.payload.uiBlock : undefined,
+        quickReplies: e.payload.quickReplies?.length ? e.payload.quickReplies : undefined,
       })
     }
   })
@@ -160,7 +161,17 @@ export function useShopChat(slug: string, productId?: string) {
       setAwaitingReview(!!res.awaitingReview)
       const uiBlock = res.uiBlocks.find((b) => b.type !== 'NONE')
       const id = `agent-${Date.now()}`
-      setMessages((prev) => [...prev, { id, role: 'agent', text: res.reply, uiBlock, voiceEventId: res.voiceEventId }])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id,
+          role: 'agent',
+          text: res.reply,
+          uiBlock,
+          voiceEventId: res.voiceEventId,
+          quickReplies: res.quickReplies?.length ? res.quickReplies : undefined,
+        },
+      ])
       if (res.voiceEventId) pollVoice(id, res.voiceEventId)
     },
     [pollVoice],

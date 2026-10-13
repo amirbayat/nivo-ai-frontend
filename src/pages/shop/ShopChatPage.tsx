@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEv
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
+import { QuickRepliesBar } from '@/components/shop/QuickRepliesBar'
 import { StoreProductGrid } from '@/components/shop/StoreProductGrid'
 import { CommentModal } from '@/components/shop/CommentModal'
 import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
@@ -762,6 +763,11 @@ export function ShopChatPage() {
                   onToggleSave={toggleSaveProduct}
                   cartProductIds={cartProductIds}
                 />
+              )}
+              {/* docs/PRD-sales-agent-sales-state-machine.md §۱۲.۲ — فقط برای آخرین پیام کل چت؛
+                  با ارسال هر پیام دیگری (که آخرین پیام را عوض می‌کند) یا در حال ارسال، پنهان می‌شود */}
+              {m.role === 'agent' && !!m.quickReplies?.length && m.id === messages[messages.length - 1]?.id && !sending && (
+                <QuickRepliesBar replies={m.quickReplies} disabled={disabled} onPick={text => void sendMessage(text)} />
               )}
             </div>
           </div>
