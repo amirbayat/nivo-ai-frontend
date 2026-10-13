@@ -8,6 +8,7 @@
     "dev:intl": "VITE_REGION=INTL vite",
     "build": "tsc -b && vite build",
     "build:intl": "VITE_REGION=INTL tsc -b && VITE_REGION=INTL vite build",
+    "check:digits": "sh scripts/check-digit-inputs.sh",
     "lint": "oxlint",
     "preview": "vite preview"
   },
