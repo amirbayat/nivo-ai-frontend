@@ -155,8 +155,37 @@ export function useShopChat(slug: string, productId?: string) {
     }, 2000)
   }, [])
 
+  // 0.4 — سرور پیام را در صف گذاشت (مکالمه مشغول turn قبلی بود)؛ جواب به‌زودی به‌صورت رویداد
+  // لاگ می‌شود. چند بار (۲،۴،۷،۱۲ ثانیه) رویدادها را می‌خوانیم تا جواب ظاهر شود.
+  const pollQueuedReply = useCallback(() => {
+    const session = sessionRef.current
+    if (!session) return
+    const known = session.conversationId
+    for (const delayMs of [2000, 4000, 7000, 12000]) {
+      setTimeout(async () => {
+        const live = sessionRef.current
+        if (!live || live.conversationId !== known) return
+        try {
+          const res = await fetch(`${env.VITE_API_URL}/v2/chat/${known}`, {
+            headers: { 'X-Session-Token': live.sessionToken },
+          })
+          if (!res.ok) return
+          const data = (await res.json()) as ShopGetConversationResponse
+          setState(data.state)
+          setMessages(eventsToMessages(data.events, known))
+        } catch {
+          // خطای موقت شبکه — تلاش بعدی
+        }
+      }, delayMs)
+    }
+  }, [])
+
   const applyReply = useCallback(
     (res: ShopSendMessageResponse) => {
+      if (res.queued) {
+        pollQueuedReply()
+        return
+      }
       // 0.13b — سرور مکالمه‌ی جدیدی برای این اکشن ساخته؛ از این به بعد پیام‌ها/پالینگ به همان می‌روند
       // (مکالمه‌ی قبلی برای پیگیری سفارش در تاریخچه می‌ماند)
       if (res.switchedConversationId && sessionRef.current) {
@@ -185,7 +214,7 @@ export function useShopChat(slug: string, productId?: string) {
       ])
       if (res.voiceEventId) pollVoice(id, res.voiceEventId)
     },
-    [pollVoice, slug],
+    [pollVoice, pollQueuedReply, slug],
   )
 
   const sendMessage = useCallback(

@@ -628,6 +628,8 @@ export interface ShopSendMessageResponse {
   awaitingReview?: boolean
   // 0.13b — «سفارش مجدد»/«افزودن به سبد» روی مکالمه‌ی دارای سفارش، مکالمه‌ی تازه می‌سازد
   switchedConversationId?: string
+  // 0.4 — پیام در صف سرور رفت (مکالمه مشغول بود)؛ جواب بعداً از رویدادهای مکالمه می‌آید
+  queued?: boolean
 }
 
 export interface ShopVoiceStatusResponse {
