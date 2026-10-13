@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { compressImage } from '@/lib/compressImage'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
+import { newClientMessageId } from '@/lib/clientMessageId'
 import { getShopSession,
   clearShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
 import type {
@@ -240,7 +241,11 @@ export function useShopChat(slug: string, productId?: string) {
       try {
         const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Session-Token': session.sessionToken,
+            'Idempotency-Key': newClientMessageId(),
+          },
           body: JSON.stringify({ message: text }),
         })
         if (!res.ok) throw new Error('request failed')
@@ -266,7 +271,11 @@ export function useShopChat(slug: string, productId?: string) {
       try {
         const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Session-Token': session.sessionToken,
+            'Idempotency-Key': newClientMessageId(),
+          },
           body: JSON.stringify({ action }),
         })
         if (!res.ok) throw new Error('request failed')
