@@ -640,6 +640,11 @@ export const fa = {
         pendingOrders: (n: number) => `${n.toLocaleString('fa-IR')} سفارش در انتظار تایید`,
         needsAttention: (n: number) => `${n.toLocaleString('fa-IR')} مکالمه نیاز به توجه دارد`,
         shareLink: 'اشتراک‌گذاری لینک فروشگاه',
+        testBotButton: 'از باتت سوال بپرس',
+        testBotTitle: 'تست بات فروشگاه',
+        testBotHint: 'این گفتگو در آمار و لیست «نیاز به توجه» نمی‌آید. هزینه‌ی جواب از اعتبار هوش مصنوعی کم می‌شود.',
+        testBotPlaceholder: 'مثل یک خریدار بپرس',
+        testBotSend: 'بفرست',
         // docs/PRD-seller-credit-billing.md بخش ۴
         creditBalance: 'اعتبار هوش مصنوعی',
         creditBalanceToman: (n: number) => `${n.toLocaleString('fa-IR')} تومان`,

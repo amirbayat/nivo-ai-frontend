@@ -5,6 +5,7 @@ import { fa } from '@/locales/fa'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import { useNeededAttention, useOrders, useProducts, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
+import { SellerTestChatSheet } from './SellerTestChatSheet'
 
 // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱ — چک‌لیست ۳موردی، هر ردیف یک ✓/— ساده
 function ChecklistRow({ done, label }: { done: boolean; label: string }) {
@@ -27,6 +28,7 @@ export function SellerHomePage() {
   const completeness = useStoreCompleteness(storeId)
   const products = useProducts(storeId)
   const [copied, setCopied] = useState(false)
+  const [testOpen, setTestOpen] = useState(false)
 
   const chatLink = `${window.location.origin}/shop/${storeSlug}`
 
@@ -110,6 +112,15 @@ export function SellerHomePage() {
           {fa.seller.panel.home.creditTopUp}
         </span>
       </Link>
+
+      <button
+        type="button"
+        onClick={() => setTestOpen(true)}
+        className="mb-4 w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white"
+      >
+        {fa.seller.panel.home.testBotButton}
+      </button>
+      {testOpen && <SellerTestChatSheet storeId={storeId} onClose={() => setTestOpen(false)} />}
 
       <div className="mb-4 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-4">
         <p dir="ltr" className="break-all text-center text-[14px] font-mono text-emerald-300 light:text-emerald-700">{chatLink}</p>
