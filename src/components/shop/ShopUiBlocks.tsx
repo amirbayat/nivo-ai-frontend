@@ -4,6 +4,7 @@ import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { PaymentCard, type ManualReceiptInfo } from './PaymentCard'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 import type { ShopAction, ShopUiBlock } from '@/types/api'
 
 interface BlockProps {
@@ -459,21 +460,98 @@ function OrderStatusBlock({ status, orderCode }: { status: string; orderCode?: s
 
 // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
 // — یک کامپوننت با سه حالت (مثل UiBlock سمت بک‌اند)، نه سه کامپوننت جدا
+function AddressFormBlock({
+  provinces,
+  prefillName,
+  prefillPhone,
+  disabled,
+  onSendAction,
+}: {
+  provinces?: string[]
+  prefillName?: string
+  prefillPhone?: string
+  disabled: boolean
+  onSendAction: (action: ShopAction) => void
+}) {
+  const [name, setName] = useState(prefillName ?? '')
+  const [phone, setPhone] = useState(prefillPhone ?? '')
+  const [province, setProvince] = useState('')
+  const [city, setCity] = useState('')
+  const [street, setStreet] = useState('')
+  const [postal, setPostal] = useState('')
+  const [plaque, setPlaque] = useState('')
+  const [unit, setUnit] = useState('')
+  const ready = Boolean(name.trim() && phone.trim() && province && city.trim() && street.trim() && postal.length === 10)
+  const field = 'w-full rounded-lg border border-slate-600/60 bg-slate-900 px-3 py-2 text-sm text-slate-100 light:border-slate-300 light:bg-white light:text-slate-900'
+  return (
+    <form
+      className="mt-2 flex flex-col gap-2"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (!ready || disabled) return
+        onSendAction({
+          type: 'SUBMIT_ADDRESS',
+          recipientName: name.trim(),
+          recipientPhone: phone,
+          province,
+          city: city.trim(),
+          addressText: street.trim(),
+          postalCode: postal,
+          plaque: plaque || undefined,
+          unit: unit.trim() || undefined,
+        })
+      }}
+    >
+      <input value={name} onChange={(event) => setName(event.target.value)} placeholder={fa.shop.addressFormName} className={field} />
+      <DigitsInput kind="phone" value={phone} onChange={setPhone} placeholder={fa.shop.addressFormPhone} className={field} />
+      <select value={province} onChange={(event) => setProvince(event.target.value)} className={field}>
+        <option value="">{fa.shop.addressFormProvince}</option>
+        {(provinces ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+      </select>
+      <input value={city} onChange={(event) => setCity(event.target.value)} placeholder={fa.shop.addressFormCity} className={field} />
+      <input value={street} onChange={(event) => setStreet(event.target.value)} placeholder={fa.shop.addressFormStreet} className={field} />
+      <DigitsInput kind="postal" value={postal} onChange={setPostal} placeholder={fa.shop.addressFormPostal} className={field} />
+      <div className="flex gap-2">
+        <DigitsInput kind="int" value={plaque} onChange={setPlaque} placeholder={fa.shop.addressFormPlaque} className={field} />
+        <input value={unit} onChange={(event) => setUnit(event.target.value)} placeholder={fa.shop.addressFormUnit} className={field} />
+      </div>
+      <button type="submit" disabled={!ready || disabled} className="rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white disabled:opacity-40">
+        {fa.shop.addressFormSubmit}
+      </button>
+    </form>
+  )
+}
+
 function AddressPromptBlock({
   mode,
   addresses,
   provinces,
   summary,
+  prefillName,
+  prefillPhone,
   disabled,
   onSendAction,
 }: {
-  mode: 'CHOOSE_SAVED' | 'CHOOSE_PROVINCE' | 'CONFIRM' | 'ASK_SAVE'
+  mode: 'CHOOSE_SAVED' | 'CHOOSE_PROVINCE' | 'CONFIRM' | 'ASK_SAVE' | 'FORM'
   addresses?: { id: string; summary: string }[]
   provinces?: string[]
   summary?: string
+  prefillName?: string
+  prefillPhone?: string
   disabled: boolean
   onSendAction: (action: ShopAction) => void
 }) {
+  if (mode === 'FORM') {
+    return (
+      <AddressFormBlock
+        provinces={provinces}
+        prefillName={prefillName}
+        prefillPhone={prefillPhone}
+        disabled={disabled}
+        onSendAction={onSendAction}
+      />
+    )
+  }
   if (mode === 'CHOOSE_PROVINCE') {
     return (
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -796,6 +874,8 @@ export function ShopUiBlockView({
           addresses={block.addresses}
           provinces={block.provinces}
           summary={block.summary}
+          prefillName={block.prefillName}
+          prefillPhone={block.prefillPhone}
           disabled={disabled}
           onSendAction={onSendAction}
         />

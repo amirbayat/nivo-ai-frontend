@@ -456,10 +456,12 @@ export type ShopUiBlock =
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
   | {
       type: 'ADDRESS_PROMPT'
-      mode: 'CHOOSE_SAVED' | 'CHOOSE_PROVINCE' | 'CONFIRM' | 'ASK_SAVE'
+      mode: 'CHOOSE_SAVED' | 'CHOOSE_PROVINCE' | 'CONFIRM' | 'ASK_SAVE' | 'FORM'
       addresses?: { id: string; summary: string }[]
       // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲ (فاز ۱.۵) — فقط CHOOSE_PROVINCE
       provinces?: string[]
+      prefillName?: string
+      prefillPhone?: string
       summary?: string
       shippingCostToman?: number
       provinceCovered?: boolean
@@ -598,6 +600,17 @@ export type ShopAction =
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ — دکمه‌های فلوی آدرس
   | { type: 'SELECT_ADDRESS'; addressId: string }
   | { type: 'NEW_ADDRESS' }
+  | {
+      type: 'SUBMIT_ADDRESS'
+      recipientName: string
+      recipientPhone: string
+      province: string
+      city: string
+      addressText: string
+      postalCode: string
+      plaque?: string
+      unit?: string
+    }
   // بخش ۲ (فاز ۱.۵) — انتخاب استان دکمه‌ای
   | { type: 'SELECT_PROVINCE'; province: string }
   | { type: 'CONFIRM_ADDRESS' }
