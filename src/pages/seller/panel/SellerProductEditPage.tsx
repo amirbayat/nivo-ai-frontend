@@ -833,6 +833,7 @@ export function SellerProductEditPage() {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('')
+  const initialStockRef = useRef<number | null>(null)
   const [description, setDescription] = useState('')
   const [specs, setSpecs] = useState<ProductSpecSuggestion[]>([])
   const [code, setCode] = useState('')
@@ -865,6 +866,7 @@ export function SellerProductEditPage() {
       setName(product.name)
       setPrice(String(product.basePrice))
       setStock(String(product.stock))
+      initialStockRef.current = product.stock
       setDescription(product.description ?? '')
       setSpecs(product.specs ?? [])
       setCode(product.code ?? '')
@@ -889,10 +891,14 @@ export function SellerProductEditPage() {
   }
 
   function save() {
+    const stockDigits = toEnglishDigits(stock).replace(/\D/g, '')
+    const parsedStock = stockDigits === '' ? undefined : Number(stockDigits)
+    const stockChanged =
+      parsedStock !== undefined && parsedStock !== initialStockRef.current
     const dto = {
       name,
       basePrice: isWeightBased ? 0 : Number(toEnglishDigits(price)) || 0,
-      stock: stock ? Number(toEnglishDigits(stock)) : undefined,
+      ...(stockChanged ? { stock: parsedStock } : {}),
       description: description || undefined,
       specs: specs.length ? specs : null,
       code: code.trim() || undefined,

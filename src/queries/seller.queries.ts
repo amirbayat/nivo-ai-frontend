@@ -435,6 +435,7 @@ export function useApproveOrder(storeId: string) {
           .addToast(fa.seller.panel.orders.stockShortageToast(data.stockWarnings.map(w => w.name).join('، ')), 12000)
       }
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
     },
   })
 }
@@ -444,7 +445,10 @@ export function useRejectOrder(storeId: string) {
   return useMutation({
     mutationFn: ({ orderId, reason }: { orderId: string; reason?: string }) =>
       api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/reject`, { reason }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
+    },
   })
 }
 
@@ -476,7 +480,10 @@ export function useShipOrder(storeId: string) {
     // 3.5 — شرکت حمل + کد رهگیری (هر دو اختیاری)
     mutationFn: ({ orderId, carrier, trackingCode }: { orderId: string; carrier?: string; trackingCode?: string }) =>
       api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/ship`, { carrier, trackingCode }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
+    },
   })
 }
 

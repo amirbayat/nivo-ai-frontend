@@ -19,7 +19,7 @@ import {
   useUpdateProduct,
 } from '@/queries/seller.queries'
 import type { ReplaceProductVariantsInput } from '@/queries/seller.queries'
-import type { BulkCompleteResultItem, ExtractedProductCandidate, ExtractProductsResult } from '@/types/api'
+import type { BulkCompleteResultItem, ExtractedProductCandidate, ExtractProductsResult, ProductVariant } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { GuideAssistantModal } from './GuideAssistantModal'
 import { Input } from '@/components/ui/Input'
@@ -362,7 +362,14 @@ export function ImportFromUrlSheet({ storeId, onClose }: { storeId: string; onCl
 // می‌کند و اعمال با همان useCreateProduct/useUpdateProduct معمولی انجام می‌شود
 // ترکیب دکارتی گزینه‌ها (همان منطق cartesianCombos در SellerProductEditPage)؛ موجودی هر ترکیب =
 // موجودی مقدار گزینه‌ها (اگر دو بعد است، کمینه‌ی دو موجودی تعیین‌شده؛ هیچ‌کدام نگفته = ۰)
-function buildVariantsDto(options: NonNullable<ExtractedProductCandidate['variantOptions']>): ReplaceProductVariantsInput {
+function variantComboKey(optionValues: Record<string, string>): string {
+  return JSON.stringify(Object.keys(optionValues).sort().map((key) => [key, optionValues[key]]))
+}
+
+function buildVariantsDto(
+  options: NonNullable<ExtractedProductCandidate['variantOptions']>,
+  existing: ProductVariant[] = [],
+): ReplaceProductVariantsInput {
   const combos = options.reduce<{ ov: Record<string, string>; stock?: number }[]>((acc, opt) => {
     const next = opt.values.map(v => ({ name: opt.name, value: v.value, stock: v.stock }))
     if (acc.length === 0) return next.map(n => ({ ov: { [n.name]: n.value }, stock: n.stock }))
@@ -373,9 +380,20 @@ function buildVariantsDto(options: NonNullable<ExtractedProductCandidate['varian
       })),
     )
   }, [])
+  const previous = new Map(existing.map((variant) => [variantComboKey(variant.optionValues), variant]))
   return {
     optionTypes: options.map(o => ({ name: o.name, values: o.values.map(v => v.value) })),
-    variants: combos.map(c => ({ optionValues: c.ov, stock: c.stock ?? 0 })),
+    variants: combos.map(c => {
+      const prev = previous.get(variantComboKey(c.ov))
+      return {
+        optionValues: c.ov,
+        stock: c.stock ?? prev?.stock ?? 0,
+        priceOverride: prev?.priceOverride ?? null,
+        ...(prev?.sku ? { sku: prev.sku } : {}),
+        ...(prev?.weightGrams != null ? { weightGrams: prev.weightGrams } : {}),
+        ...(prev?.purityKarat != null ? { purityKarat: prev.purityKarat } : {}),
+      }
+    }),
   }
 }
 
@@ -402,6 +420,7 @@ export function BulkProductImportSheet({
   const createProduct = useCreateProduct(storeId)
   const updateProduct = useUpdateProduct(storeId)
   const replaceVariants = useReplaceProductVariants(storeId)
+  const catalog = useProducts(storeId)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
@@ -463,7 +482,11 @@ export function BulkProductImportSheet({
           productId = created.id
         }
         if (hasVariants) {
-          await replaceVariants.mutateAsync({ productId, dto: buildVariantsDto(item.variantOptions!) })
+          const saved = catalog.data?.find((product) => product.id === productId)
+          await replaceVariants.mutateAsync({
+            productId,
+            dto: buildVariantsDto(item.variantOptions!, saved?.variants ?? []),
+          })
         }
         ok++
       } catch {
