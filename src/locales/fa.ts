@@ -587,9 +587,10 @@ export const fa = {
     },
     step2: {
       heading: 'وجه سفارش‌ها کجا واریز شود؟',
-      subheading: 'این شماره‌کارت دقیقاً همونیه که به مشتری برای پرداخت نشون داده می‌شه.',
+      subheading: 'اختیاری است. اگر الان نزنی، از خانه‌ی پنل می‌توانی کارت یا اسنپ‌پی را اضافه کنی.',
       cardNumberLabel: 'شماره کارت (۱۶ رقم)',
       ownerNameLabel: 'نام صاحب حساب',
+      skipCard: 'بعداً اضافه می‌کنم',
     },
     // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (پروفایل برند عمیق‌تر در
     // آنبوردینگ) — قدم اختیاری تازه، بین ساخت فروشگاه (step2) و صفحه‌ی موفقیت (step4 سابق step3)
@@ -659,6 +660,7 @@ export const fa = {
         completenessChecklistBrandIntro: 'معرفی کوتاه برند ثبت‌شده',
         completenessChecklistOwnerNotes: 'یادداشت‌های فروشنده ثبت‌شده',
         completenessChecklistWorkingHours: 'ساعت پاسخ‌گویی ثبت‌شده',
+        completenessChecklistPayment: 'روش پرداخت (کارت یا اسنپ‌پی)',
         // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — محافظ در برابر فروشگاه‌های خالی رها‌شده
         noProductsTitle: 'هنوز محصولی نداری',
         noProductsSubtitle: 'بدون محصول، لینک فروشگاهت برای مشتری خالیه',

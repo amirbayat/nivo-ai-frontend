@@ -94,6 +94,22 @@ export function SellerHomePage() {
             <ChecklistRow done={completeness.data.checklist.hasBrandIntro} label={fa.seller.panel.home.completenessChecklistBrandIntro} />
             <ChecklistRow done={completeness.data.checklist.hasOwnerNotes} label={fa.seller.panel.home.completenessChecklistOwnerNotes} />
             <ChecklistRow done={completeness.data.checklist.hasWorkingHours} label={fa.seller.panel.home.completenessChecklistWorkingHours} />
+            <li>
+              <Link
+                to="/seller/panel/bank-cards"
+                className={clsx(
+                  'flex items-center gap-2 rounded-lg text-xs',
+                  completeness.data.checklist.hasPaymentMethod ? '' : 'bg-amber-500/10 px-2 py-1',
+                )}
+              >
+                <span className={clsx('flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]', completeness.data.checklist.hasPaymentMethod ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300')}>
+                  {completeness.data.checklist.hasPaymentMethod ? '✓' : '!'}
+                </span>
+                <span className={completeness.data.checklist.hasPaymentMethod ? 'text-slate-500 line-through' : 'font-semibold text-amber-200 light:text-amber-800'}>
+                  {fa.seller.panel.home.completenessChecklistPayment}
+                </span>
+              </Link>
+            </li>
           </ul>
         </div>
       )}

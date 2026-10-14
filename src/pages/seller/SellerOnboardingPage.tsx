@@ -4,11 +4,13 @@ import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { toEnglishDigits } from '@/lib/digits'
+import { extractErrorMessage } from '@/lib/sellerProduct'
 import {
   useCheckSlugAvailable,
   useClassifyBusinessSetup,
   useCreateStore,
   useGenerateBrandIntroAi,
+  useResumeOnboarding,
   useUpdateStore,
 } from '@/queries/seller.queries'
 import type { AnalyzeOwnerNotesResult, ClassifyBusinessSetupResult } from '@/types/api'
@@ -50,12 +52,16 @@ function ProgressBar({ step }: { step: number }) {
   )
 }
 
-function StepHeader({ onBack, step }: { onBack: () => void; step: number }) {
+function StepHeader({ onBack, step }: { onBack: (() => void) | null; step: number }) {
   return (
     <div className="mb-5 flex items-center justify-between">
-      <button onClick={onBack} className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-500 hover:border-slate-600 light:hover:border-slate-400 hover:text-slate-200 light:hover:text-slate-800" aria-label={fa.common.back}>
-        <BackChevron />
-      </button>
+      {onBack ? (
+        <button onClick={onBack} className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-500 hover:border-slate-600 light:hover:border-slate-400 hover:text-slate-200 light:hover:text-slate-800" aria-label={fa.common.back}>
+          <BackChevron />
+        </button>
+      ) : (
+        <span className="size-9 shrink-0" />
+      )}
       <span className="text-[13px] font-medium text-slate-500">{fa.seller.stepOf(step, TOTAL_STEPS)}</span>
     </div>
   )
@@ -106,6 +112,7 @@ export function SellerOnboardingPage() {
   const [storeId, setStoreId] = useState<string | null>(null)
   const [storeSlug, setStoreSlug] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [brandRawText, setBrandRawText] = useState('')
   const [brandIntroDraft, setBrandIntroDraft] = useState<string | null>(null)
   const [guideOpen, setGuideOpen] = useState(false)
@@ -113,6 +120,7 @@ export function SellerOnboardingPage() {
 
   const generateBrandIntro = useGenerateBrandIntroAi(storeId ?? '')
   const updateStore = useUpdateStore(storeId ?? '')
+  const resumeOnboarding = useResumeOnboarding(storeId ?? '')
   const classifyBusinessSetup = useClassifyBusinessSetup()
 
   useEffect(() => {
@@ -123,10 +131,7 @@ export function SellerOnboardingPage() {
   const slugCheck = useCheckSlugAvailable(debouncedSlug)
 
   function goBack() {
-    if (step === 1) {
-      navigate('/seller/login')
-      return
-    }
+    if (step === 1) return
     setStep(s => s - 1)
   }
 
@@ -138,21 +143,35 @@ export function SellerOnboardingPage() {
     setBizMode(result.confidence === 'HIGH' ? 'confirm' : 'manual')
   }
 
-  async function submitStore() {
-    const store = await createStore.mutateAsync({
+  async function submitStore(opts?: { skipCard?: boolean }) {
+    const cardDigits = opts?.skipCard ? '' : toEnglishDigits(cardNumber).replace(/\D/g, '')
+    const owner = opts?.skipCard ? '' : ownerName.trim()
+    const dto = {
       name,
       category: category ?? undefined,
       businessType,
       slug,
-      bankCardNumber: cardNumber,
-      bankOwnerName: ownerName,
+      ...(cardDigits && owner
+        ? { bankCardNumber: cardDigits, bankOwnerName: owner }
+        : {}),
       instagramUrl: instagramUrl || undefined,
       telegramUrl: telegramUrl || undefined,
       websiteUrl: websiteUrl || undefined,
-    })
-    setStoreId(store.id)
-    setStoreSlug(store.slug)
-    setStep(3)
+    }
+    setSubmitError(null)
+    try {
+      if (storeId) {
+        const store = await resumeOnboarding.mutateAsync(dto)
+        setStoreSlug(store.slug)
+      } else {
+        const store = await createStore.mutateAsync(dto)
+        setStoreId(store.id)
+        setStoreSlug(store.slug)
+      }
+      setStep(3)
+    } catch (err) {
+      setSubmitError(extractErrorMessage(err, fa.seller.errorGeneric))
+    }
   }
 
   async function generateBrandIntroDraft() {
@@ -173,13 +192,15 @@ export function SellerOnboardingPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const cardNumberValid = /^[0-9]{16}$/.test(toEnglishDigits(cardNumber))
+  const cardDigitsNow = toEnglishDigits(cardNumber).replace(/\D/g, '')
+  const cardNumberValid = /^[0-9]{16}$/.test(cardDigitsNow)
+  const cardStarted = cardDigitsNow.length > 0 || ownerName.trim().length > 0
   const slugValid = /^[a-z0-9-]{3,40}$/.test(slug)
 
   return (
     <div className="min-h-screen bg-slate-950 light:bg-white px-5 py-8" dir="rtl">
       <div className="mx-auto max-w-lg">
-        <StepHeader onBack={goBack} step={step} />
+        <StepHeader onBack={step === 1 ? null : goBack} step={step} />
         <ProgressBar step={step} />
 
         {step === 1 && (
@@ -396,11 +417,27 @@ export function SellerOnboardingPage() {
               <Input label={fa.seller.step2.ownerNameLabel} value={ownerName} onChange={e => setOwnerName(e.target.value)} />
             </div>
 
-            {createStore.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.errorGeneric}</p>}
+            {submitError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{submitError}</p>}
 
-            <NextButton onClick={submitStore} disabled={!cardNumberValid || !ownerName} loading={createStore.isPending}>
+            <NextButton
+              onClick={() => void submitStore()}
+              disabled={cardStarted && (!cardNumberValid || !ownerName.trim())}
+              loading={createStore.isPending || resumeOnboarding.isPending}
+            >
               {fa.seller.next}
             </NextButton>
+            <button
+              type="button"
+              onClick={() => {
+                setCardNumber('')
+                setOwnerName('')
+                void submitStore({ skipCard: true })
+              }}
+              disabled={createStore.isPending || resumeOnboarding.isPending}
+              className="mt-3 w-full text-center text-sm text-slate-500"
+            >
+              {fa.seller.step2.skipCard}
+            </button>
           </>
         )}
 

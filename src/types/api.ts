@@ -239,6 +239,7 @@ export interface StoreCompleteness {
     hasBrandIntro: boolean
     hasOwnerNotes: boolean
     hasWorkingHours: boolean
+    hasPaymentMethod: boolean
   }
 }
 

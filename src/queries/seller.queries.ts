@@ -54,8 +54,8 @@ export interface CreateStoreInput {
   // docs/PRD-business-types-and-appointment-booking.md بخش ۴ — نفرستادن = پیش‌فرض PRODUCT_SALES سمت بک‌اند
   businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
   slug: string
-  bankCardNumber: string
-  bankOwnerName: string
+  bankCardNumber?: string
+  bankOwnerName?: string
   instagramUrl?: string
   telegramUrl?: string
   websiteUrl?: string
@@ -127,6 +127,15 @@ export function useCreateStore() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (dto: CreateStoreInput) => api.post<SellerStore>('/v2/stores', dto).then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
+  })
+}
+
+export function useResumeOnboarding(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: CreateStoreInput) =>
+      api.patch<SellerStore>(`/v2/stores/${storeId}/onboarding`, dto).then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
   })
 }
