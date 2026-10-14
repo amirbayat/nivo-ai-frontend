@@ -6,6 +6,7 @@ import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import { useApproveOrder, useDeliverOrder, useOrders, useOverpayRefund, useRejectOrder, useShipOrder } from '@/queries/seller.queries'
 import { productImageUrl } from '@/lib/sellerProduct'
 import { copyText } from '@/lib/clipboard'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 import { toEnglishDigits } from '@/lib/digits'
 import { ORDER_CARRIERS } from '@/lib/orderCarriers'
 import type { SellerOrder, SellerOrderStatus } from '@/types/api'
@@ -64,6 +65,8 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
   const [showReceipt, setShowReceipt] = useState(false)
   const [showRejectReason, setShowRejectReason] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [moneyChoice, setMoneyChoice] = useState<'yes' | 'no' | null>(null)
+  const [refundAmount, setRefundAmount] = useState(String(order.totalAmount))
   const approve = useApproveOrder(storeId)
   const reject = useRejectOrder(storeId)
   const ship = useShipOrder(storeId)
@@ -84,8 +87,21 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
     .filter(Boolean)
     .join('، ')
 
+  const needsMoneyAnswer =
+    order.status === 'RECEIPT_SUBMITTED' || order.status === 'APPROVED' || !!order.receiptImageKey
   const submitReject = () => {
-    reject.mutate({ orderId: order.id, reason: rejectReason.trim() || undefined }, { onSuccess: onClose })
+    const amount = Number(refundAmount)
+    reject.mutate(
+      {
+        orderId: order.id,
+        reason: rejectReason.trim() || undefined,
+        ...(needsMoneyAnswer ? { moneyReceived: moneyChoice === 'yes' } : {}),
+        ...(needsMoneyAnswer && moneyChoice === 'yes' && Number.isInteger(amount) && amount > 0
+          ? { refundAmountToman: amount }
+          : {}),
+      },
+      { onSuccess: onClose },
+    )
   }
 
   return (
@@ -231,6 +247,33 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
 
         {canDecide && showRejectReason && (
           <div className="flex flex-col gap-2">
+            {needsMoneyAnswer && (
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMoneyChoice('yes')}
+                  className={`rounded-xl border px-3 py-2 text-start text-xs ${moneyChoice === 'yes' ? 'border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-300 light:border-slate-300 light:text-slate-700'}`}
+                >
+                  {fa.seller.panel.orders.moneyArrived(order.totalAmount)}
+                </button>
+                {moneyChoice === 'yes' && (
+                  <DigitsInput
+                    kind="price"
+                    value={refundAmount}
+                    onChange={setRefundAmount}
+                    aria-label={fa.seller.panel.orders.refundAmountLabel}
+                    className="rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 light:border-slate-300 light:bg-white light:text-slate-900"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setMoneyChoice('no')}
+                  className={`rounded-xl border px-3 py-2 text-start text-xs ${moneyChoice === 'no' ? 'border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-300 light:border-slate-300 light:text-slate-700'}`}
+                >
+                  {fa.seller.panel.orders.moneyMissing}
+                </button>
+              </div>
+            )}
             <textarea
               value={rejectReason}
               onChange={e => setRejectReason(e.target.value)}
@@ -248,7 +291,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
               </button>
               <button
                 onClick={submitReject}
-                disabled={reject.isPending}
+                disabled={reject.isPending || (needsMoneyAnswer && moneyChoice == null)}
                 className="flex-1 rounded-2xl bg-red-500 py-3.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-40"
               >
                 {fa.seller.panel.orders.confirmReject}

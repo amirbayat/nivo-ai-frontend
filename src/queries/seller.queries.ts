@@ -461,8 +461,22 @@ export function useApproveOrder(storeId: string) {
 export function useRejectOrder(storeId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ orderId, reason }: { orderId: string; reason?: string }) =>
-      api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/reject`, { reason }),
+    mutationFn: ({
+      orderId,
+      reason,
+      moneyReceived,
+      refundAmountToman,
+    }: {
+      orderId: string
+      reason?: string
+      moneyReceived?: boolean
+      refundAmountToman?: number
+    }) =>
+      api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/reject`, {
+        reason,
+        moneyReceived,
+        refundAmountToman,
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
       void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })

@@ -738,6 +738,9 @@ export const fa = {
         rejectReasonPlaceholder: 'دلیل رد سفارش (اختیاری، برای خریدار فرستاده می‌شه)',
         cancel: 'انصراف',
         confirmReject: 'ثبت رد سفارش',
+        moneyArrived: (amount: number) => `پول به حسابم نشسته — ${amount.toLocaleString('fa-IR')} تومان برمی‌گردونم`,
+        moneyMissing: 'پول به حسابم نرسیده',
+        refundAmountLabel: 'مبلغ برگشتی',
         reapprove: 'تایید دوباره‌ی سفارش',
         // 0.3 — موجودی ثبت‌شده کمتر از تعداد سفارش بود و صفر شد؛ فروشنده باید اصلاح کند
         stockShortageToast: (names: string) =>
@@ -986,7 +989,10 @@ export const fa = {
           READY: 'آماده‌ی واریز',
           AWAITING_DESTINATION: 'منتظر شماره کارت',
           DONE: 'انجام‌شده',
+          AWAITING_SELLER_CONFIRM: 'منتظر تایید پول',
         },
+        moneyArrived: 'پول رسیده بود — بازپرداخت',
+        moneyMissing: 'پول نرسیده بود — بستن',
         reasons: {
           ORDER_REJECTED: 'رد سفارش',
           ORDER_CANCELLED: 'لغو سفارش',

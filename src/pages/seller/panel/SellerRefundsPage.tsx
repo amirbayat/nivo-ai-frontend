@@ -13,7 +13,7 @@ type RefundRow = {
   buyerName: string
   amountToman: number
   reason: string
-  status: 'AWAITING_DESTINATION' | 'READY' | 'DONE'
+  status: 'AWAITING_DESTINATION' | 'AWAITING_SELLER_CONFIRM' | 'READY' | 'DONE'
   destinationMasked: string | null
   destination: string | null
   holderName: string | null
@@ -31,7 +31,7 @@ type Summary = {
   bankingText: string
 }
 
-const TABS = ['READY', 'AWAITING_DESTINATION', 'DONE'] as const
+const TABS = ['READY', 'AWAITING_DESTINATION', 'AWAITING_SELLER_CONFIRM', 'DONE'] as const
 
 export function SellerRefundsPage() {
   const { storeId } = useSellerStore()
@@ -53,6 +53,13 @@ export function SellerRefundsPage() {
   const markPaid = useMutation({
     mutationFn: (id: string) =>
       api.post(`/v2/stores/${storeId}/refunds/${id}/paid`, { paidRef: paidRef[id] || undefined }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['seller', 'refunds', storeId] })
+    },
+  })
+  const resolveHold = useMutation({
+    mutationFn: ({ id, moneyReceived }: { id: string; moneyReceived: boolean }) =>
+      api.post(`/v2/stores/${storeId}/refunds/${id}/seller-hold`, { moneyReceived }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'refunds', storeId] })
     },
@@ -119,6 +126,26 @@ export function SellerRefundsPage() {
               <p dir="ltr" className="mt-2 text-sm">{row.destination ?? row.destinationMasked}</p>
             )}
             {row.bankName && <p className="text-xs text-slate-400">{row.bankName} · {row.holderName}</p>}
+            {row.status === 'AWAITING_SELLER_CONFIRM' && (
+              <div className="mt-3 flex flex-col gap-2">
+                <button
+                  type="button"
+                  disabled={resolveHold.isPending}
+                  onClick={() => resolveHold.mutate({ id: row.id, moneyReceived: true })}
+                  className="min-h-11 rounded-2xl bg-emerald-500 font-bold text-white"
+                >
+                  {fa.seller.panel.refunds.moneyArrived}
+                </button>
+                <button
+                  type="button"
+                  disabled={resolveHold.isPending}
+                  onClick={() => resolveHold.mutate({ id: row.id, moneyReceived: false })}
+                  className="min-h-11 rounded-2xl border border-slate-600 text-sm font-semibold"
+                >
+                  {fa.seller.panel.refunds.moneyMissing}
+                </button>
+              </div>
+            )}
             {row.status === 'READY' && (
               <div className="mt-3 flex flex-col gap-2">
                 <DigitsInput
