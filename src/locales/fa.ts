@@ -981,6 +981,8 @@ export const fa = {
         copyAll: 'کپی همه برای بانک',
         copied: 'کپی شد',
         markPaid: 'واریز کردم',
+        enterBuyerCard: 'ثبت شماره کارت مشتری',
+        holderName: 'نام صاحب حساب',
         paidRef: 'کد پیگیری',
         summary: (amount: number, people: number, overdue: number) =>
           `مجموع قابل برگشت: ${amount.toLocaleString('fa-IR')} تومان به ${people.toLocaleString('fa-IR')} نفر` +
@@ -1440,6 +1442,15 @@ export const fa = {
     alreadyInCart: '✓ در سبد شماست',
     confirmAndPay: 'تایید و پرداخت',
     uploadReceipt: 'آپلود رسید',
+    refundForm: {
+      card: 'شماره کارت',
+      sheba: 'شبا',
+      holder: 'نام صاحب حساب',
+      submit: 'ثبت',
+      saved: (hours: number) => `ثبت شد — فروشنده تا ${hours.toLocaleString('fa-IR')} ساعت واریز می‌کنه`,
+      paid: 'واریز شد',
+      invalid: 'شماره کارت یا شبا درست نیست',
+    },
     copyCardNumber: 'کپی شماره کارت',
     cardNumberCopied: 'کپی شد',
     // 0.13n — رسید بزرگ‌تر از سقف سرور (حتی بعد از فشرده‌سازی)

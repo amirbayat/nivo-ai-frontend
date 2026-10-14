@@ -23,6 +23,11 @@ interface BlockProps {
   // طبق آخرین CART_SUMMARY از قبل در سبد است، دیگر دکمه‌ی فعال «افزودن» نشان نمی‌دهد (جلوگیری
   // از دوبرابرشدن ناخواسته‌ی تعداد با کلیک دوباره روی کارت قدیمی همان محصول) — ShopChatPage.tsx
   cartProductIds: Set<string>
+  onSubmitRefundDestination?: (input: {
+    refundId: string
+    destination: string
+    holderName: string
+  }) => Promise<void>
 }
 
 // عمومی، بدون auth — الگوی مسیر عیناً مطابق sales-agent.controller.ts getProductImage
@@ -807,6 +812,70 @@ function CompareCardBlock({
   )
 }
 
+function RefundDestinationForm({
+  block,
+  disabled,
+  onSubmit,
+}: {
+  block: Extract<ShopUiBlock, { type: 'REFUND_DESTINATION_FORM' }>
+  disabled: boolean
+  onSubmit: (input: { refundId: string; destination: string; holderName: string }) => Promise<void>
+}) {
+  const [kind, setKind] = useState<'card' | 'sheba'>('card')
+  const [destination, setDestination] = useState('')
+  const [holderName, setHolderName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+  const t = fa.shop.refundForm
+  if (block.status === 'PAID') {
+    return <p className="mt-2 text-xs font-semibold text-emerald-300">{t.paid}</p>
+  }
+  if (block.status === 'SAVED') {
+    return (
+      <p className="mt-2 text-xs text-slate-300">
+        {t.saved(block.deadlineHours)}
+        {block.destinationMasked ? <span dir="ltr" className="ms-1 font-mono">{block.destinationMasked}</span> : null}
+      </p>
+    )
+  }
+  return (
+    <form
+      className="mt-2 flex flex-col gap-2 rounded-xl border border-slate-600/60 bg-slate-800/60 p-3 light:border-slate-200 light:bg-white"
+      onSubmit={event => {
+        event.preventDefault()
+        const raw = kind === 'sheba' && !destination.toUpperCase().startsWith('IR')
+          ? `IR${destination}`
+          : destination
+        setPending(true)
+        setError(null)
+        void onSubmit({ refundId: block.refundId, destination: raw, holderName })
+          .catch(() => setError(t.invalid))
+          .finally(() => setPending(false))
+      }}
+    >
+      <p className="text-xs font-semibold text-slate-200 light:text-slate-900">
+        {block.amountToman.toLocaleString('fa-IR')} {fa.common.toman}
+      </p>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setKind('card')} className="min-h-11 flex-1 rounded-lg border border-slate-600 text-xs">{t.card}</button>
+        <button type="button" onClick={() => setKind('sheba')} className="min-h-11 flex-1 rounded-lg border border-slate-600 text-xs">{t.sheba}</button>
+      </div>
+      <DigitsInput kind={kind} value={destination} onChange={setDestination} aria-label={kind === 'card' ? t.card : t.sheba} />
+      <input
+        value={holderName}
+        onChange={event => setHolderName(event.target.value)}
+        aria-label={t.holder}
+        placeholder={t.holder}
+        className="min-h-11 rounded-lg border border-slate-600 bg-transparent px-3 text-sm"
+      />
+      {error && <p className="text-[11px] text-amber-300">{error}</p>}
+      <button type="submit" disabled={disabled || pending || holderName.trim().length < 2 || destination.length < 8} className="min-h-11 rounded-lg bg-emerald-500 text-xs font-semibold text-white disabled:opacity-40">
+        {t.submit}
+      </button>
+    </form>
+  )
+}
+
 export function ShopUiBlockView({
   block,
   disabled,
@@ -818,6 +887,7 @@ export function ShopUiBlockView({
   savedProductIds,
   onToggleSave,
   cartProductIds,
+  onSubmitRefundDestination,
 }: BlockProps) {
   switch (block.type) {
     case 'PRODUCT_CARD':
@@ -865,6 +935,14 @@ export function ShopUiBlockView({
       return <PaymentMethodPromptBlock disabled={disabled} onSendAction={onSendAction} />
     case 'ORDER_STATUS':
       return <OrderStatusBlock status={block.status} orderCode={block.orderCode} />
+    case 'REFUND_DESTINATION_FORM':
+      return (
+        <RefundDestinationForm
+          block={block}
+          disabled={disabled || !onSubmitRefundDestination}
+          onSubmit={input => onSubmitRefundDestination?.(input) ?? Promise.resolve()}
+        />
+      )
     case 'VISIT_WEBSITE':
       return <VisitWebsiteBlock url={block.url} />
     case 'ADDRESS_PROMPT':

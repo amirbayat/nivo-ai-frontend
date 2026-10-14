@@ -462,6 +462,15 @@ export type ShopUiBlock =
   // همان سند — فقط وقتی فروشگاه هم کارت‌به‌کارت هم لینک اسنپ‌پی فعال دارد نشان داده می‌شود
   | { type: 'PAYMENT_METHOD_PROMPT'; options: ('CARD_TO_CARD' | 'SNAPPPAY')[] }
   | { type: 'ORDER_STATUS'; orderId: string; status: string; orderCode?: string }
+  | {
+      type: 'REFUND_DESTINATION_FORM'
+      refundId: string
+      orderId: string
+      amountToman: number
+      deadlineHours: number
+      status: 'OPEN' | 'SAVED' | 'PAID'
+      destinationMasked?: string
+    }
   // فیدبک کاربر ۱۴۰۵/۰۷/۲۰ — فروشگاه‌های leadCaptureOnly؛ بعد از ثبت لید، دکمه‌ی «مشاهده
   // وبسایت» که در تب جدید باز می‌شود (فقط اگر فروشگاه websiteUrl داشته باشد)
   | { type: 'VISIT_WEBSITE'; url: string }

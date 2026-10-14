@@ -371,6 +371,7 @@ export function ShopChatPage() {
     sendAction,
     uploadReceipt,
     submitManualReceipt,
+    submitRefundDestination,
     sendImageMessage,
     sendVideoMessage,
     sendVoiceMessage,
@@ -854,6 +855,7 @@ export function ShopChatPage() {
                   onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
                   onUploadReceipt={(file) => void uploadReceipt(file)}
                   onSubmitManualReceipt={(info) => void submitManualReceipt(info)}
+                  onSubmitRefundDestination={submitRefundDestination}
                   onSendAction={(action) => void sendAction(action)}
                   savedProductIds={savedProductIds}
                   onToggleSave={toggleSaveProduct}

@@ -557,6 +557,45 @@ export function useShopChat(slug: string, productId?: string) {
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱) می‌فرستد. حالت
   // اول سرور reply خالی برمی‌گرداند (applyReply صدا نمی‌زنیم، وگرنه حباب «agent» خالی اضافه
   // می‌شد)؛ حالت دوم reply واقعی («ممنون از نظرت») دارد و باید applyReply صدا بزنیم
+  const submitRefundDestination = useCallback(
+    async (input: { refundId: string; destination: string; holderName: string }) => {
+      const session = sessionRef.current
+      if (!session) throw new Error('no session')
+      const res = await fetch(
+        `${env.VITE_API_URL}/v2/chat/${session.conversationId}/refunds/${input.refundId}/destination`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Session-Token': session.sessionToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            destination: input.destination,
+            holderName: input.holderName,
+          }),
+        },
+      )
+      if (!res.ok) throw new Error('request failed')
+      const data = (await res.json()) as { destinationMasked?: string }
+      setMessages(prev =>
+        prev.map(message =>
+          message.uiBlock?.type === 'REFUND_DESTINATION_FORM' &&
+          message.uiBlock.refundId === input.refundId
+            ? {
+                ...message,
+                uiBlock: {
+                  ...message.uiBlock,
+                  status: 'SAVED',
+                  destinationMasked: data.destinationMasked,
+                },
+              }
+            : message,
+        ),
+      )
+    },
+    [],
+  )
+
   const sendImageMessage = useCallback(
     async (file: File) => {
       const session = sessionRef.current
@@ -1040,6 +1079,7 @@ export function useShopChat(slug: string, productId?: string) {
     sendAction,
     uploadReceipt,
     submitManualReceipt,
+    submitRefundDestination,
     sendImageMessage,
     sendVideoMessage,
     sendVoiceMessage,

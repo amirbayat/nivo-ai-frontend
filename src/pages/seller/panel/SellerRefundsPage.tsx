@@ -38,6 +38,8 @@ export function SellerRefundsPage() {
   const qc = useQueryClient()
   const [tab, setTab] = useState<(typeof TABS)[number]>('READY')
   const [paidRef, setPaidRef] = useState<Record<string, string>>({})
+  const [card, setCard] = useState<Record<string, string>>({})
+  const [holder, setHolder] = useState<Record<string, string>>({})
   const [copied, setCopied] = useState(false)
   const summary = useQuery({
     queryKey: ['seller', 'refunds', storeId, 'summary'],
@@ -53,6 +55,16 @@ export function SellerRefundsPage() {
   const markPaid = useMutation({
     mutationFn: (id: string) =>
       api.post(`/v2/stores/${storeId}/refunds/${id}/paid`, { paidRef: paidRef[id] || undefined }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['seller', 'refunds', storeId] })
+    },
+  })
+  const setDestination = useMutation({
+    mutationFn: (id: string) =>
+      api.post(`/v2/stores/${storeId}/refunds/${id}/destination`, {
+        destination: card[id] ?? '',
+        holderName: holder[id] ?? '',
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'refunds', storeId] })
     },
@@ -143,6 +155,40 @@ export function SellerRefundsPage() {
                   className="min-h-11 rounded-2xl border border-slate-600 text-sm font-semibold"
                 >
                   {fa.seller.panel.refunds.moneyMissing}
+                </button>
+              </div>
+            )}
+            {row.status === 'AWAITING_DESTINATION' && (
+              <div className="mt-3 flex flex-col gap-2">
+                <p className="text-xs font-semibold">{fa.seller.panel.refunds.enterBuyerCard}</p>
+                <DigitsInput
+                  kind="card"
+                  value={card[row.id] ?? ''}
+                  onChange={(v) => setCard((s) => ({ ...s, [row.id]: v }))}
+                  aria-label={fa.seller.panel.refunds.enterBuyerCard}
+                />
+                <input
+                  value={holder[row.id] ?? ''}
+                  onChange={(event) => setHolder((s) => ({ ...s, [row.id]: event.target.value }))}
+                  aria-label={fa.seller.panel.refunds.holderName}
+                  placeholder={fa.seller.panel.refunds.holderName}
+                  className="min-h-11 rounded-xl border border-slate-600 bg-transparent px-3 text-sm"
+                />
+                <button
+                  type="button"
+                  disabled={setDestination.isPending || (holder[row.id] ?? '').trim().length < 2}
+                  onClick={() => setDestination.mutate(row.id)}
+                  className="min-h-11 rounded-2xl bg-emerald-500 font-bold text-white disabled:opacity-40"
+                >
+                  {fa.shop.refundForm.submit}
+                </button>
+                <button
+                  type="button"
+                  disabled={markPaid.isPending}
+                  onClick={() => markPaid.mutate(row.id)}
+                  className="min-h-11 rounded-2xl border border-slate-600 text-sm font-semibold"
+                >
+                  {fa.seller.panel.refunds.markPaid}
                 </button>
               </div>
             )}
