@@ -300,34 +300,37 @@ export function PaymentCard(props: PaymentCardProps) {
 
       {copyFailed && <p className="mb-3 text-[11px] text-amber-300 light:text-amber-700">{fa.shop.payment.copyFailedHint}</p>}
 
-      <p className="mb-2 text-xs font-semibold text-slate-200 light:text-slate-900">
-        {isCard ? fa.shop.payment.step2Card : fa.shop.payment.step2Snapppay}
-      </p>
-
-      {showManual && props.variant === 'CARD' ? (
-        <ManualReceiptForm
-          disabled={disabled}
-          onSubmit={info => {
-            props.onSubmitManualReceipt(info)
-            setShowManual(false)
-          }}
-          onCancel={() => setShowManual(false)}
-        />
-      ) : (
-        <>
-          <ReceiptPicker disabled={disabled} onUploadReceipt={onUploadReceipt} />
-          {props.variant === 'CARD' && (
-            <button
-              type="button"
-              onClick={() => setShowManual(true)}
-              disabled={disabled}
-              className="mt-1 min-h-11 w-full text-center text-[11px] font-medium text-slate-400 light:text-slate-600 underline disabled:opacity-40"
-            >
-              {fa.shop.payment.noReceiptLink}
-            </button>
-          )}
-        </>
+      {orderCode && (
+        <p className="mb-2 text-xs font-semibold text-slate-200 light:text-slate-900">
+          {isCard ? fa.shop.payment.step2Card : fa.shop.payment.step2Snapppay}
+        </p>
       )}
+
+      {orderCode &&
+        (showManual && props.variant === 'CARD' ? (
+          <ManualReceiptForm
+            disabled={disabled}
+            onSubmit={info => {
+              props.onSubmitManualReceipt(info)
+              setShowManual(false)
+            }}
+            onCancel={() => setShowManual(false)}
+          />
+        ) : (
+          <>
+            <ReceiptPicker disabled={disabled} onUploadReceipt={onUploadReceipt} />
+            {props.variant === 'CARD' && (
+              <button
+                type="button"
+                onClick={() => setShowManual(true)}
+                disabled={disabled}
+                className="mt-1 min-h-11 w-full text-center text-[11px] font-medium text-slate-400 light:text-slate-600 underline disabled:opacity-40"
+              >
+                {fa.shop.payment.noReceiptLink}
+              </button>
+            )}
+          </>
+        ))}
 
       <p className="mt-2 text-center text-[11px] text-slate-500">{fa.shop.payment.trustBar}</p>
     </div>
