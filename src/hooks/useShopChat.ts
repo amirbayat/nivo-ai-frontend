@@ -393,10 +393,49 @@ export function useShopChat(slug: string, productId?: string) {
           },
           body: JSON.stringify({ action }),
         })
-        if (!res.ok) throw new Error('request failed')
-        applyReply((await res.json()) as ShopSendMessageResponse)
-      } catch {
-        setError(fa.common.error)
+        if (!res.ok) {
+          let serverMessage = ''
+          try {
+            const body = (await res.json()) as { message?: unknown }
+            if (typeof body.message === 'string') serverMessage = body.message
+          } catch {
+            serverMessage = ''
+          }
+          throw new Error(serverMessage || 'request failed')
+        }
+        const data = (await res.json()) as ShopSendMessageResponse
+        if (action.type === 'SET_CART_QTY' || action.type === 'REMOVE_CART_ITEM') {
+          setState(data.state)
+          const block = data.uiBlocks.find((item) => item.type === 'CART_SUMMARY')
+          setMessages((prev) => {
+            if (!block) return prev
+            const next = [...prev]
+            for (let i = next.length - 1; i >= 0; i--) {
+              if (next[i].uiBlock?.type === 'CART_SUMMARY') {
+                next[i] = {
+                  ...next[i],
+                  text: data.reply || next[i].text,
+                  uiBlock: block,
+                }
+                return next
+              }
+            }
+            return [
+              ...next,
+              {
+                id: `agent-${Date.now()}`,
+                role: 'agent',
+                text: data.reply,
+                uiBlock: block,
+              },
+            ]
+          })
+          return
+        }
+        applyReply(data)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : ''
+        setError(message && message !== 'request failed' ? message : fa.common.error)
       } finally {
         setSending(false)
       }

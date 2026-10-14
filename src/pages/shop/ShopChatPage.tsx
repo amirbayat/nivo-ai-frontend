@@ -476,6 +476,11 @@ export function ShopChatPage() {
     return null
   }, [messages])
   const cartCount = cartSummary?.items.reduce((sum, item) => sum + item.qty, 0) ?? 0
+  const cartEditable = state === 'GREETING' || state === 'BROWSING' || state === 'CART_REVIEW'
+
+  useEffect(() => {
+    if (!cartEditable) setCartOpen(false)
+  }, [cartEditable])
 
   const cartProductIds = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -630,7 +635,7 @@ export function ShopChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {cartCount > 0 && (
+          {cartEditable && cartCount > 0 && (
             <button
               type="button"
               onClick={() => setCartOpen(true)}
@@ -1020,7 +1025,7 @@ export function ShopChatPage() {
       </>
       )}
 
-      {cartOpen && cartSummary && (
+      {cartOpen && cartEditable && cartSummary && (
         <div className="absolute inset-0 z-30 flex flex-col bg-slate-950 light:bg-white">
           <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3 light:border-slate-200">
             <button type="button" onClick={() => setCartOpen(false)} className="flex size-8 items-center justify-center text-slate-300" aria-label={fa.shop.backToCurrentChat}>
