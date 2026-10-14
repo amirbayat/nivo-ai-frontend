@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
-import type { PublicProduct } from '@/types/api'
+import type { PublicProduct, PublicProductsPage } from '@/types/api'
 
 const PAGE_SIZE = 24
 
@@ -14,6 +14,7 @@ export function useStoreProducts(slug: string, enabled: boolean) {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shippingEstimate, setShippingEstimate] = useState<PublicProductsPage['shippingEstimate']>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchPage = useCallback(
@@ -28,10 +29,11 @@ export function useStoreProducts(slug: string, enabled: boolean) {
         // shadow می‌کرد (لیست محصولات پنل فروشنده همیشه ۴۰۴ می‌داد)
         const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/public-products?${params}`)
         if (!res.ok) throw new Error('request failed')
-        const data = (await res.json()) as { items: PublicProduct[]; total: number; page: number }
+        const data = (await res.json()) as PublicProductsPage
         setItems((prev) => (append ? [...prev, ...data.items] : data.items))
         setTotal(data.total)
         setPage(data.page)
+        if (!append) setShippingEstimate(data.shippingEstimate ?? null)
       } catch {
         setError(fa.common.error)
       } finally {
@@ -63,5 +65,6 @@ export function useStoreProducts(slug: string, enabled: boolean) {
     error,
     hasMore: items.length < total,
     loadMore,
+    shippingEstimate,
   }
 }

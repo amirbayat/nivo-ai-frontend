@@ -499,6 +499,18 @@ export type ShopUiBlock =
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»؛ پاسخ GET
 // /v2/stores/:slug/public-products (عمومی، بدون auth) — همان فیلدهای نمایشی PRODUCT_CARD بالا + description
+export interface PublicProductOption {
+  name: string
+  values: string[]
+}
+
+export interface PublicProductVariant {
+  id: string
+  options: Record<string, string>
+  stock: number
+  price: number | null
+}
+
 export interface PublicProduct {
   id: string
   name: string
@@ -518,6 +530,10 @@ export interface PublicProduct {
   // true یعنی نرخ لحظه‌ای/تنظیمات فروشگاه موقتاً در دسترس نبود؛ basePrice در این حالت آخرین
   // basePrice ذخیره‌شده (احتمالاً صفر/قدیمی) است، نه قابل‌اتکا برای نمایش قطعی
   priceUnavailable: boolean
+  options?: PublicProductOption[]
+  variants?: PublicProductVariant[]
+  ratingAvg?: number | null
+  reviewCount?: number
 }
 
 export interface PublicProductsPage {
@@ -525,6 +541,7 @@ export interface PublicProductsPage {
   total: number
   page: number
   pageSize: number
+  shippingEstimate?: { minCostToman: number; maxCostToman: number } | null
 }
 
 // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — GET
@@ -591,7 +608,7 @@ export interface ShopMessage {
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس
 // می‌شود (فیدبک اول پایلوت — sales-agent.types.ts SalesAction)
 export type ShopAction =
-  | { type: 'ADD_TO_CART'; productId: string; qty?: number }
+  | { type: 'ADD_TO_CART'; productId: string; qty?: number; variantId?: string }
   | { type: 'SET_CART_QTY'; productId: string; qty: number; variantId?: string }
   | { type: 'REMOVE_CART_ITEM'; productId: string; variantId?: string }
   // 0.11a — کارت محصول برای خریدار برگشتی با لینک محصول
@@ -673,6 +690,7 @@ export interface ShopVoiceStatusResponse {
 // GET /v2/chat/:conversationId/saved-products
 export interface ShopSavedProductsResponse {
   productIds: string[]
+  items?: PublicProduct[]
 }
 
 export interface ShopConversationEvent {

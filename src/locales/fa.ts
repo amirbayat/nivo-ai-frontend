@@ -1549,6 +1549,12 @@ export const fa = {
     storeModeLoadMore: 'نمایش بیشتر',
     storeModeBackToChat: 'بازگشت به گفتگو',
     storeModeAskSeller: 'پرسیدن از فروشنده',
+    shareProduct: 'اشتراک‌گذاری',
+    linkCopied: 'لینک کپی شد',
+    reviewCount: (n: number) => `${n.toLocaleString('fa-IR')} نظر`,
+    shippingEstimateFlat: (n: number) => `ارسال ${n.toLocaleString('fa-IR')} تومان`,
+    shippingEstimateRange: (min: number, max: number) =>
+      `ارسال حدود ${min.toLocaleString('fa-IR')} تا ${max.toLocaleString('fa-IR')} تومان`,
     storeModeAddedToCart: 'به سبد اضافه شد',
     // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۴
     goldPriceTickerTitle: 'نرخ امروز',
@@ -1565,6 +1571,9 @@ export const fa = {
     compareCardStock: 'موجودی',
     saveForLater: 'ذخیره برای بعد',
     removeFromSaved: 'حذف از ذخیره‌شده‌ها',
+    savedTabAll: 'همه',
+    savedTab: 'ذخیره‌شده‌ها',
+    savedEmpty: 'هنوز چیزی ذخیره نکرده‌ای',
     quickChipOrders: '📦 سفارش‌هام',
     quickChipProducts: '🛍 دیدن محصولات',
     quickChipTalkToSeller: '💬 صحبت با فروشنده',

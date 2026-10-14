@@ -2,20 +2,21 @@ import { useEffect, useState } from 'react'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useStoreProducts } from '@/hooks/useStoreProducts'
-import { productImageUrl, reviewMediaUrl } from './ShopUiBlocks'
+import { productImageUrl, productVideoUrl, reviewMediaUrl } from './ShopUiBlocks'
 import { toEnglishDigits } from '@/lib/digits'
 import { GoldPriceTicker } from './GoldPriceTicker'
-import type { PublicProduct, ProductReview } from '@/types/api'
+import type { PublicProduct, PublicProductVariant, ProductReview } from '@/types/api'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»، «فاز ۱»: فقط گرید ساده
 // (عکس/نام/قیمت) + جست‌وجو، بدون درخت دسته‌بندی (آن بخشِ بزرگ‌تر مارکت‌پلیس بین‌فروشگاهی است)
 interface StoreProductGridProps {
   slug: string
   disabled: boolean
-  onAddToCart: (productId: string) => void
+  onAddToCart: (productId: string, variantId?: string) => void
   onAskSeller: (product: PublicProduct) => void
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
   savedProductIds: Set<string>
+  savedItems: PublicProduct[]
   onToggleSave: (productId: string) => void
   // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم از روی محصول
   onWriteReview: (product: PublicProduct) => void
@@ -27,11 +28,18 @@ export function StoreProductGrid({
   onAddToCart,
   onAskSeller,
   savedProductIds,
+  savedItems,
   onToggleSave,
   onWriteReview,
 }: StoreProductGridProps) {
-  const { items, query, setQuery, loading, error, hasMore, loadMore } = useStoreProducts(slug, true)
+  const { items, query, setQuery, loading, error, hasMore, loadMore, shippingEstimate } = useStoreProducts(slug, true)
+  const [catalogTab, setCatalogTab] = useState<'all' | 'saved'>('all')
   const [selected, setSelected] = useState<PublicProduct | null>(null)
+  const needle = query.trim().toLowerCase()
+  const visible =
+    catalogTab === 'saved'
+      ? savedItems.filter((product) => !needle || product.name.toLowerCase().includes(needle))
+      : items
   const [reviewsProduct, setReviewsProduct] = useState<PublicProduct | null>(null)
   const hasGoldProducts = items.some((p) => p.isWeightBasedPricing)
 
@@ -45,14 +53,32 @@ export function StoreProductGrid({
           placeholder={fa.shop.storeModeSearchPlaceholder}
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 light:border-slate-300 light:bg-slate-50 light:text-slate-900"
         />
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCatalogTab('all')}
+            className={`rounded-full px-3 py-1 text-xs ${catalogTab === 'all' ? 'bg-emerald-500 text-white' : 'text-slate-300 light:text-slate-700'}`}
+          >
+            {fa.shop.savedTabAll}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCatalogTab('saved')}
+            className={`rounded-full px-3 py-1 text-xs ${catalogTab === 'saved' ? 'bg-emerald-500 text-white' : 'text-slate-300 light:text-slate-700'}`}
+          >
+            {fa.shop.savedTab}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 p-3">
-        {items.length === 0 && !loading ? (
-          <p className="py-10 text-center text-sm text-slate-500">{fa.shop.storeModeEmpty}</p>
+        {visible.length === 0 && (catalogTab === 'saved' || !loading) ? (
+          <p className="py-10 text-center text-sm text-slate-500">
+            {catalogTab === 'saved' ? fa.shop.savedEmpty : fa.shop.storeModeEmpty}
+          </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {items.map((p) => (
+            {visible.map((p) => (
               <div key={p.id} className="relative">
                 <button
                   onClick={() => setSelected(p)}
@@ -75,6 +101,7 @@ export function StoreProductGrid({
                     {p.isWeightBasedPricing && (
                       <span className="text-[10px] text-amber-400">{fa.shop.weightBasedPriceBadge}</span>
                     )}
+                    <RatingLine avg={p.ratingAvg ?? null} count={p.reviewCount ?? 0} />
                   </div>
                 </button>
                 {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد» */}
@@ -95,7 +122,7 @@ export function StoreProductGrid({
           </div>
         )}
         {error && <p className="py-4 text-center text-sm text-red-400">{error}</p>}
-        {hasMore && !loading && (
+        {catalogTab === 'all' && hasMore && !loading && (
           <button
             onClick={loadMore}
             className="mx-auto mt-4 block rounded-lg px-4 py-2 text-xs font-medium text-emerald-400"
@@ -103,7 +130,7 @@ export function StoreProductGrid({
             {fa.shop.storeModeLoadMore}
           </button>
         )}
-        {loading && <p className="py-4 text-center text-xs text-slate-500">{fa.common.loading}</p>}
+        {catalogTab === 'all' && loading && <p className="py-4 text-center text-xs text-slate-500">{fa.common.loading}</p>}
       </div>
 
       {selected && (
@@ -111,8 +138,10 @@ export function StoreProductGrid({
           product={selected}
           disabled={disabled}
           onClose={() => setSelected(null)}
-          onAddToCart={(id) => {
-            onAddToCart(id)
+          slug={slug}
+          shippingEstimate={shippingEstimate ?? null}
+          onAddToCart={(id, variantId) => {
+            onAddToCart(id, variantId)
             setSelected(null)
           }}
           onAskSeller={(p) => {
@@ -131,10 +160,51 @@ export function StoreProductGrid({
   )
 }
 
-// بخش ۳.۵ — «شیت پایین‌صفحه‌ی سبک»: گالری (فعلاً تک‌عکس اول، مثل گرید)، قیمت، توضیح کوتاه.
-// بدون چیپ‌های واریانت — مدل محصول فعلی هنوز واریانت ندارد (بخش ۲.۳ همین سند، فاز جدا/آینده)
+function RatingLine({ avg, count }: { avg: number | null; count: number }) {
+  if (count <= 0) return null
+  const filled = avg == null ? 0 : Math.max(0, Math.min(5, Math.round(avg)))
+  return (
+    <span className="mt-0.5 flex items-center gap-1 text-[11px] text-amber-400">
+      {avg != null && (
+        <span dir="ltr" aria-hidden>
+          {'★'.repeat(filled)}
+          {'☆'.repeat(5 - filled)}
+        </span>
+      )}
+      <span className="text-slate-400 light:text-slate-500">{fa.shop.reviewCount(count)}</span>
+    </span>
+  )
+}
+
+function optionValueAvailable(
+  variants: PublicProductVariant[],
+  optionName: string,
+  value: string,
+  selected: Record<string, string>,
+) {
+  return variants.some((variant) => {
+    if (variant.stock <= 0) return false
+    if (variant.options[optionName] !== value) return false
+    return Object.entries(selected).every(
+      ([key, chosen]) => key === optionName || variant.options[key] === chosen,
+    )
+  })
+}
+
+function matchingVariant(product: PublicProduct, selected: Record<string, string>) {
+  const options = product.options ?? []
+  if (options.length === 0 || options.some((option) => !selected[option.name])) return null
+  return (
+    (product.variants ?? []).find((variant) =>
+      options.every((option) => variant.options[option.name] === selected[option.name]),
+    ) ?? null
+  )
+}
+
 function ProductDetailSheet({
   product,
+  slug,
+  shippingEstimate,
   disabled,
   onClose,
   onAddToCart,
@@ -145,15 +215,77 @@ function ProductDetailSheet({
   onViewReviews,
 }: {
   product: PublicProduct
+  slug: string
+  shippingEstimate: { minCostToman: number; maxCostToman: number } | null
   disabled: boolean
   onClose: () => void
-  onAddToCart: (id: string) => void
+  onAddToCart: (id: string, variantId?: string) => void
   onAskSeller: (product: PublicProduct) => void
   saved: boolean
   onToggleSave: () => void
   onWriteReview: () => void
   onViewReviews: () => void
 }) {
+  const options = product.options ?? []
+  const variants = product.variants ?? []
+  const media = [
+    ...product.images.map((key) => ({ type: 'image' as const, src: productImageUrl(product.id, key) })),
+    ...product.videos.map((video) => ({ type: 'video' as const, src: productVideoUrl(product.id, video.key) })),
+  ]
+  const [mediaIndex, setMediaIndex] = useState(0)
+  const [selected, setSelected] = useState<Record<string, string>>({})
+  const [copied, setCopied] = useState(false)
+  const picked = matchingVariant(product, selected)
+  const shownPrice = picked?.price ?? product.basePrice
+  const canAdd =
+    options.length === 0 ? product.stock > 0 : picked != null && picked.stock > 0
+  const shippingText =
+    shippingEstimate == null
+      ? null
+      : shippingEstimate.minCostToman === shippingEstimate.maxCostToman
+        ? fa.shop.shippingEstimateFlat(shippingEstimate.minCostToman)
+        : fa.shop.shippingEstimateRange(shippingEstimate.minCostToman, shippingEstimate.maxCostToman)
+
+  useEffect(() => {
+    setMediaIndex(0)
+    setSelected({})
+    setCopied(false)
+  }, [product.id])
+
+  function choose(optionName: string, value: string) {
+    setSelected((current) => {
+      const next = { ...current, [optionName]: value }
+      for (const option of options) {
+        if (option.name === optionName) continue
+        const chosen = next[option.name]
+        if (chosen && !optionValueAvailable(variants, option.name, chosen, next)) {
+          delete next[option.name]
+        }
+      }
+      return next
+    })
+  }
+
+  async function share() {
+    const url = `${window.location.origin}/shop/${slug}?product=${product.id}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.name, url })
+        return
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  const frame = media[mediaIndex]
+
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
       <div
@@ -161,29 +293,68 @@ function ProductDetailSheet({
         className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-slate-900 p-4 light:bg-white"
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-700 light:bg-slate-300" />
-        {product.images[0] && (
-          <img
-            src={productImageUrl(product.id, product.images[0])}
-            alt={product.name}
-            className="mb-3 aspect-square w-full rounded-xl object-cover"
-          />
+        {frame && (
+          <div className="relative mb-3">
+            {frame.type === 'video' ? (
+              <video controls preload="metadata" src={frame.src} className="aspect-square w-full rounded-xl bg-black object-contain" />
+            ) : (
+              <img src={frame.src} alt={product.name} className="aspect-square w-full rounded-xl object-cover" />
+            )}
+            {media.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  aria-label={fa.shop.carouselPrev}
+                  onClick={() => setMediaIndex((index) => Math.max(0, index - 1))}
+                  disabled={mediaIndex === 0}
+                  className="absolute right-2 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white disabled:opacity-30"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label={fa.shop.carouselNext}
+                  onClick={() => setMediaIndex((index) => Math.min(media.length - 1, index + 1))}
+                  disabled={mediaIndex === media.length - 1}
+                  className="absolute left-2 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white disabled:opacity-30"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
         )}
         <div className="mb-1 flex items-center justify-between gap-2">
           <h3 className="text-base font-semibold text-slate-100 light:text-slate-900">{product.name}</h3>
-          <button
-            onClick={onToggleSave}
-            title={saved ? fa.shop.removeFromSaved : fa.shop.saveForLater}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
-          >
-            <svg viewBox="0 0 20 20" fill={saved ? 'currentColor' : 'none'} className={`size-4.5 ${saved ? 'text-emerald-400' : ''}`}>
-              <path d="M5 3.5A1.5 1.5 0 016.5 2h7A1.5 1.5 0 0115 3.5V17l-5-3-5 3V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => void share()}
+              className="rounded-full px-2 py-1 text-xs text-slate-300 hover:bg-slate-800/60 light:text-slate-600 light:hover:bg-slate-100"
+            >
+              {copied ? fa.shop.linkCopied : fa.shop.shareProduct}
+            </button>
+            <button
+              type="button"
+              onClick={onToggleSave}
+              title={saved ? fa.shop.removeFromSaved : fa.shop.saveForLater}
+              className="flex size-11 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800/60 light:hover:bg-slate-100"
+            >
+              <svg viewBox="0 0 20 20" fill={saved ? 'currentColor' : 'none'} className={`size-4.5 ${saved ? 'text-emerald-400' : ''}`}>
+                <path d="M5 3.5A1.5 1.5 0 016.5 2h7A1.5 1.5 0 0115 3.5V17l-5-3-5 3V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
         </div>
+        <RatingLine avg={product.ratingAvg ?? null} count={product.reviewCount ?? 0} />
         {product.priceUnavailable ? (
           <p className="mb-2 text-sm text-slate-500">{fa.shop.goldPriceUnavailable}</p>
         ) : (
-          <p className="mb-0.5 text-sm font-bold text-emerald-400">{product.basePrice.toLocaleString('fa-IR')} تومان</p>
+          <p className="mb-0.5 text-sm font-bold text-emerald-400">{shownPrice.toLocaleString('fa-IR')} تومان</p>
         )}
         {product.isWeightBasedPricing && product.weightGrams != null && product.purityKarat != null && (
           <p className={product.goldPricingSummary ? 'mb-0.5 text-[11px] text-amber-400' : 'mb-2 text-[11px] text-amber-400'}>
@@ -193,19 +364,49 @@ function ProductDetailSheet({
         {product.isWeightBasedPricing && product.goldPricingSummary && (
           <p className="mb-2 text-[11px] text-amber-400/80">{product.goldPricingSummary}</p>
         )}
+        {options.map((option) => (
+          <div key={option.name} className="mb-3">
+            <p className="mb-1 text-xs text-slate-400 light:text-slate-600">{option.name}</p>
+            <div className="flex flex-wrap gap-2">
+              {option.values.map((value) => {
+                const available = optionValueAvailable(variants, option.name, value, selected)
+                const active = selected[option.name] === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={!available}
+                    onClick={() => choose(option.name, value)}
+                    className={`rounded-full border px-3 py-1.5 text-xs ${
+                      active
+                        ? 'border-emerald-400 bg-emerald-500/15 text-emerald-300'
+                        : 'border-slate-700 text-slate-200 light:border-slate-300 light:text-slate-800'
+                    } disabled:line-through disabled:opacity-40`}
+                  >
+                    {value}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
         {product.description && (
           <p className="mb-3 text-sm text-slate-400 light:text-slate-600">{product.description}</p>
         )}
-        <p className="mb-4 text-xs text-slate-500">{product.stock > 0 ? fa.shop.inStock : fa.shop.outOfStock}</p>
+        <p className="text-xs text-slate-500">{canAdd ? fa.shop.inStock : fa.shop.outOfStock}</p>
+        {shippingText && <p className="mb-4 text-xs text-slate-500">{shippingText}</p>}
+        {!shippingText && <div className="mb-4" />}
         <div className="flex gap-2">
           <button
-            onClick={() => onAddToCart(product.id)}
-            disabled={disabled || product.stock === 0}
+            type="button"
+            onClick={() => onAddToCart(product.id, picked?.id)}
+            disabled={disabled || !canAdd}
             className="flex-1 rounded-lg bg-emerald-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
           >
             {fa.shop.addToCart}
           </button>
           <button
+            type="button"
             onClick={() => onAskSeller(product)}
             className="flex-1 rounded-lg border border-slate-700 py-2.5 text-sm font-medium text-slate-200 light:border-slate-300 light:text-slate-800"
           >
@@ -213,12 +414,14 @@ function ProductDetailSheet({
           </button>
         </div>
         <button
+          type="button"
           onClick={onWriteReview}
           className="mt-2 w-full py-2 text-xs font-medium text-emerald-400 hover:underline"
         >
           {fa.shop.writeReviewButton}
         </button>
         <button
+          type="button"
           onClick={onViewReviews}
           className="w-full py-1 text-xs font-medium text-slate-400 light:text-slate-600 hover:underline"
         >

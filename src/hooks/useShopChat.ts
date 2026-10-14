@@ -13,6 +13,7 @@ import type {
   ShopMessage,
   ShopOrderSummary,
   ShopResponseStrategy,
+  PublicProduct,
   ShopSavedProductsResponse,
   ShopSendMessageResponse,
   ShopStartChatResponse,
@@ -83,6 +84,7 @@ export function useShopChat(slug: string, productId?: string) {
   const [history, setHistory] = useState<ShopHistoryEntry[]>([])
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
   const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set())
+  const [savedProducts, setSavedProducts] = useState<PublicProduct[]>([])
   const [viewingHistory, setViewingHistoryState] = useState(false)
   // docs/PRD-sales-agent-response-strategy-ab.md بخش ۹ — سوییچ دستی خریدار برای تست زنده‌ی
   // Track A/B؛ فعلاً فقط برای تست، پیش‌فرض واقعی سرور RULE_BASED است
@@ -131,6 +133,7 @@ export function useShopChat(slug: string, productId?: string) {
       if (!res.ok) return
       const data = (await res.json()) as ShopSavedProductsResponse
       setSavedProductIds(new Set(data.productIds))
+      setSavedProducts(data.items ?? [])
     } catch {
       // فقط آیکون بوکمارک را تحت‌تاثیر می‌گذارد، نباید کل چت را خراب کند
     }
@@ -406,15 +409,41 @@ export function useShopChat(slug: string, productId?: string) {
   // را نشان می‌دهد، بوکمارک محلی برنمی‌گردد (فاز ۱، ریسک کم)
   const toggleSaveProduct = useCallback(
     (productId: string) => {
+      const session = liveSessionRef.current
+      if (!session) return
       setSavedProductIds((prev) => {
         const next = new Set(prev)
         if (next.has(productId)) next.delete(productId)
         else next.add(productId)
         return next
       })
-      void sendAction({ type: 'TOGGLE_SAVE_PRODUCT', productId })
+      void (async () => {
+        try {
+          const res = await fetch(
+            `${env.VITE_API_URL}/v2/chat/${session.conversationId}/saved-products`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Session-Token': session.sessionToken,
+              },
+              body: JSON.stringify({ productId }),
+            },
+          )
+          if (!res.ok) throw new Error('request failed')
+          await fetchSavedProducts()
+        } catch {
+          setSavedProductIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(productId)) next.delete(productId)
+            else next.add(productId)
+            return next
+          })
+          setError(fa.common.error)
+        }
+      })()
     },
-    [sendAction],
+    [fetchSavedProducts],
   )
 
   // بعد از HANDOFF_HUMAN، پیام‌های فروشنده باید بدون اینکه مشتری خودش چیزی بفرستد دیده شوند —
@@ -977,6 +1006,7 @@ export function useShopChat(slug: string, productId?: string) {
     history,
     viewingHistory,
     savedProductIds,
+    savedProducts,
     toggleSaveProduct,
     responseStrategy,
     setResponseStrategy,

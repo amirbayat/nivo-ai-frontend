@@ -364,6 +364,7 @@ export function ShopChatPage() {
     history,
     viewingHistory,
     savedProductIds,
+    savedProducts,
     toggleSaveProduct,
     sendMessage,
     sendAction,
@@ -743,9 +744,10 @@ export function ShopChatPage() {
         <StoreProductGrid
           slug={slug}
           disabled={actionDisabled}
-          onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
+          onAddToCart={(productId, variantId) => void sendAction({ type: 'ADD_TO_CART', productId, ...(variantId ? { variantId } : {}) })}
           onAskSeller={handleAskSeller}
           savedProductIds={savedProductIds}
+          savedItems={savedProducts}
           onToggleSave={toggleSaveProduct}
           onWriteReview={setReviewProduct}
         />
@@ -772,9 +774,10 @@ export function ShopChatPage() {
           <StoreProductGrid
             slug={slug}
             disabled={actionDisabled}
-            onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
+            onAddToCart={(productId, variantId) => void sendAction({ type: 'ADD_TO_CART', productId, ...(variantId ? { variantId } : {}) })}
             onAskSeller={handleAskSeller}
             savedProductIds={savedProductIds}
+            savedItems={savedProducts}
             onToggleSave={toggleSaveProduct}
             onWriteReview={setReviewProduct}
           />
