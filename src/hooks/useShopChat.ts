@@ -90,7 +90,10 @@ export function useShopChat(slug: string, productId?: string) {
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — true یعنی الان
   // منتظر نظر است؛ تعیین می‌کند دکمه‌های پیوست عکس/ویدیو هم نشان داده شوند
   const [awaitingReview, setAwaitingReview] = useState(false)
+  const [awaitingSatisfaction, setAwaitingSatisfaction] = useState(false)
+  const [showLanding, setShowLanding] = useState(false)
   const sessionRef = useRef<ShopSession | null>(null)
+  const messagesStateRef = useRef<ShopMessage[]>([])
   const streamEnabledRef = useRef(false)
   // مکالمه‌ی واقعاً «فعال» — وقتی viewHistoryEntry موقتاً sessionRef را روی یک مکالمه‌ی
   // قدیمی می‌گذارد، این ref همچنان مکالمه‌ی زنده را نگه می‌دارد تا returnToCurrentChat بتواند
@@ -133,9 +136,7 @@ export function useShopChat(slug: string, productId?: string) {
     }
   }, [])
 
-  const appendCustomerMessage = useCallback((text: string) => {
-    setMessages((prev) => [...prev, { id: `opt-${Date.now()}`, role: 'customer', text }])
-  }, [])
+  messagesStateRef.current = messages
 
   // پول کوتاه وضعیت وویس یک پاسخ خاص (حداکثر ۱۵ ثانیه، هر ۲ ثانیه) — docs/PRD-sales-agent-voice.md
   // بخش ۱.۲؛ فقط همان حباب پیام را با voiceKey آپدیت می‌کند، نه کل مکالمه را دوباره نمی‌کشد
@@ -233,12 +234,12 @@ export function useShopChat(slug: string, productId?: string) {
     [pollVoice, pollQueuedReply, slug],
   )
 
-  const readShopTurn = useCallback(async (session: ShopSession, turnId: string) => {
+  const readShopTurn = useCallback(async (session: ShopSession, turnId: string, signal?: AbortSignal) => {
     const bubbleId = `stream-${turnId}`
     setMessages((prev) => [...prev, { id: bubbleId, role: 'agent', text: '' }])
     const res = await fetch(
       `${env.VITE_API_URL}/v2/chat/${session.conversationId}/turns/${turnId}/events`,
-      { headers: { 'X-Session-Token': session.sessionToken } },
+      { headers: { 'X-Session-Token': session.sessionToken }, signal },
     )
     if (!res.ok || !res.body) throw new Error('stream failed')
     const reader = res.body.getReader()
@@ -293,44 +294,78 @@ export function useShopChat(slug: string, productId?: string) {
     }
   }, [pollVoice])
 
-  const sendMessage = useCallback(
-    async (text: string) => {
+  const deliverCustomerText = useCallback(
+    async (bubbleId: string, text: string, clientMessageId: string) => {
       const session = sessionRef.current
-      if (!session || sending || viewingHistoryRef.current) return
-      appendCustomerMessage(text)
+      if (!session || viewingHistoryRef.current) return
+      setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, failed: false } : m)))
       setSending(true)
       setError(null)
+      const slowNote = window.setTimeout(() => {
+        setStreamNote((current) => current ?? fa.shop.stillChecking)
+      }, 5000)
+      const controller = new AbortController()
+      const killer = window.setTimeout(() => controller.abort(), 25_000)
       try {
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
           'X-Session-Token': session.sessionToken,
-          'Idempotency-Key': newClientMessageId(),
+          'Idempotency-Key': clientMessageId,
         }
         if (streamEnabledRef.current) headers['Accept-Stream'] = '1'
         const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ message: text }),
+          signal: controller.signal,
         })
         if (!res.ok) throw new Error('request failed')
         const body = (await res.json()) as ShopSendMessageResponse
         if (body.turnId) {
           try {
-            await readShopTurn(session, body.turnId)
-          } catch {
+            await readShopTurn(session, body.turnId, controller.signal)
+          } catch (err) {
+            if (controller.signal.aborted) throw err
             pollQueuedReply()
           }
         } else {
           applyReply(body)
         }
+        setAwaitingSatisfaction(false)
       } catch {
+        setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, failed: true } : m)))
         setError(fa.common.error)
       } finally {
+        window.clearTimeout(slowNote)
+        window.clearTimeout(killer)
         setStreamNote(null)
         setSending(false)
       }
     },
-    [sending, appendCustomerMessage, applyReply, readShopTurn, pollQueuedReply],
+    [applyReply, readShopTurn, pollQueuedReply],
+  )
+
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const session = sessionRef.current
+      if (!session || sending || viewingHistoryRef.current) return
+      setShowLanding(false)
+      const bubbleId = `opt-${Date.now()}`
+      const clientMessageId = newClientMessageId()
+      setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text, clientMessageId }])
+      await deliverCustomerText(bubbleId, text, clientMessageId)
+    },
+    [sending, deliverCustomerText],
+  )
+
+  const retryMessage = useCallback(
+    async (bubbleId: string) => {
+      if (sending) return
+      const found = messagesStateRef.current.find((m) => m.id === bubbleId)
+      if (!found?.text) return
+      await deliverCustomerText(bubbleId, found.text, found.clientMessageId ?? newClientMessageId())
+    },
+    [sending, deliverCustomerText],
   )
 
   // مسیر قطعی دکمه‌های UiBlock (افزودن به سبد/تایید سبد) — دیگر جمله‌ی فارسی نمی‌سازد تا از
@@ -340,6 +375,7 @@ export function useShopChat(slug: string, productId?: string) {
     async (action: ShopAction) => {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
+      setShowLanding(false)
       setSending(true)
       setError(null)
       try {
@@ -397,7 +433,10 @@ export function useShopChat(slug: string, productId?: string) {
     streamEnabledRef.current = !!data.shopStreamEnabled
     setResponseStrategyState(data.responseStrategy)
     setAwaitingReview(data.awaitingReview)
-    setMessages(eventsToMessages(data.events, session.conversationId))
+    setAwaitingSatisfaction(!!data.awaitingSatisfactionCheck)
+    const nextMessages = eventsToMessages(data.events, session.conversationId)
+    setMessages(nextMessages)
+    setShowLanding(!!data.shopLandingEnabled && nextMessages.length === 0)
   }, [])
 
   useEffect(() => {
@@ -409,7 +448,8 @@ export function useShopChat(slug: string, productId?: string) {
     if (
       (state !== 'HANDOFF_HUMAN' &&
         state !== 'AWAITING_SELLER_APPROVAL' &&
-        state !== 'REJECTED') ||
+        state !== 'REJECTED' &&
+        state !== 'COMPLETED') ||
       viewingHistory
     ) {
       return
@@ -612,8 +652,12 @@ export function useShopChat(slug: string, productId?: string) {
           { id, role: 'agent', text: data.initialReply!, uiBlock, voiceEventId: data.initialVoiceEventId },
         ])
         if (data.initialVoiceEventId) pollVoice(id, data.initialVoiceEventId)
+      } else if (data.shopLandingEnabled) {
+        setState('GREETING')
+        setShowLanding(true)
       } else {
         setState('GREETING')
+        setShowLanding(false)
         // باگ واقعی زنده (۱۴۰۵/۰۷/۱۹، docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴) —
         // silent:true حباب مشتری را مخفی می‌کرد در حالی‌که این پیام واقعاً روی سرور به‌عنوان
         // یک CUSTOMER_MESSAGE واقعی ثبت می‌شود (با رفرش هم از لاگ سرور درست نمایش داده
@@ -921,8 +965,11 @@ export function useShopChat(slug: string, productId?: string) {
     messages,
     state,
     awaitingReview,
+    awaitingSatisfaction,
+    retryMessage,
     loading,
     sending,
+    showLanding,
     streamNote,
     error,
     history,

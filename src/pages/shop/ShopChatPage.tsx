@@ -358,6 +358,7 @@ export function ShopChatPage() {
     state,
     loading,
     sending,
+    showLanding,
     streamNote,
     error,
     history,
@@ -372,6 +373,8 @@ export function ShopChatPage() {
     sendVideoMessage,
     sendVoiceMessage,
     awaitingReview,
+    awaitingSatisfaction,
+    retryMessage,
     markVoiceHeard,
     sendBuyerOtp,
     verifyBuyerOtp,
@@ -448,7 +451,9 @@ export function ShopChatPage() {
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — وقتی منتظر
   // نظریم، با این‌که state همچنان COMPLETED (ترمینال) است، ورودی باید باز بماند تا خریدار
   // بتواند متن/صوت/عکس/ویدیوی نظرش را همین‌جا بفرستد
-  const disabled = sending || viewingHistory || (TERMINAL_STATES.includes(state) && !awaitingReview)
+  const inputLocked = viewingHistory || (TERMINAL_STATES.includes(state) && !awaitingReview && !awaitingSatisfaction)
+  const composerDisabled = sending || inputLocked
+  const actionDisabled = inputLocked
 
   // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر همیشه قابل‌کلیک می‌ماند؛ کلیک
   // دوباره روی کارت تکراری همون محصول (مثلاً وقتی همون کارت یک‌بار دیگر ضمن توضیح تخفیف
@@ -475,7 +480,7 @@ export function ShopChatPage() {
 
   function send() {
     const text = input.trim()
-    if (!text || disabled) return
+    if (!text || composerDisabled) return
     setInput('')
     void sendMessage(text)
   }
@@ -485,7 +490,7 @@ export function ShopChatPage() {
   function onPickImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (!file || disabled) return
+    if (!file || composerDisabled) return
     void sendImageMessage(file)
   }
 
@@ -494,7 +499,7 @@ export function ShopChatPage() {
   function onPickVideo(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (!file || disabled) return
+    if (!file || composerDisabled) return
     void sendVideoMessage(file)
   }
 
@@ -513,7 +518,7 @@ export function ShopChatPage() {
   // باشد (معمولاً webm/opus)؛ بک‌اند خودش با ffmpeg نرمال‌سازی می‌کند، اینجا نیازی به انتخاب
   // فرمت خاصی نیست. تایمر ثانیه‌شمار فقط فیدبک بصری «داره ضبط می‌کنه» است، به سرور فرستاده نمی‌شود
   async function toggleRecording() {
-    if (disabled) return
+    if (composerDisabled) return
     if (recording) {
       recorderRef.current?.stop()
       if (recordTimerRef.current) clearInterval(recordTimerRef.current)
@@ -568,7 +573,18 @@ export function ShopChatPage() {
     )
   }
 
-  if (loading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-4 light:bg-white" dir="rtl">
+        <div className="mb-4 h-10 w-40 animate-pulse rounded-lg bg-slate-800 light:bg-slate-200" />
+        <div className="mb-3 h-16 animate-pulse rounded-xl bg-slate-800 light:bg-slate-200" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="aspect-square animate-pulse rounded-xl bg-slate-800 light:bg-slate-200" />
+          <div className="aspect-square animate-pulse rounded-xl bg-slate-800 light:bg-slate-200" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -704,7 +720,7 @@ export function ShopChatPage() {
       {storeMode && (
         <StoreProductGrid
           slug={slug}
-          disabled={disabled}
+          disabled={actionDisabled}
           onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
           onAskSeller={handleAskSeller}
           savedProductIds={savedProductIds}
@@ -713,7 +729,37 @@ export function ShopChatPage() {
         />
       )}
 
-      {!storeMode && (
+      {!storeMode && showLanding && (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <p className="px-4 pt-4 text-sm leading-relaxed text-slate-200 light:text-slate-800">
+            {fa.shop.landingWelcome(storeName ?? '')}
+          </p>
+          <div className="flex gap-1.5 overflow-x-auto px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {[fa.shop.landingChipBest, fa.shop.landingChipNew, fa.shop.landingChipHelp, fa.shop.landingChipShipping].map((label) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => void sendMessage(label)}
+                disabled={composerDisabled}
+                className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 px-3 py-1.5 text-xs text-slate-200 light:border-slate-300 light:text-slate-700 disabled:opacity-40"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <StoreProductGrid
+            slug={slug}
+            disabled={actionDisabled}
+            onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
+            onAskSeller={handleAskSeller}
+            savedProductIds={savedProductIds}
+            onToggleSave={toggleSaveProduct}
+            onWriteReview={setReviewProduct}
+          />
+        </div>
+      )}
+
+      {!storeMode && !showLanding && (
       <>
       <CheckoutProgressBar state={state} />
       <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -749,6 +795,15 @@ export function ShopChatPage() {
                       pending نشان می‌دهیم؛ بعد از آن میکروفون کنار متن واقعی می‌ماند تا خریدار
                       بفهمد این پیام از وویس آمده، نه تایپ */}
                   {m.isVoice && !m.text ? fa.shop.customerVoiceTranscribing : m.isVoice ? `🎙️ ${m.text}` : m.text}
+                  {m.role === 'customer' && m.failed && (
+                    <button
+                      type="button"
+                      onClick={() => void retryMessage(m.id)}
+                      className="mt-2 block text-xs font-semibold text-amber-200 underline"
+                    >
+                      {fa.shop.retrySend}
+                    </button>
+                  )}
                 </div>
               )}
               {conversationId && m.role === 'agent' && (
@@ -757,7 +812,7 @@ export function ShopChatPage() {
               {m.uiBlock && (
                 <ShopUiBlockView
                   block={m.uiBlock}
-                  disabled={disabled}
+                  disabled={actionDisabled}
                   onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
                   onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
                   onUploadReceipt={(file) => void uploadReceipt(file)}
@@ -771,7 +826,7 @@ export function ShopChatPage() {
               {/* docs/PRD-sales-agent-sales-state-machine.md §۱۲.۲ — فقط برای آخرین پیام کل چت؛
                   با ارسال هر پیام دیگری (که آخرین پیام را عوض می‌کند) یا در حال ارسال، پنهان می‌شود */}
               {m.role === 'agent' && !!m.quickReplies?.length && m.id === messages[messages.length - 1]?.id && !sending && (
-                <QuickRepliesBar replies={m.quickReplies} disabled={disabled} onPick={text => void sendMessage(text)} />
+                <QuickRepliesBar replies={m.quickReplies} disabled={composerDisabled} onPick={text => void sendMessage(text)} />
               )}
             </div>
           </div>
@@ -794,8 +849,12 @@ export function ShopChatPage() {
 
         {error && <p className="text-center text-xs text-red-400 light:text-red-600">{error}</p>}
       </div>
+      </>
+      )}
 
-      {((TERMINAL_STATES.includes(state) && !awaitingReview) || HUMAN_HANDLING_STATES.includes(state)) && (
+      {!storeMode && (
+      <>
+      {((TERMINAL_STATES.includes(state) && !awaitingReview && !awaitingSatisfaction) || HUMAN_HANDLING_STATES.includes(state)) && (
         <div className="border-t border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-slate-50 px-4 py-2 text-center text-xs text-slate-500">
           {fa.shop.conversationEnded}
         </div>
@@ -803,6 +862,11 @@ export function ShopChatPage() {
       {TERMINAL_STATES.includes(state) && awaitingReview && (
         <div className="border-t border-slate-800 light:border-slate-200 bg-emerald-500/10 px-4 py-2 text-center text-xs text-emerald-300 light:text-emerald-700">
           {fa.shop.awaitingReviewHint}
+        </div>
+      )}
+      {TERMINAL_STATES.includes(state) && awaitingSatisfaction && !awaitingReview && (
+        <div className="border-t border-slate-800 light:border-slate-200 bg-emerald-500/10 px-4 py-2 text-center text-xs text-emerald-300 light:text-emerald-700">
+          {fa.shop.awaitingSatisfactionHint}
         </div>
       )}
 
@@ -834,7 +898,7 @@ export function ShopChatPage() {
         </button>
         <button
           onClick={() => void sendMessage(fa.shop.talkToSellerMessage)}
-          disabled={disabled}
+          disabled={composerDisabled}
           className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 light:border-slate-300 px-3 py-1.5 text-xs text-slate-300 light:text-slate-700 disabled:opacity-40"
         >
           {fa.shop.quickChipTalkToSeller}
@@ -846,7 +910,7 @@ export function ShopChatPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          disabled={disabled}
+          disabled={composerDisabled}
           rows={1}
           placeholder={fa.shop.inputPlaceholder}
           dir="auto"
@@ -863,7 +927,7 @@ export function ShopChatPage() {
             />
             <button
               onClick={() => imageInputRef.current?.click()}
-              disabled={disabled}
+              disabled={composerDisabled}
               title={fa.shop.attachImage}
               className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-600/60 light:border-slate-300 text-slate-300 light:text-slate-700 hover:border-slate-500 disabled:opacity-30"
             >
@@ -883,7 +947,7 @@ export function ShopChatPage() {
             />
             <button
               onClick={() => videoInputRef.current?.click()}
-              disabled={disabled}
+              disabled={composerDisabled}
               title={fa.shop.attachVideo}
               className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-600/60 light:border-slate-300 text-slate-300 light:text-slate-700 hover:border-slate-500 disabled:opacity-30"
             >
@@ -895,7 +959,7 @@ export function ShopChatPage() {
         )}
         <button
           onClick={() => void toggleRecording()}
-          disabled={disabled}
+          disabled={composerDisabled}
           title={recording ? fa.shop.voiceRecording : undefined}
           className={`flex size-10 shrink-0 items-center justify-center rounded-xl disabled:opacity-30 ${
             recording
@@ -910,7 +974,7 @@ export function ShopChatPage() {
         </button>
         <button
           onClick={send}
-          disabled={disabled || !input.trim()}
+          disabled={composerDisabled || !input.trim()}
           className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white hover:bg-emerald-400 disabled:opacity-30"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 -scale-x-100">

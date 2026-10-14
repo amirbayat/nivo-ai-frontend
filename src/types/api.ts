@@ -582,6 +582,8 @@ export interface ShopMessage {
   videoUrl?: string
   // docs/PRD-sales-agent-sales-state-machine.md §۱۲.۲ — فقط روی آخرین پیام agent نمایش داده می‌شود
   quickReplies?: string[]
+  failed?: boolean
+  clientMessageId?: string
 }
 
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس
@@ -619,6 +621,7 @@ export interface ShopStartChatResponse {
   // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار دمو روی صفحه‌ی چت
   isDemo: boolean
   shopStreamEnabled?: boolean
+  shopLandingEnabled?: boolean
   responseStrategy: ShopResponseStrategy
   // فقط وقتی لینک اختصاصی یک محصول باز شده (?product=) و آن محصول واقعاً پیدا شد
   initialReply?: string
@@ -685,10 +688,12 @@ export interface ShopGetConversationResponse {
   storeLogoKey: string | null
   isDemo: boolean
   shopStreamEnabled?: boolean
+  shopLandingEnabled?: boolean
   responseStrategy: ShopResponseStrategy
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — true یعنی
   // الان منتظر نظر است؛ دکمه‌های پیوست عکس/ویدیو هم باید نشان داده شوند
   awaitingReview: boolean
+  awaitingSatisfactionCheck?: boolean
   events: ShopConversationEvent[]
 }
 
