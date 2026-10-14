@@ -661,6 +661,8 @@ export const fa = {
         completenessChecklistOwnerNotes: 'یادداشت‌های فروشنده ثبت‌شده',
         completenessChecklistWorkingHours: 'ساعت پاسخ‌گویی ثبت‌شده',
         completenessChecklistPayment: 'روش پرداخت (کارت یا اسنپ‌پی)',
+        completenessChecklistChannel: 'اتصال کانال (تلگرام یا اینستاگرام)',
+        completenessChecklistTestBot: 'یک بار از بات سوال بپرس',
         // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — محافظ در برابر فروشگاه‌های خالی رها‌شده
         noProductsTitle: 'هنوز محصولی نداری',
         noProductsSubtitle: 'بدون محصول، لینک فروشگاهت برای مشتری خالیه',

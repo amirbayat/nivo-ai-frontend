@@ -3,32 +3,93 @@ import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
-import { useNeededAttention, useOrders, useProducts, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
+import { useNeededAttention, useOrders, useProducts, useSellerBotStatus, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 import { SellerTestChatSheet } from './SellerTestChatSheet'
 
 // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۱ — چک‌لیست ۳موردی، هر ردیف یک ✓/— ساده
-function ChecklistRow({ done, label }: { done: boolean; label: string }) {
-  return (
-    <li className="flex items-center gap-2 text-xs">
-      <span className={clsx('flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]', done ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/40 text-slate-500')}>
-        {done ? '✓' : '—'}
-      </span>
-      <span className={done ? 'text-slate-500 line-through' : 'text-slate-300 light:text-slate-700'}>{label}</span>
-    </li>
+function ChecklistRow({
+  done,
+  label,
+  to,
+  onClick,
+  highlight,
+}: {
+  done: boolean
+  label: string
+  to?: string
+  onClick?: () => void
+  highlight?: boolean
+}) {
+  const className = clsx(
+    'flex w-full items-center gap-2 text-right text-xs',
+    highlight && !done && 'rounded-lg bg-amber-500/10 px-2 py-1',
   )
+  const mark = done ? '✓' : highlight ? '!' : '—'
+  const body = (
+    <>
+      <span
+        className={clsx(
+          'flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]',
+          done ? 'bg-emerald-500/20 text-emerald-400' : highlight ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-700/40 text-slate-500',
+        )}
+      >
+        {mark}
+      </span>
+      <span
+        className={
+          done
+            ? 'text-slate-500 line-through'
+            : highlight
+              ? 'font-semibold text-amber-200 light:text-amber-800'
+              : 'text-slate-300 light:text-slate-700'
+        }
+      >
+        {label}
+      </span>
+    </>
+  )
+  if (onClick) {
+    return (
+      <li>
+        <button type="button" onClick={onClick} className={className}>
+          {body}
+        </button>
+      </li>
+    )
+  }
+  if (to) {
+    return (
+      <li>
+        <Link to={to} className={className}>
+          {body}
+        </Link>
+      </li>
+    )
+  }
+  return <li className={className}>{body}</li>
 }
 
 export function SellerHomePage() {
   const navigate = useNavigate()
-  const { storeId, storeName, storeSlug } = useSellerStore()
+  const { storeId, storeName, storeSlug, instagramBusinessId } = useSellerStore()
   const pending = useOrders(storeId, 'RECEIPT_SUBMITTED')
   const attention = useNeededAttention(storeId)
   const credit = useStoreCredit(storeId)
   const completeness = useStoreCompleteness(storeId)
   const products = useProducts(storeId)
+  const sellerBot = useSellerBotStatus(storeId)
   const [copied, setCopied] = useState(false)
   const [testOpen, setTestOpen] = useState(false)
+  const testBotKey = `nivo.seller.testBot.${storeId}`
+  const [testedBot, setTestedBot] = useState(() => localStorage.getItem(`nivo.seller.testBot.${storeId}`) === '1')
+  const channelConnected = !!sellerBot.data?.linked || !!instagramBusinessId
+
+  function openTestBot() {
+    localStorage.setItem(testBotKey, '1')
+    setTestedBot(true)
+    setTestOpen(true)
+  }
 
   const chatLink = `${window.location.origin}/shop/${storeSlug}`
 
@@ -87,29 +148,16 @@ export function SellerHomePage() {
             {fa.seller.panel.home.completenessTitle(completeness.data.overallScorePercent)}
           </p>
           <ul className="flex flex-col gap-1.5">
-            <ChecklistRow done={completeness.data.checklist.hasProductWithPhoto} label={fa.seller.panel.home.completenessChecklistPhoto} />
-            <ChecklistRow done={completeness.data.checklist.hasEnoughKbEntries} label={fa.seller.panel.home.completenessChecklistKb} />
-            <ChecklistRow done={completeness.data.checklist.hasShippingPolicy} label={fa.seller.panel.home.completenessChecklistShipping} />
-            <ChecklistRow done={completeness.data.checklist.hasReturnPolicy} label={fa.seller.panel.home.completenessChecklistReturnPolicy} />
-            <ChecklistRow done={completeness.data.checklist.hasBrandIntro} label={fa.seller.panel.home.completenessChecklistBrandIntro} />
-            <ChecklistRow done={completeness.data.checklist.hasOwnerNotes} label={fa.seller.panel.home.completenessChecklistOwnerNotes} />
-            <ChecklistRow done={completeness.data.checklist.hasWorkingHours} label={fa.seller.panel.home.completenessChecklistWorkingHours} />
-            <li>
-              <Link
-                to="/seller/panel/bank-cards"
-                className={clsx(
-                  'flex items-center gap-2 rounded-lg text-xs',
-                  completeness.data.checklist.hasPaymentMethod ? '' : 'bg-amber-500/10 px-2 py-1',
-                )}
-              >
-                <span className={clsx('flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]', completeness.data.checklist.hasPaymentMethod ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300')}>
-                  {completeness.data.checklist.hasPaymentMethod ? '✓' : '!'}
-                </span>
-                <span className={completeness.data.checklist.hasPaymentMethod ? 'text-slate-500 line-through' : 'font-semibold text-amber-200 light:text-amber-800'}>
-                  {fa.seller.panel.home.completenessChecklistPayment}
-                </span>
-              </Link>
-            </li>
+            <ChecklistRow done={completeness.data.checklist.hasProductWithPhoto} label={fa.seller.panel.home.completenessChecklistPhoto} to="/seller/panel/products" />
+            <ChecklistRow done={completeness.data.checklist.hasEnoughKbEntries} label={fa.seller.panel.home.completenessChecklistKb} to="/seller/panel/knowledge" />
+            <ChecklistRow done={completeness.data.checklist.hasShippingPolicy} label={fa.seller.panel.home.completenessChecklistShipping} to="/seller/panel/store-settings" />
+            <ChecklistRow done={completeness.data.checklist.hasReturnPolicy} label={fa.seller.panel.home.completenessChecklistReturnPolicy} to="/seller/panel/store-settings" />
+            <ChecklistRow done={completeness.data.checklist.hasBrandIntro} label={fa.seller.panel.home.completenessChecklistBrandIntro} to="/seller/panel/store-settings" />
+            <ChecklistRow done={completeness.data.checklist.hasOwnerNotes} label={fa.seller.panel.home.completenessChecklistOwnerNotes} to="/seller/panel/store-settings" />
+            <ChecklistRow done={completeness.data.checklist.hasWorkingHours} label={fa.seller.panel.home.completenessChecklistWorkingHours} to="/seller/panel/store-settings" />
+            <ChecklistRow done={!!completeness.data.checklist.hasPaymentMethod} label={fa.seller.panel.home.completenessChecklistPayment} to="/seller/panel/bank-cards" highlight />
+            <ChecklistRow done={channelConnected} label={fa.seller.panel.home.completenessChecklistChannel} to="/seller/panel/more" />
+            <ChecklistRow done={testedBot} label={fa.seller.panel.home.completenessChecklistTestBot} onClick={openTestBot} />
           </ul>
         </div>
       )}
@@ -123,6 +171,11 @@ export function SellerHomePage() {
           <p className="mt-1 text-lg font-bold text-slate-100 light:text-slate-900">
             {fa.seller.panel.home.creditBalanceToman(credit.data?.balanceToman ?? 0)}
           </p>
+          {!!credit.data?.trialCreditRemainingToman && (
+            <p className="mt-1 text-xs text-emerald-400 light:text-emerald-700">
+              {fa.seller.panel.credit.trialTitle}: {fa.seller.panel.home.creditBalanceToman(credit.data.trialCreditRemainingToman)}
+            </p>
+          )}
         </div>
         <span className="rounded-xl bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-400 light:text-emerald-700">
           {fa.seller.panel.home.creditTopUp}
@@ -131,7 +184,7 @@ export function SellerHomePage() {
 
       <button
         type="button"
-        onClick={() => setTestOpen(true)}
+        onClick={openTestBot}
         className="mb-4 w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white"
       >
         {fa.seller.panel.home.testBotButton}

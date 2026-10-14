@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
 import { toEnglishDigits } from '@/lib/digits'
+import { slugFromName } from '@/lib/slugFromName'
 import { extractErrorMessage } from '@/lib/sellerProduct'
 import {
   useCheckSlugAvailable,
@@ -103,6 +104,7 @@ export function SellerOnboardingPage() {
   const [businessType, setBusinessType] = useState<'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'>('PRODUCT_SALES')
   const [editingFromConfirm, setEditingFromConfirm] = useState(false)
   const [slug, setSlug] = useState('')
+  const suggestedSlug = useRef('')
   const [debouncedSlug, setDebouncedSlug] = useState('')
   const [instagramUrl, setInstagramUrl] = useState('')
   const [telegramUrl, setTelegramUrl] = useState('')
@@ -209,7 +211,18 @@ export function SellerOnboardingPage() {
             <p className="mb-8 text-sm leading-[1.7] text-slate-500">{fa.seller.step1.subheading}</p>
 
             <div className="mb-5">
-              <Input label={fa.seller.step1.nameLabel} placeholder={fa.seller.step1.namePlaceholder} value={name} onChange={e => setName(e.target.value)} />
+              <Input
+                label={fa.seller.step1.nameLabel}
+                placeholder={fa.seller.step1.namePlaceholder}
+                value={name}
+                onChange={(e) => {
+                  const nextName = e.target.value
+                  const nextSlug = slugFromName(nextName)
+                  setName(nextName)
+                  setSlug((current) => (current === '' || current === suggestedSlug.current ? nextSlug : current))
+                  suggestedSlug.current = nextSlug
+                }}
+              />
             </div>
 
             <label className="mb-3 block text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.step1.categoryLabel}</label>
