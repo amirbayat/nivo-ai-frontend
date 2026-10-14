@@ -393,6 +393,7 @@ export function ShopChatPage() {
   const [reviewProduct, setReviewProduct] = useState<PublicProduct | null>(null)
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»: نخ چت مینیمم به حباب شناور
   const [storeMode, setStoreMode] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
   const [storeModeUnread, setStoreModeUnread] = useState(false)
   const prevMessageCountRef = useRef(messages.length)
   const messagesRef = useRef<HTMLDivElement>(null)
@@ -459,6 +460,15 @@ export function ShopChatPage() {
   // دوباره روی کارت تکراری همون محصول (مثلاً وقتی همون کارت یک‌بار دیگر ضمن توضیح تخفیف
   // دوباره پیوست می‌شود) بدون هشدار تعداد سبد را دوبرابر می‌کرد. آخرین CART_SUMMARY منبع
   // حقیقت فعلی سبد است؛ هر کارت محصولی که همین الان توی آن هست، دیگر دکمه‌ی فعال نشان نمی‌دهد
+  const cartSummary = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const block = messages[i].uiBlock
+      if (block?.type === 'CART_SUMMARY') return block
+    }
+    return null
+  }, [messages])
+  const cartCount = cartSummary?.items.reduce((sum, item) => sum + item.qty, 0) ?? 0
+
   const cartProductIds = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       const block = messages[i].uiBlock
@@ -612,6 +622,18 @@ export function ShopChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {cartCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              className="relative flex h-8 items-center rounded-lg px-2 text-xs font-semibold text-slate-200 hover:bg-slate-800/60 light:text-slate-800 light:hover:bg-slate-100"
+            >
+              {fa.shop.cartSheetTitle}
+              <span className="ms-1 rounded-full bg-emerald-500 px-1.5 text-[10px] text-white">
+                {cartCount.toLocaleString('fa-IR')}
+              </span>
+            </button>
+          )}
           <button
             onClick={() => setStoreMode((v) => !v)}
             title={storeMode ? fa.shop.storeModeBackToChat : fa.shop.storeModeOpen}
@@ -983,6 +1005,80 @@ export function ShopChatPage() {
         </button>
       </div>
       </>
+      )}
+
+      {cartOpen && cartSummary && (
+        <div className="absolute inset-0 z-30 flex flex-col bg-slate-950 light:bg-white">
+          <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3 light:border-slate-200">
+            <button type="button" onClick={() => setCartOpen(false)} className="flex size-8 items-center justify-center text-slate-300" aria-label={fa.shop.backToCurrentChat}>
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <p className="text-sm font-semibold text-slate-100 light:text-slate-900">{fa.shop.cartSheetTitle}</p>
+          </div>
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+            {cartSummary.items.length === 0 && (
+              <p className="text-center text-sm text-slate-500">{fa.shop.cartEmptySheet}</p>
+            )}
+            {cartSummary.items.map((item) => (
+              <div key={`${item.productId}-${item.variantId ?? ''}`} className="rounded-xl border border-slate-800 p-3 light:border-slate-200">
+                <p className="text-sm text-slate-100 light:text-slate-900">
+                  {item.name}
+                  {item.variantLabel ? <span className="text-slate-500"> ({item.variantLabel})</span> : null}
+                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-xs text-slate-400">{(item.unitPrice * item.qty).toLocaleString('fa-IR')} تومان</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={actionDisabled || sending}
+                      onClick={() => void sendAction(item.qty <= 1
+                        ? { type: 'REMOVE_CART_ITEM', productId: item.productId, variantId: item.variantId }
+                        : { type: 'SET_CART_QTY', productId: item.productId, qty: item.qty - 1, variantId: item.variantId })}
+                      className="flex size-8 items-center justify-center rounded-lg border border-slate-700 text-slate-200 disabled:opacity-40"
+                    >
+                      −
+                    </button>
+                    <span className="min-w-6 text-center text-sm text-slate-100 light:text-slate-900">{item.qty.toLocaleString('fa-IR')}</span>
+                    <button
+                      type="button"
+                      disabled={actionDisabled || sending}
+                      onClick={() => void sendAction({ type: 'SET_CART_QTY', productId: item.productId, qty: item.qty + 1, variantId: item.variantId })}
+                      className="flex size-8 items-center justify-center rounded-lg border border-slate-700 text-slate-200 disabled:opacity-40"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionDisabled || sending}
+                      onClick={() => void sendAction({ type: 'REMOVE_CART_ITEM', productId: item.productId, variantId: item.variantId })}
+                      className="text-xs text-red-400"
+                    >
+                      {fa.shop.cartRemove}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-slate-800 p-4 light:border-slate-200">
+            <p className="mb-3 text-sm font-semibold text-slate-100 light:text-slate-900">
+              {cartSummary.total.toLocaleString('fa-IR')} تومان
+            </p>
+            <button
+              type="button"
+              disabled={actionDisabled || sending || cartSummary.items.length === 0}
+              onClick={() => {
+                setCartOpen(false)
+                void sendAction({ type: 'CONFIRM_CART' })
+              }}
+              className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white disabled:opacity-40"
+            >
+              {fa.shop.confirmAndPay}
+            </button>
+          </div>
+        </div>
       )}
 
       {storeMode && (

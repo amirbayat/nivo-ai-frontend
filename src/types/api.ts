@@ -590,6 +590,8 @@ export interface ShopMessage {
 // می‌شود (فیدبک اول پایلوت — sales-agent.types.ts SalesAction)
 export type ShopAction =
   | { type: 'ADD_TO_CART'; productId: string; qty?: number }
+  | { type: 'SET_CART_QTY'; productId: string; qty: number; variantId?: string }
+  | { type: 'REMOVE_CART_ITEM'; productId: string; variantId?: string }
   // 0.11a — کارت محصول برای خریدار برگشتی با لینک محصول
   | { type: 'FOCUS_PRODUCT'; productId: string }
   | { type: 'CONFIRM_CART' }

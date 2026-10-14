@@ -375,7 +375,9 @@ export function useShopChat(slug: string, productId?: string) {
     async (action: ShopAction) => {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
-      setShowLanding(false)
+      if (action.type !== 'SET_CART_QTY' && action.type !== 'REMOVE_CART_ITEM') {
+        setShowLanding(false)
+      }
       setSending(true)
       setError(null)
       try {

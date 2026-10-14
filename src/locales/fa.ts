@@ -1499,6 +1499,9 @@ export const fa = {
     landingChipNew: 'جدیدترین‌ها',
     landingChipHelp: 'کمک می‌خوام انتخاب کنم',
     landingChipShipping: 'ارسال و پرداخت چطوره؟',
+    cartSheetTitle: 'سبد خرید',
+    cartRemove: 'حذف',
+    cartEmptySheet: 'سبد خرید خالی است',
     retrySend: 'دوباره بفرست',
     awaitingSatisfactionHint: 'به سوال رضایت همین‌جا جواب بده',
     // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱/۳.۳
