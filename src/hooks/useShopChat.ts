@@ -78,6 +78,7 @@ export function useShopChat(slug: string, productId?: string) {
   const [state, setState] = useState<string>('GREETING')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [streamNote, setStreamNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<ShopHistoryEntry[]>([])
   // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
@@ -90,6 +91,7 @@ export function useShopChat(slug: string, productId?: string) {
   // منتظر نظر است؛ تعیین می‌کند دکمه‌های پیوست عکس/ویدیو هم نشان داده شوند
   const [awaitingReview, setAwaitingReview] = useState(false)
   const sessionRef = useRef<ShopSession | null>(null)
+  const streamEnabledRef = useRef(false)
   // مکالمه‌ی واقعاً «فعال» — وقتی viewHistoryEntry موقتاً sessionRef را روی یک مکالمه‌ی
   // قدیمی می‌گذارد، این ref همچنان مکالمه‌ی زنده را نگه می‌دارد تا returnToCurrentChat بتواند
   // برگردد (docs/PRD-conversation-history.md — تاریخچه حالا سمت سرور است، نه localStorage)
@@ -231,6 +233,66 @@ export function useShopChat(slug: string, productId?: string) {
     [pollVoice, pollQueuedReply, slug],
   )
 
+  const readShopTurn = useCallback(async (session: ShopSession, turnId: string) => {
+    const bubbleId = `stream-${turnId}`
+    setMessages((prev) => [...prev, { id: bubbleId, role: 'agent', text: '' }])
+    const res = await fetch(
+      `${env.VITE_API_URL}/v2/chat/${session.conversationId}/turns/${turnId}/events`,
+      { headers: { 'X-Session-Token': session.sessionToken } },
+    )
+    if (!res.ok || !res.body) throw new Error('stream failed')
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buf = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+      let nl = buf.indexOf('\n')
+      while (nl >= 0) {
+        const line = buf.slice(0, nl).trim()
+        buf = buf.slice(nl + 1)
+        nl = buf.indexOf('\n')
+        if (!line.startsWith('data:')) continue
+        const event = JSON.parse(line.slice(5)) as {
+          type: string
+          text?: string
+          reply?: string
+          uiBlocks?: ShopSendMessageResponse['uiBlocks']
+          state?: string
+          quickReplies?: string[]
+          voiceEventId?: string
+          awaitingReview?: boolean
+        }
+        if (event.type === 'status' && event.text) setStreamNote(event.text)
+        if (event.type === 'delta' && event.text) {
+          setStreamNote(null)
+          const text = event.text
+          setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, text } : m)))
+        }
+        if (event.type === 'done') {
+          setStreamNote(null)
+          setState(event.state ?? 'BROWSING')
+          setAwaitingReview(!!event.awaitingReview)
+          const uiBlock = event.uiBlocks?.find((b) => b.type !== 'NONE')
+          setMessages((prev) => prev.map((m) => (
+            m.id === bubbleId
+              ? {
+                  ...m,
+                  text: event.reply ?? m.text,
+                  uiBlock,
+                  quickReplies: event.quickReplies?.length ? event.quickReplies : undefined,
+                  voiceEventId: event.voiceEventId,
+                }
+              : m
+          )))
+          if (event.voiceEventId) pollVoice(bubbleId, event.voiceEventId)
+        }
+        if (event.type === 'error') throw new Error('stream failed')
+      }
+    }
+  }, [pollVoice])
+
   const sendMessage = useCallback(
     async (text: string) => {
       const session = sessionRef.current
@@ -239,24 +301,36 @@ export function useShopChat(slug: string, productId?: string) {
       setSending(true)
       setError(null)
       try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'X-Session-Token': session.sessionToken,
+          'Idempotency-Key': newClientMessageId(),
+        }
+        if (streamEnabledRef.current) headers['Accept-Stream'] = '1'
         const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Session-Token': session.sessionToken,
-            'Idempotency-Key': newClientMessageId(),
-          },
+          headers,
           body: JSON.stringify({ message: text }),
         })
         if (!res.ok) throw new Error('request failed')
-        applyReply((await res.json()) as ShopSendMessageResponse)
+        const body = (await res.json()) as ShopSendMessageResponse
+        if (body.turnId) {
+          try {
+            await readShopTurn(session, body.turnId)
+          } catch {
+            pollQueuedReply()
+          }
+        } else {
+          applyReply(body)
+        }
       } catch {
         setError(fa.common.error)
       } finally {
+        setStreamNote(null)
         setSending(false)
       }
     },
-    [sending, appendCustomerMessage, applyReply],
+    [sending, appendCustomerMessage, applyReply, readShopTurn, pollQueuedReply],
   )
 
   // مسیر قطعی دکمه‌های UiBlock (افزودن به سبد/تایید سبد) — دیگر جمله‌ی فارسی نمی‌سازد تا از
@@ -320,6 +394,7 @@ export function useShopChat(slug: string, productId?: string) {
     setStoreName(data.storeName)
     setStoreLogoKey(data.storeLogoKey)
     setIsDemo(data.isDemo)
+    streamEnabledRef.current = !!data.shopStreamEnabled
     setResponseStrategyState(data.responseStrategy)
     setAwaitingReview(data.awaitingReview)
     setMessages(eventsToMessages(data.events, session.conversationId))
@@ -524,6 +599,7 @@ export function useShopChat(slug: string, productId?: string) {
       setStoreName(data.storeName)
       setStoreLogoKey(data.storeLogoKey)
       setIsDemo(data.isDemo)
+      streamEnabledRef.current = !!data.shopStreamEnabled
       setResponseStrategyState(data.responseStrategy)
       setMessages([])
       // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
@@ -847,6 +923,7 @@ export function useShopChat(slug: string, productId?: string) {
     awaitingReview,
     loading,
     sending,
+    streamNote,
     error,
     history,
     viewingHistory,

@@ -358,6 +358,7 @@ export function ShopChatPage() {
     state,
     loading,
     sending,
+    streamNote,
     error,
     history,
     viewingHistory,
@@ -776,7 +777,10 @@ export function ShopChatPage() {
           </div>
         ))}
 
-        {sending && (
+        {sending && streamNote && (
+          <p className="text-center text-xs text-slate-400">{streamNote}</p>
+        )}
+        {sending && !streamNote && messages[messages.length - 1]?.id.startsWith('stream-') ? null : sending && (
           <div className="flex justify-end">
             <div className="rounded-2xl rounded-tr-sm bg-slate-700/70 light:bg-slate-100 px-4 py-3">
               <div className="flex items-center gap-1">

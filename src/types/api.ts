@@ -618,6 +618,7 @@ export interface ShopStartChatResponse {
   storeLogoKey: string | null
   // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار دمو روی صفحه‌ی چت
   isDemo: boolean
+  shopStreamEnabled?: boolean
   responseStrategy: ShopResponseStrategy
   // فقط وقتی لینک اختصاصی یک محصول باز شده (?product=) و آن محصول واقعاً پیدا شد
   initialReply?: string
@@ -641,6 +642,8 @@ export interface ShopSendMessageResponse {
   switchedConversationId?: string
   // 0.4 — پیام در صف سرور رفت (مکالمه مشغول بود)؛ جواب بعداً از رویدادهای مکالمه می‌آید
   queued?: boolean
+  // 4.15 — tokens follow on GET .../turns/:turnId/events
+  turnId?: string
 }
 
 export interface ShopVoiceStatusResponse {
@@ -681,6 +684,7 @@ export interface ShopGetConversationResponse {
   storeName: string
   storeLogoKey: string | null
   isDemo: boolean
+  shopStreamEnabled?: boolean
   responseStrategy: ShopResponseStrategy
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — true یعنی
   // الان منتظر نظر است؛ دکمه‌های پیوست عکس/ویدیو هم باید نشان داده شوند
