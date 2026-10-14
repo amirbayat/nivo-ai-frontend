@@ -842,6 +842,9 @@ export function SellerProductsPage() {
               </p>
               <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                 {fa.shop.stockCount(effectiveStock(p))}
+                {(p.stockAlertCount ?? 0) > 0 && (
+                  <span className="text-amber-400">{fa.seller.panel.products.waitingCount(p.stockAlertCount ?? 0)}</span>
+                )}
                 {effectiveStock(p) <= 3 && (
                   <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${effectiveStock(p) === 0 ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
                     {effectiveStock(p) === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}

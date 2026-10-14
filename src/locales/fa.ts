@@ -953,6 +953,7 @@ export const fa = {
         // قابل‌تنظیم، یک قاعده‌ی ثابت: stock<=3 «موجودی کم»، stock=0 «ناموجود»
         lowStockBadge: 'موجودی کم',
         outOfStockBadge: 'ناموجود',
+        waitingCount: (n: number) => `${n.toLocaleString('fa-IR')} نفر منتظر موجود شدن`,
       },
       refunds: {
         back: 'سفارش‌ها',
@@ -1472,6 +1473,12 @@ export const fa = {
     choosePaymentMethodSnapppayButton: 'اسنپ‌پی (۴ قسطه)',
     visitWebsiteButton: 'مشاهده وب‌سایت',
     outOfStock: 'ناموجود',
+    notifyMe: 'ناموجوده، خبرم کن',
+    notifyMeSent: 'ثبت شد. وقتی موجود شد همین‌جا و با پیامک خبرت می‌کنیم.',
+    notifyMePhone: 'شماره موبایلت را بده تا وقتی موجود شد خبرت کنیم',
+    notifyMeCode: 'کد پیامک را وارد کن',
+    notifyMeInStock: 'این مورد الان موجود است',
+    notifyMeError: 'ثبت نشد. دوباره تلاش کن',
     // عمداً بدون عدد — فروشنده نمی‌خواهد تعداد موجودی واقعی به خریدار (در ویجت فروش) نشان
     // داده شود؛ stockCount زیر فقط برای پنل خودِ فروشنده (SellerProductsPage) است
     inStock: 'موجود است',

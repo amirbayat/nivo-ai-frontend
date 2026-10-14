@@ -5,6 +5,7 @@ import { useStoreProducts } from '@/hooks/useStoreProducts'
 import { productImageUrl, productVideoUrl, reviewMediaUrl } from './ShopUiBlocks'
 import { toEnglishDigits } from '@/lib/digits'
 import { GoldPriceTicker } from './GoldPriceTicker'
+import { DigitsInput } from '@/components/ui/DigitsInput'
 import type { PublicProduct, PublicProductVariant, ProductReview } from '@/types/api'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»، «فاز ۱»: فقط گرید ساده
@@ -20,6 +21,12 @@ interface StoreProductGridProps {
   onToggleSave: (productId: string) => void
   // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم از روی محصول
   onWriteReview: (product: PublicProduct) => void
+  onNotifyStock?: (
+    productId: string,
+    variantId?: string,
+  ) => Promise<{ status: 'subscribed' | 'needs_phone' | 'in_stock' | 'error' }>
+  onSendBuyerOtp?: (phone: string) => Promise<{ ok: boolean; message: string }>
+  onVerifyBuyerOtp?: (phone: string, code: string) => Promise<{ ok: boolean; message: string }>
 }
 
 export function StoreProductGrid({
@@ -31,6 +38,9 @@ export function StoreProductGrid({
   savedItems,
   onToggleSave,
   onWriteReview,
+  onNotifyStock,
+  onSendBuyerOtp,
+  onVerifyBuyerOtp,
 }: StoreProductGridProps) {
   const { items, query, setQuery, loading, error, hasMore, loadMore, shippingEstimate } = useStoreProducts(slug, true)
   const [catalogTab, setCatalogTab] = useState<'all' | 'saved'>('all')
@@ -152,6 +162,9 @@ export function StoreProductGrid({
           onToggleSave={() => onToggleSave(selected.id)}
           onWriteReview={() => onWriteReview(selected)}
           onViewReviews={() => setReviewsProduct(selected)}
+          onNotifyStock={onNotifyStock}
+          onSendBuyerOtp={onSendBuyerOtp}
+          onVerifyBuyerOtp={onVerifyBuyerOtp}
         />
       )}
 
@@ -174,6 +187,20 @@ function RatingLine({ avg, count }: { avg: number | null; count: number }) {
       <span className="text-slate-400 light:text-slate-500">{fa.shop.reviewCount(count)}</span>
     </span>
   )
+}
+
+function optionValueExists(
+  variants: PublicProductVariant[],
+  optionName: string,
+  value: string,
+  selected: Record<string, string>,
+) {
+  return variants.some((variant) => {
+    if (variant.options[optionName] !== value) return false
+    return Object.entries(selected).every(
+      ([key, chosen]) => key === optionName || variant.options[key] === chosen,
+    )
+  })
 }
 
 function optionValueAvailable(
@@ -213,6 +240,9 @@ function ProductDetailSheet({
   onToggleSave,
   onWriteReview,
   onViewReviews,
+  onNotifyStock,
+  onSendBuyerOtp,
+  onVerifyBuyerOtp,
 }: {
   product: PublicProduct
   slug: string
@@ -225,6 +255,12 @@ function ProductDetailSheet({
   onToggleSave: () => void
   onWriteReview: () => void
   onViewReviews: () => void
+  onNotifyStock?: (
+    productId: string,
+    variantId?: string,
+  ) => Promise<{ status: 'subscribed' | 'needs_phone' | 'in_stock' | 'error' }>
+  onSendBuyerOtp?: (phone: string) => Promise<{ ok: boolean; message: string }>
+  onVerifyBuyerOtp?: (phone: string, code: string) => Promise<{ ok: boolean; message: string }>
 }) {
   const options = product.options ?? []
   const variants = product.variants ?? []
@@ -234,6 +270,11 @@ function ProductDetailSheet({
   ]
   const [mediaIndex, setMediaIndex] = useState(0)
   const [selected, setSelected] = useState<Record<string, string>>({})
+  const [notifyState, setNotifyState] = useState<'idle' | 'phone' | 'code' | 'done'>('idle')
+  const [notifyPhone, setNotifyPhone] = useState('')
+  const [notifyCode, setNotifyCode] = useState('')
+  const [notifyError, setNotifyError] = useState<string | null>(null)
+  const [notifyBusy, setNotifyBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   const picked = matchingVariant(product, selected)
   const shownPrice = picked?.price ?? product.basePrice
@@ -250,7 +291,54 @@ function ProductDetailSheet({
     setMediaIndex(0)
     setSelected({})
     setCopied(false)
+    setNotifyState('idle')
+    setNotifyPhone('')
+    setNotifyCode('')
+    setNotifyError(null)
   }, [product.id])
+
+  const wantsNotify =
+    Boolean(onNotifyStock) &&
+    (options.length === 0 ? product.stock <= 0 : picked != null && picked.stock <= 0)
+
+  async function askNotify() {
+    if (!onNotifyStock) return
+    setNotifyBusy(true)
+    setNotifyError(null)
+    const result = await onNotifyStock(product.id, picked?.id)
+    setNotifyBusy(false)
+    if (result.status === 'subscribed') setNotifyState('done')
+    else if (result.status === 'needs_phone') setNotifyState('phone')
+    else if (result.status === 'in_stock') setNotifyError(fa.shop.notifyMeInStock)
+    else setNotifyError(fa.shop.notifyMeError)
+  }
+
+  async function sendNotifyCode() {
+    if (!onSendBuyerOtp) return
+    setNotifyBusy(true)
+    setNotifyError(null)
+    const result = await onSendBuyerOtp(notifyPhone)
+    setNotifyBusy(false)
+    if (!result.ok) setNotifyError(result.message || fa.shop.notifyMeError)
+    else setNotifyState('code')
+  }
+
+  async function confirmNotifyCode() {
+    if (!onVerifyBuyerOtp || !onNotifyStock) return
+    setNotifyBusy(true)
+    setNotifyError(null)
+    const verified = await onVerifyBuyerOtp(notifyPhone, notifyCode)
+    if (!verified.ok) {
+      setNotifyBusy(false)
+      setNotifyError(verified.message || fa.shop.notifyMeError)
+      return
+    }
+    const result = await onNotifyStock(product.id, picked?.id)
+    setNotifyBusy(false)
+    if (result.status === 'subscribed') setNotifyState('done')
+    else if (result.status === 'in_stock') setNotifyError(fa.shop.notifyMeInStock)
+    else setNotifyError(fa.shop.notifyMeError)
+  }
 
   function choose(optionName: string, value: string) {
     setSelected((current) => {
@@ -258,7 +346,7 @@ function ProductDetailSheet({
       for (const option of options) {
         if (option.name === optionName) continue
         const chosen = next[option.name]
-        if (chosen && !optionValueAvailable(variants, option.name, chosen, next)) {
+        if (chosen && !optionValueExists(variants, option.name, chosen, next)) {
           delete next[option.name]
         }
       }
@@ -369,19 +457,20 @@ function ProductDetailSheet({
             <p className="mb-1 text-xs text-slate-400 light:text-slate-600">{option.name}</p>
             <div className="flex flex-wrap gap-2">
               {option.values.map((value) => {
+                const exists = optionValueExists(variants, option.name, value, selected)
                 const available = optionValueAvailable(variants, option.name, value, selected)
                 const active = selected[option.name] === value
                 return (
                   <button
                     key={value}
                     type="button"
-                    disabled={!available}
+                    disabled={!exists}
                     onClick={() => choose(option.name, value)}
                     className={`rounded-full border px-3 py-1.5 text-xs ${
                       active
                         ? 'border-emerald-400 bg-emerald-500/15 text-emerald-300'
                         : 'border-slate-700 text-slate-200 light:border-slate-300 light:text-slate-800'
-                    } disabled:line-through disabled:opacity-40`}
+                    } ${available ? '' : 'line-through opacity-60'} disabled:cursor-not-allowed disabled:opacity-40`}
                   >
                     {value}
                   </button>
@@ -394,6 +483,60 @@ function ProductDetailSheet({
           <p className="mb-3 text-sm text-slate-400 light:text-slate-600">{product.description}</p>
         )}
         <p className="text-xs text-slate-500">{canAdd ? fa.shop.inStock : fa.shop.outOfStock}</p>
+        {wantsNotify && notifyState === 'done' && (
+          <p className="mt-2 text-xs text-emerald-400">{fa.shop.notifyMeSent}</p>
+        )}
+        {wantsNotify && notifyState === 'idle' && (
+          <button
+            type="button"
+            onClick={() => void askNotify()}
+            disabled={notifyBusy}
+            className="mt-2 w-full rounded-lg border border-amber-400/40 py-2 text-sm font-medium text-amber-300 disabled:opacity-40"
+          >
+            {fa.shop.notifyMe}
+          </button>
+        )}
+        {wantsNotify && notifyState === 'phone' && (
+          <div className="mt-2 flex flex-col gap-2">
+            <p className="text-xs text-slate-400 light:text-slate-600">{fa.shop.notifyMePhone}</p>
+            <DigitsInput
+              kind="phone"
+              value={notifyPhone}
+              onChange={setNotifyPhone}
+              placeholder={fa.shop.registerPhonePlaceholder}
+              className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 light:border-slate-300 light:bg-white light:text-slate-900"
+            />
+            <button
+              type="button"
+              onClick={() => void sendNotifyCode()}
+              disabled={notifyBusy || !notifyPhone.trim()}
+              className="rounded-lg bg-amber-500 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {fa.shop.registerSendCodeButton}
+            </button>
+          </div>
+        )}
+        {wantsNotify && notifyState === 'code' && (
+          <div className="mt-2 flex flex-col gap-2">
+            <p className="text-xs text-slate-400 light:text-slate-600">{fa.shop.notifyMeCode}</p>
+            <DigitsInput
+              kind="otp"
+              value={notifyCode}
+              onChange={setNotifyCode}
+              placeholder={fa.shop.registerCodePlaceholder}
+              className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 light:border-slate-300 light:bg-white light:text-slate-900"
+            />
+            <button
+              type="button"
+              onClick={() => void confirmNotifyCode()}
+              disabled={notifyBusy || notifyCode.trim().length < 4}
+              className="rounded-lg bg-amber-500 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {fa.shop.registerConfirmButton}
+            </button>
+          </div>
+        )}
+        {notifyError && <p className="mt-1 text-xs text-red-400">{notifyError}</p>}
         {shippingText && <p className="mb-4 text-xs text-slate-500">{shippingText}</p>}
         {!shippingText && <div className="mb-4" />}
         <div className="flex gap-2">

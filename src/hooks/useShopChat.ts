@@ -883,6 +883,32 @@ export function useShopChat(slug: string, productId?: string) {
   // docs/PRD-buyer-phone-otp-registration.md — جدا از sendMessage/sendAction چون چت را
   // دستکاری نمی‌کند (نه applyReply، نه optimistic bubble)؛ فقط موفقیت/پیام خطا را برای مودال
   // ثبت‌نام برمی‌گرداند
+  const subscribeStockAlert = useCallback(
+    async (
+      productId: string,
+      variantId?: string,
+    ): Promise<{ status: 'subscribed' | 'needs_phone' | 'in_stock' | 'error' }> => {
+      const session = sessionRef.current
+      if (!session) return { status: 'error' }
+      try {
+        const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/stock-alerts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+          body: JSON.stringify({ productId, ...(variantId ? { variantId } : {}) }),
+        })
+        if (!res.ok) return { status: 'error' }
+        const data = (await res.json().catch(() => null)) as { status?: string } | null
+        if (data?.status === 'subscribed' || data?.status === 'needs_phone' || data?.status === 'in_stock') {
+          return { status: data.status }
+        }
+        return { status: 'error' }
+      } catch {
+        return { status: 'error' }
+      }
+    },
+    [],
+  )
+
   const sendBuyerOtp = useCallback(async (phone: string): Promise<{ ok: boolean; message: string }> => {
     const session = sessionRef.current
     if (!session) return { ok: false, message: fa.common.error }
@@ -1018,6 +1044,7 @@ export function useShopChat(slug: string, productId?: string) {
     sendVideoMessage,
     sendVoiceMessage,
     markVoiceHeard,
+    subscribeStockAlert,
     sendBuyerOtp,
     verifyBuyerOtp,
     listMyOrders,

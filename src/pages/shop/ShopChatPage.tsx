@@ -379,6 +379,7 @@ export function ShopChatPage() {
     markVoiceHeard,
     sendBuyerOtp,
     verifyBuyerOtp,
+    subscribeStockAlert,
     submitComment,
     uploadCommentMedia,
     startNewChat,
@@ -750,6 +751,9 @@ export function ShopChatPage() {
           savedItems={savedProducts}
           onToggleSave={toggleSaveProduct}
           onWriteReview={setReviewProduct}
+          onNotifyStock={subscribeStockAlert}
+          onSendBuyerOtp={sendBuyerOtp}
+          onVerifyBuyerOtp={verifyBuyerOtp}
         />
       )}
 
@@ -780,6 +784,9 @@ export function ShopChatPage() {
             savedItems={savedProducts}
             onToggleSave={toggleSaveProduct}
             onWriteReview={setReviewProduct}
+            onNotifyStock={subscribeStockAlert}
+            onSendBuyerOtp={sendBuyerOtp}
+            onVerifyBuyerOtp={verifyBuyerOtp}
           />
         </div>
       )}

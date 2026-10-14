@@ -148,6 +148,8 @@ export interface SellerProduct {
   ownerNotes: string | null
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
   hasFulfillmentDelay: boolean
+  // GET /v2/stores/:id/products — open back-in-stock alerts for this product
+  stockAlertCount?: number
 }
 
 export interface ProductOptionType {
