@@ -5,6 +5,7 @@ import { ShopUiBlockView } from '@/components/shop/ShopUiBlocks'
 import { QuickRepliesBar } from '@/components/shop/QuickRepliesBar'
 import { StoreProductGrid } from '@/components/shop/StoreProductGrid'
 import { CommentModal } from '@/components/shop/CommentModal'
+import { ThinkingIndicator } from '@/components/shop/ThinkingIndicator'
 import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
 import { env } from '@/env'
 import { DigitsInput } from '@/components/ui/DigitsInput'
@@ -456,6 +457,10 @@ export function ShopChatPage() {
   // بتواند متن/صوت/عکس/ویدیوی نظرش را همین‌جا بفرستد
   const inputLocked = viewingHistory || (TERMINAL_STATES.includes(state) && !awaitingReview && !awaitingSatisfaction)
   const composerDisabled = sending || inputLocked
+  const lastMessage = messages[messages.length - 1]
+  // عکس: هنگام نظردهی یا گفتگوی انسانی با فروشنده؛ ویدیو: فقط هنگام نظردهی (طبق PRD ردیابی سفارش بخش ۳.۱)
+  const canAttachImage = HUMAN_HANDLING_STATES.includes(state) || awaitingReview
+  const canAttachVideo = awaitingReview
   const actionDisabled = inputLocked
 
   // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر همیشه قابل‌کلیک می‌ماند؛ کلیک
@@ -814,7 +819,7 @@ export function ShopChatPage() {
                   className="mb-1 max-h-72 rounded-2xl rounded-tl-sm border border-emerald-500/20"
                 />
               )}
-              {(m.text || (!m.imageUrl && !m.videoUrl)) && (
+              {(m.text || (!m.imageUrl && !m.videoUrl && !m.id.startsWith('stream-'))) && (
                 <div
                   dir="auto"
                   className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-start ${
@@ -864,19 +869,11 @@ export function ShopChatPage() {
           </div>
         ))}
 
-        {sending && streamNote && (
-          <p className="text-center text-xs text-slate-400">{streamNote}</p>
-        )}
-        {sending && !streamNote && messages[messages.length - 1]?.id.startsWith('stream-') ? null : sending && (
-          <div className="flex justify-end">
-            <div className="rounded-2xl rounded-tr-sm bg-slate-700/70 light:bg-slate-100 px-4 py-3">
-              <div className="flex items-center gap-1">
-                <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '0ms' }} />
-                <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '150ms' }} />
-                <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
+        {sending && !(lastMessage?.id.startsWith('stream-') && lastMessage.text) && (
+          <ThinkingIndicator
+            hint={streamNote}
+            lastCustomerText={[...messages].reverse().find((m) => m.role === 'customer')?.text}
+          />
         )}
 
         {error && <p className="text-center text-xs text-red-400 light:text-red-600">{error}</p>}
@@ -948,7 +945,7 @@ export function ShopChatPage() {
           dir="auto"
           className="flex-1 resize-none rounded-xl border border-slate-600/60 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 outline-none placeholder:text-slate-500 disabled:opacity-50"
         />
-        {(HUMAN_HANDLING_STATES.includes(state) || awaitingReview) && (
+        {canAttachImage && (
           <>
             <input
               ref={imageInputRef}
@@ -967,6 +964,8 @@ export function ShopChatPage() {
                 <path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" />
               </svg>
             </button>
+            {canAttachVideo && (
+              <>
             {/* docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ —
                 ویدیو فقط در لحظه‌ی awaitingReview معنا دارد (muted-human هم مجاز است، طبق
                 submitVideoMessage، ولی قبلاً هیچ UIای برایش نبود) */}
@@ -987,6 +986,8 @@ export function ShopChatPage() {
                 <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h6.5A2.25 2.25 0 0012 13.75v-7.5A2.25 2.25 0 009.75 4h-6.5zM19 7.3a1 1 0 00-1.6-.8L14 8.7v2.6l3.4 2.2a1 1 0 001.6-.8V7.3z" />
               </svg>
             </button>
+              </>
+            )}
           </>
         )}
         <button

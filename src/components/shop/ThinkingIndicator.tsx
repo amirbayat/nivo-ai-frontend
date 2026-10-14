@@ -1,0 +1,73 @@
+import { useEffect, useMemo, useState } from 'react'
+
+const ROTATE_MS = 3000
+
+const GENERIC = [
+  'دارم پیامت رو می‌خونم…',
+  'یه نگاه به اطلاعات فروشگاه می‌ندازم…',
+  'دنبال بهترین جواب برات می‌گردم…',
+  'چند لحظه‌ی دیگه جواب آماده‌ست…',
+]
+
+// عبارت‌های مرتبط با موضوع آخرین پیام خریدار؛ اولین دسته‌ای که کلیدواژه‌اش بیاید، قبل از عمومی‌ها می‌آید
+const TOPICS: { test: RegExp; phrases: string[] }[] = [
+  {
+    test: /ارسال|پست|تحویل|روزه|چند روز|پیک|هزینه.?ی? ارسال/,
+    phrases: ['قوانین ارسال فروشگاه رو چک می‌کنم…', 'زمان تحویل رو بررسی می‌کنم…', 'روش‌های ارسال به شهرت رو می‌بینم…'],
+  },
+  {
+    test: /قیمت|تخفیف|ارزون|گرون|چنده|چقدر|تومن|تومان/,
+    phrases: ['قیمت‌ها رو چک می‌کنم…', 'ببینم تخفیف یا کد تخفیفی هست یا نه…'],
+  },
+  {
+    test: /موجود|سایز|رنگ|تعداد|انبار|دارین|داری/,
+    phrases: ['موجودی انبار رو نگاه می‌کنم…', 'سایز و رنگ‌های موجود رو بررسی می‌کنم…'],
+  },
+  {
+    test: /سفارش|پیگیری|رسید|پرداخت|کد|کارت/,
+    phrases: ['وضعیت سفارش و پرداختت رو پیدا می‌کنم…', 'اطلاعات سفارش رو مرور می‌کنم…'],
+  },
+  {
+    test: /محصول|مدل|پیشنهاد|بهترین|مناسب|می‌خوام|میخوام|دنبال/,
+    phrases: ['محصولات مرتبط رو پیدا می‌کنم…', 'گزینه‌های مناسب برات کنار هم می‌ذارم…'],
+  },
+]
+
+export function thinkingPhrases(lastCustomerText: string | undefined, hint: string | null): string[] {
+  const topical = TOPICS.filter((t) => lastCustomerText && t.test.test(lastCustomerText)).flatMap((t) => t.phrases)
+  const list = [...(hint ? [hint] : []), ...topical, ...GENERIC]
+  return list.filter((p, i) => list.indexOf(p) === i)
+}
+
+interface Props {
+  /** متن وضعیت زنده‌ی بک‌اند (مثلاً «دارم محصولات رو جستجو می‌کنم…») — اولین عبارت نمایش داده می‌شود */
+  hint: string | null
+  lastCustomerText?: string
+}
+
+/** حباب نقطه‌های لودینگ + زیرش عبارت‌های مرتبطی که هر ۳ ثانیه با انیمیشن عوض می‌شوند. */
+export function ThinkingIndicator({ hint, lastCustomerText }: Props) {
+  const phrases = useMemo(() => thinkingPhrases(lastCustomerText, hint), [lastCustomerText, hint])
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    setIndex(0)
+    const t = window.setInterval(() => setIndex((i) => (i + 1) % phrases.length), ROTATE_MS)
+    return () => window.clearInterval(t)
+  }, [phrases])
+
+  return (
+    <div className="flex flex-col items-end gap-1.5" role="status" aria-live="polite">
+      <div className="rounded-2xl rounded-tr-sm bg-slate-700/70 light:bg-slate-100 px-4 py-3">
+        <div className="flex items-center gap-1">
+          <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '0ms' }} />
+          <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '150ms' }} />
+          <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '300ms' }} />
+        </div>
+      </div>
+      <p key={index} className="thinking-phrase pe-1 text-xs text-slate-400 light:text-slate-500">
+        {phrases[index]}
+      </p>
+    </div>
+  )
+}

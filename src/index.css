@@ -283,6 +283,18 @@ body {
   .anon-sample-prompt { animation: none; }
 }
 
+/* عبارت‌های «در حال فکر کردن» چت فروشگاه — هر ۳ ثانیه عوض می‌شوند؛ ورود از پایین با محو شدن و بلور */
+@keyframes nivo-thinking-phrase-in {
+  from { opacity: 0; transform: translateY(8px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.thinking-phrase {
+  animation: nivo-thinking-phrase-in 0.5s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-phrase { animation: none; }
+}
+
 /* AI message HTML rendering */
 .ai-content p        { margin-bottom: 0.75em; }
 .ai-content p:last-child { margin-bottom: 0; }

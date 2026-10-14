@@ -114,6 +114,7 @@ export function DigitsInput({
     style: { fontSize: 16, minHeight: 44, ...style },
   }
 
-  if (label || error) return <Input label={label} error={error} {...props} />
+  // error='' (state خالیِ صفحه‌های لاگین/OTP) هم باید Input استایل‌دار بگیرد، نه <input> خام
+  if (label || error !== undefined) return <Input label={label} error={error} {...props} />
   return <input {...props} />
 }

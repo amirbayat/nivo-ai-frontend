@@ -700,7 +700,7 @@ export const fa = {
         codeLabel: 'کد سفارش',
         copyCode: 'کپی کد',
         codeCopied: 'کپی شد',
-        searchPlaceholder: 'کد سفارش، شماره یا نام خریدار',
+        searchPlaceholder: 'بخشی از کد سفارش، شماره یا نام خریدار',
         searchNotFound: 'سفارشی با این مشخصات پیدا نشد',
         searchClear: 'پاک کردن جست‌وجو',
         loadError: 'بارگذاری سفارش‌ها ناموفق بود',

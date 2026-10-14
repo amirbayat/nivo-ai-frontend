@@ -140,7 +140,7 @@ export function PublicOrderPage() {
                     {fa.publicOrder.sheba}
                   </button>
                 </div>
-                <DigitsInput kind={destKind} value={destination} onChange={setDestination} aria-label={fa.publicOrder.destinationTitle} />
+                <DigitsInput kind={destKind} value={destination} onChange={setDestination} aria-label={fa.publicOrder.destinationTitle} className="w-full rounded-xl border border-slate-600 bg-slate-950 px-3 text-center tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 <input
                   value={holderName}
                   onChange={(e) => setHolderName(e.target.value)}
