@@ -30,6 +30,17 @@ const KICKOFF_MESSAGE = 'سلام، محصولاتتون رو نشون بدید'
 // در ShopChatPage.tsx)
 // پیام خطای ثبت‌نام خریدار همیشه فارسی: متن فارسی بک‌اند عیناً نمایش داده می‌شود، ولی آرایه‌ی
 // validation یا متن انگلیسی (مثل «phone must be...») هرگز خام به کاربر نشان داده نمی‌شود
+function hasReplyAfterLatestCustomer(events: ShopConversationEvent[]): boolean {
+  let customerAt = -1
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].type === 'CUSTOMER_MESSAGE') customerAt = i
+  }
+  if (customerAt < 0) return false
+  return events
+    .slice(customerAt + 1)
+    .some((event) => event.type === 'AGENT_REPLY' || event.type === 'SELLER_MESSAGE')
+}
+
 function buyerRegisterError(status: number, message: unknown, validationFallback: string): string {
   if (status === 429) return fa.shop.registerTooManyRequests
   if (typeof message === 'string' && /[\u0600-\u06FF]/.test(message)) return message
@@ -104,6 +115,7 @@ export function useShopChat(slug: string, productId?: string) {
   // ref موازی با state بالا — چون sendMessage/sendAction/... باید همین لحظه (نه بعد از
   // ری‌رندر بعدی) بدانند در حالت تاریخچه هستند یا نه، وگرنه closure قدیمی گیر می‌کند
   const viewingHistoryRef = useRef(false)
+  const finalPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const setViewingHistory = useCallback((v: boolean) => {
     viewingHistoryRef.current = v
     setViewingHistoryState(v)
@@ -175,6 +187,17 @@ export function useShopChat(slug: string, productId?: string) {
 
   // 0.4 — سرور پیام را در صف گذاشت (مکالمه مشغول turn قبلی بود)؛ جواب به‌زودی به‌صورت رویداد
   // لاگ می‌شود. چند بار (۲،۴،۷،۱۲ ثانیه) رویدادها را می‌خوانیم تا جواب ظاهر شود.
+  const refreshConversation = useCallback(async (known: string, token: string) => {
+    const res = await fetch(`${env.VITE_API_URL}/v2/chat/${known}`, {
+      headers: { 'X-Session-Token': token },
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as ShopGetConversationResponse
+    setState(data.state)
+    setMessages(eventsToMessages(data.events, known))
+    return data
+  }, [])
+
   const pollQueuedReply = useCallback(() => {
     const session = sessionRef.current
     if (!session) return
@@ -184,19 +207,43 @@ export function useShopChat(slug: string, productId?: string) {
         const live = sessionRef.current
         if (!live || live.conversationId !== known) return
         try {
-          const res = await fetch(`${env.VITE_API_URL}/v2/chat/${known}`, {
-            headers: { 'X-Session-Token': live.sessionToken },
-          })
-          if (!res.ok) return
-          const data = (await res.json()) as ShopGetConversationResponse
-          setState(data.state)
-          setMessages(eventsToMessages(data.events, known))
+          await refreshConversation(known, live.sessionToken)
         } catch {
           // خطای موقت شبکه — تلاش بعدی
         }
       }, delayMs)
     }
-  }, [])
+  }, [refreshConversation])
+
+  const pollForFinalReply = useCallback(() => {
+    const session = sessionRef.current
+    if (!session) return
+    if (finalPollRef.current) window.clearInterval(finalPollRef.current)
+    const known = session.conversationId
+    const started = Date.now()
+    const tick = async () => {
+      if (Date.now() - started > 90_000) {
+        if (finalPollRef.current) window.clearInterval(finalPollRef.current)
+        finalPollRef.current = null
+        return
+      }
+      const live = sessionRef.current
+      if (!live || live.conversationId !== known) return
+      try {
+        const data = await refreshConversation(known, live.sessionToken)
+        if (data && hasReplyAfterLatestCustomer(data.events)) {
+          if (finalPollRef.current) window.clearInterval(finalPollRef.current)
+          finalPollRef.current = null
+        }
+      } catch {
+        // keep polling until the deadline
+      }
+    }
+    void tick()
+    finalPollRef.current = window.setInterval(() => {
+      void tick()
+    }, 3000)
+  }, [refreshConversation])
 
   const applyReply = useCallback(
     (res: ShopSendMessageResponse) => {
@@ -237,64 +284,106 @@ export function useShopChat(slug: string, productId?: string) {
     [pollVoice, pollQueuedReply, slug],
   )
 
-  const readShopTurn = useCallback(async (session: ShopSession, turnId: string, signal?: AbortSignal) => {
+  const readShopTurn = useCallback(async (session: ShopSession, turnId: string): Promise<'done' | 'poll'> => {
     const bubbleId = `stream-${turnId}`
     setMessages((prev) => [...prev, { id: bubbleId, role: 'agent', text: '' }])
-    const res = await fetch(
-      `${env.VITE_API_URL}/v2/chat/${session.conversationId}/turns/${turnId}/events`,
-      { headers: { 'X-Session-Token': session.sessionToken }, signal },
-    )
-    if (!res.ok || !res.body) throw new Error('stream failed')
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buf = ''
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buf += decoder.decode(value, { stream: true })
-      let nl = buf.indexOf('\n')
-      while (nl >= 0) {
-        const line = buf.slice(0, nl).trim()
-        buf = buf.slice(nl + 1)
-        nl = buf.indexOf('\n')
-        if (!line.startsWith('data:')) continue
-        const event = JSON.parse(line.slice(5)) as {
-          type: string
-          text?: string
-          reply?: string
-          uiBlocks?: ShopSendMessageResponse['uiBlocks']
-          state?: string
-          quickReplies?: string[]
-          voiceEventId?: string
-          awaitingReview?: boolean
-        }
-        if (event.type === 'status' && event.text) setStreamNote(event.text)
-        if (event.type === 'delta' && event.text) {
-          setStreamNote(null)
-          const text = event.text
-          setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, text } : m)))
-        }
-        if (event.type === 'done') {
-          setStreamNote(null)
-          setState(event.state ?? 'BROWSING')
-          setAwaitingReview(!!event.awaitingReview)
-          const uiBlock = event.uiBlocks?.find((b) => b.type !== 'NONE')
-          setMessages((prev) => prev.map((m) => (
-            m.id === bubbleId
-              ? {
-                  ...m,
-                  text: event.reply ?? m.text,
-                  uiBlock,
-                  quickReplies: event.quickReplies?.length ? event.quickReplies : undefined,
-                  voiceEventId: event.voiceEventId,
-                }
-              : m
-          )))
-          if (event.voiceEventId) pollVoice(bubbleId, event.voiceEventId)
-        }
-        if (event.type === 'error') throw new Error('stream failed')
-      }
+    const dropBubble = () => {
+      setMessages((prev) => prev.filter((message) => message.id !== bubbleId))
     }
+    const controller = new AbortController()
+    let idle = window.setTimeout(() => controller.abort(), 20_000)
+    const resetIdle = () => {
+      window.clearTimeout(idle)
+      idle = window.setTimeout(() => controller.abort(), 20_000)
+    }
+    let sawDone = false
+    let queued = false
+    try {
+      const res = await fetch(
+        `${env.VITE_API_URL}/v2/chat/${session.conversationId}/turns/${turnId}/events`,
+        { headers: { 'X-Session-Token': session.sessionToken }, signal: controller.signal },
+      )
+      if (!res.ok || !res.body) {
+        dropBubble()
+        return 'poll'
+      }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        resetIdle()
+        buf += decoder.decode(value, { stream: true })
+        let nl = buf.indexOf('\n')
+        while (nl >= 0) {
+          const line = buf.slice(0, nl).trim()
+          buf = buf.slice(nl + 1)
+          nl = buf.indexOf('\n')
+          if (!line.startsWith('data:')) continue
+          const event = JSON.parse(line.slice(5)) as {
+            type: string
+            text?: string
+            reply?: string
+            uiBlocks?: ShopSendMessageResponse['uiBlocks']
+            state?: string
+            quickReplies?: string[]
+            voiceEventId?: string
+            awaitingReview?: boolean
+            queued?: boolean
+          }
+          if (event.type === 'status' && event.text) setStreamNote(event.text)
+          if (event.type === 'delta' && event.text) {
+            setStreamNote(null)
+            const text = event.text
+            setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, text } : m)))
+          }
+          if (event.type === 'done') {
+            sawDone = true
+            setStreamNote(null)
+            if (event.queued) {
+              queued = true
+              dropBubble()
+              break
+            }
+            setState(event.state ?? 'BROWSING')
+            setAwaitingReview(!!event.awaitingReview)
+            const uiBlock = event.uiBlocks?.find((b) => b.type !== 'NONE')
+            if (!event.reply && !uiBlock) {
+              dropBubble()
+            } else {
+              setMessages((prev) => prev.map((m) => (
+                m.id === bubbleId
+                  ? {
+                      ...m,
+                      text: event.reply ?? m.text,
+                      uiBlock,
+                      quickReplies: event.quickReplies?.length ? event.quickReplies : undefined,
+                      voiceEventId: event.voiceEventId,
+                    }
+                  : m
+              )))
+              if (event.voiceEventId) pollVoice(bubbleId, event.voiceEventId)
+            }
+          }
+          if (event.type === 'error') {
+            dropBubble()
+            return 'poll'
+          }
+        }
+        if (queued) break
+      }
+    } catch {
+      dropBubble()
+      return 'poll'
+    } finally {
+      window.clearTimeout(idle)
+    }
+    if (queued || !sawDone) {
+      if (!sawDone) dropBubble()
+      return 'poll'
+    }
+    return 'done'
   }, [pollVoice])
 
   const deliverCustomerText = useCallback(
@@ -307,8 +396,8 @@ export function useShopChat(slug: string, productId?: string) {
       const slowNote = window.setTimeout(() => {
         setStreamNote((current) => current ?? fa.shop.stillChecking)
       }, 5000)
-      const controller = new AbortController()
-      const killer = window.setTimeout(() => controller.abort(), 25_000)
+      const postController = new AbortController()
+      const postKiller = window.setTimeout(() => postController.abort(), 25_000)
       try {
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
@@ -320,17 +409,14 @@ export function useShopChat(slug: string, productId?: string) {
           method: 'POST',
           headers,
           body: JSON.stringify({ message: text }),
-          signal: controller.signal,
+          signal: postController.signal,
         })
+        window.clearTimeout(postKiller)
         if (!res.ok) throw new Error('request failed')
         const body = (await res.json()) as ShopSendMessageResponse
         if (body.turnId) {
-          try {
-            await readShopTurn(session, body.turnId, controller.signal)
-          } catch (err) {
-            if (controller.signal.aborted) throw err
-            pollQueuedReply()
-          }
+          const outcome = await readShopTurn(session, body.turnId)
+          if (outcome === 'poll') pollForFinalReply()
         } else {
           applyReply(body)
         }
@@ -340,12 +426,12 @@ export function useShopChat(slug: string, productId?: string) {
         setError(fa.common.error)
       } finally {
         window.clearTimeout(slowNote)
-        window.clearTimeout(killer)
+        window.clearTimeout(postKiller)
         setStreamNote(null)
         setSending(false)
       }
     },
-    [applyReply, readShopTurn, pollQueuedReply],
+    [applyReply, readShopTurn, pollForFinalReply],
   )
 
   const sendMessage = useCallback(
