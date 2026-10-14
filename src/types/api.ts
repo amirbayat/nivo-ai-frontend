@@ -231,6 +231,15 @@ export interface SellerStore {
 }
 
 // بخش ۳.۱ — کارت «خانه»‌ی پنل
+export interface StoreToday {
+  receipts: { id: string; orderCode: string; receiptVerifiedMatch: boolean | null }[]
+  toShip: { id: string; orderCode: string }[]
+  conversations: { id: string; customerLabel: string }[]
+  refunds: { id: string; orderId: string; orderCode: string; amountToman: number }[]
+  issues: { id: string; orderId: string; orderCode: string; reason: string }[]
+  lowStock: { id: string; name: string; stock: number }[]
+}
+
 export interface StoreCompleteness {
   overallScorePercent: number
   checklist: {

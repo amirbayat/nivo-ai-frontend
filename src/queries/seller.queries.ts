@@ -42,6 +42,7 @@ import type {
   StoreShippingRule,
   StoreCreditPackage,
   StoreCreditStatus,
+  StoreToday,
   StoreKbEntry,
   StoreKbKind,
   UpdateKbEntryInput,
@@ -179,6 +180,14 @@ export function useUpdateStore(storeId: string) {
 }
 
 // بخش ۳.۱ — امتیاز کلی تکمیل‌بودن فروشگاه + چک‌لیست، برای کارت «خانه»‌ی پنل
+export function useStoreToday(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.today(storeId),
+    queryFn: () => api.get<StoreToday>(`/v2/stores/${storeId}/today`).then(r => r.data),
+    enabled: !!storeId,
+  })
+}
+
 export function useStoreCompleteness(storeId: string) {
   return useQuery({
     queryKey: keys.seller.completeness(storeId),

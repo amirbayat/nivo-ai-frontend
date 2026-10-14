@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
-import { useNeededAttention, useOrders, useProducts, useSellerBotStatus, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
+import { useNeededAttention, useOrders, useProducts, useSellerBotStatus, useStoreCompleteness, useStoreCredit, useStoreToday } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 import { SellerTestChatSheet } from './SellerTestChatSheet'
 
@@ -77,6 +77,7 @@ export function SellerHomePage() {
   const attention = useNeededAttention(storeId)
   const credit = useStoreCredit(storeId)
   const completeness = useStoreCompleteness(storeId)
+  const today = useStoreToday(storeId)
   const products = useProducts(storeId)
   const sellerBot = useSellerBotStatus(storeId)
   const [copied, setCopied] = useState(false)
@@ -128,6 +129,66 @@ export function SellerHomePage() {
           <p className="mt-1 text-xs text-slate-500">{fa.seller.panel.home.needsAttention(attention.data?.length ?? 0)}</p>
         </div>
       </div>
+
+      {today.data && (
+        <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
+          <p className="mb-3 text-sm font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.home.todayTitle}</p>
+          {today.data.receipts.length + today.data.toShip.length + today.data.conversations.length + today.data.refunds.length + today.data.issues.length + today.data.lowStock.length === 0 ? (
+            <p className="text-xs text-slate-500">{fa.seller.panel.home.todayEmpty}</p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {today.data.receipts.map((order) => (
+                <li key={order.id}>
+                  <Link to={`/seller/panel/orders?orderId=${order.id}`} className="text-slate-200 light:text-slate-800">
+                    {fa.seller.panel.home.todayReceipt} {order.orderCode}
+                    {' — '}
+                    {order.receiptVerifiedMatch === true
+                      ? fa.seller.panel.home.todayReceiptMatch
+                      : order.receiptVerifiedMatch === false
+                        ? fa.seller.panel.home.todayReceiptMismatch
+                        : fa.seller.panel.home.todayReceiptPending}
+                  </Link>
+                </li>
+              ))}
+              {today.data.toShip.map((order) => (
+                <li key={order.id}>
+                  <Link to={`/seller/panel/orders?orderId=${order.id}`} className="text-slate-200 light:text-slate-800">
+                    {fa.seller.panel.home.todayShip} · {order.orderCode}
+                  </Link>
+                </li>
+              ))}
+              {today.data.conversations.map((row) => (
+                <li key={row.id}>
+                  <Link to={`/seller/panel/attention?conversationId=${row.id}`} className="text-slate-200 light:text-slate-800">
+                    {row.customerLabel}
+                  </Link>
+                </li>
+              ))}
+              {today.data.refunds.map((row) => (
+                <li key={row.id}>
+                  <Link to={`/seller/panel/orders?orderId=${row.orderId}`} className="text-slate-200 light:text-slate-800">
+                    {fa.seller.panel.home.todayRefund} · {row.orderCode}
+                  </Link>
+                </li>
+              ))}
+              {today.data.issues.map((row) => (
+                <li key={row.id}>
+                  <Link to={`/seller/panel/orders?orderId=${row.orderId}`} className="text-slate-200 light:text-slate-800">
+                    {fa.seller.panel.home.todayIssue} · {row.orderCode}
+                  </Link>
+                </li>
+              ))}
+              {today.data.lowStock.map((row) => (
+                <li key={row.id}>
+                  <Link to={`/seller/panel/products/${row.id}`} className="text-slate-200 light:text-slate-800">
+                    {row.name} · {row.stock.toLocaleString('fa-IR')}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {products.data?.length === 0 && (
         <button
