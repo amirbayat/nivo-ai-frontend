@@ -12,6 +12,8 @@ export function SellerCreditPage() {
   const packages = useStoreCreditPackages(storeId)
   const purchase = usePurchaseStoreCredit(storeId)
   const [purchasingId, setPurchasingId] = useState<string | null>(null)
+  const balance = credit.data?.balanceToman ?? 0
+  const isDebt = balance < 0
 
   function buy(packageId: string) {
     setPurchasingId(packageId)
@@ -33,9 +35,22 @@ export function SellerCreditPage() {
 
       <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
         <p className="text-xs text-slate-500">{fa.seller.panel.credit.currentBalance}</p>
-        <p className="mt-1 text-2xl font-bold text-emerald-400 light:text-emerald-600">
-          {fa.seller.panel.home.creditBalanceToman(credit.data?.balanceToman ?? 0)}
-        </p>
+        {isDebt ? (
+          <>
+            <p className="mt-1 text-2xl font-bold text-red-400 light:text-red-600">
+              <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-bold">{fa.seller.panel.credit.debtLabel}</span>
+              {fa.seller.panel.home.creditBalanceToman(Math.abs(balance))}
+            </p>
+            <p className="mt-1 text-xs text-red-300 light:text-red-700">{fa.seller.panel.credit.debtHint}</p>
+          </>
+        ) : (
+          <p className="mt-1 text-2xl font-bold text-emerald-400 light:text-emerald-600">
+            {fa.seller.panel.home.creditBalanceToman(balance)}
+          </p>
+        )}
+        {credit.data?.conversationsLeftEstimate != null && (
+          <p className="mt-1 text-xs text-slate-400">{fa.seller.panel.credit.conversationsLeft(credit.data.conversationsLeftEstimate)}</p>
+        )}
       </div>
 
       {/* docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶ — فقط وقتی واقعاً فعال است نمایش داده شود */}

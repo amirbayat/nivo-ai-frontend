@@ -1185,6 +1185,9 @@ export const fa = {
       credit: {
         title: 'اعتبار هوش مصنوعی',
         subtitle: 'مصرف ایجنت فروش (چت با خریدار) از همین اعتبار کم می‌شود — از همان پیام اول',
+        debtLabel: 'بدهکار',
+        debtHint: 'اعتبارت منفی شده؛ با خرید بسته، اول بدهی کم می‌شه',
+        conversationsLeft: (n: number) => `حدود ${n.toLocaleString('fa-IR')} گفتگوی دیگه`,
         currentBalance: 'موجودی فعلی',
         packagesTitle: 'خرید اعتبار',
         packagesEmpty: 'فعلاً بسته‌ای برای خرید تعریف نشده',

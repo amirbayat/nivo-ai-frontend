@@ -285,6 +285,8 @@ export interface AttentionSuggestions {
 
 export interface StoreCreditStatus {
   balanceToman: number
+  // R3.4 — null وقتی نمونه‌ی ۳۰ روز اخیر کمتر از ۲۰ مکالمه است
+  conversationsLeftEstimate?: number | null
   freeQuotaUsedToday: number
   freeQuotaLimit: number
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶ — فقط وقتی واقعاً فعال است
