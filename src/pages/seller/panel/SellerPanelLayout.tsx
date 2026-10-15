@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { useMyStores, useStoreBadges } from '@/queries/seller.queries'
@@ -73,14 +73,45 @@ function MoreIcon() {
   )
 }
 
-function NavItem({ to, icon, label, badge }: { to: string; icon: React.ReactNode; label: string; badge?: number }) {
+// R3.6 — صفحه‌هایی که از «بیشتر» باز می‌شوند؛ تب «بیشتر» روی آن‌ها active می‌ماند و هدر بازگشت دارند
+const MORE_SUBPAGES = [
+  'store-settings',
+  'knowledge',
+  'credit',
+  'bank-cards',
+  'discount-codes',
+  'instagram',
+  'shipping-rules',
+  'advertising',
+  'channel-stats',
+  'dashboard',
+  'help',
+]
+
+function isMoreSubpage(pathname: string): boolean {
+  return MORE_SUBPAGES.some(seg => pathname === `/seller/panel/${seg}` || pathname.startsWith(`/seller/panel/${seg}/`))
+}
+
+function NavItem({
+  to,
+  icon,
+  label,
+  badge,
+  forceActive,
+}: {
+  to: string
+  icon: React.ReactNode
+  label: string
+  badge?: number
+  forceActive?: boolean
+}) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
         clsx(
           'relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
-          isActive ? 'text-emerald-400 light:text-emerald-600' : 'text-slate-500 hover:text-slate-300 light:hover:text-slate-700',
+          isActive || forceActive ? 'text-emerald-400 light:text-emerald-600' : 'text-slate-500 hover:text-slate-300 light:hover:text-slate-700',
         )
       }
     >
@@ -96,14 +127,26 @@ function NavItem({ to, icon, label, badge }: { to: string; icon: React.ReactNode
 }
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۵ — همان ۵ مقصد، فقط چیدمان افقی سایدبار به‌جای bottom nav
-function SidebarItem({ to, icon, label, badge }: { to: string; icon: React.ReactNode; label: string; badge?: number }) {
+function SidebarItem({
+  to,
+  icon,
+  label,
+  badge,
+  forceActive,
+}: {
+  to: string
+  icon: React.ReactNode
+  label: string
+  badge?: number
+  forceActive?: boolean
+}) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
         clsx(
           'relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors',
-          isActive
+          isActive || forceActive
             ? 'bg-emerald-500/10 text-emerald-400 light:bg-emerald-50 light:text-emerald-600'
             : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 light:hover:bg-slate-100 light:hover:text-slate-800',
         )
@@ -196,7 +239,26 @@ function CreditExhaustedBanner() {
   )
 }
 
+// R3.6 — هدر صفحه‌های زیر «بیشتر»: شورون بازگشت رو به راست (در RTL «عقب» = راست)
+function MoreSubpageHeader() {
+  return (
+    <div className="border-b border-slate-800 light:border-slate-200 px-4 py-2.5 lg:hidden">
+      <Link
+        to="/seller/panel/more"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-slate-300 light:text-slate-700"
+      >
+        <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden="true">
+          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+        </svg>
+        {fa.seller.panel.nav.more}
+      </Link>
+    </div>
+  )
+}
+
 export function SellerPanelLayout() {
+  const { pathname } = useLocation()
+  const inMoreSubpage = isMoreSubpage(pathname)
   const { data: stores, isLoading, isError, refetch } = useMyStores()
   const store = stores?.[0]
   // R2.1 — شمارنده‌ها از endpoint سبک (نه بار کردن کل لیست محصولات/مکالمه‌ها فقط برای شمردن)
@@ -279,10 +341,11 @@ export function SellerPanelLayout() {
               badge={attentionBadge}
             />
             <SidebarItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
-            <SidebarItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />
+            <SidebarItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} forceActive={inMoreSubpage} />
           </aside>
 
           <div className="flex-1 pb-16 lg:pb-0">
+            {inMoreSubpage && <MoreSubpageHeader />}
             <div className="lg:mx-auto lg:max-w-4xl">
               <Outlet />
             </div>
@@ -303,7 +366,7 @@ export function SellerPanelLayout() {
               badge={attentionBadge}
             />
             <NavItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
-            <NavItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} />
+            <NavItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} forceActive={inMoreSubpage} />
           </nav>
         </div>
       </div>
