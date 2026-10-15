@@ -83,7 +83,13 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
-        if (!isGuestPath(window.location.pathname)) {
+        const { pathname, search } = window.location
+        if (pathname.startsWith('/seller')) {
+          // فروشنده: به ورود فروشنده با برگشت به همین مسیر (صفحه‌های عمومی فروشنده حلقه نسازند)
+          if (!['/seller', '/seller/login', '/seller/otp'].includes(pathname)) {
+            window.location.href = `/seller/login?returnTo=${encodeURIComponent(pathname + search)}`
+          }
+        } else if (!isGuestPath(pathname)) {
           window.location.href = '/login'
         }
       }

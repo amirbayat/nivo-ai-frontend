@@ -622,6 +622,13 @@ export const fa = {
     },
     errorGeneric: 'مشکلی پیش آمد، دوباره تلاش کنید',
     panel: {
+      imageTooLarge: 'عکس خیلی بزرگه؛ یه عکس دیگه انتخاب کن',
+      mic: {
+        label: 'ضبط صدا',
+        transcribing: 'در حال نوشتن…',
+        error: 'نشد؛ دوباره امتحان کن',
+        denied: 'دسترسی میکروفون داده نشد',
+      },
       nav: {
         home: 'خانه',
         orders: 'سفارش‌ها',

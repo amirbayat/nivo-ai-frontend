@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSendOtp } from '@/queries/auth.queries'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
@@ -13,6 +13,10 @@ export function SellerLoginPage() {
   const [error, setError] = useState('')
   const [checkingSession, setCheckingSession] = useState(true)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // فقط مسیر داخلی فروشنده (جلوگیری از open redirect)
+  const rawReturn = searchParams.get('returnTo')
+  const returnTo = rawReturn && rawReturn.startsWith('/seller/') && !rawReturn.startsWith('//') ? rawReturn : null
   const sendOtp = useSendOtp()
 
   // اگر از قبل توکن معتبر داشته باشد (مثلاً فروشنده دوباره لینک /seller را باز کرده)،
@@ -25,9 +29,9 @@ export function SellerLoginPage() {
     }
     api
       .get<SellerStore[]>('/v2/stores/me')
-      .then(r => navigate(r.data.length > 0 ? '/seller/panel/home' : '/seller/onboarding', { replace: true }))
+      .then(r => navigate(r.data.length > 0 ? (returnTo ?? '/seller/panel/home') : '/seller/onboarding', { replace: true }))
       .catch(() => setCheckingSession(false))
-  }, [navigate])
+  }, [navigate, returnTo])
 
   const validate = (val: string) => /^(\+98|0)?9[0-9]{9}$/.test(val)
 
@@ -40,7 +44,7 @@ export function SellerLoginPage() {
     }
     try {
       await sendOtp.mutateAsync(phone)
-      navigate('/seller/otp', { state: { phone } })
+      navigate(returnTo ? `/seller/otp?returnTo=${encodeURIComponent(returnTo)}` : '/seller/otp', { state: { phone } })
     } catch {
       setError(fa.common.error)
     }

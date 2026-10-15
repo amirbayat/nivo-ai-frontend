@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useMe } from '@/queries/auth.queries'
 import { ChatLayout } from '@/components/layout/ChatLayout'
 import { SettingsLayout } from '@/components/layout/SettingsLayout'
@@ -69,7 +69,15 @@ import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const hasToken = !!localStorage.getItem('access_token')
-  if (!hasToken) return <Navigate to="/login" replace />
+  const location = useLocation()
+  if (!hasToken) {
+    // docs/PRD-seller-panel-simplification.md §4.1 — فروشنده‌ی بدون سشن به ورود فروشنده (با
+    // برگشت به همان مسیر) می‌رود، نه به لاگین چت اصلی
+    if (location.pathname.startsWith('/seller')) {
+      return <Navigate to={`/seller/login?returnTo=${encodeURIComponent(location.pathname + location.search)}`} replace />
+    }
+    return <Navigate to="/login" replace />
+  }
   return <>{children}</>
 }
 

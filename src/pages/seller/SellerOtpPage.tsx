@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useVerifyOtp, useSendOtp } from '@/queries/auth.queries'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useVerifyOtp, useSendOtp, type WaitlistedInfo } from '@/queries/auth.queries'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { fa } from '@/locales/fa'
@@ -12,12 +12,15 @@ const RESEND_SECONDS = 120
 export function SellerOtpPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const returnTo = searchParams.get('returnTo')
   const phone = (location.state as { phone?: string } | null)?.phone ?? ''
 
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(RESEND_SECONDS)
   const [autoSubmittedCode, setAutoSubmittedCode] = useState<string | null>(null)
+  const [waitlisted, setWaitlisted] = useState<WaitlistedInfo | null>(null)
 
   const verifyOtp = useVerifyOtp()
   const sendOtp = useSendOtp()
@@ -34,7 +37,17 @@ export function SellerOtpPage() {
   const submit = async () => {
     setError('')
     try {
-      await verifyOtp.mutateAsync({ phone, code })
+      const result = await verifyOtp.mutateAsync({ phone, code })
+      // همان رفتار OtpPage — لیست انتظار: منتظر تأیید کاربر می‌مانیم
+      if (result.waitlisted) {
+        setWaitlisted(result.waitlisted)
+        return
+      }
+      // فقط مسیر داخلی فروشنده (جلوگیری از open redirect)
+      if (returnTo && returnTo.startsWith('/seller/') && !returnTo.startsWith('//')) {
+        navigate(returnTo, { replace: true })
+        return
+      }
       // بعد از این، توکن در localStorage ذخیره شده (onSuccess داخل useVerifyOtp) — حالا
       // مشخص می‌کنیم فروشنده قبلاً فروشگاه ساخته یا باید وارد ویزارد شود (بخش ۱.۲ سند)
       const stores = await api.get<SellerStore[]>('/v2/stores/me').then(r => r.data)
@@ -66,6 +79,20 @@ export function SellerOtpPage() {
     } catch {
       setError(fa.common.error)
     }
+  }
+
+  if (waitlisted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 light:bg-white" dir="rtl">
+        <div className="w-full max-w-sm text-center">
+          <p className="text-slate-100 light:text-slate-900">{waitlisted.message}</p>
+          <p className="mt-2 text-sm text-slate-500 light:text-slate-400">{fa.waitlist.queuePosition(waitlisted.queuePosition)}</p>
+          <Button className="mt-6 w-full" onClick={() => navigate('/', { replace: true })}>
+            {fa.waitlist.gotIt}
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
