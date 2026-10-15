@@ -400,6 +400,10 @@ function ProductVariantsEditor({
       { productId: product.id, dto },
       {
         onSuccess: updated => {
+          // مبنای مقایسه‌ی موجودی از پاسخ سرور؛ بدون این، ذخیره‌ی بعدی بدون تغییر هم موجودی قدیمی را overwrite می‌کرد
+          const savedStock: Record<string, number> = {}
+          for (const v of updated.variants ?? []) savedStock[comboKey(v.optionValues)] = v.stock
+          loadedStockRef.current = savedStock
           onProductUpdated(updated)
           setExcludedKeys(new Set())
           setSaved(true)
