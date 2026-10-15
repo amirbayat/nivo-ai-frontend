@@ -1,89 +1,35 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { Input } from '@/components/ui/Input'
 import { toEnglishDigits } from '@/lib/digits'
-import { slugFromName } from '@/lib/slugFromName'
+import { DEMO_CATEGORY_LABELS } from '@/lib/demoCategories'
 import { extractErrorMessage } from '@/lib/sellerProduct'
-import {
-  useCheckSlugAvailable,
-  useClassifyBusinessSetup,
-  useCreateStore,
-  useGenerateBrandIntroAi,
-  useResumeOnboarding,
-  useUpdateStore,
-} from '@/queries/seller.queries'
-import type { AnalyzeOwnerNotesResult, ClassifyBusinessSetupResult } from '@/types/api'
-import { GuideAssistantModal } from './panel/GuideAssistantModal'
-import { NotesSuggestionsPanel } from './panel/NotesSuggestionsPanel'
-import { DigitsInput } from '@/components/ui/DigitsInput'
+import { useCreateStore, useSlugSuggest } from '@/queries/seller.queries'
 
-// docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — مرحله‌ی «محصول اول» کلاً از ویزارد حذف شد؛
-// فروشنده بعد از ساخت فروشگاه مستقیم به صفحه‌ی واقعی ساخت محصول در پنل هدایت می‌شود
-// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۹ (پروفایل برند عمیق‌تر در
-// آنبوردینگ) — یک قدم اختیاری تازه (step 3) بین ساخت فروشگاه و صفحه‌ی موفقیت (که step4 شد) اضافه شد
-const TOTAL_STEPS = 4
-const CATEGORIES = fa.seller.step1.categories
+// docs/PRD-seller-panel-simplification.md §4.2 — ثبت‌نام یک صفحه‌ای: اسم → «بساز» → مستقیم به
+// اولین محصول. ویزارد ۴ قدمی (توصیف کسب‌وکار، لینک‌ها، کارت، معرفی برند) حذف شد؛ همه‌ی آن‌ها
+// بعد از ساخت فروشگاه در پنل قابل تنظیم‌اند.
+const TOP_CATEGORIES = fa.seller.step1.categories.slice(0, 8)
+const OTHER = 'سایر'
 
-// طبق CLAUDE.md — سایت RTL است: شورون «بازگشت» رو به راست، «ادامه» رو به چپ اشاره می‌کند
-function BackChevron() {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
-      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-    </svg>
-  )
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms)
+    return () => clearTimeout(t)
+  }, [value, ms])
+  return v
 }
 
-function ForwardChevron() {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
-      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-    </svg>
-  )
-}
-
-function ProgressBar({ step }: { step: number }) {
-  return (
-    <div className="mb-8 flex gap-1.5">
-      {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-        <div key={i} className={clsx('h-1 flex-1 rounded-full', i < step ? 'bg-emerald-500' : 'bg-slate-800 light:bg-slate-200')} />
-      ))}
-    </div>
-  )
-}
-
-function StepHeader({ onBack, step }: { onBack: (() => void) | null; step: number }) {
-  return (
-    <div className="mb-5 flex items-center justify-between">
-      {onBack ? (
-        <button onClick={onBack} className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-500 hover:border-slate-600 light:hover:border-slate-400 hover:text-slate-200 light:hover:text-slate-800" aria-label={fa.common.back}>
-          <BackChevron />
-        </button>
-      ) : (
-        <span className="size-9 shrink-0" />
-      )}
-      <span className="text-[13px] font-medium text-slate-500">{fa.seller.stepOf(step, TOTAL_STEPS)}</span>
-    </div>
-  )
-}
-
-function NextButton({ onClick, disabled, loading, children }: { onClick: () => void; disabled?: boolean; loading?: boolean; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled || loading}
-      className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-[15px] font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <span>{children}</span>
-      {!loading && <ForwardChevron />}
-    </button>
-  )
+// فقط [a-z0-9-]؛ ارقام فارسی به انگلیسی
+function cleanSlug(raw: string): string {
+  return toEnglishDigits(raw).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40)
 }
 
 function PencilIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4">
       <path d="M11.5 3.5a1.75 1.75 0 0 1 2.5 2.5L5.5 14.5l-3 .75.75-3Z" />
     </svg>
   )
@@ -91,478 +37,167 @@ function PencilIcon() {
 
 export function SellerOnboardingPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const createStore = useCreateStore()
+  const t = fa.seller.signup
 
-  const [step, setStep] = useState(1)
+  const demoCategory = DEMO_CATEGORY_LABELS[searchParams.get('category') ?? '']
   const [name, setName] = useState('')
-  const [category, setCategory] = useState<string | null>(null)
-  // docs/PRD-ai-assisted-business-setup.md — قدم ۱، سه حالت نمایش بخش دسته‌بندی: توصیف آزاد
-  // (پیش‌فرض) → کارت تأیید AI (فقط confidence=HIGH) → چیپ‌های دستی (fallback یا ویرایش)
-  const [bizMode, setBizMode] = useState<'describe' | 'confirm' | 'manual'>('describe')
-  const [bizRawText, setBizRawText] = useState('')
-  const [classification, setClassification] = useState<ClassifyBusinessSetupResult | null>(null)
-  const [businessType, setBusinessType] = useState<'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'>('PRODUCT_SALES')
-  const [editingFromConfirm, setEditingFromConfirm] = useState(false)
-  const [slug, setSlug] = useState('')
-  const suggestedSlug = useRef('')
-  const [debouncedSlug, setDebouncedSlug] = useState('')
-  const [instagramUrl, setInstagramUrl] = useState('')
-  const [telegramUrl, setTelegramUrl] = useState('')
-  const [websiteUrl, setWebsiteUrl] = useState('')
-  const [cardNumber, setCardNumber] = useState('')
-  const [ownerName, setOwnerName] = useState('')
-  const [storeId, setStoreId] = useState<string | null>(null)
-  const [storeSlug, setStoreSlug] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [brandRawText, setBrandRawText] = useState('')
-  const [brandIntroDraft, setBrandIntroDraft] = useState<string | null>(null)
-  const [guideOpen, setGuideOpen] = useState(false)
-  const [notesResult, setNotesResult] = useState<AnalyzeOwnerNotesResult | null>(null)
+  const [category, setCategory] = useState<string | null>(demoCategory ?? null)
+  const [otherText, setOtherText] = useState('')
+  const [editingLink, setEditingLink] = useState(false)
+  const [typedSlug, setTypedSlug] = useState('')
+  // لینکی که فروشنده با ✎ انتخاب کرده؛ null = سرور خودش از نام می‌سازد
+  const [customSlug, setCustomSlug] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const generateBrandIntro = useGenerateBrandIntroAi(storeId ?? '')
-  const updateStore = useUpdateStore(storeId ?? '')
-  const resumeOnboarding = useResumeOnboarding(storeId ?? '')
-  const classifyBusinessSetup = useClassifyBusinessSetup()
+  const debouncedName = useDebounced(name, 400)
+  const debouncedTyped = useDebounced(editingLink ? typedSlug : (customSlug ?? ''), 400)
+  const suggest = useSlugSuggest(debouncedName, debouncedTyped)
+  const shownSlug = customSlug ?? suggest.data?.slug ?? ''
+  const typedTaken = editingLink && typedSlug.length >= 3 && suggest.data && !suggest.data.requestedAvailable
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSlug(slug), 400)
-    return () => clearTimeout(t)
-  }, [slug])
+  const canSubmit = name.trim().length >= 2 && !createStore.isPending
 
-  const slugCheck = useCheckSlugAvailable(debouncedSlug)
-
-  function goBack() {
-    if (step === 1) return
-    setStep(s => s - 1)
-  }
-
-  async function runClassify() {
-    const result = await classifyBusinessSetup.mutateAsync(bizRawText)
-    setClassification(result)
-    setCategory(result.category)
-    setBusinessType(result.businessType)
-    setBizMode(result.confidence === 'HIGH' ? 'confirm' : 'manual')
-  }
-
-  async function submitStore(opts?: { skipCard?: boolean }) {
-    const cardDigits = opts?.skipCard ? '' : toEnglishDigits(cardNumber).replace(/\D/g, '')
-    const owner = opts?.skipCard ? '' : ownerName.trim()
-    const dto = {
-      name,
-      category: category ?? undefined,
-      businessType,
-      slug,
-      ...(cardDigits && owner
-        ? { bankCardNumber: cardDigits, bankOwnerName: owner }
-        : {}),
-      instagramUrl: instagramUrl || undefined,
-      telegramUrl: telegramUrl || undefined,
-      websiteUrl: websiteUrl || undefined,
-    }
-    setSubmitError(null)
+  async function submit() {
+    if (!canSubmit) return
+    setError(null)
+    const finalCategory = category === OTHER ? otherText.trim() || OTHER : (category ?? undefined)
     try {
-      if (storeId) {
-        const store = await resumeOnboarding.mutateAsync(dto)
-        setStoreSlug(store.slug)
-      } else {
-        const store = await createStore.mutateAsync(dto)
-        setStoreId(store.id)
-        setStoreSlug(store.slug)
-      }
-      setStep(3)
+      await createStore.mutateAsync({
+        name: name.trim(),
+        category: finalCategory,
+        ...(customSlug ? { slug: customSlug } : {}),
+      })
+      navigate('/seller/panel/products/new?first=1', { replace: true })
     } catch (err) {
-      setSubmitError(extractErrorMessage(err, fa.seller.errorGeneric))
+      setError(extractErrorMessage(err, t.networkError))
     }
   }
-
-  async function generateBrandIntroDraft() {
-    const result = await generateBrandIntro.mutateAsync(brandRawText)
-    setBrandIntroDraft(result.suggestedBrandIntro)
-  }
-
-  async function confirmBrandIntroAndContinue() {
-    if (brandIntroDraft) await updateStore.mutateAsync({ brandIntro: brandIntroDraft })
-    setStep(4)
-  }
-
-  const chatLink = storeSlug ? `${window.location.origin}/shop/${storeSlug}` : ''
-
-  async function copyLink() {
-    await navigator.clipboard.writeText(chatLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const cardDigitsNow = toEnglishDigits(cardNumber).replace(/\D/g, '')
-  const cardNumberValid = /^[0-9]{16}$/.test(cardDigitsNow)
-  const cardStarted = cardDigitsNow.length > 0 || ownerName.trim().length > 0
-  const slugValid = /^[a-z0-9-]{3,40}$/.test(slug)
 
   return (
-    <div className="min-h-screen bg-slate-950 light:bg-white px-5 py-8" dir="rtl">
-      <div className="mx-auto max-w-lg">
-        <StepHeader onBack={step === 1 ? null : goBack} step={step} />
-        <ProgressBar step={step} />
+    <div className="flex min-h-[100dvh] justify-center bg-slate-950 light:bg-white" dir="rtl">
+      <form
+        className="flex w-full max-w-[640px] flex-col px-4 pt-10"
+        onSubmit={e => {
+          e.preventDefault()
+          void submit()
+        }}
+      >
+        <h1 className="text-[22px] font-extrabold text-slate-100 light:text-slate-900">{t.title}</h1>
+        <p className="mt-1 text-sm text-slate-400 light:text-slate-500">{t.subtitle}</p>
 
-        {step === 1 && (
-          <>
-            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step1.heading}</h1>
-            <p className="mb-8 text-sm leading-[1.7] text-slate-500">{fa.seller.step1.subheading}</p>
+        <input
+          autoFocus
+          value={name}
+          onChange={e => setName(e.target.value)}
+          maxLength={60}
+          placeholder={t.namePlaceholder}
+          autoComplete="off"
+          className="mt-6 h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none light:border-slate-300 light:bg-white light:text-slate-900"
+        />
 
-            <div className="mb-5">
-              <Input
-                label={fa.seller.step1.nameLabel}
-                placeholder={fa.seller.step1.namePlaceholder}
-                value={name}
-                onChange={(e) => {
-                  const nextName = e.target.value
-                  const nextSlug = slugFromName(nextName)
-                  setName(nextName)
-                  setSlug((current) => (current === '' || current === suggestedSlug.current ? nextSlug : current))
-                  suggestedSlug.current = nextSlug
-                }}
-              />
-            </div>
-
-            <label className="mb-3 block text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.step1.categoryLabel}</label>
-
-            {bizMode === 'describe' && (
-              <div className="mb-6">
-                <p className="mb-2 text-sm text-slate-300 light:text-slate-700">{fa.seller.step1.businessDescLabel}</p>
-                <textarea
-                  value={bizRawText}
-                  onChange={e => setBizRawText(e.target.value)}
-                  placeholder={fa.seller.step1.businessDescPlaceholder}
-                  rows={4}
-                  className="mb-2 w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 px-4 py-3 text-sm text-slate-200 light:text-slate-800 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-                />
-                <p className="mb-3 text-xs text-slate-500">{fa.seller.step1.businessDescHint}</p>
-
-                {classifyBusinessSetup.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.step1.classifyError}</p>}
-
-                <button
-                  onClick={runClassify}
-                  disabled={!bizRawText.trim() || classifyBusinessSetup.isPending}
-                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-3.5 text-[14px] font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {classifyBusinessSetup.isPending ? fa.seller.step1.classifyLoading : fa.seller.step1.classifyButton}
-                </button>
-                <button onClick={() => setBizMode('manual')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
-                  {fa.seller.step1.pickManually}
-                </button>
-              </div>
-            )}
-
-            {bizMode === 'confirm' && classification && (
-              <div className="mb-6 flex flex-col gap-3">
-                <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[12px] font-semibold text-emerald-300 light:text-emerald-700">
-                  {fa.seller.step1.aiSuggestionBadge} · {fa.seller.step1.highConfidenceBadge}
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 p-4">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs text-slate-500">{fa.seller.step1.businessTypeFieldLabel}</span>
-                    <button
-                      onClick={() => { setEditingFromConfirm(true); setBizMode('manual') }}
-                      aria-label={fa.seller.step1.editFieldAria}
-                      className="flex size-7 items-center justify-center rounded-lg text-slate-400 hover:text-slate-200"
-                    >
-                      <PencilIcon />
-                    </button>
-                  </div>
-                  <div className="text-[15px] font-semibold text-slate-100 light:text-slate-900">
-                    {businessType === 'PRODUCT_SALES' ? fa.seller.step1.businessTypeProductSales : fa.seller.step1.businessTypeAppointmentBooking}
-                  </div>
-                  <div className="mt-1 text-xs leading-[1.7] text-slate-500">{classification.businessTypeReason}</div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 p-4">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs text-slate-500">{fa.seller.step1.categoryFieldLabel}</span>
-                    <button
-                      onClick={() => { setEditingFromConfirm(true); setBizMode('manual') }}
-                      aria-label={fa.seller.step1.editFieldAria}
-                      className="flex size-7 items-center justify-center rounded-lg text-slate-400 hover:text-slate-200"
-                    >
-                      <PencilIcon />
-                    </button>
-                  </div>
-                  <div className="text-[15px] font-semibold text-slate-100 light:text-slate-900">{category}</div>
-                  <div className="mt-1 text-xs leading-[1.7] text-slate-500">{classification.categoryReason}</div>
-                </div>
-
-                {classification.pricingNote && (
-                  <div className="rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">
-                    {classification.pricingNote}
-                  </div>
-                )}
-
-                {businessType === 'APPOINTMENT_BOOKING' && (
-                  <div className="rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">
-                    {fa.seller.step1.appointmentBookingComingSoon}
-                  </div>
-                )}
-
-                <button onClick={() => setBizMode('describe')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
-                  {fa.seller.step1.backToDescription}
-                </button>
-              </div>
-            )}
-
-            {bizMode === 'manual' && (
-              <div className="mb-6">
-                {classification && classification.confidence !== 'HIGH' && (
-                  <p className="mb-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">{fa.seller.step1.lowConfidenceNotice}</p>
-                )}
-
-                {editingFromConfirm && (
-                  <div className="mb-4 flex gap-2">
-                    <button
-                      onClick={() => setBusinessType('PRODUCT_SALES')}
-                      className={clsx(
-                        'flex-1 rounded-xl border px-3 py-2.5 text-[13px] font-semibold',
-                        businessType === 'PRODUCT_SALES'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
-                          : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600',
-                      )}
-                    >
-                      {fa.seller.step1.businessTypeProductSales}
-                    </button>
-                    <button
-                      onClick={() => setBusinessType('APPOINTMENT_BOOKING')}
-                      className={clsx(
-                        'flex-1 rounded-xl border px-3 py-2.5 text-[13px] font-semibold',
-                        businessType === 'APPOINTMENT_BOOKING'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
-                          : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600',
-                      )}
-                    >
-                      {fa.seller.step1.businessTypeAppointmentBooking}
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map(c => (
-                    <button
-                      key={c}
-                      onClick={() => setCategory(c)}
-                      className={clsx(
-                        'rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors',
-                        category === c
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
-                          : 'border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 text-slate-400 light:text-slate-600 hover:border-slate-600 light:hover:border-slate-400',
-                      )}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-
-                {businessType === 'APPOINTMENT_BOOKING' && (
-                  <div className="mt-3 rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs leading-[1.8] text-amber-300 light:text-amber-700">
-                    {fa.seller.step1.appointmentBookingComingSoon}
-                  </div>
-                )}
-
-                <button onClick={() => setBizMode('describe')} className="mt-3 w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
-                  {fa.seller.step1.backToDescription}
-                </button>
-              </div>
-            )}
-
-            <div className="mb-1">
-              <Input
-                label={fa.seller.step1.slugLabel}
-                placeholder={fa.seller.step1.slugPlaceholder}
-                value={slug}
-                onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+        <div className="mt-2 min-h-8">
+          {editingLink ? (
+            <div className="flex items-center gap-2">
+              <input
                 dir="ltr"
-                className="text-left"
+                value={typedSlug}
+                onChange={e => setTypedSlug(cleanSlug(e.target.value))}
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="h-9 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 text-left text-sm text-slate-100 focus:border-emerald-500 focus:outline-none light:border-slate-300 light:bg-white light:text-slate-900"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomSlug(typedSlug.length >= 3 && !typedTaken ? typedSlug : null)
+                  setEditingLink(false)
+                }}
+                className="px-2 text-sm font-bold text-emerald-400 light:text-emerald-700"
+              >
+                {t.linkDone}
+              </button>
             </div>
-            <p className="mb-6 text-xs text-slate-500">
-              {fa.seller.step1.slugHint}
-              {slugValid && debouncedSlug === slug && (
-                slugCheck.isLoading ? (
-                  <span className="mr-1 text-slate-500"> {fa.seller.step1.slugChecking}</span>
-                ) : slugCheck.data === false ? (
-                  <span className="mr-1 text-red-400 light:text-red-600"> {fa.seller.step1.slugTaken}</span>
-                ) : slugCheck.data === true ? (
-                  <span className="mr-1 text-emerald-400 light:text-emerald-600"> {fa.seller.step1.slugAvailable}</span>
-                ) : null
-              )}
-            </p>
-
-            <label className="mb-3 block text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.step1.linksLabel}</label>
-            <div className="mb-2">
-              <Input placeholder={fa.seller.step1.instagramPlaceholder} value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} dir="ltr" className="text-left" />
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <span dir="ltr" className="truncate text-left font-mono text-xs text-slate-400 light:text-slate-500">
+                nivoai.ir/shop/{name.trim().length >= 2 ? shownSlug || '…' : '…'}
+              </span>
+              <button
+                type="button"
+                aria-label={t.editLink}
+                onClick={() => {
+                  setTypedSlug(shownSlug)
+                  setEditingLink(true)
+                }}
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 light:hover:bg-slate-100"
+              >
+                <PencilIcon />
+              </button>
             </div>
-            <div className="mb-2">
-              <Input placeholder={fa.seller.step1.telegramPlaceholder} value={telegramUrl} onChange={e => setTelegramUrl(e.target.value)} dir="ltr" className="text-left" />
+          )}
+          {typedTaken && suggest.data && (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-red-400">{t.slugTaken(suggest.data.slug)}</span>
+              <button
+                type="button"
+                onClick={() => setTypedSlug(suggest.data!.slug)}
+                className="rounded-full border border-dashed border-emerald-500/40 px-3 py-1 text-xs text-emerald-400 light:text-emerald-700"
+              >
+                {t.useSlug}
+              </button>
             </div>
-            <div className="mb-6">
-              <Input placeholder={fa.seller.step1.websitePlaceholder} value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} dir="ltr" className="text-left" />
-            </div>
+          )}
+        </div>
 
-            <NextButton onClick={() => setStep(2)} disabled={!name || !slugValid || slugCheck.data !== true}>
-              {fa.seller.next}
-            </NextButton>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step2.heading}</h1>
-            <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step2.subheading}</p>
-
-            <div className="mb-5">
-              <DigitsInput kind="card"
-                label={fa.seller.step2.cardNumberLabel}
-                placeholder="6037 XXXX XXXX XXXX"
-                value={cardNumber}
-                onChange={setCardNumber}
-                className="text-center tracking-widest"
-              />
-            </div>
-            <div className="mb-3">
-              <Input label={fa.seller.step2.ownerNameLabel} value={ownerName} onChange={e => setOwnerName(e.target.value)} />
-            </div>
-
-            {submitError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{submitError}</p>}
-
-            <NextButton
-              onClick={() => void submitStore()}
-              disabled={cardStarted && (!cardNumberValid || !ownerName.trim())}
-              loading={createStore.isPending || resumeOnboarding.isPending}
-            >
-              {fa.seller.next}
-            </NextButton>
+        <p className="mt-5 text-xs font-medium text-slate-400 light:text-slate-500">{t.whatSell}</p>
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          {[...TOP_CATEGORIES, OTHER].map(c => (
             <button
               type="button"
-              onClick={() => {
-                setCardNumber('')
-                setOwnerName('')
-                void submitStore({ skipCard: true })
-              }}
-              disabled={createStore.isPending || resumeOnboarding.isPending}
-              className="mt-3 w-full text-center text-sm text-slate-500"
-            >
-              {fa.seller.step2.skipCard}
-            </button>
-          </>
-        )}
-
-        {step === 3 && (
-          <>
-            <div className="mb-1.5 flex items-center justify-between gap-3">
-              <h1 className="text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step3Brand.heading}</h1>
-              {storeId && (
-                <button
-                  type="button"
-                  onClick={() => setGuideOpen(true)}
-                  className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 hover:bg-emerald-500/20"
-                >
-                  ✨ {fa.seller.panel.guidePrompt.button}
-                </button>
+              key={c}
+              onClick={() => setCategory(category === c ? null : c)}
+              className={clsx(
+                'shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px]',
+                category === c
+                  ? 'border-emerald-500/40 bg-emerald-500/15 font-bold text-emerald-400 light:text-emerald-700'
+                  : 'border-slate-700 text-slate-300 light:border-slate-300 light:text-slate-600',
               )}
-            </div>
-            <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step3Brand.subheading}</p>
-
-            {storeId && notesResult && (
-              <NotesSuggestionsPanel
-                storeId={storeId}
-                result={notesResult}
-                onApplyBrandIntro={text => setBrandIntroDraft(text)}
-                onApplyShippingInfo={text => updateStore.mutate({ shippingInfo: text })}
-                onApplyReturnPolicy={text => updateStore.mutate({ returnPolicy: text })}
-                onApplyCategory={c => updateStore.mutate({ category: c })}
-              />
-            )}
-
-            {brandIntroDraft === null ? (
-              <>
-                <textarea
-                  value={brandRawText}
-                  onChange={e => setBrandRawText(e.target.value)}
-                  placeholder={fa.seller.step3Brand.placeholder}
-                  rows={5}
-                  className="mb-4 w-full resize-none rounded-2xl border border-slate-700 light:border-slate-300 bg-slate-800/40 light:bg-slate-50 px-4 py-3 text-sm text-slate-200 light:text-slate-800 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-                />
-
-                {generateBrandIntro.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.step3Brand.generateError}</p>}
-
-                <NextButton onClick={generateBrandIntroDraft} disabled={!brandRawText.trim()} loading={generateBrandIntro.isPending}>
-                  {generateBrandIntro.isPending ? fa.seller.step3Brand.generateLoading : fa.seller.step3Brand.generateButton}
-                </NextButton>
-              </>
-            ) : (
-              <>
-                <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">{fa.seller.step3Brand.previewLabel}</label>
-                <textarea
-                  value={brandIntroDraft}
-                  onChange={e => setBrandIntroDraft(e.target.value)}
-                  rows={4}
-                  className="mb-4 w-full resize-none rounded-2xl border border-emerald-500/60 bg-slate-800/40 light:bg-slate-50 px-4 py-3 text-sm text-slate-200 light:text-slate-800 focus:border-emerald-500 focus:outline-none"
-                />
-
-                {updateStore.isError && <p className="mb-3 text-center text-xs text-red-400 light:text-red-600">{fa.seller.errorGeneric}</p>}
-
-                <NextButton onClick={confirmBrandIntroAndContinue} disabled={!brandIntroDraft.trim()} loading={updateStore.isPending}>
-                  {fa.seller.step3Brand.confirmButton}
-                </NextButton>
-              </>
-            )}
-
-            <button onClick={() => setStep(4)} className="mt-3 w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
-              {fa.seller.step3Brand.skip}
+            >
+              {c}
             </button>
-
-            {storeId && (
-              <GuideAssistantModal
-                open={guideOpen}
-                onClose={() => setGuideOpen(false)}
-                context="store-setup"
-                storeId={storeId}
-                category={category}
-                businessType={businessType}
-                storeName={name}
-                onResult={setNotesResult}
-              />
-            )}
-          </>
+          ))}
+        </div>
+        {category === OTHER && (
+          <input
+            value={otherText}
+            onChange={e => setOtherText(e.target.value)}
+            maxLength={60}
+            placeholder={t.otherPlaceholder}
+            className="mt-2 h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none light:border-slate-300 light:bg-white light:text-slate-900"
+          />
         )}
 
-        {step === 4 && (
-          <div className="text-center">
-            <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 light:text-emerald-600">
-              <svg viewBox="0 0 24 24" fill="none" className="size-7">
-                <path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <h1 className="mb-1.5 text-[22px] font-bold text-slate-100 light:text-slate-900">{fa.seller.step3.heading}</h1>
-            <p className="mb-7 text-sm leading-[1.7] text-slate-500">{fa.seller.step3.subheading}</p>
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
-            <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-slate-50 px-4 py-4">
-              <p dir="ltr" className="break-all text-center text-[15px] font-mono text-emerald-300 light:text-emerald-700">{chatLink}</p>
-            </div>
-
-            <button onClick={copyLink} className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-[14px] font-semibold text-slate-200 light:text-slate-800 hover:border-slate-600 light:hover:border-slate-400">
-              {copied ? fa.seller.step3.linkCopied : fa.seller.step3.copyLink}
-            </button>
-
-            {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۶ — CTA اصلی دیگر «برو به داشبورد»
-                نیست، مستقیم به فرم کامل ساخت محصول واقعی در پنل می‌رود */}
-            <button onClick={() => navigate('/seller/panel/products/new')} className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-[15px] font-bold text-white hover:bg-emerald-600">
-              {fa.seller.step3.addFirstProduct}
-            </button>
-            <button onClick={() => navigate('/seller/panel/home')} className="w-full text-center text-sm text-slate-500 hover:text-slate-300 light:hover:text-slate-700">
-              {fa.seller.step3.skipToDashboard}
-            </button>
-          </div>
-        )}
-      </div>
+        <div className="sticky bottom-0 mt-auto bg-slate-950 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6 light:bg-white">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-emerald-600 text-[15px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {createStore.isPending ? <span className="size-5 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : t.submit}
+          </button>
+          <p className="mt-3 text-center text-xs text-slate-500">
+            {t.termsBefore}
+            <Link to="/terms" target="_blank" className="underline">
+              {t.termsLink}
+            </Link>
+            {t.termsAfter}
+          </p>
+        </div>
+      </form>
     </div>
   )
 }

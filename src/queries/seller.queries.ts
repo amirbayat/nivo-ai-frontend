@@ -55,7 +55,8 @@ export interface CreateStoreInput {
   category?: string
   // docs/PRD-business-types-and-appointment-booking.md بخش ۴ — نفرستادن = پیش‌فرض PRODUCT_SALES سمت بک‌اند
   businessType?: 'PRODUCT_SALES' | 'APPOINTMENT_BOOKING'
-  slug: string
+  // SP-2 — اختیاری؛ سرور خودش آزادترین لینک را انتخاب می‌کند
+  slug?: string
   bankCardNumber?: string
   bankOwnerName?: string
   instagramUrl?: string
@@ -113,6 +114,21 @@ export function useCheckSlugAvailable(slug: string) {
     queryFn: () => api.get<{ available: boolean }>('/v2/stores/slug-available', { params: { slug } }).then(r => r.data.available),
     enabled: slug.length >= 3,
     staleTime: 10_000,
+  })
+}
+
+// SP-2 §4.2 — لینکی که سرور برای این نام (یا slug تایپ‌شده) می‌گذارد؛ requestedAvailable=false یعنی
+// slug خواسته‌شده گرفته شده و `slug` پیشنهاد جایگزین است
+export function useSlugSuggest(name: string, slug: string) {
+  return useQuery({
+    queryKey: ['seller', 'slug-suggest', name, slug] as const,
+    queryFn: () =>
+      api
+        .get<{ slug: string; requestedAvailable: boolean }>('/v2/stores/slug-suggest', { params: { name, slug: slug || undefined } })
+        .then(r => r.data),
+    enabled: name.trim().length >= 2 || slug.length >= 3,
+    staleTime: 10_000,
+    placeholderData: prev => prev,
   })
 }
 
