@@ -1,4 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
+import { api } from '@/lib/api'
+import type { SellerConversationDetail, ShopConversationEvent } from '@/types/api'
 import { effectiveStock } from '@/lib/sellerProduct'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { env } from '@/env'
@@ -38,6 +40,26 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
   const sendMessage = useSendSellerMessage(storeId, conversationId)
   const unmute = useUnmuteConversation(storeId)
   const [input, setInput] = useState('')
+  const [older, setOlder] = useState<ShopConversationEvent[]>([])
+  const [olderHasMore, setOlderHasMore] = useState(false)
+  const [loadedOlder, setLoadedOlder] = useState(false)
+
+  useEffect(() => {
+    setOlder([])
+    setLoadedOlder(false)
+  }, [conversationId])
+
+  async function loadOlder() {
+    const first = older[0] ?? data?.events[0]
+    if (!first) return
+    const res = await api.get<SellerConversationDetail>(
+      `/v2/stores/${storeId}/conversations/${conversationId}`,
+      { params: { before: first.createdAt } },
+    )
+    setOlder((prev) => [...res.data.events, ...prev])
+    setOlderHasMore(!!res.data.hasMoreEvents)
+    setLoadedOlder(true)
+  }
 
   function send() {
     const text = input.trim()
@@ -76,7 +98,16 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {data?.events
+        {(loadedOlder ? olderHasMore : data?.hasMoreEvents) && (
+          <button
+            type="button"
+            onClick={() => void loadOlder()}
+            className="mx-auto block rounded-full border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)]"
+          >
+            {fa.shop.olderMessages}
+          </button>
+        )}
+        {[...older, ...(data?.events ?? [])]
           .filter(e => e.type === 'CUSTOMER_MESSAGE' || e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE')
           .map((e, i) => (
             <div key={i} className={`flex ${e.type === 'CUSTOMER_MESSAGE' ? 'justify-start' : 'justify-end'}`}>

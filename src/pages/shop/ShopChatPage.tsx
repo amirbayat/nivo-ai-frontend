@@ -356,6 +356,9 @@ export function ShopChatPage() {
     notFound,
     conversationId,
     messages,
+    olderMessages,
+    hasMoreEvents,
+    loadOlderMessages,
     state,
     loading,
     sending,
@@ -463,6 +466,8 @@ export function ShopChatPage() {
   const canAttachImage = HUMAN_HANDLING_STATES.includes(state) || awaitingReview
   const canAttachVideo = awaitingReview
   const actionDisabled = inputLocked
+  const sellerIsReplying = HUMAN_HANDLING_STATES.includes(state)
+  const thread = [...olderMessages, ...messages]
 
   // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر همیشه قابل‌کلیک می‌ماند؛ کلیک
   // دوباره روی کارت تکراری همون محصول (مثلاً وقتی همون کارت یک‌بار دیگر ضمن توضیح تخفیف
@@ -806,7 +811,16 @@ export function ShopChatPage() {
       <>
       <CheckoutProgressBar state={state} />
       <div ref={messagesRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {messages.map((m) => (
+        {hasMoreEvents && !viewingHistory && (
+          <button
+            type="button"
+            onClick={() => void loadOlderMessages()}
+            className="mx-auto block rounded-full border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)]"
+          >
+            {fa.shop.olderMessages}
+          </button>
+        )}
+        {thread.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'customer' ? 'justify-start' : 'justify-end'}`}>
             <div className="max-w-[85%]">
               {m.imageUrl && (
@@ -856,6 +870,7 @@ export function ShopChatPage() {
                 <ShopUiBlockView
                   block={m.uiBlock}
                   disabled={actionDisabled}
+                  handoff={sellerIsReplying}
                   onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
                   onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
                   onUploadReceipt={(file) => void uploadReceipt(file)}

@@ -31,6 +31,8 @@ export function NumberField({
   invalid,
   value,
   onChange,
+  min,
+  max,
   step,
 }: {
   label: string
@@ -59,6 +61,16 @@ export function NumberField({
         onChange={v => {
           setText(v)
           onChange(Number(v))
+        }}
+        onBlur={() => {
+          if (value === undefined || Number.isNaN(value)) return
+          let next = value
+          if (min !== undefined) next = Math.max(min, next)
+          if (max !== undefined) next = Math.min(max, next)
+          if (next !== value) {
+            setText(String(next))
+            onChange(next)
+          }
         }}
         className="w-full rounded-2xl p-3 text-[13.5px] text-slate-100 light:text-slate-900 focus:outline-none"
         style={{

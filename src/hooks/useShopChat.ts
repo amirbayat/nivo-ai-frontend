@@ -54,10 +54,10 @@ function chatImageUrl(conversationId: string, key: string): string {
 
 function eventsToMessages(events: ShopConversationEvent[], conversationId: string): ShopMessage[] {
   const messages: ShopMessage[] = []
-  events.forEach((e, i) => {
+  events.forEach((e) => {
     if (e.type === 'CUSTOMER_MESSAGE' && (e.payload.text || e.payload.imageKey || e.payload.videoKey)) {
       messages.push({
-        id: e.payload.clientMessageId ? `c-${e.payload.clientMessageId}` : `c-${i}`,
+        id: e.payload.clientMessageId ? `c-${e.payload.clientMessageId}` : `c-${e.createdAt}`,
         role: 'customer',
         text: e.payload.text ?? '',
         clientMessageId: e.payload.clientMessageId,
@@ -66,7 +66,7 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
       })
     } else if ((e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE') && e.payload.text) {
       messages.push({
-        id: e.payload.turnId ? `stream-${e.payload.turnId}` : `a-${i}`,
+        id: e.payload.turnId ? `stream-${e.payload.turnId}` : `a-${e.createdAt}`,
         role: 'agent',
         text: e.payload.text,
         uiBlock: e.payload.uiBlock?.type !== 'NONE' ? e.payload.uiBlock : undefined,
@@ -120,6 +120,9 @@ export function useShopChat(slug: string, productId?: string) {
   const [isDemo, setIsDemo] = useState(false)
   const [notFound, setNotFound] = useState(false)
   const [messages, setMessages] = useState<ShopMessage[]>([])
+  const [olderMessages, setOlderMessages] = useState<ShopMessage[]>([])
+  const [hasMoreEvents, setHasMoreEvents] = useState(false)
+  const oldestCreatedAtRef = useRef<string | null>(null)
   const [state, setState] = useState<string>('GREETING')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -627,7 +630,27 @@ export function useShopChat(slug: string, productId?: string) {
     setAwaitingSatisfaction(!!data.awaitingSatisfactionCheck)
     const nextMessages = eventsToMessages(data.events, session.conversationId)
     setMessages((prev) => (mode === 'replace' ? nextMessages : mergeShopMessages(nextMessages, prev)))
+    if (mode === 'replace' || !oldestCreatedAtRef.current) {
+      oldestCreatedAtRef.current = data.events[0]?.createdAt ?? null
+      setHasMoreEvents(!!data.hasMoreEvents)
+    }
+    if (mode === 'replace') setOlderMessages([])
     setShowLanding(!!data.shopLandingEnabled && nextMessages.length === 0)
+  }, [])
+
+  const loadOlderMessages = useCallback(async () => {
+    const session = sessionRef.current
+    const before = oldestCreatedAtRef.current
+    if (!session || !before) return
+    const res = await fetch(
+      `${env.VITE_API_URL}/v2/chat/${session.conversationId}?before=${encodeURIComponent(before)}`,
+      { headers: { 'X-Session-Token': session.sessionToken } },
+    )
+    if (!res.ok) return
+    const data = (await res.json()) as ShopGetConversationResponse
+    if (data.events[0]?.createdAt) oldestCreatedAtRef.current = data.events[0].createdAt
+    setHasMoreEvents(!!data.hasMoreEvents)
+    setOlderMessages((prev) => [...eventsToMessages(data.events, session.conversationId), ...prev])
   }, [])
 
   useEffect(() => {
@@ -1251,6 +1274,9 @@ export function useShopChat(slug: string, productId?: string) {
     notFound,
     conversationId: sessionRef.current?.conversationId,
     messages,
+    olderMessages,
+    hasMoreEvents,
+    loadOlderMessages,
     state,
     awaitingReview,
     awaitingSatisfaction,

@@ -10,6 +10,7 @@ import type { ShopAction, ShopUiBlock } from '@/types/api'
 interface BlockProps {
   block: ShopUiBlock
   disabled: boolean
+  handoff?: boolean
   onAddToCart: (productId: string) => void
   onConfirmCart: () => void
   onUploadReceipt: (file: File) => void
@@ -222,6 +223,7 @@ function MediaLightbox({ items, startIndex, onClose }: { items: MediaItem[]; sta
 function ProductCardBlock({
   products,
   disabled,
+  handoff,
   onAddToCart,
   savedProductIds,
   onToggleSave,
@@ -238,6 +240,7 @@ function ProductCardBlock({
     goldPricingSummary?: string | null
   }[]
   disabled: boolean
+  handoff?: boolean
   onAddToCart: (productId: string) => void
   savedProductIds: Set<string>
   onToggleSave: (productId: string) => void
@@ -305,7 +308,7 @@ function ProductCardBlock({
               </span>
               <button
                 onClick={() => onAddToCart(p.id)}
-                disabled={disabled || p.stock === 0 || cartProductIds.has(p.id)}
+                disabled={disabled || handoff || p.stock === 0 || cartProductIds.has(p.id)}
                 className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
               >
                 {cartProductIds.has(p.id) ? fa.shop.alreadyInCart : fa.shop.addToCart}
@@ -314,6 +317,7 @@ function ProductCardBlock({
           </div>
         )
       })}
+      {handoff && <p className="mt-2 text-[11px] text-[var(--text-secondary)]">{fa.shop.sellerIsReplying}</p>}
       {zoom && <MediaLightbox items={zoom.items} startIndex={zoom.index} onClose={() => setZoom(null)} />}
     </div>
   )
@@ -369,11 +373,13 @@ function CartSummaryBlock({
   items,
   total,
   disabled,
+  handoff,
   onConfirmCart,
 }: {
   items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
   total: number
   disabled: boolean
+  handoff?: boolean
   onConfirmCart: () => void
 }) {
   return (
@@ -395,11 +401,12 @@ function CartSummaryBlock({
       </div>
       <button
         onClick={onConfirmCart}
-        disabled={disabled || items.length === 0}
+        disabled={disabled || handoff || items.length === 0}
         className="w-full rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
       >
         {fa.shop.confirmAndPay}
       </button>
+      {handoff && <p className="mt-2 text-[11px] text-[var(--text-secondary)]">{fa.shop.sellerIsReplying}</p>}
     </div>
   )
 }
@@ -929,6 +936,7 @@ function RefundDestinationForm({
 export function ShopUiBlockView({
   block,
   disabled,
+  handoff,
   onAddToCart,
   onConfirmCart,
   onUploadReceipt,
@@ -945,6 +953,7 @@ export function ShopUiBlockView({
         <ProductCardBlock
           products={block.products}
           disabled={disabled}
+          handoff={handoff}
           onAddToCart={onAddToCart}
           savedProductIds={savedProductIds}
           onToggleSave={onToggleSave}
@@ -954,7 +963,7 @@ export function ShopUiBlockView({
     case 'PRODUCT_PHOTOS':
       return <ProductPhotosBlock productId={block.productId} productName={block.productName} images={block.images} videos={block.videos} />
     case 'CART_SUMMARY':
-      return <CartSummaryBlock items={block.items} total={block.total} disabled={disabled} onConfirmCart={onConfirmCart} />
+      return <CartSummaryBlock items={block.items} total={block.total} disabled={disabled} handoff={handoff} onConfirmCart={onConfirmCart} />
     case 'PAYMENT_INSTRUCTIONS':
       return (
         <PaymentCard
