@@ -134,6 +134,8 @@ export function useShopChat(slug: string, productId?: string) {
   const [storeLogoKey, setStoreLogoKey] = useState<string | null>(null)
   const [isDemo, setIsDemo] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  // R1.2 — فروشگاه معلق (۴۰۳ از start)
+  const [suspended, setSuspended] = useState(false)
   const [messages, setMessages] = useState<ShopMessage[]>([])
   const [olderMessages, setOlderMessages] = useState<ShopMessage[]>([])
   const [hasMoreEvents, setHasMoreEvents] = useState(false)
@@ -1019,6 +1021,10 @@ export function useShopChat(slug: string, productId?: string) {
         if (!cancelledRef?.current) setNotFound(true)
         return
       }
+      if (res.status === 403) {
+        if (!cancelledRef?.current) setSuspended(true)
+        return
+      }
       if (!res.ok) throw new Error('request failed')
       const data = (await res.json()) as ShopStartChatResponse
       if (cancelledRef?.current) return
@@ -1324,6 +1330,7 @@ export function useShopChat(slug: string, productId?: string) {
     storeLogoKey,
     isDemo,
     notFound,
+    suspended,
     conversationId: sessionRef.current?.conversationId,
     messages,
     olderMessages,

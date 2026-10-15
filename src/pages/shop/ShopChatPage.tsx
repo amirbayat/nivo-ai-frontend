@@ -354,6 +354,7 @@ export function ShopChatPage() {
     storeLogoKey,
     isDemo,
     notFound,
+    suspended,
     conversationId,
     messages,
     olderMessages,
@@ -591,6 +592,17 @@ export function ShopChatPage() {
       e.preventDefault()
       send()
     }
+  }
+
+  if (suspended) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 light:bg-white p-4" dir="rtl">
+        <div className="text-center">
+          <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.shop.suspendedHeading}</h1>
+          <p className="text-sm text-slate-500">{fa.shop.suspendedBody}</p>
+        </div>
+      </div>
+    )
   }
 
   if (notFound) {

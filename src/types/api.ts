@@ -188,6 +188,8 @@ export interface SellerStore {
   telegramUrl: string | null
   websiteUrl: string | null
   status: 'ACTIVE' | 'SUSPENDED'
+  // R1.2 — دلیل تعلیق (بنر پنل)
+  suspendedReason?: string | null
   // docs/PRD-seller-credit-billing.md بخش ۱/۵
   creditBalanceToman: number
   // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۶.۲ — برای نمایش بنر «اعتبار تموم شد»

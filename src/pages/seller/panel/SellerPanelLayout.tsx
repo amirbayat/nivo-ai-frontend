@@ -256,6 +256,12 @@ export function SellerPanelLayout() {
     >
       <div className="flex min-h-screen flex-col bg-slate-950 light:bg-white" dir="rtl">
         {store.isDemo && <DemoBanner store={store} />}
+        {store.status === 'SUSPENDED' && (
+          <div role="alert" className="border-b border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 light:text-red-700">
+            <p className="font-semibold">{fa.seller.panel.suspendedBanner.title}</p>
+            {store.suspendedReason && <p className="mt-0.5 text-xs">{store.suspendedReason}</p>}
+          </div>
+        )}
         {!store.isDemo && isCreditExhausted(store) && <CreditExhaustedBanner />}
         {showGoldTicker && <GoldPriceTicker />}
 
