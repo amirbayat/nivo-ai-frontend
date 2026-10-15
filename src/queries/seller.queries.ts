@@ -87,7 +87,7 @@ export interface ReplaceProductVariantsInput {
   optionTypes: { name: string; values: string[] }[]
   variants: {
     optionValues: Record<string, string>
-    stock: number
+    stock?: number
     priceOverride?: number | null
     sku?: string
     // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۳.۴ — فقط برای محصول

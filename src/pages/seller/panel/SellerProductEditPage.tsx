@@ -247,6 +247,7 @@ function ProductVariantsEditor({
   const [enabled, setEnabled] = useState((product.optionTypes?.length ?? 0) > 0)
   const [optionTypes, setOptionTypes] = useState<DraftOptionType[]>([])
   const [rowsByKey, setRowsByKey] = useState<Record<string, DraftVariantRow>>({})
+  const loadedStockRef = useRef<Record<string, number>>({})
   const [newValueDrafts, setNewValueDrafts] = useState<Record<number, string>>({})
   const [initialized, setInitialized] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -265,8 +266,11 @@ function ProductVariantsEditor({
         .map(o => ({ name: o.name, values: o.values.slice().sort((a, b) => a.position - b.position).map(v => v.value) })),
     )
     const rows: Record<string, DraftVariantRow> = {}
+    const loadedStock: Record<string, number> = {}
     for (const v of product.variants ?? []) {
-      rows[comboKey(v.optionValues)] = {
+      const key = comboKey(v.optionValues)
+      loadedStock[key] = v.stock
+      rows[key] = {
         stock: String(v.stock),
         priceOverride: v.priceOverride != null ? String(v.priceOverride) : '',
         sku: v.sku ?? '',
@@ -274,6 +278,7 @@ function ProductVariantsEditor({
         purityKarat: v.purityKarat != null ? String(v.purityKarat) : '',
       }
     }
+    loadedStockRef.current = loadedStock
     setRowsByKey(rows)
     setInitialized(true)
   }, [initialized, product.optionTypes, product.variants])
@@ -376,10 +381,13 @@ function ProductVariantsEditor({
             .filter(o => o.name.trim() && o.values.length > 0)
             .map(o => ({ name: o.name.trim(), values: o.values })),
           variants: visibleCombos.map(ov => {
-            const row = rowFor(comboKey(ov))
+            const key = comboKey(ov)
+            const row = rowFor(key)
+            const stock = Number(toEnglishDigits(row.stock)) || 0
+            const loaded = loadedStockRef.current[key]
             return {
               optionValues: ov,
-              stock: Number(toEnglishDigits(row.stock)) || 0,
+              ...(loaded === undefined || stock !== loaded ? { stock } : {}),
               priceOverride: row.priceOverride ? Number(toEnglishDigits(row.priceOverride)) || 0 : null,
               sku: row.sku.trim() || undefined,
               weightGrams: row.weightGrams ? Number(toEnglishDigits(row.weightGrams)) || undefined : undefined,
