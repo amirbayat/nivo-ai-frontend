@@ -425,10 +425,13 @@ export function SellerOrdersPage() {
     if (match) {
       setOpenOrder(match)
       setSearchParams({}, { replace: true })
+    } else if (orders.hasNextPage) {
+      // R3.2 — سفارش قدیمی‌تر از صفحه‌ی اول است؛ صفحه‌ی بعد را می‌آوریم تا پیدا شود
+      if (!orders.isFetchingNextPage) void orders.fetchNextPage()
     } else if (filter !== undefined) {
       setFilter(undefined)
     }
-  }, [searchParams, setSearchParams, orders.data, filter])
+  }, [searchParams, setSearchParams, orders, filter])
 
   return (
     <div className="px-5 py-6">
@@ -518,6 +521,16 @@ export function SellerOrdersPage() {
           </button>
         ))}
       </div>
+      {orders.hasNextPage && (
+        <button
+          type="button"
+          onClick={() => void orders.fetchNextPage()}
+          disabled={orders.isFetchingNextPage}
+          className="mt-3 min-h-11 w-full rounded-xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 disabled:opacity-50"
+        >
+          {fa.common.loadMore}
+        </button>
+      )}
 
       {openOrder && <OrderDetailSheet order={openOrder} storeId={storeId} onClose={() => setOpenOrder(null)} />}
     </div>

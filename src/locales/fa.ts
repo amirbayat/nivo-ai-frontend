@@ -1719,6 +1719,7 @@ export const fa = {
     backToExplore: 'بازگشت به فهرست فروشگاه‌ها',
   },
   common: {
+    loadMore: 'نمایش بیشتر',
     save: 'ذخیره',
     cancel: 'انصراف',
     delete: 'حذف',

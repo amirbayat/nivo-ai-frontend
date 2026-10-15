@@ -14,6 +14,7 @@ import {
   useImportProductFromUrl,
   useImportProducts,
   useProducts,
+  useProductsPage,
   useReplaceProductVariants,
   useTranscribeAudioFile,
   useUpdateProduct,
@@ -739,7 +740,7 @@ export function BulkProductImportSheet({
 export function SellerProductsPage() {
   const { storeId, storeSlug, storeName, category, businessType } = useSellerStore()
   const navigate = useNavigate()
-  const products = useProducts(storeId)
+  const products = useProductsPage(storeId)
   const importProducts = useImportProducts(storeId)
   const fileRef = useRef<HTMLInputElement>(null)
   const [importResult, setImportResult] = useState<{ created: number; errorCount: number } | null>(null)
@@ -870,6 +871,16 @@ export function SellerProductsPage() {
           </div>
         ))}
       </div>
+      {products.hasNextPage && (
+        <button
+          type="button"
+          onClick={() => void products.fetchNextPage()}
+          disabled={products.isFetchingNextPage}
+          className="mt-3 min-h-11 w-full rounded-xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 disabled:opacity-50"
+        >
+          {fa.common.loadMore}
+        </button>
+      )}
 
       {bulkImportOpen && (
         <BulkProductImportSheet

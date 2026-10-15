@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { keys } from '@/queries/keys'
 import { useToastStore } from '@/store/toast.store'
@@ -279,6 +279,24 @@ export function useCreateProduct(storeId: string) {
 
 // docs/PRD-mvp-launch-plan.md گام ۳ — پنل فروشنده
 
+// R3.2 — صفحه‌ی لیست محصولات (صفحه‌ای)؛ انتخاب‌گرهای دیگر همچنان کل کاتالوگ را با useProducts می‌گیرند.
+// کلید با پیشوند products(storeId) است، پس هر invalidate محصول این را هم تازه می‌کند.
+export function useProductsPage(storeId: string) {
+  return useInfiniteQuery({
+    queryKey: [...keys.seller.products(storeId), 'page'] as const,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      api
+        .get<CursorPage<SellerProduct>>(`/v2/stores/${storeId}/products`, {
+          params: { limit: 50, ...(pageParam ? { cursor: pageParam } : {}) },
+        })
+        .then(r => r.data),
+    getNextPageParam: last => last.nextCursor ?? undefined,
+    select: d => d.pages.flatMap(p => p.items),
+    enabled: !!storeId,
+  })
+}
+
 export function useProducts(storeId: string) {
   return useQuery({
     queryKey: keys.seller.products(storeId),
@@ -440,16 +458,29 @@ export function useImportProducts(storeId: string) {
   })
 }
 
+// R3.2 — cursor pagination (۵۰ تایی)؛ data همچنان آرایه‌ی تخت‌شده‌ی همه‌ی صفحه‌های لودشده است
+export interface CursorPage<T> {
+  items: T[]
+  nextCursor: string | null
+}
+
 export function useOrders(storeId: string, status?: SellerOrderStatus, q?: string) {
   const query = q?.trim() || undefined
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: keys.seller.orders(storeId, status, query),
-    queryFn: () =>
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
       api
-        .get<SellerOrder[]>(`/v2/stores/${storeId}/orders`, {
-          params: status || query ? { ...(status ? { status } : {}), ...(query ? { q: query } : {}) } : undefined,
+        .get<CursorPage<SellerOrder>>(`/v2/stores/${storeId}/orders`, {
+          params: {
+            ...(status ? { status } : {}),
+            ...(query ? { q: query } : {}),
+            ...(pageParam ? { cursor: pageParam } : {}),
+          },
         })
         .then(r => r.data),
+    getNextPageParam: last => last.nextCursor ?? undefined,
+    select: d => d.pages.flatMap(p => p.items),
     enabled: !!storeId,
     refetchInterval: PANEL_POLL_MS,
     refetchIntervalInBackground: false,
