@@ -1,9 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { fa } from '@/locales/fa'
 import { newClientMessageId } from '@/lib/clientMessageId'
 
-export function SellerTestChatSheet({ storeId, onClose }: { storeId: string; onClose: () => void }) {
+// SP-4/S6 — initialMessage: بعد از ساخت گفتگوی تست یک‌بار خودکار فرستاده می‌شود تا فروشنده
+// ببیند بات محصول خودش را می‌فروشد؛ fromFirstProduct فقط برای آمار (test_chat_started).
+export function SellerTestChatSheet({
+  storeId,
+  onClose,
+  initialMessage,
+  fromFirstProduct,
+}: {
+  storeId: string
+  onClose: () => void
+  initialMessage?: string
+  fromFirstProduct?: boolean
+}) {
   const [session, setSession] = useState<{ conversationId: string; sessionToken: string } | null>(null)
   const [lines, setLines] = useState<{ role: 'seller' | 'bot'; text: string }[]>([])
   const [text, setText] = useState('')
@@ -13,7 +25,7 @@ export function SellerTestChatSheet({ storeId, onClose }: { storeId: string; onC
   useEffect(() => {
     let cancelled = false
     api
-      .post<{ conversationId: string; sessionToken: string }>(`/v2/stores/${storeId}/test-chat`)
+      .post<{ conversationId: string; sessionToken: string }>(`/v2/stores/${storeId}/test-chat`, { fromFirstProduct: !!fromFirstProduct })
       .then((res) => {
         if (!cancelled) setSession({ conversationId: res.data.conversationId, sessionToken: res.data.sessionToken })
       })
@@ -23,12 +35,21 @@ export function SellerTestChatSheet({ storeId, onClose }: { storeId: string; onC
     return () => {
       cancelled = true
     }
-  }, [storeId])
+  }, [storeId, fromFirstProduct])
 
-  async function send() {
-    const message = text.trim()
-    if (!session || !message || busy) return
-    setText('')
+  // یک‌بار (ref) تا React strict mode دوبار نفرستد
+  const autoSentRef = useRef(false)
+  useEffect(() => {
+    if (!session || !initialMessage || autoSentRef.current) return
+    autoSentRef.current = true
+    void send(initialMessage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, initialMessage])
+
+  async function send(override?: string) {
+    const message = (override ?? text).trim()
+    if (!session || !message || (busy && override === undefined)) return
+    if (override === undefined) setText('')
     setBusy(true)
     setError(null)
     setLines((prev) => [...prev, { role: 'seller', text: message }])

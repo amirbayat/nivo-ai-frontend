@@ -1,3 +1,5 @@
+import { sellerV2 } from './sellerV2'
+
 export const fa = {
   publicOrder: {
     title: 'سفارش',
@@ -476,6 +478,7 @@ export const fa = {
     pickerSubheading: 'یکی رو انتخاب کن تا یک فروشگاه نمونه‌ی مخصوص خودت در همون دسته بسازیم.',
   },
   seller: {
+    v2: sellerV2,
     landing: {
       badge: 'برای فروشنده‌های اینستاگرام و تلگرام',
       heading: 'یک ایجنت هوش‌مصنوعی که به‌جای شما دایرکت جواب می‌دهد',

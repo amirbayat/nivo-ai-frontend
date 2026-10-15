@@ -10,7 +10,8 @@
     "build:intl": "VITE_REGION=INTL tsc -b && VITE_REGION=INTL vite build",
     "check:digits": "sh scripts/check-digit-inputs.sh",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test \"tests/*.test.ts\""
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",

@@ -229,35 +229,40 @@ function matchingVariant(product: PublicProduct, selected: Record<string, string
   )
 }
 
-function ProductDetailSheet({
+// SP-4 §4.12.2 — حالت preview: همان کامپوننت خریدار، فقط‌خواندنی و بدون هیچ درخواست شبکه
+// (بدون سبد/پرسش از فروشنده/ذخیره/نظرات/اطلاع از موجودی) و بدون پوشش تمام‌صفحه؛ فروشنده در پیش‌نمایش
+// پیش‌نویس هم می‌بیند مشتری چه می‌بیند.
+export function ProductDetailSheet({
   product,
   slug,
   shippingEstimate,
   shippingDaysText,
-  disabled,
+  disabled = false,
   onClose,
-  onAddToCart,
-  onAskSeller,
-  saved,
-  onToggleSave,
-  onWriteReview,
-  onViewReviews,
+  onAddToCart = () => undefined,
+  onAskSeller = () => undefined,
+  saved = false,
+  onToggleSave = () => undefined,
+  onWriteReview = () => undefined,
+  onViewReviews = () => undefined,
   onNotifyStock,
   onSendBuyerOtp,
   onVerifyBuyerOtp,
+  preview = false,
 }: {
   product: PublicProduct
   slug: string
   shippingEstimate: { minCostToman: number; maxCostToman: number } | null
   shippingDaysText: string | null
-  disabled: boolean
+  disabled?: boolean
   onClose: () => void
-  onAddToCart: (id: string, variantId?: string) => void
-  onAskSeller: (product: PublicProduct) => void
-  saved: boolean
-  onToggleSave: () => void
-  onWriteReview: () => void
-  onViewReviews: () => void
+  onAddToCart?: (id: string, variantId?: string) => void
+  onAskSeller?: (product: PublicProduct) => void
+  saved?: boolean
+  onToggleSave?: () => void
+  onWriteReview?: () => void
+  onViewReviews?: () => void
+  preview?: boolean
   onNotifyStock?: (
     productId: string,
     variantId?: string,
@@ -377,13 +382,9 @@ function ProductDetailSheet({
 
   const frame = media[mediaIndex]
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-slate-900 p-4 light:bg-white"
-      >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-700 light:bg-slate-300" />
+  const body = (
+    <>
+        {!preview && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-700 light:bg-slate-300" />}
         {frame && (
           <div className="relative mb-3">
             {frame.type === 'video' ? (
@@ -421,7 +422,7 @@ function ProductDetailSheet({
         )}
         <div className="mb-1 flex items-center justify-between gap-2">
           <h3 className="text-base font-semibold text-slate-100 light:text-slate-900">{product.name}</h3>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className={preview ? 'hidden' : 'flex shrink-0 items-center gap-1'}>
             <button
               type="button"
               onClick={() => void share()}
@@ -543,6 +544,7 @@ function ProductDetailSheet({
         {shippingText && <p className="text-xs text-slate-500">{shippingText}</p>}
         {shippingDaysText && <p className="text-xs text-slate-500">{shippingDaysText}</p>}
         <div className="mb-4" />
+        {!preview && (<>
         <div className="flex gap-2">
           <button
             type="button"
@@ -574,6 +576,18 @@ function ProductDetailSheet({
         >
           {fa.shop.viewReviewsButton}
         </button>
+        </>)}
+    </>
+  )
+
+  if (preview) return <div className="p-1">{body}</div>
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-slate-900 p-4 light:bg-white"
+      >
+        {body}
       </div>
     </div>
   )

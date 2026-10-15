@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import type { ClipboardEvent, ChangeEvent, InputHTMLAttributes } from 'react'
 import { toEnglishDigits, formatThousands, formatCardNumberGroups } from '@/lib/digits'
 import { Input } from './Input'
@@ -63,8 +64,14 @@ function sanitizeDigits(kind: DigitsKind, input: string, maxLength?: number, all
   return maxLength != null && maxLength > 0 ? out.slice(0, maxLength) : out
 }
 
-function formatForDisplay(kind: DigitsKind, raw: string): string {
-  if (kind === 'price') return formatThousands(raw)
+const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
+
+function formatForDisplay(kind: DigitsKind, raw: string, persian = false): string {
+  if (kind === 'price') {
+    const grouped = formatThousands(raw)
+    // SP-4 §4.11.3 — نمایش فارسی: ارقام فارسی و جداکننده‌ی «٬» (مقدار ذخیره‌شده همچنان رقم انگلیسی)
+    return persian ? grouped.replace(/\d/g, d => FA_DIGITS[Number(d)]).replace(/,/g, '٬') : grouped
+  }
   if (kind === 'card') return formatCardNumberGroups(raw)
   return raw
 }
@@ -79,7 +86,11 @@ interface DigitsInputProps
   error?: string
   /** فقط kind="phone": پذیرش +98 / 0098 / 98 (مثلاً فرم آدرس)؛ پیش‌فرض فقط ۱۱ رقم */
   allowIntl?: boolean
+  /** فقط kind="price": نمایش با ارقام و جداکننده‌ی فارسی (۸۹۰٬۰۰۰) با حفظ جای مکان‌نما */
+  persianDisplay?: boolean
 }
+
+const isDigitChar = (c: string) => /[0-9۰-۹٠-٩]/.test(c)
 
 export function DigitsInput({
   kind,
@@ -88,15 +99,41 @@ export function DigitsInput({
   label,
   error,
   allowIntl,
+  persianDisplay,
   maxLength,
   onPaste,
   autoComplete,
   style,
   ...rest
 }: DigitsInputProps) {
+  const ref = useRef<HTMLInputElement | null>(null)
+  // تعداد رقم‌های قبل از مکان‌نما بعد از هر تغییر؛ بعد از رندر مجدد مکان‌نما همان‌جا برمی‌گردد
+  const digitsBeforeCaret = useRef<number | null>(null)
+
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    if (persianDisplay && kind === 'price') {
+      const el = e.target
+      const caret = el.selectionStart ?? el.value.length
+      digitsBeforeCaret.current = [...el.value.slice(0, caret)].filter(isDigitChar).length
+    }
     onChange(sanitizeDigits(kind, e.target.value, maxLength, allowIntl))
   }
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    const n = digitsBeforeCaret.current
+    if (!el || n === null) return
+    digitsBeforeCaret.current = null
+    if (document.activeElement !== el) return
+    let seen = 0
+    let pos = 0
+    const text = el.value
+    while (pos < text.length && seen < n) {
+      if (isDigitChar(text[pos])) seen++
+      pos++
+    }
+    el.setSelectionRange(pos, pos)
+  }, [value])
 
   function handlePaste(e: ClipboardEvent<HTMLInputElement>) {
     onPaste?.(e)
@@ -116,7 +153,8 @@ export function DigitsInput({
     dir: 'ltr' as const,
     inputMode: INPUT_MODE[kind],
     autoComplete: autoComplete ?? (kind === 'otp' ? 'one-time-code' : kind === 'phone' ? 'tel' : 'off'),
-    value: formatForDisplay(kind, value),
+    value: formatForDisplay(kind, value, persianDisplay),
+    ref,
     onChange: handleChange,
     onPaste: handlePaste,
     // ≥۱۶px تا iOS زوم نکند؛ هدف لمسی ≥۴۴px

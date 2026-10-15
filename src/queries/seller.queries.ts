@@ -82,6 +82,10 @@ export interface CreateProductInput {
   goldProfitPercent?: number
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
   hasFulfillmentDelay?: boolean
+  // SP-3 — DRAFT = فقط برای فروشنده (بدون اعتبارسنجی انتشار)؛ trackStock=false = «همیشه موجود»
+  status?: 'DRAFT' | 'ACTIVE'
+  trackStock?: boolean
+  via?: 'single' | 'batch'
 }
 
 // docs/PRD-product-display-focus-and-variations.md §۴.۱ — همیشه جایگزین کامل (نه patch)
@@ -300,18 +304,21 @@ export function useCreateProduct(storeId: string) {
 
 // R3.2 — صفحه‌ی لیست محصولات (صفحه‌ای)؛ انتخاب‌گرهای دیگر همچنان کل کاتالوگ را با useProducts می‌گیرند.
 // کلید با پیشوند products(storeId) است، پس هر invalidate محصول این را هم تازه می‌کند.
-export function useProductsPage(storeId: string) {
+export function useProductsPage(storeId: string, status: 'ACTIVE' | 'DRAFT' | 'HIDDEN' = 'ACTIVE') {
   return useInfiniteQuery({
-    queryKey: [...keys.seller.products(storeId), 'page'] as const,
+    queryKey: [...keys.seller.products(storeId), 'page', status] as const,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       api
         .get<CursorPage<SellerProduct>>(`/v2/stores/${storeId}/products`, {
-          params: { limit: 50, ...(pageParam ? { cursor: pageParam } : {}) },
+          params: { limit: 50, status, ...(pageParam ? { cursor: pageParam } : {}) },
         })
         .then(r => r.data),
     getNextPageParam: last => last.nextCursor ?? undefined,
-    select: d => d.pages.flatMap(p => p.items),
+    select: d => ({
+      items: d.pages.flatMap(p => p.items),
+      counts: d.pages[0]?.counts ?? { ACTIVE: 0, DRAFT: 0, HIDDEN: 0 },
+    }),
     enabled: !!storeId,
   })
 }
@@ -481,6 +488,8 @@ export function useImportProducts(storeId: string) {
 export interface CursorPage<T> {
   items: T[]
   nextCursor: string | null
+  // SP-5 — فقط لیست محصولات: تعداد به تفکیک وضعیت
+  counts?: { ACTIVE: number; DRAFT: number; HIDDEN: number }
 }
 
 export function useOrders(storeId: string, status?: SellerOrderStatus, q?: string) {

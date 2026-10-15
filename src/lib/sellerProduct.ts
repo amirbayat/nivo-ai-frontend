@@ -32,3 +32,6 @@ export function storeLogoUrl(storeId: string, key: string): string {
 export function productVideoUrl(productId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/products/${productId}/video/${key}`
 }
+
+// «همیشه موجود» برای نمایش خریدار (فرانت فقط stock > 0 را می‌فهمد؛ عدد هرگز نشان داده نمی‌شود)
+export const UNLIMITED_STOCK_DISPLAY = 1_000_000

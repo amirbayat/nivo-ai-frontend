@@ -150,7 +150,15 @@ export interface SellerProduct {
   hasFulfillmentDelay: boolean
   // GET /v2/stores/:id/products — open back-in-stock alerts for this product
   stockAlertCount?: number
+  // SP-3 — DRAFT فقط برای فروشنده؛ HIDDEN موقتاً از فروش خارج؛ trackStock=false یعنی «همیشه موجود»
+  status: ProductStatus
+  trackStock: boolean
+  stockSetAt: string | null
+  // فقط پاسخ create/update (انتشار): آیا این اولین محصول فعال فروشگاه بود
+  isFirstActiveProduct?: boolean
 }
+
+export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'HIDDEN' | 'ARCHIVED'
 
 export interface ProductOptionType {
   id: string
@@ -246,9 +254,24 @@ export interface StoreBadges {
 
 // بخش ۳.۱ — کارت «خانه»‌ی پنل
 export interface StoreToday {
-  receipts: { id: string; orderCode: string; receiptVerifiedMatch: boolean | null }[]
+  receipts: {
+    id: string
+    orderCode: string
+    receiptVerifiedMatch: boolean | null
+    // SP-6
+    amountToman: number
+    customerLabel: string
+    submittedAt: string
+    hasReceiptImage: boolean
+  }[]
   toShip: { id: string; orderCode: string }[]
-  conversations: { id: string; customerLabel: string }[]
+  conversations: {
+    id: string
+    customerLabel: string
+    // SP-6 — آخرین پیام مشتری (≤۸۰ کاراکتر) و زمان تقریبی شروع انتظار
+    lastCustomerMessage: string | null
+    waitingSince: string
+  }[]
   refunds: { id: string; orderId: string; orderCode: string; amountToman: number }[]
   issues: { id: string; orderId: string; orderCode: string; reason: string }[]
   lowStock: { id: string; name: string; stock: number }[]
@@ -267,6 +290,8 @@ export interface StoreCompleteness {
     hasWorkingHours: boolean
     hasPaymentMethod: boolean
   }
+  // SP-6 — کارت «۳ قدم تا اولین فروش»
+  launch: { hasActiveProduct: boolean; hasPaymentMethod: boolean; shared: boolean }
 }
 
 // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۳.۳/۳.۴ — پیشنهادهای
@@ -835,6 +860,9 @@ export interface UpdateProductInput {
   goldProfitPercent?: number | null
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۲.۱
   hasFulfillmentDelay?: boolean
+  // SP-3
+  status?: 'DRAFT' | 'ACTIVE' | 'HIDDEN'
+  trackStock?: boolean
 }
 
 // docs/PRD-seller-knowledge-base.md بخش ۲ — دستیار تکمیل محصول با AI

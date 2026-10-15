@@ -47,7 +47,8 @@ import { SellerRefundsPage } from '@/pages/seller/panel/SellerRefundsPage'
 import { PublicOrderPage } from '@/pages/shop/PublicOrderPage'
 import { SellerAttentionPage } from '@/pages/seller/panel/SellerAttentionPage'
 import { SellerProductsPage } from '@/pages/seller/panel/SellerProductsPage'
-import { SellerProductEditPage } from '@/pages/seller/panel/SellerProductEditPage'
+import { SellerProductPage } from '@/pages/seller/panel/SellerProductPage'
+import { SellerProductsBatchPage } from '@/pages/seller/panel/SellerProductsBatchPage'
 import { SellerMorePage } from '@/pages/seller/panel/SellerMorePage'
 import { SellerStoreSettingsPage } from '@/pages/seller/panel/SellerStoreSettingsPage'
 import { SellerKnowledgePage } from '@/pages/seller/panel/SellerKnowledgePage'
@@ -140,7 +141,8 @@ export function AppRouter() {
         <Route path="refunds" element={<SellerRefundsPage />} />
         <Route path="attention" element={<SellerAttentionPage />} />
         <Route path="products" element={<SellerProductsPage />} />
-        <Route path="products/:id" element={<SellerProductEditPage />} />
+        <Route path="products/batch" element={<SellerProductsBatchPage />} />
+        <Route path="products/:id" element={<SellerProductPage />} />
         <Route path="more" element={<SellerMorePage />} />
         <Route path="store-settings" element={<SellerStoreSettingsPage />} />
         <Route path="knowledge" element={<SellerKnowledgePage />} />
