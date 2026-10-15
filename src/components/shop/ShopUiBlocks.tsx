@@ -469,31 +469,44 @@ function AddressFormBlock({
   provinces,
   prefillName,
   prefillPhone,
+  values,
+  fieldErrors,
   disabled,
   onSendAction,
 }: {
   provinces?: string[]
   prefillName?: string
   prefillPhone?: string
+  values?: {
+    recipientName: string
+    recipientPhone: string
+    province: string
+    city: string
+    addressText: string
+    postalCode: string
+    plaque: string
+    unit: string
+  }
+  fieldErrors?: Partial<Record<'name' | 'phone' | 'province' | 'city' | 'street' | 'postal', string>>
   disabled: boolean
   onSendAction: (action: ShopAction) => void
 }) {
-  const [name, setName] = useState(prefillName ?? '')
-  const [phone, setPhone] = useState(prefillPhone ?? '')
-  const [province, setProvince] = useState('')
-  const [city, setCity] = useState('')
-  const [street, setStreet] = useState('')
-  const [postal, setPostal] = useState('')
-  const [plaque, setPlaque] = useState('')
-  const [unit, setUnit] = useState('')
-  const ready = Boolean(name.trim() && phone.trim() && province && city.trim() && street.trim() && postal.length === 10)
+  const [name, setName] = useState(values?.recipientName || prefillName || '')
+  const [phone, setPhone] = useState(values?.recipientPhone || prefillPhone || '')
+  const [province, setProvince] = useState(values?.province ?? '')
+  const [city, setCity] = useState(values?.city ?? '')
+  const [street, setStreet] = useState(values?.addressText ?? '')
+  const [postal, setPostal] = useState(values?.postalCode ?? '')
+  const [plaque, setPlaque] = useState(values?.plaque ?? '')
+  const [unit, setUnit] = useState(values?.unit ?? '')
   const field = 'w-full rounded-lg border border-slate-600/60 bg-slate-900 px-3 py-2 text-sm text-slate-100 light:border-slate-300 light:bg-white light:text-slate-900'
+  const hint = (text?: string) => text ? <p className="text-[11px] text-red-400 light:text-red-700">{text}</p> : null
   return (
     <form
       className="mt-2 flex flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault()
-        if (!ready || disabled) return
+        if (disabled) return
         onSendAction({
           type: 'SUBMIT_ADDRESS',
           recipientName: name.trim(),
@@ -502,25 +515,31 @@ function AddressFormBlock({
           city: city.trim(),
           addressText: street.trim(),
           postalCode: postal,
-          plaque: plaque || undefined,
+          plaque: plaque.trim() || undefined,
           unit: unit.trim() || undefined,
         })
       }}
     >
       <input value={name} onChange={(event) => setName(event.target.value)} placeholder={fa.shop.addressFormName} className={field} />
+      {hint(fieldErrors?.name)}
       <DigitsInput kind="phone" value={phone} onChange={setPhone} placeholder={fa.shop.addressFormPhone} className={field} />
+      {hint(fieldErrors?.phone)}
       <select value={province} onChange={(event) => setProvince(event.target.value)} className={field}>
         <option value="">{fa.shop.addressFormProvince}</option>
         {(provinces ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
       </select>
+      {hint(fieldErrors?.province)}
       <input value={city} onChange={(event) => setCity(event.target.value)} placeholder={fa.shop.addressFormCity} className={field} />
+      {hint(fieldErrors?.city)}
       <input value={street} onChange={(event) => setStreet(event.target.value)} placeholder={fa.shop.addressFormStreet} className={field} />
+      {hint(fieldErrors?.street)}
       <DigitsInput kind="postal" value={postal} onChange={setPostal} placeholder={fa.shop.addressFormPostal} className={field} />
+      {hint(fieldErrors?.postal)}
       <div className="flex gap-2">
-        <DigitsInput kind="int" value={plaque} onChange={setPlaque} placeholder={fa.shop.addressFormPlaque} className={field} />
+        <input value={plaque} onChange={(event) => setPlaque(event.target.value)} placeholder={fa.shop.addressFormPlaque} className={field} />
         <input value={unit} onChange={(event) => setUnit(event.target.value)} placeholder={fa.shop.addressFormUnit} className={field} />
       </div>
-      <button type="submit" disabled={!ready || disabled} className="rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white disabled:opacity-40">
+      <button type="submit" disabled={disabled} className="rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white disabled:opacity-40">
         {fa.shop.addressFormSubmit}
       </button>
     </form>
@@ -534,6 +553,8 @@ function AddressPromptBlock({
   summary,
   prefillName,
   prefillPhone,
+  values,
+  fieldErrors,
   disabled,
   onSendAction,
 }: {
@@ -543,6 +564,17 @@ function AddressPromptBlock({
   summary?: string
   prefillName?: string
   prefillPhone?: string
+  values?: {
+    recipientName: string
+    recipientPhone: string
+    province: string
+    city: string
+    addressText: string
+    postalCode: string
+    plaque: string
+    unit: string
+  }
+  fieldErrors?: Partial<Record<'name' | 'phone' | 'province' | 'city' | 'street' | 'postal', string>>
   disabled: boolean
   onSendAction: (action: ShopAction) => void
 }) {
@@ -552,6 +584,8 @@ function AddressPromptBlock({
         provinces={provinces}
         prefillName={prefillName}
         prefillPhone={prefillPhone}
+        values={values}
+        fieldErrors={fieldErrors}
         disabled={disabled}
         onSendAction={onSendAction}
       />
@@ -970,6 +1004,8 @@ export function ShopUiBlockView({
           summary={block.summary}
           prefillName={block.prefillName}
           prefillPhone={block.prefillPhone}
+          values={block.values}
+          fieldErrors={block.fieldErrors}
           disabled={disabled}
           onSendAction={onSendAction}
         />

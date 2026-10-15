@@ -483,6 +483,17 @@ export type ShopUiBlock =
       provinces?: string[]
       prefillName?: string
       prefillPhone?: string
+      fieldErrors?: Partial<Record<'name' | 'phone' | 'province' | 'city' | 'street' | 'postal', string>>
+      values?: {
+        recipientName: string
+        recipientPhone: string
+        province: string
+        city: string
+        addressText: string
+        postalCode: string
+        plaque: string
+        unit: string
+      }
       summary?: string
       shippingCostToman?: number
       provinceCovered?: boolean

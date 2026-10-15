@@ -32,8 +32,9 @@ function sanitizeDigits(kind: DigitsKind, input: string, maxLength?: number): st
     case 'phone': {
       const plus = s.startsWith('+')
       const digits = s.replace(/\D/g, '')
-      // +98XXXXXXXXXX (۱۲ رقم) یا 09XXXXXXXXX (۱۱ رقم)
-      out = plus ? '+' + digits.slice(0, 12) : digits.slice(0, 11)
+      // +98 / 0098 / 98 / 09 — the address form sends the raw value and the server normalizes
+      const max = plus ? 12 : digits.startsWith('00') ? 14 : digits.startsWith('98') ? 12 : 11
+      out = plus ? '+' + digits.slice(0, max) : digits.slice(0, max)
       break
     }
     case 'sheba': {
