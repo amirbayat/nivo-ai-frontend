@@ -529,7 +529,7 @@ function AddressFormBlock({
     >
       <input value={name} onChange={(event) => setName(event.target.value)} placeholder={fa.shop.addressFormName} className={field} />
       {hint(fieldErrors?.name)}
-      <DigitsInput kind="phone" value={phone} onChange={setPhone} placeholder={fa.shop.addressFormPhone} className={field} />
+      <DigitsInput kind="phone" allowIntl value={phone} onChange={setPhone} placeholder={fa.shop.addressFormPhone} className={field} />
       {hint(fieldErrors?.phone)}
       <select value={province} onChange={(event) => setProvince(event.target.value)} className={field}>
         <option value="">{fa.shop.addressFormProvince}</option>

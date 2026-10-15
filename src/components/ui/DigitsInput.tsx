@@ -25,14 +25,19 @@ const INPUT_MODE: Record<DigitsKind, 'numeric' | 'decimal' | 'tel'> = {
 const SEPARATORS = /[,٬،\s\-‌‎‏ ]/g
 
 /** ورودی خام (هر نوع رقم/جداکننده) ← رشته‌ی تمیز با رقم انگلیسی مطابق kind. */
-function sanitizeDigits(kind: DigitsKind, input: string, maxLength?: number): string {
+function sanitizeDigits(kind: DigitsKind, input: string, maxLength?: number, allowIntl = false): string {
   const s = toEnglishDigits(input).replace(/٫/g, '.').replace(SEPARATORS, '')
   let out: string
   switch (kind) {
     case 'phone': {
-      const plus = s.startsWith('+')
       const digits = s.replace(/\D/g, '')
-      // +98 / 0098 / 98 / 09 — the address form sends the raw value and the server normalizes
+      if (!allowIntl) {
+        // سایر فیلدهای تلفن: همان ۱۱ رقم موبایل
+        out = digits.slice(0, 11)
+        break
+      }
+      // +98 / 0098 / 98 / 09 — فقط فرم آدرس (allowIntl)؛ سرور نرمال می‌کند
+      const plus = s.startsWith('+')
       const max = plus ? 12 : digits.startsWith('00') ? 14 : digits.startsWith('98') ? 12 : 11
       out = plus ? '+' + digits.slice(0, max) : digits.slice(0, max)
       break
@@ -72,6 +77,8 @@ interface DigitsInputProps
   onChange: (rawValue: string) => void
   label?: string
   error?: string
+  /** فقط kind="phone": پذیرش +98 / 0098 / 98 (مثلاً فرم آدرس)؛ پیش‌فرض فقط ۱۱ رقم */
+  allowIntl?: boolean
 }
 
 export function DigitsInput({
@@ -80,6 +87,7 @@ export function DigitsInput({
   onChange,
   label,
   error,
+  allowIntl,
   maxLength,
   onPaste,
   autoComplete,
@@ -87,7 +95,7 @@ export function DigitsInput({
   ...rest
 }: DigitsInputProps) {
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
-    onChange(sanitizeDigits(kind, e.target.value, maxLength))
+    onChange(sanitizeDigits(kind, e.target.value, maxLength, allowIntl))
   }
 
   function handlePaste(e: ClipboardEvent<HTMLInputElement>) {
@@ -99,7 +107,7 @@ export function DigitsInput({
     const el = e.currentTarget
     const allSelected = el.selectionStart === 0 && el.selectionEnd === el.value.length
     const base = allSelected ? '' : value
-    onChange(sanitizeDigits(kind, base + text, maxLength))
+    onChange(sanitizeDigits(kind, base + text, maxLength, allowIntl))
   }
 
   const props = {
