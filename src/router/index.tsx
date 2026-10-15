@@ -39,7 +39,7 @@ import { ContactPage } from '@/pages/contact/ContactPage'
 import { SellerLandingPage } from '@/pages/seller/SellerLandingPage'
 import { SellerLoginPage } from '@/pages/seller/SellerLoginPage'
 import { SellerOtpPage } from '@/pages/seller/SellerOtpPage'
-import { SellerOnboardingPage } from '@/pages/seller/SellerOnboardingPage'
+import { SellerOnboardingGate } from '@/pages/seller/SellerOnboardingGate'
 import { SellerPanelLayout } from '@/pages/seller/panel/SellerPanelLayout'
 import { SellerHomePage } from '@/pages/seller/panel/SellerHomePage'
 import { SellerOrdersPage } from '@/pages/seller/panel/SellerOrdersPage'
@@ -122,7 +122,7 @@ export function AppRouter() {
       <Route path="/seller" element={<SellerLandingPage />} />
       <Route path="/seller/login" element={<SellerLoginPage />} />
       <Route path="/seller/otp" element={<SellerOtpPage />} />
-      <Route path="/seller/onboarding" element={<ProtectedRoute><SellerOnboardingPage /></ProtectedRoute>} />
+      <Route path="/seller/onboarding" element={<ProtectedRoute><SellerOnboardingGate /></ProtectedRoute>} />
 
       {/* docs/PRD-mvp-launch-plan.md گام ۳ — پنل فروشنده mobile-first، ناوبری پایین با ۵ تب */}
       <Route path="/seller/panel" element={<ProtectedRoute><SellerPanelLayout /></ProtectedRoute>}>
