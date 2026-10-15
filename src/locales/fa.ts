@@ -1045,6 +1045,12 @@ export const fa = {
         sellerBotLinked: (date: string) => `متصل ✅ از ${date}`,
         sellerBotNotLinked: 'هنوز وصل نشده',
         sellerBotConnectButton: 'باز کردن بات',
+        sellerBotWaiting: 'منتظر اتصال… توی تلگرام شماره‌ت رو بفرست و کد پیامکی رو وارد کن',
+        sellerBotJustLinked: 'وصل شد ✅ از این به بعد سفارش و رسید جدید توی تلگرام هم میاد',
+        sellerBotTimeout: 'هنوز وصل نشد. اگه مراحل داخل بات تموم شده دوباره بررسی کن',
+        sellerBotRecheck: 'بررسی دوباره',
+        sellerBotHomeTitle: 'اعلان سفارش روی تلگرام',
+        sellerBotHomeHint: 'با اتصال بات، رسید جدید رو همون لحظه توی تلگرام می‌بینی',
         sellerBotDisconnectButton: 'قطع اتصال',
         sellerBotDisconnectConfirm: 'اتصال این فروشگاه به بات مدیریت قطع بشه؟',
         // docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۳ — مرکز راهنمای فروشنده

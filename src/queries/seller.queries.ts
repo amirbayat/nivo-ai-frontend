@@ -1070,11 +1070,21 @@ export function useUpdateCardPolicy(storeId: string) {
 
 // docs/PRD-seller-telegram-management-bot.md — بات دوم (مدیریت پنل)؛ اتصال خودش از داخل بات
 // انجام می‌شود (اشتراک شماره + OTP)، این فقط وضعیت را نشان می‌دهد/قطع می‌کند
-export function useSellerBotStatus(storeId: string) {
+export function useSellerBotStatus(storeId: string, pollMs: number | false = false) {
   return useQuery({
     queryKey: keys.seller.sellerBotStatus(storeId),
     queryFn: () => api.get<SellerBotStatus>(`/v2/stores/${storeId}/seller-bot-status`).then(r => r.data),
     enabled: !!storeId,
+    refetchInterval: pollMs,
+  })
+}
+
+// R2.3 — نام بات از کانفیگ بک‌اند (نه env بیلد فرانت)
+export function useSellerBotInfo() {
+  return useQuery({
+    queryKey: ['seller', 'seller-bot-info'] as const,
+    queryFn: () => api.get<{ username: string | null }>('/v2/seller-bot/info').then(r => r.data),
+    staleTime: Infinity,
   })
 }
 

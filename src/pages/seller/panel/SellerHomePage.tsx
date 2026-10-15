@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
-import { useNeededAttention, useOrders, useProducts, useSellerBotStatus, useStoreCompleteness, useStoreCredit, useStoreToday } from '@/queries/seller.queries'
+import { useProducts, useSellerBotStatus, useStoreBadges, useStoreCompleteness, useStoreCredit, useStoreToday } from '@/queries/seller.queries'
+import { SellerBotConnectCard } from '@/components/seller/SellerBotConnectCard'
 import { useSellerStore } from './SellerPanelLayout'
 import { SellerTestChatSheet } from './SellerTestChatSheet'
 
@@ -73,8 +74,7 @@ function ChecklistRow({
 export function SellerHomePage() {
   const navigate = useNavigate()
   const { storeId, storeName, storeSlug, instagramBusinessId } = useSellerStore()
-  const pending = useOrders(storeId, 'RECEIPT_SUBMITTED')
-  const attention = useNeededAttention(storeId)
+  const badges = useStoreBadges(storeId)
   const credit = useStoreCredit(storeId)
   const completeness = useStoreCompleteness(storeId)
   const today = useStoreToday(storeId)
@@ -121,14 +121,16 @@ export function SellerHomePage() {
 
       <div className="mb-6 grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
-          <p className="text-2xl font-bold text-emerald-400 light:text-emerald-600">{pending.data?.length ?? 0}</p>
-          <p className="mt-1 text-xs text-slate-500">{fa.seller.panel.home.pendingOrders(pending.data?.length ?? 0)}</p>
+          <p className="text-2xl font-bold text-emerald-400 light:text-emerald-600">{badges.data?.receipts ?? 0}</p>
+          <p className="mt-1 text-xs text-slate-500">{fa.seller.panel.home.pendingOrders(badges.data?.receipts ?? 0)}</p>
         </div>
         <div className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
-          <p className="text-2xl font-bold text-amber-400 light:text-amber-600">{attention.data?.length ?? 0}</p>
-          <p className="mt-1 text-xs text-slate-500">{fa.seller.panel.home.needsAttention(attention.data?.length ?? 0)}</p>
+          <p className="text-2xl font-bold text-amber-400 light:text-amber-600">{badges.data?.attention ?? 0}</p>
+          <p className="mt-1 text-xs text-slate-500">{fa.seller.panel.home.needsAttention(badges.data?.attention ?? 0)}</p>
         </div>
       </div>
+
+      <SellerBotConnectCard storeId={storeId} variant="home" />
 
       {today.data && (
         <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
