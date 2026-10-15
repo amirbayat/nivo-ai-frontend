@@ -133,7 +133,7 @@ export function SellerHomePage() {
       {today.data && (
         <div className="mb-6 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
           <p className="mb-3 text-sm font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.home.todayTitle}</p>
-          {today.data.receipts.length + today.data.toShip.length + today.data.conversations.length + today.data.refunds.length + today.data.issues.length + today.data.lowStock.length === 0 ? (
+          {today.data.receipts.length + today.data.toShip.length + today.data.conversations.length + today.data.refunds.length + today.data.issues.length + today.data.lowStock.length + (today.data.awaitingRestock?.length ?? 0) === 0 ? (
             <p className="text-xs text-slate-500">{fa.seller.panel.home.todayEmpty}</p>
           ) : (
             <ul className="flex flex-col gap-2 text-sm">
@@ -182,6 +182,13 @@ export function SellerHomePage() {
                 <li key={row.id}>
                   <Link to={`/seller/panel/products/${row.id}`} className="text-slate-200 light:text-slate-800">
                     {row.name} · {row.stock.toLocaleString('fa-IR')}
+                  </Link>
+                </li>
+              ))}
+              {(today.data.awaitingRestock ?? []).map((row) => (
+                <li key={`wait-${row.id}`}>
+                  <Link to={`/seller/panel/products/${row.id}`} className="text-slate-200 light:text-slate-800">
+                    {fa.seller.panel.home.todayAwaitingRestock} · {row.name} · {row.openAlerts.toLocaleString('fa-IR')}
                   </Link>
                 </li>
               ))}

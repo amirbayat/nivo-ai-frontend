@@ -678,6 +678,7 @@ export const fa = {
         todayShip: 'ارسال',
         todayRefund: 'بازپرداخت',
         todayIssue: 'مشکل سفارش',
+        todayAwaitingRestock: 'منتظر موجود شدن',
         todayReceiptMatch: 'مطابق',
         todayReceiptMismatch: 'نیاز به نگاه',
         todayReceiptPending: 'در حال بررسی',
@@ -1441,6 +1442,8 @@ export const fa = {
     notFoundHeading: 'فروشگاه پیدا نشد',
     notFoundBody: 'این لینک معتبر نیست یا فروشگاه غیرفعال شده است.',
     inputPlaceholder: 'پیامت رو بنویس...',
+    olderMessages: 'پیام‌های قدیمی‌تر',
+    sellerIsReplying: 'فروشنده داره جواب می‌ده',
     addToCart: 'افزودن به سبد',
     // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر چت همیشه قابل‌کلیک می‌ماند؛
     // خریدار با کلیک دوباره روی کارت تکراری (همون محصول که قبلاً اضافه شده) ناخواسته

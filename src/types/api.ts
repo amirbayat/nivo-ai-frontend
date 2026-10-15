@@ -238,6 +238,7 @@ export interface StoreToday {
   refunds: { id: string; orderId: string; orderCode: string; amountToman: number }[]
   issues: { id: string; orderId: string; orderCode: string; reason: string }[]
   lowStock: { id: string; name: string; stock: number }[]
+  awaitingRestock: { id: string; name: string; openAlerts: number }[]
 }
 
 export interface StoreCompleteness {
@@ -762,6 +763,7 @@ export interface ShopGetConversationResponse {
   awaitingReview: boolean
   awaitingSatisfactionCheck?: boolean
   events: ShopConversationEvent[]
+  hasMoreEvents?: boolean
 }
 
 // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۲ — پاسخ GET /v2/chat/:conversationId/orders،
@@ -1066,6 +1068,7 @@ export interface SellerConversationDetail {
   customerLabel: string
   orderId: string | null
   events: ShopConversationEvent[]
+  hasMoreEvents?: boolean
 }
 
 export interface Project {
