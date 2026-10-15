@@ -6,6 +6,7 @@ export const fa = {
     destinationError: 'شماره یا نام صاحب حساب پذیرفته نشد.',
     card: 'کارت',
     sheba: 'شبا',
+    shebaPlaceholder: '۲۴ رقم بعد از IR',
     holderName: 'نام صاحب حساب',
     saveDestination: 'ثبت',
     paid: 'واریز شد ✅',
@@ -1445,6 +1446,7 @@ export const fa = {
     refundForm: {
       card: 'شماره کارت',
       sheba: 'شبا',
+      shebaPlaceholder: '۲۴ رقم بعد از IR',
       holder: 'نام صاحب حساب',
       submit: 'ثبت',
       saved: (hours: number) => `ثبت شد — فروشنده تا ${hours.toLocaleString('fa-IR')} ساعت واریز می‌کنه`,

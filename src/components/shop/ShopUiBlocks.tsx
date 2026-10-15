@@ -860,7 +860,13 @@ function RefundDestinationForm({
         <button type="button" onClick={() => setKind('card')} className="min-h-11 flex-1 rounded-lg border border-slate-600 text-xs">{t.card}</button>
         <button type="button" onClick={() => setKind('sheba')} className="min-h-11 flex-1 rounded-lg border border-slate-600 text-xs">{t.sheba}</button>
       </div>
-      <DigitsInput kind={kind} value={destination} onChange={setDestination} aria-label={kind === 'card' ? t.card : t.sheba} />
+      <DigitsInput
+        kind={kind}
+        value={destination}
+        onChange={setDestination}
+        aria-label={kind === 'card' ? t.card : t.sheba}
+        placeholder={kind === 'sheba' ? t.shebaPlaceholder : undefined}
+      />
       <input
         value={holderName}
         onChange={event => setHolderName(event.target.value)}
