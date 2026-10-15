@@ -466,6 +466,9 @@ export function ShopChatPage() {
   const canAttachImage = HUMAN_HANDLING_STATES.includes(state) || awaitingReview
   const canAttachVideo = awaitingReview
   const actionDisabled = inputLocked
+  // فرم کارت بازپرداخت: سفارش لغو/ردشده مکالمه را COMPLETED می‌کند و inputLocked می‌شود، ولی
+  // خریدار باید همچنان بتواند کارتش را بدهد؛ فقط در مرور تاریخچه (مکالمه‌ی دیگر) قفل می‌ماند
+  const refundFormDisabled = viewingHistory
   const sellerIsReplying = HUMAN_HANDLING_STATES.includes(state)
   const thread = [...olderMessages, ...messages]
 
@@ -869,7 +872,7 @@ export function ShopChatPage() {
               {m.uiBlock && (
                 <ShopUiBlockView
                   block={m.uiBlock}
-                  disabled={actionDisabled}
+                  disabled={m.uiBlock.type === 'REFUND_DESTINATION_FORM' ? refundFormDisabled : actionDisabled}
                   handoff={sellerIsReplying}
                   onAddToCart={(productId) => void sendAction({ type: 'ADD_TO_CART', productId })}
                   onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
