@@ -214,13 +214,11 @@ export function SellerProductPage() {
     }
   }, [id, reset])
 
-  useEffect(() => {
-    const p = productQ.data
-    if (!p) return
-    setProduct(prev => (prev && prev.id === p.id && hydratedRef.current ? prev : p))
-    if (hydratedRef.current) return
+  // فرم و مدل‌ها را از روی محصول سرور پر می‌کند و مبنای «تغییر ذخیره‌نشده» را همان می‌گذارد
+  const hydrate = useCallback((p: SellerProduct) => {
     const f = formFromProduct(p)
     const draft = variantDraftFromProduct(p)
+    setProduct(p)
     setForm(f)
     setVd(draft)
     setVarOpen(draft.options.length > 0)
@@ -230,7 +228,17 @@ export function SellerProductPage() {
     initialTrackRef.current = p.trackStock
     baselineRef.current = JSON.stringify([f, draft])
     hydratedRef.current = true
-  }, [productQ.data])
+  }, [])
+
+  useEffect(() => {
+    const p = productQ.data
+    if (!p) return
+    if (hydratedRef.current) {
+      setProduct(prev => (prev && prev.id === p.id ? prev : p))
+      return
+    }
+    hydrate(p)
+  }, [productQ.data, hydrate])
 
   // محصول تازه: فرم خالی از همان اول «هیدرات‌شده» است
   useEffect(() => {
@@ -465,8 +473,8 @@ export function SellerProductPage() {
       baselineRef.current = JSON.stringify([latest.current.form, latest.current.vd])
       addToast(t.saved)
       // برای به‌روزشدن نمایش (مدل‌ها/موجودی) دوباره از سرور بخوان و هیدرات کن
-      hydratedRef.current = false
-      void productQ.refetch()
+      const fresh = await productQ.refetch()
+      if (fresh.data) hydrate(fresh.data)
     } catch (err) {
       addToast(extractErrorMessage(err, t.saveFailed))
     } finally {
