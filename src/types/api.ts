@@ -636,6 +636,9 @@ export interface ShopMessage {
   quickReplies?: string[]
   failed?: boolean
   clientMessageId?: string
+  // حباب خوش‌بینانه‌ی «رسید رو فرستادم» — سرور آن را در لاگ نمی‌آورد؛ وقتی state سرور از
+  // AWAITING_PAYMENT جلو رفت، دیگر ته لیست نگه داشته نمی‌شود
+  receiptOptimistic?: boolean
 }
 
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس

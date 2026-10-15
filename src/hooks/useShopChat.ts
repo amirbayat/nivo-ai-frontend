@@ -54,6 +54,8 @@ function chatImageUrl(conversationId: string, key: string): string {
 
 function eventsToMessages(events: ShopConversationEvent[], conversationId: string): ShopMessage[] {
   const messages: ShopMessage[] = []
+  // چند پاسخ AGENT_REPLY در یک turn: اولی همان `stream-{turnId}` (حباب زنده‌ی استریم)، بعدی‌ها با پسوند اندیس
+  const repliesPerTurn = new Map<string, number>()
   events.forEach((e) => {
     if (e.type === 'CUSTOMER_MESSAGE' && (e.payload.text || e.payload.imageKey || e.payload.videoKey)) {
       messages.push({
@@ -65,8 +67,14 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
         videoUrl: e.payload.videoKey ? chatImageUrl(conversationId, e.payload.videoKey) : undefined,
       })
     } else if ((e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE') && e.payload.text) {
+      let id = `a-${e.createdAt}`
+      if (e.payload.turnId) {
+        const index = repliesPerTurn.get(e.payload.turnId) ?? 0
+        repliesPerTurn.set(e.payload.turnId, index + 1)
+        id = index === 0 ? `stream-${e.payload.turnId}` : `stream-${e.payload.turnId}-${index}`
+      }
       messages.push({
-        id: e.payload.turnId ? `stream-${e.payload.turnId}` : `a-${e.createdAt}`,
+        id,
         role: 'agent',
         text: e.payload.text,
         uiBlock: e.payload.uiBlock?.type !== 'NONE' ? e.payload.uiBlock : undefined,
@@ -77,7 +85,7 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
   return messages
 }
 
-function mergeShopMessages(server: ShopMessage[], local: ShopMessage[]): ShopMessage[] {
+function mergeShopMessages(server: ShopMessage[], local: ShopMessage[], serverState?: string): ShopMessage[] {
   const serverClientIds = new Set(
     server.map((message) => message.clientMessageId).filter((id): id is string => !!id),
   )
@@ -87,10 +95,17 @@ function mergeShopMessages(server: ShopMessage[], local: ShopMessage[]): ShopMes
       item.id === message.id ||
       (!!message.clientMessageId && item.clientMessageId === message.clientMessageId),
     )
-    if (!localMatch?.voiceKey) return message
-    return { ...message, voiceKey: localMatch.voiceKey }
+    if (!localMatch?.voiceKey && !localMatch?.failed) return message
+    return {
+      ...message,
+      ...(localMatch.voiceKey ? { voiceKey: localMatch.voiceKey } : {}),
+      // پیام مشتری که turnش خطای سرور گرفت، بعد از poll هم «ناموفق + دوباره بفرست» می‌ماند
+      ...(localMatch.failed ? { failed: true } : {}),
+    }
   })
   for (const message of local) {
+    // سرور جلو رفته (رسید ثبت شد/تایید/رد)؛ حباب خوش‌بینانه نباید ته لیست تکرار شود
+    if (message.receiptOptimistic && serverState && serverState !== 'AWAITING_PAYMENT') continue
     const knownClient = !!message.clientMessageId && serverClientIds.has(message.clientMessageId)
     const knownStream = message.id.startsWith('stream-') && serverIds.has(message.id)
     if (knownClient || knownStream) continue
@@ -152,6 +167,8 @@ export function useShopChat(slug: string, productId?: string) {
   // ری‌رندر بعدی) بدانند در حالت تاریخچه هستند یا نه، وگرنه closure قدیمی گیر می‌کند
   const viewingHistoryRef = useRef(false)
   const finalPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // حباب‌هایی که turnشان خطای سرور گرفت؛ retry آن‌ها clientMessageId تازه می‌گیرد
+  const freshRetryRef = useRef<Set<string>>(new Set())
   const sendingRef = useRef(false)
   sendingRef.current = sending
   const setViewingHistory = useCallback((v: boolean) => {
@@ -232,7 +249,7 @@ export function useShopChat(slug: string, productId?: string) {
     if (!res.ok) return null
     const data = (await res.json()) as ShopGetConversationResponse
     setState(data.state)
-    setMessages((prev) => mergeShopMessages(eventsToMessages(data.events, known), prev))
+    setMessages((prev) => mergeShopMessages(eventsToMessages(data.events, known), prev, data.state))
     return data
   }, [])
 
@@ -259,22 +276,28 @@ export function useShopChat(slug: string, productId?: string) {
     if (finalPollRef.current) window.clearInterval(finalPollRef.current)
     const known = session.conversationId
     const started = Date.now()
+    let inFlight = false
+    const stop = () => {
+      if (finalPollRef.current) window.clearInterval(finalPollRef.current)
+      finalPollRef.current = null
+    }
     const tick = async () => {
+      // tick هم‌پوشان نداشته باشیم: درخواست قبلی هنوز در جریان است ← این دور رد
+      if (inFlight) return
       if (Date.now() - started > 90_000) {
-        if (finalPollRef.current) window.clearInterval(finalPollRef.current)
-        finalPollRef.current = null
+        stop()
         return
       }
       const live = sessionRef.current
       if (!live || live.conversationId !== known) return
+      inFlight = true
       try {
         const data = await refreshConversation(known, live.sessionToken)
-        if (data && hasReplyAfterLatestCustomer(data.events)) {
-          if (finalPollRef.current) window.clearInterval(finalPollRef.current)
-          finalPollRef.current = null
-        }
+        if (data && hasReplyAfterLatestCustomer(data.events)) stop()
       } catch {
         // keep polling until the deadline
+      } finally {
+        inFlight = false
       }
     }
     void tick()
@@ -282,6 +305,15 @@ export function useShopChat(slug: string, productId?: string) {
       void tick()
     }, 3000)
   }, [refreshConversation])
+
+  // خروج از صفحه: poll نهایی نباید بعد از unmount ادامه دهد
+  useEffect(
+    () => () => {
+      if (finalPollRef.current) window.clearInterval(finalPollRef.current)
+      finalPollRef.current = null
+    },
+    [],
+  )
 
   const applyReply = useCallback(
     (res: ShopSendMessageResponse) => {
@@ -322,7 +354,7 @@ export function useShopChat(slug: string, productId?: string) {
     [pollVoice, pollQueuedReply, slug],
   )
 
-  const readShopTurn = useCallback(async (session: ShopSession, turnId: string): Promise<'done' | 'poll'> => {
+  const readShopTurn = useCallback(async (session: ShopSession, turnId: string): Promise<'done' | 'poll' | 'error'> => {
     const bubbleId = `stream-${turnId}`
     setMessages((prev) => [...prev, { id: bubbleId, role: 'agent', text: '' }])
     const dropBubble = () => {
@@ -405,8 +437,9 @@ export function useShopChat(slug: string, productId?: string) {
             }
           }
           if (event.type === 'error') {
+            // خطای واقعی سرور: poll فایده ندارد؛ حباب «ناموفق + دوباره بفرست»
             dropBubble()
-            return 'poll'
+            return 'error'
           }
         }
         if (queued) break
@@ -455,6 +488,12 @@ export function useShopChat(slug: string, productId?: string) {
         if (body.turnId) {
           const outcome = await readShopTurn(session, body.turnId)
           if (outcome === 'poll') pollForFinalReply()
+          if (outcome === 'error') {
+            // turn شکست خورده؛ دوباره‌فرستادن با کلید جدید (کلید قبلی ممکن است جواب شکست را cache کرده باشد)
+            freshRetryRef.current.add(bubbleId)
+            setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, failed: true } : m)))
+            setError(fa.common.error)
+          }
         } else {
           applyReply(body)
         }
@@ -490,7 +529,12 @@ export function useShopChat(slug: string, productId?: string) {
       if (sending) return
       const found = messagesStateRef.current.find((m) => m.id === bubbleId)
       if (!found?.text) return
-      await deliverCustomerText(bubbleId, found.text, found.clientMessageId ?? newClientMessageId())
+      const fresh = freshRetryRef.current.delete(bubbleId)
+      await deliverCustomerText(
+        bubbleId,
+        found.text,
+        fresh ? newClientMessageId() : (found.clientMessageId ?? newClientMessageId()),
+      )
     },
     [sending, deliverCustomerText],
   )
@@ -532,7 +576,12 @@ export function useShopChat(slug: string, productId?: string) {
           setState(data.state)
           const block = data.uiBlocks.find((item) => item.type === 'CART_SUMMARY')
           setMessages((prev) => {
-            if (!block) return prev
+            // پاسخ بدون CART_SUMMARY (مثلاً «سبد قفل است») هم باید دیده شود
+            if (!block) {
+              return data.reply
+                ? [...prev, { id: `agent-${Date.now()}`, role: 'agent', text: data.reply }]
+                : prev
+            }
             const next = [...prev]
             for (let i = next.length - 1; i >= 0; i--) {
               if (next[i].uiBlock?.type === 'CART_SUMMARY') {
@@ -629,7 +678,7 @@ export function useShopChat(slug: string, productId?: string) {
     setAwaitingReview(data.awaitingReview)
     setAwaitingSatisfaction(!!data.awaitingSatisfactionCheck)
     const nextMessages = eventsToMessages(data.events, session.conversationId)
-    setMessages((prev) => (mode === 'replace' ? nextMessages : mergeShopMessages(nextMessages, prev)))
+    setMessages((prev) => (mode === 'replace' ? nextMessages : mergeShopMessages(nextMessages, prev, data.state)))
     if (mode === 'replace' || !oldestCreatedAtRef.current) {
       oldestCreatedAtRef.current = data.events[0]?.createdAt ?? null
       setHasMoreEvents(!!data.hasMoreEvents)
@@ -711,7 +760,7 @@ export function useShopChat(slug: string, productId?: string) {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
       const bubbleId = `opt-${Date.now()}`
-      setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text: fa.shop.receiptUploadedNote }])
+      setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text: fa.shop.receiptUploadedNote, receiptOptimistic: true }])
       setSending(true)
       setError(null)
       try {
@@ -747,7 +796,7 @@ export function useShopChat(slug: string, productId?: string) {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
       const bubbleId = `opt-${Date.now()}`
-      setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text: fa.shop.manualReceiptSentNote }])
+      setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text: fa.shop.manualReceiptSentNote, receiptOptimistic: true }])
       setSending(true)
       setError(null)
       try {
@@ -927,6 +976,9 @@ export function useShopChat(slug: string, productId?: string) {
       streamEnabledRef.current = !!data.shopStreamEnabled
       setResponseStrategyState(data.responseStrategy)
       setMessages([])
+      setOlderMessages([])
+      oldestCreatedAtRef.current = null
+      setHasMoreEvents(false)
       // لینک اختصاصی یک محصول (?product=) — پاسخ اول همراه خودِ start برگشته، بدون کیک‌آف عمومی جدا
       if (data.initialReply) {
         setState(data.initialState ?? 'BROWSING')
