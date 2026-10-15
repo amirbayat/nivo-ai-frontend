@@ -746,7 +746,10 @@ export const fa = {
         rejectReasonPlaceholder: 'دلیل رد سفارش (اختیاری، برای خریدار فرستاده می‌شه)',
         cancel: 'انصراف',
         confirmReject: 'ثبت رد سفارش',
-        moneyArrived: (amount: number) => `پول به حسابم نشسته — ${amount.toLocaleString('fa-IR')} تومان برمی‌گردونم`,
+        moneyArrived: (amount: number | null) =>
+          amount == null
+            ? 'پول به حسابم نشسته — مبلغ برگشتی را وارد کن'
+            : `پول به حسابم نشسته — ${amount.toLocaleString('fa-IR')} تومان برمی‌گردونم`,
         moneyMissing: 'پول به حسابم نرسیده',
         refundAmountLabel: 'مبلغ برگشتی',
         reapprove: 'تایید دوباره‌ی سفارش',

@@ -89,8 +89,13 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
 
   const needsMoneyAnswer =
     order.status === 'RECEIPT_SUBMITTED' || order.status === 'APPROVED' || !!order.receiptImageKey
+  // مبلغ برگشتی معتبر: عدد صحیح ۱..مبلغ پرداختی؛ تا آن موقع دکمه‌ی رد غیرفعال است [R0.12]
+  const refundAmountNumber = Number(refundAmount)
+  const refundAmountValid =
+    Number.isInteger(refundAmountNumber) && refundAmountNumber >= 1 && refundAmountNumber <= order.totalAmount
+  const rejectBlocked = needsMoneyAnswer && (moneyChoice == null || (moneyChoice === 'yes' && !refundAmountValid))
   const submitReject = () => {
-    const amount = Number(refundAmount)
+    const amount = refundAmountNumber
     reject.mutate(
       {
         orderId: order.id,
@@ -254,7 +259,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
                   onClick={() => setMoneyChoice('yes')}
                   className={`rounded-xl border px-3 py-2 text-start text-xs ${moneyChoice === 'yes' ? 'border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-300 light:border-slate-300 light:text-slate-700'}`}
                 >
-                  {fa.seller.panel.orders.moneyArrived(order.totalAmount)}
+                  {fa.seller.panel.orders.moneyArrived(refundAmountValid ? refundAmountNumber : null)}
                 </button>
                 {moneyChoice === 'yes' && (
                   <DigitsInput
@@ -262,6 +267,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
                     value={refundAmount}
                     onChange={setRefundAmount}
                     aria-label={fa.seller.panel.orders.refundAmountLabel}
+                    aria-invalid={!refundAmountValid}
                     className="rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 light:border-slate-300 light:bg-white light:text-slate-900"
                   />
                 )}
@@ -291,7 +297,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
               </button>
               <button
                 onClick={submitReject}
-                disabled={reject.isPending || (needsMoneyAnswer && moneyChoice == null)}
+                disabled={reject.isPending || rejectBlocked}
                 className="flex-1 rounded-2xl bg-red-500 py-3.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-40"
               >
                 {fa.seller.panel.orders.confirmReject}
