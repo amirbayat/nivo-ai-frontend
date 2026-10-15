@@ -724,6 +724,8 @@ export interface ShopConversationEvent {
     text?: string
     uiBlock?: ShopUiBlock
     quickReplies?: string[]
+    clientMessageId?: string
+    turnId?: string
     imageKey?: string
     videoKey?: string
     reattachedToOrder?: boolean

@@ -57,18 +57,16 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
   events.forEach((e, i) => {
     if (e.type === 'CUSTOMER_MESSAGE' && (e.payload.text || e.payload.imageKey || e.payload.videoKey)) {
       messages.push({
-        id: `c-${i}`,
+        id: e.payload.clientMessageId ? `c-${e.payload.clientMessageId}` : `c-${i}`,
         role: 'customer',
         text: e.payload.text ?? '',
+        clientMessageId: e.payload.clientMessageId,
         imageUrl: e.payload.imageKey ? chatImageUrl(conversationId, e.payload.imageKey) : undefined,
-        // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — ویدیوی
-        // چت هم از همون endpoint سرو می‌شود (getChatImage تعمیم‌یافته)
         videoUrl: e.payload.videoKey ? chatImageUrl(conversationId, e.payload.videoKey) : undefined,
       })
     } else if ((e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE') && e.payload.text) {
-      // مشتری فرق ربات/فروشنده‌ی انسانی را از نظر بصری نمی‌بیند — هر دو حباب «agent» هستند
       messages.push({
-        id: `a-${i}`,
+        id: e.payload.turnId ? `stream-${e.payload.turnId}` : `a-${i}`,
         role: 'agent',
         text: e.payload.text,
         uiBlock: e.payload.uiBlock?.type !== 'NONE' ? e.payload.uiBlock : undefined,
@@ -77,6 +75,41 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
     }
   })
   return messages
+}
+
+function mergeShopMessages(server: ShopMessage[], local: ShopMessage[]): ShopMessage[] {
+  const serverClientIds = new Set(
+    server.map((message) => message.clientMessageId).filter((id): id is string => !!id),
+  )
+  const serverIds = new Set(server.map((message) => message.id))
+  const merged = server.map((message) => {
+    const localMatch = local.find((item) =>
+      item.id === message.id ||
+      (!!message.clientMessageId && item.clientMessageId === message.clientMessageId),
+    )
+    if (!localMatch?.voiceKey) return message
+    return { ...message, voiceKey: localMatch.voiceKey }
+  })
+  for (const message of local) {
+    const knownClient = !!message.clientMessageId && serverClientIds.has(message.clientMessageId)
+    const knownStream = message.id.startsWith('stream-') && serverIds.has(message.id)
+    if (knownClient || knownStream) continue
+    const optimistic =
+      message.id.startsWith('opt-') || message.id.startsWith('voice-')
+    if (optimistic && message.text) {
+      const echoed = server.some(
+        (item) => item.role === message.role && item.text === message.text,
+      )
+      if (echoed) continue
+    }
+    const pending =
+      message.failed ||
+      message.id.startsWith('stream-') ||
+      optimistic ||
+      !!message.clientMessageId
+    if (pending) merged.push(message)
+  }
+  return merged
 }
 
 export function useShopChat(slug: string, productId?: string) {
@@ -116,6 +149,8 @@ export function useShopChat(slug: string, productId?: string) {
   // ری‌رندر بعدی) بدانند در حالت تاریخچه هستند یا نه، وگرنه closure قدیمی گیر می‌کند
   const viewingHistoryRef = useRef(false)
   const finalPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const sendingRef = useRef(false)
+  sendingRef.current = sending
   const setViewingHistory = useCallback((v: boolean) => {
     viewingHistoryRef.current = v
     setViewingHistoryState(v)
@@ -194,7 +229,7 @@ export function useShopChat(slug: string, productId?: string) {
     if (!res.ok) return null
     const data = (await res.json()) as ShopGetConversationResponse
     setState(data.state)
-    setMessages(eventsToMessages(data.events, known))
+    setMessages((prev) => mergeShopMessages(eventsToMessages(data.events, known), prev))
     return data
   }, [])
 
@@ -573,7 +608,7 @@ export function useShopChat(slug: string, productId?: string) {
 
   // بعد از HANDOFF_HUMAN، پیام‌های فروشنده باید بدون اینکه مشتری خودش چیزی بفرستد دیده شوند —
   // بدون SSE/WebSocket در پروژه، پالینگ ساده کافی است (فقط وقتی مکالمه دست انسان است)
-  const fetchConversation = useCallback(async () => {
+  const fetchConversation = useCallback(async (mode: 'replace' | 'merge' = 'merge') => {
     const session = sessionRef.current
     if (!session) return
     const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}`, {
@@ -591,30 +626,62 @@ export function useShopChat(slug: string, productId?: string) {
     setAwaitingReview(data.awaitingReview)
     setAwaitingSatisfaction(!!data.awaitingSatisfactionCheck)
     const nextMessages = eventsToMessages(data.events, session.conversationId)
-    setMessages(nextMessages)
+    setMessages((prev) => (mode === 'replace' ? nextMessages : mergeShopMessages(nextMessages, prev)))
     setShowLanding(!!data.shopLandingEnabled && nextMessages.length === 0)
   }, [])
 
   useEffect(() => {
-    // docs/PRD-customer-comments-and-discounts.md بخش الف/۳ — تایید سفارش (AWAITING_SELLER_APPROVAL
-    // → COMPLETED) هم مثل HANDOFF_HUMAN یک پیام async از سمت فروشنده/سیستم است که بدون پیام
-    // تازه‌ی مشتری تولید می‌شود (اینجا: پیام پیگیریِ نظرخواهی) — بدون پالینگ، مشتری در وب
-    // اصلاً نمی‌دید سفارشش تایید شده مگر صفحه را رفرش کند. REJECTED هم همینه — بعد از رد سفارش
-    // فروشنده ممکنه از پنل/تلگرام دستی جواب بده (isMutedForHuman)، باید بدون رفرش دیده شود
-    if (
-      (state !== 'HANDOFF_HUMAN' &&
-        state !== 'AWAITING_SELLER_APPROVAL' &&
-        state !== 'REJECTED' &&
-        state !== 'COMPLETED') ||
-      viewingHistory
-    ) {
-      return
+    const human =
+      state === 'HANDOFF_HUMAN' ||
+      state === 'AWAITING_SELLER_APPROVAL' ||
+      state === 'REJECTED'
+    const satisfaction = state === 'COMPLETED' && awaitingSatisfaction
+    if ((!human && !satisfaction) || viewingHistory) return
+
+    let cancelled = false
+    let timer = 0
+    let delay = 4000
+    const started = Date.now()
+    const stopAfterMs = 10 * 60 * 1000
+
+    const schedule = (ms: number) => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        void tick()
+      }, ms)
     }
-    const interval = setInterval(() => {
-      void fetchConversation()
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [state, viewingHistory, fetchConversation])
+
+    const tick = async () => {
+      if (cancelled) return
+      if (satisfaction && Date.now() - started >= stopAfterMs) return
+      if (document.visibilityState === 'hidden' || sendingRef.current) {
+        schedule(delay)
+        return
+      }
+      try {
+        await fetchConversation()
+      } catch {
+        // temporary network error; the next tick retries
+      }
+      if (cancelled) return
+      if (satisfaction) delay = Math.min(delay * 2, 30_000)
+      if (satisfaction && Date.now() - started >= stopAfterMs) return
+      schedule(delay)
+    }
+
+    const onVisibility = () => {
+      if (cancelled || document.visibilityState === 'hidden') return
+      if (satisfaction && Date.now() - started >= stopAfterMs) return
+      schedule(0)
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    schedule(4000)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [state, awaitingSatisfaction, viewingHistory, fetchConversation])
 
   const uploadReceipt = useCallback(
     async (file: File) => {
@@ -897,7 +964,7 @@ export function useShopChat(slug: string, productId?: string) {
           liveSessionRef.current = existing
           let sessionAlive = true
           try {
-            await fetchConversation()
+            await fetchConversation('replace')
           } catch (err) {
             const status = (err as { status?: number }).status
             // 0.11b — session کهنه/نامعتبر: پاک و مکالمه‌ی تازه (نه چت مرده برای همیشه)
@@ -981,7 +1048,7 @@ export function useShopChat(slug: string, productId?: string) {
       setLoading(true)
       setError(null)
       try {
-        await fetchConversation()
+        await fetchConversation('replace')
       } catch {
         setError(fa.common.error)
       } finally {
@@ -999,7 +1066,7 @@ export function useShopChat(slug: string, productId?: string) {
     setLoading(true)
     setError(null)
     try {
-      await fetchConversation()
+      await fetchConversation('replace')
     } catch {
       setError(fa.common.error)
     } finally {
