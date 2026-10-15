@@ -826,7 +826,14 @@ function RefundDestinationForm({
   const [holderName, setHolderName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [done, setDone] = useState(false)
   const t = fa.shop.refundForm
+  const toggleClass = (active: boolean) =>
+    `min-h-11 flex-1 rounded-lg border text-xs ${
+      active
+        ? 'border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--text-primary)]'
+        : 'border-[var(--border)] text-[var(--text-secondary)]'
+    }`
   if (block.status === 'PAID') {
     return <p className="mt-2 text-xs font-semibold text-emerald-300">{t.paid}</p>
   }
@@ -840,25 +847,27 @@ function RefundDestinationForm({
   }
   return (
     <form
-      className="mt-2 flex flex-col gap-2 rounded-xl border border-slate-600/60 bg-slate-800/60 p-3 light:border-slate-200 light:bg-white"
+      className="mt-2 flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
       onSubmit={event => {
         event.preventDefault()
+        if (pending || done || disabled) return
         const raw = kind === 'sheba' && !destination.toUpperCase().startsWith('IR')
           ? `IR${destination}`
           : destination
         setPending(true)
         setError(null)
         void onSubmit({ refundId: block.refundId, destination: raw, holderName })
+          .then(() => setDone(true))
           .catch(() => setError(t.invalid))
           .finally(() => setPending(false))
       }}
     >
-      <p className="text-xs font-semibold text-slate-200 light:text-slate-900">
+      <p className="text-xs font-semibold text-[var(--text-primary)]">
         {block.amountToman.toLocaleString('fa-IR')} {fa.common.toman}
       </p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => setKind('card')} className="min-h-11 flex-1 rounded-lg border border-slate-600 text-xs">{t.card}</button>
-        <button type="button" onClick={() => setKind('sheba')} className="min-h-11 flex-1 rounded-lg border border-slate-600 text-xs">{t.sheba}</button>
+        <button type="button" aria-pressed={kind === 'card'} onClick={() => setKind('card')} className={toggleClass(kind === 'card')}>{t.card}</button>
+        <button type="button" aria-pressed={kind === 'sheba'} onClick={() => setKind('sheba')} className={toggleClass(kind === 'sheba')}>{t.sheba}</button>
       </div>
       <DigitsInput
         kind={kind}
@@ -872,11 +881,12 @@ function RefundDestinationForm({
         onChange={event => setHolderName(event.target.value)}
         aria-label={t.holder}
         placeholder={t.holder}
-        className="min-h-11 rounded-lg border border-slate-600 bg-transparent px-3 text-sm"
+        className="min-h-11 rounded-lg border border-[var(--border)] bg-transparent px-3 text-sm text-[var(--text-primary)]"
       />
-      {error && <p className="text-[11px] text-amber-300">{error}</p>}
-      <button type="submit" disabled={disabled || pending || holderName.trim().length < 2 || destination.length < 8} className="min-h-11 rounded-lg bg-emerald-500 text-xs font-semibold text-white disabled:opacity-40">
-        {t.submit}
+      {error && <p className="text-[11px] text-red-400 light:text-red-700">{error}</p>}
+      {done && <p className="text-[11px] text-[var(--brand)]">{t.saved(block.deadlineHours)}</p>}
+      <button type="submit" disabled={disabled || pending || done || holderName.trim().length < 2 || destination.length < 8} className="min-h-11 rounded-lg bg-[var(--brand)] text-xs font-semibold text-white disabled:opacity-40">
+        {pending ? t.working : t.submit}
       </button>
     </form>
   )

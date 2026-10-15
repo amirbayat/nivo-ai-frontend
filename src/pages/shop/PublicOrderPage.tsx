@@ -39,6 +39,26 @@ async function loadOrder(code: string, token: string | null) {
   return data
 }
 
+function statusLabel(status: string) {
+  return fa.shop.orderStatusLabels[status as keyof typeof fa.shop.orderStatusLabels] ?? status
+}
+
+function ActionStatus({ pending, error, done }: { pending: boolean; error: boolean; done: boolean }) {
+  if (pending) return <p className="text-sm text-[var(--text-secondary)]">{fa.publicOrder.working}</p>
+  if (error) return <p className="text-sm text-red-400 light:text-red-700">{fa.publicOrder.actionFailed}</p>
+  if (done) return <p className="text-sm text-[var(--brand)]">{fa.publicOrder.saved}</p>
+  return null
+}
+
+const card = 'rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4'
+const field = 'min-h-11 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm text-[var(--text-primary)]'
+const toggle = (active: boolean) =>
+  `min-h-11 rounded-xl border px-3 text-sm ${
+    active
+      ? 'border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--text-primary)]'
+      : 'border-[var(--border)] text-[var(--text-secondary)]'
+  }`
+
 export function PublicOrderPage() {
   const { code = '' } = useParams<{ code: string }>()
   const [params] = useSearchParams()
@@ -55,6 +75,8 @@ export function PublicOrderPage() {
   const [issueReason, setIssueReason] = useState('NOT_RECEIVED')
   const [issueText, setIssueText] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
+  const [cancelArmed, setCancelArmed] = useState(false)
+  const [nudgedId, setNudgedId] = useState<string | null>(null)
 
   const refresh = () => void order.refetch()
   const post = (path: string, body?: unknown) =>
@@ -82,31 +104,32 @@ export function PublicOrderPage() {
   })
   const nudgeMut = useMutation({
     mutationFn: (refundId: string) => post(`/refunds/${refundId}/nudge`),
+    onSuccess: (_data, refundId) => setNudgedId(refundId),
   })
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100">
+    <div dir="rtl" className="min-h-screen bg-[var(--bg)] px-4 py-6 text-[var(--text-primary)]">
       <div className="mx-auto w-full max-w-lg">
         <h1 className="mb-4 text-xl font-bold">{fa.publicOrder.title}</h1>
         {order.isLoading && (
-          <div className="h-40 animate-pulse rounded-2xl bg-slate-800" aria-hidden />
+          <div className="h-40 animate-pulse rounded-2xl bg-[var(--chip-bg)]" aria-hidden />
         )}
         {order.isError && (
-          <p className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+          <p className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-400 light:text-red-700">
             {fa.publicOrder.loadError}
           </p>
         )}
         {order.data && (
           <div className="flex flex-col gap-4">
-            <section className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-              <p className="text-sm text-slate-400">{order.data.storeName}</p>
+            <section className={card}>
+              <p className="text-sm text-[var(--text-secondary)]">{order.data.storeName}</p>
               <p dir="ltr" className="mt-1 font-mono text-lg font-bold">{order.data.orderCode}</p>
-              <p className="mt-2 text-sm">{fa.shop.orderStatusLabels[order.data.status as keyof typeof fa.shop.orderStatusLabels] ?? order.data.status}</p>
+              <p className="mt-2 text-sm">{statusLabel(order.data.status)}</p>
               <p className="mt-1 text-base font-bold">
                 {order.data.totalAmount.toLocaleString('fa-IR')} {fa.common.toman}
               </p>
               {order.data.trackingCode && (
-                <p className="mt-2 text-sm text-slate-300">
+                <p className="mt-2 text-sm text-[var(--text-secondary)]">
                   {order.data.carrier} · <span dir="ltr">{order.data.trackingCode}</span>
                 </p>
               )}
@@ -114,9 +137,9 @@ export function PublicOrderPage() {
 
             <ul className="flex flex-col gap-2 text-sm">
               {order.data.timeline.map((ev) => (
-                <li key={`${ev.to}-${ev.at}`} className="rounded-xl bg-slate-900 px-3 py-2">
-                  <span>{fa.shop.orderStatusLabels[ev.to as keyof typeof fa.shop.orderStatusLabels] ?? ev.to}</span>
-                  <span className="mr-2 text-xs text-slate-500">
+                <li key={`${ev.to}-${ev.at}`} className="rounded-xl bg-[var(--surface)] px-3 py-2">
+                  <span>{statusLabel(ev.to)}</span>
+                  <span className="mr-2 text-xs text-[var(--text-tertiary)]">
                     {new Date(ev.at).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' })}
                   </span>
                 </li>
@@ -125,18 +148,19 @@ export function PublicOrderPage() {
 
             {order.data.actions.awaitingDestinationRefundId && (
               <form
-                className="flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4"
+                className="flex flex-col gap-3 rounded-2xl border border-[var(--brand-soft-border)] bg-[var(--brand-soft)] p-4"
                 onSubmit={(e) => {
                   e.preventDefault()
+                  if (destinationMut.isPending || destinationMut.isSuccess) return
                   destinationMut.mutate()
                 }}
               >
                 <p className="text-sm font-semibold">{fa.publicOrder.destinationTitle}</p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setDestKind('card')} className="min-h-11 rounded-xl border border-slate-600 px-3 text-sm">
+                  <button type="button" aria-pressed={destKind === 'card'} onClick={() => setDestKind('card')} className={toggle(destKind === 'card')}>
                     {fa.publicOrder.card}
                   </button>
-                  <button type="button" onClick={() => setDestKind('sheba')} className="min-h-11 rounded-xl border border-slate-600 px-3 text-sm">
+                  <button type="button" aria-pressed={destKind === 'sheba'} onClick={() => setDestKind('sheba')} className={toggle(destKind === 'sheba')}>
                     {fa.publicOrder.sheba}
                   </button>
                 </div>
@@ -146,63 +170,136 @@ export function PublicOrderPage() {
                   onChange={setDestination}
                   aria-label={fa.publicOrder.destinationTitle}
                   placeholder={destKind === 'sheba' ? fa.publicOrder.shebaPlaceholder : undefined}
-                  className="w-full rounded-xl border border-slate-600 bg-slate-950 px-3 text-center tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-center tracking-wider text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 />
                 <input
                   value={holderName}
                   onChange={(e) => setHolderName(e.target.value)}
                   placeholder={fa.publicOrder.holderName}
-                  className="min-h-11 rounded-xl border border-slate-600 bg-slate-950 px-3 text-sm"
+                  className={field}
                   style={{ fontSize: 16 }}
                 />
-                {formError && <p className="text-sm text-red-300">{formError}</p>}
-                <button type="submit" disabled={destinationMut.isPending} className="min-h-11 rounded-2xl bg-emerald-500 font-bold text-white">
-                  {fa.publicOrder.saveDestination}
+                {formError && <p className="text-sm text-red-400 light:text-red-700">{formError}</p>}
+                {destinationMut.isSuccess && <p className="text-sm text-[var(--brand)]">{fa.publicOrder.saved}</p>}
+                <button
+                  type="submit"
+                  disabled={destinationMut.isPending || destinationMut.isSuccess}
+                  className="min-h-11 rounded-2xl bg-[var(--brand)] font-bold text-white disabled:opacity-40"
+                >
+                  {destinationMut.isPending ? fa.publicOrder.working : fa.publicOrder.saveDestination}
                 </button>
               </form>
             )}
 
             {order.data.refunds.map((r) => (
-              <section key={r.id} className="rounded-2xl border border-slate-700 p-4 text-sm">
+              <section key={r.id} className={`${card} text-sm`}>
                 <p className="font-bold">{r.amountToman.toLocaleString('fa-IR')} {fa.common.toman}</p>
                 <p className="mt-1">{fa.publicOrder.refundStatus[r.status] ?? r.status}</p>
                 {r.destinationMasked && <p dir="ltr" className="mt-1">{r.destinationMasked}</p>}
                 {r.paidRef && <p className="mt-1">{fa.publicOrder.paidRef}: <span dir="ltr">{r.paidRef}</span></p>}
-                {r.status === 'DONE' && <p className="mt-2 font-semibold text-emerald-300">{fa.publicOrder.paid}</p>}
+                {r.status === 'DONE' && <p className="mt-2 font-semibold text-[var(--brand)]">{fa.publicOrder.paid}</p>}
                 {r.overdue && (
-                  <button type="button" onClick={() => nudgeMut.mutate(r.id)} className="mt-3 min-h-11 rounded-xl border border-slate-600 px-3">
-                    {fa.publicOrder.nudge}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      disabled={nudgeMut.isPending || nudgedId === r.id}
+                      onClick={() => nudgeMut.mutate(r.id)}
+                      className="mt-3 min-h-11 rounded-xl border border-[var(--border)] px-3 disabled:opacity-40"
+                    >
+                      {nudgeMut.isPending && nudgeMut.variables === r.id ? fa.publicOrder.working : fa.publicOrder.nudge}
+                    </button>
+                    <ActionStatus
+                      pending={false}
+                      error={nudgeMut.isError && nudgeMut.variables === r.id}
+                      done={nudgedId === r.id}
+                    />
+                  </>
                 )}
               </section>
             ))}
 
             {order.data.actions.canConfirmDelivery && (
-              <button type="button" onClick={() => deliveredMut.mutate()} className="min-h-11 rounded-2xl bg-emerald-500 font-bold text-white">
-                {fa.publicOrder.delivered}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  disabled={deliveredMut.isPending || deliveredMut.isSuccess}
+                  onClick={() => deliveredMut.mutate()}
+                  className="min-h-11 rounded-2xl bg-[var(--brand)] font-bold text-white disabled:opacity-40"
+                >
+                  {deliveredMut.isPending ? fa.publicOrder.working : fa.publicOrder.delivered}
+                </button>
+                <ActionStatus pending={false} error={deliveredMut.isError} done={deliveredMut.isSuccess} />
+              </div>
             )}
             {order.data.actions.canCancel && (
-              <button type="button" onClick={() => cancelMut.mutate()} className="min-h-11 rounded-2xl border border-red-500/50 text-red-300">
-                {fa.publicOrder.cancel}
-              </button>
+              <div className="flex flex-col gap-2">
+                {cancelArmed ? (
+                  <div className={`${card} flex flex-col gap-2`}>
+                    <p className="text-sm">{fa.publicOrder.cancelConfirm}</p>
+                    <button
+                      type="button"
+                      disabled={cancelMut.isPending || cancelMut.isSuccess}
+                      onClick={() => cancelMut.mutate()}
+                      className="min-h-11 rounded-2xl border border-red-500/50 text-red-400 disabled:opacity-40 light:text-red-700"
+                    >
+                      {cancelMut.isPending ? fa.publicOrder.working : fa.publicOrder.cancelYes}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cancelMut.isPending || cancelMut.isSuccess}
+                      onClick={() => setCancelArmed(false)}
+                      className="min-h-11 rounded-2xl border border-[var(--border)] text-[var(--text-secondary)]"
+                    >
+                      {fa.publicOrder.cancelNo}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCancelArmed(true)}
+                    className="min-h-11 rounded-2xl border border-red-500/50 text-red-400 light:text-red-700"
+                  >
+                    {fa.publicOrder.cancel}
+                  </button>
+                )}
+                <ActionStatus pending={false} error={cancelMut.isError} done={cancelMut.isSuccess} />
+              </div>
             )}
             {order.data.actions.canReportIssue && (
               <form
                 className="flex flex-col gap-2"
                 onSubmit={(e) => {
                   e.preventDefault()
+                  if (issueMut.isPending || issueMut.isSuccess) return
                   issueMut.mutate()
                 }}
               >
-                <select value={issueReason} onChange={(e) => setIssueReason(e.target.value)} className="min-h-11 rounded-xl bg-slate-900 px-3">
+                <select
+                  value={issueReason}
+                  onChange={(e) => setIssueReason(e.target.value)}
+                  disabled={issueMut.isPending || issueMut.isSuccess}
+                  className={field}
+                >
                   <option value="NOT_RECEIVED">{fa.publicOrder.issueNotReceived}</option>
                   <option value="DAMAGED">{fa.publicOrder.issueDamaged}</option>
                   <option value="WRONG_ITEM">{fa.publicOrder.issueWrong}</option>
                   <option value="OTHER">{fa.publicOrder.issueOther}</option>
                 </select>
-                <textarea value={issueText} onChange={(e) => setIssueText(e.target.value)} className="rounded-xl bg-slate-900 p-3 text-sm" rows={2} />
-                <button type="submit" className="min-h-11 rounded-2xl border border-slate-600">{fa.publicOrder.reportIssue}</button>
+                <textarea
+                  value={issueText}
+                  onChange={(e) => setIssueText(e.target.value)}
+                  disabled={issueMut.isPending || issueMut.isSuccess}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-sm text-[var(--text-primary)]"
+                  rows={2}
+                />
+                <button
+                  type="submit"
+                  disabled={issueMut.isPending || issueMut.isSuccess}
+                  className="min-h-11 rounded-2xl border border-[var(--border)] disabled:opacity-40"
+                >
+                  {issueMut.isPending ? fa.publicOrder.working : fa.publicOrder.reportIssue}
+                </button>
+                <ActionStatus pending={false} error={issueMut.isError} done={issueMut.isSuccess} />
               </form>
             )}
           </div>
