@@ -100,6 +100,9 @@ export function SellerStoreSettingsPage() {
     category === 'جواهرات و اکسسوری' || (products.data?.some(p => p.pricingModel === 'WEIGHT_BASED_FORMULA') ?? false)
   const [shippingInfo, setShippingInfo] = useState('')
   const [returnPolicy, setReturnPolicy] = useState('')
+  const [shippingDaysMin, setShippingDaysMin] = useState('')
+  const [shippingDaysMax, setShippingDaysMax] = useState('')
+  const [shippingDaysError, setShippingDaysError] = useState(false)
   const [brandIntro, setBrandIntro] = useState('')
   const [ownerNotes, setOwnerNotes] = useState('')
   const [workingHoursStart, setWorkingHoursStart] = useState('')
@@ -121,6 +124,8 @@ export function SellerStoreSettingsPage() {
     setCategory(store.category ?? '')
     setShippingInfo(store.shippingInfo ?? '')
     setReturnPolicy(store.returnPolicy ?? '')
+    setShippingDaysMin(store.shippingDaysMin != null ? String(store.shippingDaysMin) : '')
+    setShippingDaysMax(store.shippingDaysMax != null ? String(store.shippingDaysMax) : '')
     setBrandIntro(store.brandIntro ?? '')
     setOwnerNotes(store.ownerNotes ?? '')
     setWorkingHoursStart(store.workingHoursStart ?? '')
@@ -138,8 +143,18 @@ export function SellerStoreSettingsPage() {
   }, [store?.id])
 
   function save() {
+    // R3.3 — بازه‌ی روز ارسال: هر دو یا هیچ‌کدام، حداقل ≤ حداکثر (بک‌اند هم همین را چک می‌کند)
+    const minDays = shippingDaysMin ? Number(shippingDaysMin) : null
+    const maxDays = shippingDaysMax ? Number(shippingDaysMax) : null
+    const daysOk =
+      (minDays === null && maxDays === null) ||
+      (minDays !== null && maxDays !== null && minDays >= 1 && maxDays <= 60 && minDays <= maxDays)
+    setShippingDaysError(!daysOk)
+    if (!daysOk) return
     update.mutate(
       {
+        shippingDaysMin: minDays,
+        shippingDaysMax: maxDays,
         category: category.trim() || undefined,
         shippingInfo: shippingInfo.trim() || undefined,
         returnPolicy: returnPolicy.trim() || undefined,
@@ -306,8 +321,46 @@ export function SellerStoreSettingsPage() {
 
       <div className="mb-5">
         <label className="mb-2 block text-sm font-semibold text-slate-300 light:text-slate-700">
-          {fa.seller.panel.storeSettings.returnPolicyLabel}
+          {fa.seller.panel.storeSettings.shippingDaysLabel}
         </label>
+        <div className="flex items-center gap-2">
+          <DigitsInput
+            kind="int"
+            label={fa.seller.panel.storeSettings.shippingDaysMinLabel}
+            value={shippingDaysMin}
+            onChange={setShippingDaysMin}
+            className="w-1/2 text-center"
+          />
+          <DigitsInput
+            kind="int"
+            label={fa.seller.panel.storeSettings.shippingDaysMaxLabel}
+            value={shippingDaysMax}
+            onChange={setShippingDaysMax}
+            className="w-1/2 text-center"
+          />
+        </div>
+        <p className="mt-1.5 text-xs text-slate-500">{fa.seller.panel.storeSettings.shippingDaysHint}</p>
+        {shippingDaysError && (
+          <p className="mt-1 text-xs text-red-400">{fa.seller.panel.storeSettings.shippingDaysInvalid}</p>
+        )}
+      </div>
+
+      <div className="mb-5">
+        <div className="mb-2 flex items-center justify-between">
+          <label className="block text-sm font-semibold text-slate-300 light:text-slate-700">
+            {fa.seller.panel.storeSettings.returnPolicyLabel}
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              if (returnPolicy.trim() && !window.confirm(fa.seller.panel.storeSettings.returnPolicyTemplateConfirm)) return
+              setReturnPolicy(fa.seller.panel.storeSettings.returnPolicyTemplate)
+            }}
+            className="text-xs font-semibold text-emerald-400 light:text-emerald-700"
+          >
+            {fa.seller.panel.storeSettings.returnPolicyTemplateButton}
+          </button>
+        </div>
         <textarea
           value={returnPolicy}
           onChange={e => setReturnPolicy(e.target.value)}

@@ -42,7 +42,7 @@ export function StoreProductGrid({
   onSendBuyerOtp,
   onVerifyBuyerOtp,
 }: StoreProductGridProps) {
-  const { items, query, setQuery, loading, error, hasMore, loadMore, shippingEstimate } = useStoreProducts(slug, true)
+  const { items, query, setQuery, loading, error, hasMore, loadMore, shippingEstimate, shippingDaysText } = useStoreProducts(slug, true)
   const [catalogTab, setCatalogTab] = useState<'all' | 'saved'>('all')
   const [selected, setSelected] = useState<PublicProduct | null>(null)
   const needle = query.trim().toLowerCase()
@@ -150,6 +150,7 @@ export function StoreProductGrid({
           onClose={() => setSelected(null)}
           slug={slug}
           shippingEstimate={shippingEstimate ?? null}
+          shippingDaysText={shippingDaysText}
           onAddToCart={(id, variantId) => {
             onAddToCart(id, variantId)
             setSelected(null)
@@ -232,6 +233,7 @@ function ProductDetailSheet({
   product,
   slug,
   shippingEstimate,
+  shippingDaysText,
   disabled,
   onClose,
   onAddToCart,
@@ -247,6 +249,7 @@ function ProductDetailSheet({
   product: PublicProduct
   slug: string
   shippingEstimate: { minCostToman: number; maxCostToman: number } | null
+  shippingDaysText: string | null
   disabled: boolean
   onClose: () => void
   onAddToCart: (id: string, variantId?: string) => void
@@ -537,8 +540,9 @@ function ProductDetailSheet({
           </div>
         )}
         {notifyError && <p className="mt-1 text-xs text-red-400">{notifyError}</p>}
-        {shippingText && <p className="mb-4 text-xs text-slate-500">{shippingText}</p>}
-        {!shippingText && <div className="mb-4" />}
+        {shippingText && <p className="text-xs text-slate-500">{shippingText}</p>}
+        {shippingDaysText && <p className="text-xs text-slate-500">{shippingDaysText}</p>}
+        <div className="mb-4" />
         <div className="flex gap-2">
           <button
             type="button"

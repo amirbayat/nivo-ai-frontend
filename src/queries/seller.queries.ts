@@ -149,6 +149,9 @@ export interface UpdateStoreInput {
   category?: string
   shippingInfo?: string
   returnPolicy?: string
+  // R3.3 — null یعنی پاک‌کردن بازه
+  shippingDaysMin?: number | null
+  shippingDaysMax?: number | null
   brandIntro?: string
   // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲/۱.۳
   ownerNotes?: string

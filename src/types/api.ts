@@ -198,6 +198,8 @@ export interface SellerStore {
   // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲
   shippingInfo: string | null
   returnPolicy: string | null
+  shippingDaysMin: number | null
+  shippingDaysMax: number | null
   brandIntro: string | null
   workingHoursStart: string | null
   workingHoursEnd: string | null
@@ -587,6 +589,8 @@ export interface PublicProductsPage {
   page: number
   pageSize: number
   shippingEstimate?: { minCostToman: number; maxCostToman: number } | null
+  // R3.3 — جمله‌ی آماده‌ی بازه‌ی روز ارسال (یا null)
+  shippingDaysText?: string | null
 }
 
 // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — GET

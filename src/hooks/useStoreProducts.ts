@@ -15,6 +15,7 @@ export function useStoreProducts(slug: string, enabled: boolean) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shippingEstimate, setShippingEstimate] = useState<PublicProductsPage['shippingEstimate']>(null)
+  const [shippingDaysText, setShippingDaysText] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchPage = useCallback(
@@ -33,7 +34,10 @@ export function useStoreProducts(slug: string, enabled: boolean) {
         setItems((prev) => (append ? [...prev, ...data.items] : data.items))
         setTotal(data.total)
         setPage(data.page)
-        if (!append) setShippingEstimate(data.shippingEstimate ?? null)
+        if (!append) {
+          setShippingEstimate(data.shippingEstimate ?? null)
+          setShippingDaysText(data.shippingDaysText ?? null)
+        }
       } catch {
         setError(fa.common.error)
       } finally {
@@ -66,5 +70,6 @@ export function useStoreProducts(slug: string, enabled: boolean) {
     hasMore: items.length < total,
     loadMore,
     shippingEstimate,
+    shippingDaysText,
   }
 }
