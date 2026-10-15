@@ -1,26 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
-import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
-import { useApproveOrder, useDeliverOrder, useOrders, useOverpayRefund, useRejectOrder, useShipOrder } from '@/queries/seller.queries'
+import { RejectOrderSheet } from '@/components/seller/RejectOrderSheet'
+import { ShipOrderSheet } from '@/components/seller/ShipOrderSheet'
+import { RefundsPanel, useRefundsOpenCount } from './SellerRefundsPage'
+import { useApproveOrder, useDeliverOrder, useOrders, useOverpayRefund } from '@/queries/seller.queries'
 import { productImageUrl } from '@/lib/sellerProduct'
 import { copyText } from '@/lib/clipboard'
-import { DigitsInput } from '@/components/ui/DigitsInput'
 import { toEnglishDigits } from '@/lib/digits'
-import { ORDER_CARRIERS } from '@/lib/orderCarriers'
 import type { SellerOrder, SellerOrderStatus } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 
-const FILTERS: { value: SellerOrderStatus | undefined; label: string }[] = [
-  { value: undefined, label: fa.seller.panel.orders.filterAll },
-  { value: 'RECEIPT_SUBMITTED', label: fa.seller.panel.orders.filterPending },
-  { value: 'PENDING_PAYMENT', label: fa.seller.panel.orders.filterAwaitingPayment },
-  { value: 'APPROVED', label: fa.seller.panel.orders.filterApproved },
-  { value: 'SHIPPED', label: fa.seller.panel.orders.filterShipped },
-  { value: 'DELIVERED', label: fa.seller.panel.orders.filterDelivered },
-  { value: 'REJECTED', label: fa.seller.panel.orders.filterRejected },
-  { value: 'CANCELLED', label: fa.seller.panel.orders.filterCancelled },
+// SP-6 — فیلترها به زبان فروشنده: «ارسال شده» = SHIPPED+DELIVERED، «لغو/رد» = REJECTED+CANCELLED
+const FILTERS: { key: string; value: SellerOrderStatus | SellerOrderStatus[] | undefined; label: string }[] = [
+  { key: 'all', value: undefined, label: fa.seller.v2.orders.filterAll },
+  { key: 'pending', value: 'RECEIPT_SUBMITTED', label: fa.seller.v2.orders.filterWaitingApproval },
+  { key: 'awaitingPayment', value: 'PENDING_PAYMENT', label: fa.seller.v2.orders.filterWaitingPayment },
+  { key: 'toShip', value: 'APPROVED', label: fa.seller.v2.orders.filterToShip },
+  { key: 'shipped', value: ['SHIPPED', 'DELIVERED'], label: fa.seller.v2.orders.filterShipped },
+  { key: 'closed', value: ['REJECTED', 'CANCELLED'], label: fa.seller.v2.orders.filterClosed },
 ]
 
 // 3.4 — کد سفارش نمایشی؛ سفارش قدیمیِ backfill‌نشده: ۸ نویسه‌ی اول id
@@ -63,18 +62,11 @@ function OrderCode({ order }: { order: Pick<SellerOrder, 'id' | 'orderCode'> }) 
 function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; storeId: string; onClose: () => void }) {
   const navigate = useNavigate()
   const [showReceipt, setShowReceipt] = useState(false)
-  const [showRejectReason, setShowRejectReason] = useState(false)
-  const [rejectReason, setRejectReason] = useState('')
-  const [moneyChoice, setMoneyChoice] = useState<'yes' | 'no' | null>(null)
-  const [refundAmount, setRefundAmount] = useState(String(order.totalAmount))
+  const [showReject, setShowReject] = useState(false)
+  const [showShip, setShowShip] = useState(false)
   const approve = useApproveOrder(storeId)
-  const reject = useRejectOrder(storeId)
-  const ship = useShipOrder(storeId)
   const deliver = useDeliverOrder(storeId)
   const overpay = useOverpayRefund(storeId)
-  const [showShipForm, setShowShipForm] = useState(false)
-  const [carrier, setCarrier] = useState<string>(ORDER_CARRIERS[0])
-  const [trackingCode, setTrackingCode] = useState('')
   const canDecide = order.status === 'RECEIPT_SUBMITTED'
   // فیدبک کاربر — بعد از رد اشتباهی، فروشنده راهی برای تایید دوباره‌ی سفارش نداشت
   const canReapprove = order.status === 'REJECTED'
@@ -86,28 +78,6 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
   const recipientAddress = [order.shippingProvince, order.shippingAddress, order.postalCode]
     .filter(Boolean)
     .join('، ')
-
-  const needsMoneyAnswer =
-    order.status === 'RECEIPT_SUBMITTED' || order.status === 'APPROVED' || !!order.receiptImageKey
-  // مبلغ برگشتی معتبر: عدد صحیح ۱..مبلغ پرداختی؛ تا آن موقع دکمه‌ی رد غیرفعال است [R0.12]
-  const refundAmountNumber = Number(refundAmount)
-  const refundAmountValid =
-    Number.isInteger(refundAmountNumber) && refundAmountNumber >= 1 && refundAmountNumber <= order.totalAmount
-  const rejectBlocked = needsMoneyAnswer && (moneyChoice == null || (moneyChoice === 'yes' && !refundAmountValid))
-  const submitReject = () => {
-    const amount = refundAmountNumber
-    reject.mutate(
-      {
-        orderId: order.id,
-        reason: rejectReason.trim() || undefined,
-        ...(needsMoneyAnswer ? { moneyReceived: moneyChoice === 'yes' } : {}),
-        ...(needsMoneyAnswer && moneyChoice === 'yes' && Number.isInteger(amount) && amount > 0
-          ? { refundAmountToman: amount }
-          : {}),
-      },
-      { onSuccess: onClose },
-    )
-  }
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
@@ -130,7 +100,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
         </div>
 
         <button
-          onClick={() => navigate(`/seller/panel/attention?conversationId=${order.conversationId}`)}
+          onClick={() => navigate(`/seller/panel/chats/${order.conversationId}`)}
           className="mb-4 text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline"
         >
           {fa.seller.panel.orders.viewConversation}
@@ -231,78 +201,22 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           <p className="mb-4 text-center text-xs text-slate-500">{fa.seller.panel.orders.noReceipt}</p>
         )}
 
-        {canDecide && !showRejectReason && (
+        {canDecide && (
           <div className="flex gap-3">
             <button
-              onClick={() => setShowRejectReason(true)}
-              disabled={approve.isPending || reject.isPending}
+              onClick={() => setShowReject(true)}
+              disabled={approve.isPending}
               className="flex-1 rounded-2xl bg-red-500/15 py-3.5 text-sm font-bold text-red-400 hover:bg-red-500/25 disabled:opacity-40"
             >
               {fa.seller.panel.orders.reject}
             </button>
             <button
               onClick={() => approve.mutate(order.id, { onSuccess: onClose })}
-              disabled={approve.isPending || reject.isPending}
+              disabled={approve.isPending}
               className="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
             >
               {fa.seller.panel.orders.approve}
             </button>
-          </div>
-        )}
-
-        {canDecide && showRejectReason && (
-          <div className="flex flex-col gap-2">
-            {needsMoneyAnswer && (
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMoneyChoice('yes')}
-                  className={`rounded-xl border px-3 py-2 text-start text-xs ${moneyChoice === 'yes' ? 'border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-300 light:border-slate-300 light:text-slate-700'}`}
-                >
-                  {fa.seller.panel.orders.moneyArrived(refundAmountValid ? refundAmountNumber : null)}
-                </button>
-                {moneyChoice === 'yes' && (
-                  <DigitsInput
-                    kind="price"
-                    value={refundAmount}
-                    onChange={setRefundAmount}
-                    aria-label={fa.seller.panel.orders.refundAmountLabel}
-                    aria-invalid={!refundAmountValid}
-                    className="rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 light:border-slate-300 light:bg-white light:text-slate-900"
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setMoneyChoice('no')}
-                  className={`rounded-xl border px-3 py-2 text-start text-xs ${moneyChoice === 'no' ? 'border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-300 light:border-slate-300 light:text-slate-700'}`}
-                >
-                  {fa.seller.panel.orders.moneyMissing}
-                </button>
-              </div>
-            )}
-            <textarea
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              placeholder={fa.seller.panel.orders.rejectReasonPlaceholder}
-              rows={2}
-              className="w-full resize-none rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white p-3 text-sm text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowRejectReason(false)}
-                disabled={reject.isPending}
-                className="flex-1 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-sm font-bold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400 disabled:opacity-40"
-              >
-                {fa.seller.panel.orders.cancel}
-              </button>
-              <button
-                onClick={submitReject}
-                disabled={reject.isPending || rejectBlocked}
-                className="flex-1 rounded-2xl bg-red-500 py-3.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-40"
-              >
-                {fa.seller.panel.orders.confirmReject}
-              </button>
-            </div>
           </div>
         )}
 
@@ -336,59 +250,18 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
           </button>
         )}
 
-        {canShip && !showShipForm && (
+        {canShip && (
           <button
-            onClick={() => setShowShipForm(true)}
-            disabled={ship.isPending}
+            onClick={() => setShowShip(true)}
             className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
           >
             {fa.seller.panel.orders.ship}
           </button>
         )}
-
-        {canShip && showShipForm && (
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-slate-400 light:text-slate-600">{fa.seller.panel.orders.carrierLabel}</label>
-            <select
-              value={carrier}
-              onChange={e => setCarrier(e.target.value)}
-              style={{ fontSize: 16, minHeight: 44 }}
-              className="w-full rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3 text-slate-200 light:text-slate-900"
-            >
-              {ORDER_CARRIERS.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <label className="text-xs text-slate-400 light:text-slate-600">{fa.seller.panel.orders.trackingLabel}</label>
-            <input
-              type="text"
-              dir="ltr"
-              value={trackingCode}
-              onChange={e => setTrackingCode(toEnglishDigits(e.target.value).slice(0, 64))}
-              style={{ fontSize: 16, minHeight: 44 }}
-              className="w-full rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-3 text-slate-200 light:text-slate-900"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowShipForm(false)}
-                disabled={ship.isPending}
-                className="flex-1 rounded-2xl border border-slate-700 light:border-slate-300 py-3.5 text-sm font-bold text-slate-300 light:text-slate-700 disabled:opacity-40"
-              >
-                {fa.seller.panel.orders.cancel}
-              </button>
-              <button
-                onClick={() =>
-                  ship.mutate({ orderId: order.id, carrier, trackingCode: trackingCode.trim() || undefined }, { onSuccess: onClose })
-                }
-                disabled={ship.isPending}
-                className="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
-              >
-                {fa.seller.panel.orders.shipConfirm}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      <RejectOrderSheet order={order} storeId={storeId} open={showReject} onClose={() => setShowReject(false)} onDone={onClose} />
+      <ShipOrderSheet orderId={order.id} storeId={storeId} open={showShip} onClose={() => setShowShip(false)} onDone={onClose} />
 
       {showReceipt && order.receiptImageKey && (
         <ImageLightbox
@@ -403,7 +276,10 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
 
 export function SellerOrdersPage() {
   const { storeId } = useSellerStore()
-  const [filter, setFilter] = useState<SellerOrderStatus | undefined>(undefined)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const view: 'orders' | 'refunds' = searchParams.get('view') === 'refunds' ? 'refunds' : 'orders'
+  const [filterKey, setFilterKey] = useState('all')
+  const filter = FILTERS.find(f => f.key === filterKey)?.value
   const [openOrder, setOpenOrder] = useState<SellerOrder | null>(null)
   // 3.5 — جست‌وجو با debounce ۳۰۰ms (کد سفارش، شماره، نام)
   const [searchInput, setSearchInput] = useState('')
@@ -413,123 +289,135 @@ export function SellerOrdersPage() {
     return () => clearTimeout(t)
   }, [searchInput])
   const orders = useOrders(storeId, filter, search)
-  const [searchParams, setSearchParams] = useSearchParams()
+  const refundsCount = useRefundsOpenCount(storeId)
+  const t = fa.seller.v2.orders
 
-  // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱ — لینک از تب «نیاز به توجه»؛ فیلتر فعلی
-  // ممکن است این سفارش را پنهان کند (مثلاً فیلتر «تاییدشده» روی یک سفارش «در انتظار»)، پس همان
-  // لحظه فیلتر را هم «همه» می‌کنیم تا سفارش واقعاً پیدا شود
+  // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱ — لینک از «امروز»/چت؛ فیلتر فعلی ممکن
+  // است این سفارش را پنهان کند، پس فیلتر «همه» می‌شود تا سفارش واقعاً پیدا شود
   useEffect(() => {
     const orderId = searchParams.get('orderId')
     if (!orderId || !orders.data) return
     const match = orders.data.find(o => o.id === orderId)
     if (match) {
       setOpenOrder(match)
-      setSearchParams({}, { replace: true })
+      const next = new URLSearchParams(searchParams)
+      next.delete('orderId')
+      setSearchParams(next, { replace: true })
     } else if (orders.hasNextPage) {
       // R3.2 — سفارش قدیمی‌تر از صفحه‌ی اول است؛ صفحه‌ی بعد را می‌آوریم تا پیدا شود
       if (!orders.isFetchingNextPage) void orders.fetchNextPage()
-    } else if (filter !== undefined) {
-      setFilter(undefined)
+    } else if (filterKey !== 'all') {
+      setFilterKey('all')
     }
-  }, [searchParams, setSearchParams, orders, filter])
+  }, [searchParams, setSearchParams, orders, filterKey])
+
+  function setView(next: 'orders' | 'refunds') {
+    const params = new URLSearchParams(searchParams)
+    if (next === 'refunds') params.set('view', 'refunds')
+    else params.delete('view')
+    setSearchParams(params, { replace: true })
+  }
 
   return (
-    <div className="px-5 py-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.orders}</h1>
-        <Link to="/seller/panel/refunds" className="min-h-11 text-sm font-semibold text-emerald-400 light:text-emerald-700">
-          {fa.seller.panel.orders.refundsLink}
-        </Link>
+    <div className="mx-auto w-full max-w-[640px] px-4 py-5">
+      <h1 className="mb-3 text-xl font-extrabold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.orders}</h1>
+
+      <div className="mb-4 flex rounded-xl bg-slate-800/60 p-1 light:bg-slate-100">
+        <button type="button" onClick={() => setView('orders')} className={`flex-1 rounded-lg py-2 text-[13px] ${view === 'orders' ? 'bg-slate-950 font-extrabold text-slate-100 light:bg-white light:text-slate-900' : 'text-slate-400'}`}>
+          {t.segOrders}
+        </button>
+        <button type="button" onClick={() => setView('refunds')} className={`flex-1 rounded-lg py-2 text-[13px] ${view === 'refunds' ? 'bg-slate-950 font-extrabold text-slate-100 light:bg-white light:text-slate-900' : 'text-slate-400'}`}>
+          {t.segRefunds}
+          {refundsCount > 0 ? ` (${refundsCount.toLocaleString('fa-IR')})` : ''}
+        </button>
       </div>
 
-      <FirstVisitTooltip id="orders" text={fa.seller.panel.helpCenter.tooltips.orders} />
+      {view === 'refunds' ? (
+        <RefundsPanel embedded />
+      ) : (
+        <>
+          <div className="relative mb-3">
+            <input
+              type="search"
+              value={searchInput}
+              onChange={e => setSearchInput(toEnglishDigits(e.target.value).slice(0, 64))}
+              placeholder={fa.seller.panel.orders.searchPlaceholder}
+              aria-label={fa.seller.panel.orders.searchPlaceholder}
+              style={{ fontSize: 16, minHeight: 44 }}
+              className="w-full rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-4 text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
 
-      <div className="relative mb-3">
-        <input
-          type="search"
-          value={searchInput}
-          onChange={e => setSearchInput(toEnglishDigits(e.target.value).slice(0, 64))}
-          placeholder={fa.seller.panel.orders.searchPlaceholder}
-          aria-label={fa.seller.panel.orders.searchPlaceholder}
-          style={{ fontSize: 16, minHeight: 44 }}
-          className="w-full rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/60 light:bg-white px-4 text-slate-200 light:text-slate-900 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-        />
-      </div>
+          <div className="mb-5 flex gap-2 overflow-x-auto [scrollbar-width:none]">
+            {FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFilterKey(f.key)}
+                className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                  filterKey === f.key
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
+                    : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600 hover:border-slate-600 light:hover:border-slate-400'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
 
-      <div className="mb-5 flex gap-2 overflow-x-auto">
-        {FILTERS.map(f => (
-          <button
-            key={f.label}
-            onClick={() => setFilter(f.value)}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-              filter === f.value
-                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 light:text-emerald-700'
-                : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600 hover:border-slate-600 light:hover:border-slate-400'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+          {orders.isError && (
+            <div className="py-10 text-center">
+              <p className="mb-3 text-sm text-red-400">{fa.seller.panel.orders.loadError}</p>
+              <button onClick={() => void orders.refetch()} className="min-h-11 rounded-xl border border-slate-600 light:border-slate-300 px-4 text-sm font-semibold text-slate-200 light:text-slate-800">
+                {fa.seller.panel.orders.retry}
+              </button>
+            </div>
+          )}
 
-      {orders.isError && (
-        <div className="py-10 text-center">
-          <p className="mb-3 text-sm text-red-400">{fa.seller.panel.orders.loadError}</p>
-          <button
-            onClick={() => void orders.refetch()}
-            className="min-h-11 rounded-xl border border-slate-600 light:border-slate-300 px-4 text-sm font-semibold text-slate-200 light:text-slate-800"
-          >
-            {fa.seller.panel.orders.retry}
-          </button>
-        </div>
-      )}
+          {!orders.isError && orders.data?.length === 0 && (
+            <div className="py-10 text-center">
+              <p className="text-sm text-slate-500">{search ? fa.seller.panel.orders.searchNotFound : fa.seller.panel.orders.empty}</p>
+              {search && (
+                <button onClick={() => setSearchInput('')} className="mt-2 min-h-11 text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline">
+                  {fa.seller.panel.orders.searchClear}
+                </button>
+              )}
+            </div>
+          )}
 
-      {!orders.isError && orders.data?.length === 0 && (
-        <div className="py-10 text-center">
-          <p className="text-sm text-slate-500">{search ? fa.seller.panel.orders.searchNotFound : fa.seller.panel.orders.empty}</p>
-          {search && (
+          <div className="flex flex-col gap-2.5">
+            {orders.data?.map(order => (
+              <button
+                key={order.id}
+                onClick={() => setOpenOrder(order)}
+                className="flex items-center justify-between rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5 text-start hover:border-slate-600 light:hover:border-slate-300"
+              >
+                <div>
+                  <OrderCode order={order} />
+                  <p className="mt-0.5 text-xs text-slate-400 light:text-slate-600">
+                    {order.items.length.toLocaleString('fa-IR')} قلم
+                    {order.recipientName ? ` · ${order.recipientName}` : ''}
+                    {order.receiptType === 'MANUAL_INFO' ? ` · ${fa.seller.panel.orders.manualReceiptBadge}` : ''}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {fa.shop.orderStatusLabels[order.status]} · {fa.shop.paymentMethodLabels[order.paymentMethod]}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">{fa.seller.panel.orders.registeredAt(new Date(order.createdAt).toLocaleDateString('fa-IR'))}</p>
+                </div>
+                <span className="text-sm font-bold text-emerald-300 light:text-emerald-700">{order.totalAmount.toLocaleString('fa-IR')} {fa.common.toman}</span>
+              </button>
+            ))}
+          </div>
+          {orders.hasNextPage && (
             <button
-              onClick={() => setSearchInput('')}
-              className="mt-2 min-h-11 text-xs font-semibold text-emerald-400 light:text-emerald-700 hover:underline"
+              type="button"
+              onClick={() => void orders.fetchNextPage()}
+              disabled={orders.isFetchingNextPage}
+              className="mt-3 min-h-11 w-full rounded-xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 disabled:opacity-50"
             >
-              {fa.seller.panel.orders.searchClear}
+              {fa.common.loadMore}
             </button>
           )}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-2.5">
-        {orders.data?.map(order => (
-          <button
-            key={order.id}
-            onClick={() => setOpenOrder(order)}
-            className="flex items-center justify-between rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5 text-start hover:border-slate-600 light:hover:border-slate-300"
-          >
-            <div>
-              <OrderCode order={order} />
-              <p className="mt-0.5 text-xs text-slate-400 light:text-slate-600">
-                {order.items.length.toLocaleString('fa-IR')} قلم
-                {order.recipientName ? ` · ${order.recipientName}` : ''}
-                {order.receiptType === 'MANUAL_INFO' ? ` · ${fa.seller.panel.orders.manualReceiptBadge}` : ''}
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                {fa.shop.orderStatusLabels[order.status]} · {fa.shop.paymentMethodLabels[order.paymentMethod]}
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500">{fa.seller.panel.orders.registeredAt(new Date(order.createdAt).toLocaleDateString('fa-IR'))}</p>
-            </div>
-            <span className="text-sm font-bold text-emerald-300 light:text-emerald-700">{order.totalAmount.toLocaleString('fa-IR')} {fa.common.toman}</span>
-          </button>
-        ))}
-      </div>
-      {orders.hasNextPage && (
-        <button
-          type="button"
-          onClick={() => void orders.fetchNextPage()}
-          disabled={orders.isFetchingNextPage}
-          className="mt-3 min-h-11 w-full rounded-xl border border-slate-700 light:border-slate-300 py-2.5 text-sm font-semibold text-slate-300 light:text-slate-700 disabled:opacity-50"
-        >
-          {fa.common.loadMore}
-        </button>
+        </>
       )}
 
       {openOrder && <OrderDetailSheet order={openOrder} storeId={storeId} onClose={() => setOpenOrder(null)} />}

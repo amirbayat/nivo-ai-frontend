@@ -179,12 +179,19 @@ function SnapppayLinkSection({ storeId }: { storeId: string }) {
   const update = useUpdateStore(storeId)
   const [link, setLink] = useState('')
   const [saved, setSaved] = useState(false)
+  const [localError, setLocalError] = useState(false)
 
   useEffect(() => {
     setLink(store?.snapppayPaymentLink ?? '')
   }, [store?.snapppayPaymentLink])
 
   function commit() {
+    // SP-7 — لینک اسنپ‌پی باید https باشد (سرور دامنه‌ی اسنپ‌پی را هم چک می‌کند)
+    if (link.trim() && !link.trim().startsWith('https://')) {
+      setLocalError(true)
+      return
+    }
+    setLocalError(false)
     update.mutate(
       { snapppayPaymentLink: link.trim() || undefined },
       {
@@ -197,8 +204,8 @@ function SnapppayLinkSection({ storeId }: { storeId: string }) {
   }
 
   return (
-    <div className="mt-8 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
-      <h2 className="mb-1 text-sm font-bold text-slate-200 light:text-slate-900">{fa.seller.panel.bankCards.snapppayLinkTitle}</h2>
+    <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4 light:border-slate-200 light:bg-white">
+      <h3 className="mb-1 text-sm font-extrabold text-slate-100 light:text-slate-900">{fa.seller.v2.payments.snapppay}</h3>
       <p className="mb-3 text-xs text-slate-500">{fa.seller.panel.bankCards.snapppayLinkHint}</p>
       <Input
         value={link}
@@ -207,13 +214,16 @@ function SnapppayLinkSection({ storeId }: { storeId: string }) {
         placeholder={fa.seller.panel.bankCards.snapppayLinkPlaceholder}
         dir="ltr"
       />
-      {update.isError && <p className="mt-2 text-xs text-red-400">{fa.seller.panel.bankCards.snapppayLinkError}</p>}
+      {(update.isError || localError) && <p className="mt-2 text-xs text-red-400">{fa.seller.panel.bankCards.snapppayLinkError}</p>}
       {saved && <p className="mt-2 text-xs text-emerald-400">{fa.seller.panel.bankCards.snapppayLinkSaved}</p>}
     </div>
   )
 }
 
-export function SellerBankCardsPage() {
+// docs/PRD-seller-panel-simplification.md §4.8 — «پول سفارش‌ها کجا بیاد؟»؛ یک فرم برای صفحه‌ی
+// فروشگاه ← دریافت پول و شیت کارت راه‌اندازی. دو کارت برابر: کارت‌به‌کارت (لیست + افزودن؛ سیاست
+// چرخش فقط با ≥۲ کارت فعال) و لینک اسنپ‌پی. هر کدام یا هر دو قابل‌فعال‌سازی‌اند.
+export function PaymentsSetup({ withTitle = true }: { withTitle?: boolean }) {
   const { storeId } = useSellerStore()
   const bankCards = useBankCards(storeId)
   const updatePolicy = useUpdateCardPolicy(storeId)
@@ -222,51 +232,55 @@ export function SellerBankCardsPage() {
   const cards = bankCards.data?.cards ?? []
   const policy = bankCards.data?.policy ?? 'EQUAL'
   const activeCount = cards.filter(c => c.isActive).length
+  const t = fa.seller.v2.payments
 
   return (
-    <div className="px-5 py-6">
-      <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.bankCards.title}</h1>
-      <p className="mb-6 text-sm text-slate-500">{fa.seller.panel.bankCards.subtitle}</p>
+    <div>
+      {withTitle && <h2 className="mb-1 text-lg font-extrabold text-slate-100 light:text-slate-900">{t.title}</h2>}
+      <p className="mb-5 text-xs text-slate-400">{t.help}</p>
 
-      <h2 className="mb-2 text-sm font-bold text-slate-200 light:text-slate-900">{fa.seller.panel.bankCards.policyTitle}</h2>
-      {activeCount <= 1 && <p className="mb-3 text-xs text-slate-500">{fa.seller.panel.bankCards.singleCardHint}</p>}
-      <div className="mb-6 flex flex-col gap-2">
-        {POLICIES.map(p => (
-          <button
-            key={p.value}
-            onClick={() => updatePolicy.mutate(p.value)}
-            disabled={activeCount <= 1 || updatePolicy.isPending}
-            className={clsx(
-              'flex items-center justify-between rounded-xl border px-4 py-3 text-right disabled:opacity-50',
-              policy === p.value
-                ? 'border-emerald-500 bg-emerald-500/10'
-                : 'border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white',
-            )}
-          >
-            <span>
-              <span className="block text-sm font-semibold text-slate-200 light:text-slate-900">{p.label}</span>
-              <span className="block text-xs text-slate-500">{p.hint}</span>
-            </span>
-            {policy === p.value && <span className="size-2.5 rounded-full bg-emerald-500" />}
-          </button>
+      <section className="mb-4 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4 light:border-slate-200 light:bg-white">
+        <h3 className="mb-3 text-sm font-extrabold text-slate-100 light:text-slate-900">{t.cardToCard}</h3>
+        {cards.map(card => (
+          <BankCardRow key={card.id} card={card} policy={policy} storeId={storeId} canDeactivate={activeCount > 1} />
         ))}
-      </div>
-
-      <h2 className="mb-3 text-sm font-bold text-slate-200 light:text-slate-900">{fa.seller.panel.bankCards.title}</h2>
-      {cards.map(card => (
-        <BankCardRow key={card.id} card={card} policy={policy} storeId={storeId} canDeactivate={activeCount > 1} />
-      ))}
-
-      {adding ? (
-        <AddCardForm storeId={storeId} onDone={() => setAdding(false)} />
-      ) : (
-        <button
-          onClick={() => setAdding(true)}
-          className="w-full rounded-2xl border border-dashed border-slate-700 light:border-slate-300 py-3.5 text-sm font-semibold text-slate-300 light:text-slate-700 hover:border-slate-600 light:hover:border-slate-400"
-        >
-          {fa.seller.panel.bankCards.addCard}
-        </button>
-      )}
+        {adding ? (
+          <AddCardForm storeId={storeId} onDone={() => setAdding(false)} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="w-full rounded-2xl border border-dashed border-slate-700 py-3 text-sm font-semibold text-slate-300 light:border-slate-300 light:text-slate-700"
+          >
+            {fa.seller.panel.bankCards.addCard}
+          </button>
+        )}
+        {activeCount >= 2 && (
+          <>
+            <h4 className="mb-2 mt-5 text-xs font-bold text-slate-300 light:text-slate-800">{fa.seller.panel.bankCards.policyTitle}</h4>
+            <div className="flex flex-col gap-2">
+              {POLICIES.map(p => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => updatePolicy.mutate(p.value)}
+                  disabled={updatePolicy.isPending}
+                  className={clsx(
+                    'flex items-center justify-between rounded-xl border px-4 py-3 text-right disabled:opacity-50',
+                    policy === p.value ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700/60 bg-slate-800/40 light:border-slate-200 light:bg-white',
+                  )}
+                >
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-200 light:text-slate-900">{p.label}</span>
+                    <span className="block text-xs text-slate-500">{p.hint}</span>
+                  </span>
+                  {policy === p.value && <span className="size-2.5 rounded-full bg-emerald-500" />}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
 
       <SnapppayLinkSection storeId={storeId} />
     </div>

@@ -1,25 +1,17 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
-import type { SellerConversationDetail, ShopConversationEvent } from '@/types/api'
-import { effectiveStock } from '@/lib/sellerProduct'
-import { useNavigate, useSearchParams } from 'react-router-dom'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
-import { FirstVisitTooltip } from '@/components/seller/FirstVisitTooltip'
 import {
-  useAttentionSuggestions,
-  useNeededAttention,
-  useProducts,
   useSellerConversation,
   useSendSellerMessage,
   useUnmuteConversation,
 } from '@/queries/seller.queries'
-import { useSellerStore } from './SellerPanelLayout'
+import type { SellerConversationDetail, ShopConversationEvent } from '@/types/api'
+import { useSellerStore } from '@/pages/seller/panel/SellerPanelLayout'
 
-// docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱ — بدون آستانه‌ی قابل‌تنظیم،
-// همان قاعده‌ی ثابت هرجا که بج موجودی لازم است
-const LOW_STOCK_THRESHOLD = 3
-
+// SP-6 — از SellerAttentionPage بیرون کشیده شد؛ حالا مسیر جدا (/seller/panel/chats/:conversationId)
 function BackChevron() {
   return (
     <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
@@ -33,7 +25,7 @@ function chatImageUrl(conversationId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/chat/${conversationId}/image/${encodeURIComponent(key)}`
 }
 
-function ConversationChat({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
+export function ConversationChat({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
   const { storeId } = useSellerStore()
   const navigate = useNavigate()
   const { data } = useSellerConversation(storeId, conversationId)
@@ -76,7 +68,7 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="mx-auto flex h-[100dvh] w-full max-w-[640px] flex-col">
       <div className="flex items-center gap-3 border-b border-slate-800 light:border-slate-200 px-4 py-3">
         <button onClick={onBack} className="text-slate-400 hover:text-slate-200 light:hover:text-slate-800"><BackChevron /></button>
         <p className="flex-1 text-sm font-semibold text-slate-200 light:text-slate-900">{data?.customerLabel}</p>
@@ -167,97 +159,3 @@ function ConversationChat({ conversationId, onBack }: { conversationId: string; 
   )
 }
 
-export function SellerAttentionPage() {
-  const navigate = useNavigate()
-  const { storeId } = useSellerStore()
-  const attention = useNeededAttention(storeId)
-  const products = useProducts(storeId)
-  const suggestions = useAttentionSuggestions(storeId)
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // docs/PRD-seller-panel-order-chat-linking.md بخش ۲.۱ — لینک از SellerOrdersPage به اینجا
-  useEffect(() => {
-    const conversationId = searchParams.get('conversationId')
-    if (conversationId) {
-      setOpenId(conversationId)
-      setSearchParams({}, { replace: true })
-    }
-  }, [searchParams, setSearchParams])
-
-  if (openId) return <ConversationChat conversationId={openId} onBack={() => setOpenId(null)} />
-
-  const lowStockProducts = (products.data ?? [])
-    .filter(p => effectiveStock(p) <= LOW_STOCK_THRESHOLD)
-    .sort((a, b) => effectiveStock(a) - effectiveStock(b))
-
-  return (
-    <div className="px-5 py-6">
-      <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.attention}</h1>
-
-      <FirstVisitTooltip id="attention" text={fa.seller.panel.helpCenter.tooltips.attention} />
-
-      {!!suggestions.data?.topics.length && (
-        <div className="mb-5">
-          <p className="mb-1 text-xs font-semibold text-slate-500">{fa.seller.panel.attention.suggestionsSectionTitle}</p>
-          <p className="mb-2.5 text-xs text-slate-500">{fa.seller.panel.attention.suggestionsSectionSubtitle}</p>
-          <div className="flex flex-col gap-2.5">
-            {suggestions.data.topics.map((t, i) => (
-              <button
-                key={i}
-                onClick={() => navigate('/seller/panel/store-settings')}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-sky-500/30 light:border-sky-300 bg-sky-500/10 light:bg-sky-50 px-4 py-3.5 text-start hover:border-sky-500/50 light:hover:border-sky-400"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-slate-200 light:text-slate-900">{t.topic}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">{t.summary}</p>
-                  <p className="mt-1 text-xs text-sky-400 light:text-sky-700">{fa.seller.panel.attention.suggestionOccurrences(t.occurrences)}</p>
-                </div>
-                <span className="shrink-0 rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-300 light:text-sky-700">
-                  {fa.seller.panel.attention.suggestionCta}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!!lowStockProducts.length && (
-        <div className="mb-5">
-          <p className="mb-2.5 text-xs font-semibold text-slate-500">{fa.seller.panel.attention.lowStockSectionTitle}</p>
-          <div className="flex flex-col gap-2.5">
-            {lowStockProducts.map(p => (
-              <button
-                key={p.id}
-                onClick={() => navigate(`/seller/panel/products/${p.id}`)}
-                className="flex items-center justify-between rounded-2xl border border-amber-500/30 light:border-amber-300 bg-amber-500/10 light:bg-amber-50 px-4 py-3.5 text-start hover:border-amber-500/50 light:hover:border-amber-400"
-              >
-                <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</span>
-                <span className={`text-xs font-bold ${effectiveStock(p) === 0 ? 'text-red-400 light:text-red-600' : 'text-amber-400 light:text-amber-700'}`}>
-                  {effectiveStock(p) === 0 ? fa.seller.panel.products.outOfStockBadge : fa.seller.panel.products.lowStockBadge}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {attention.data?.length === 0 && !lowStockProducts.length && !suggestions.data?.topics.length && (
-        <p className="py-10 text-center text-sm text-slate-500">{fa.seller.panel.attention.empty}</p>
-      )}
-
-      <div className="flex flex-col gap-2.5">
-        {attention.data?.map(c => (
-          <button
-            key={c.id}
-            onClick={() => setOpenId(c.id)}
-            className="flex items-center justify-between rounded-2xl border border-amber-500/30 light:border-amber-300 bg-amber-500/10 light:bg-amber-50 px-4 py-3.5 text-start hover:border-amber-500/50 light:hover:border-amber-400"
-          >
-            <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{c.customerLabel}</span>
-            <span className="text-xs text-amber-400 light:text-amber-700">{new Date(c.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}

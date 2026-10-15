@@ -11,14 +11,6 @@ import {
 import type { KbCandidateEntry, StoreKbEntry, StoreKbKind } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 
-const KIND_LABELS: Record<StoreKbKind, string> = {
-  FAQ: fa.seller.panel.knowledge.kindFaq,
-  POLICY: fa.seller.panel.knowledge.kindPolicy,
-  PRODUCT_INFO: fa.seller.panel.knowledge.kindProductInfo,
-  GENERAL: fa.seller.panel.knowledge.kindGeneral,
-}
-const KIND_OPTIONS = Object.keys(KIND_LABELS) as StoreKbKind[]
-
 // docs/PRD-seller-knowledge-box-redesign.md بخش ۵.۹ — فقط FAQ شکل سؤال/جواب دارد؛ بقیه‌ی
 // kind ها عنوان/متن‌اند (یک پاراگراف کامل می‌تواند باشد، نه لزوماً یک سؤال)
 const KIND_FIELD_COPY: Record<
@@ -49,20 +41,6 @@ const KIND_FIELD_COPY: Record<
     aLabel: fa.seller.panel.knowledge.fieldAnswerOther,
     aPlaceholder: fa.seller.panel.knowledge.answerPlaceholderGeneral,
   },
-}
-
-function KindSelect({ value, onChange }: { value: StoreKbKind; onChange: (v: StoreKbKind) => void }) {
-  return (
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value as StoreKbKind)}
-      className="rounded-lg border border-slate-700 light:border-slate-300 bg-slate-900 light:bg-white px-2 py-1.5 text-xs text-slate-200 light:text-slate-900"
-    >
-      {KIND_OPTIONS.map(k => (
-        <option key={k} value={k}>{KIND_LABELS[k]}</option>
-      ))}
-    </select>
-  )
 }
 
 // چیپ‌های برچسب آزاد — بخش ۵.۴ (فیلد tags در schema/DTO از قبل بود، UI نداشت)
@@ -112,7 +90,8 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string
 // افزودن دستی — تب سوم کارت «افزودن دانش جدید»
 function AddEntryForm({ storeId }: { storeId: string }) {
   const create = useCreateKbEntry(storeId)
-  const [kind, setKind] = useState<StoreKbKind>('FAQ')
+  // SP-6 — «نوع» برای فروشنده نمایش داده نمی‌شود؛ ورودی تازه همیشه FAQ است
+  const kind: StoreKbKind = 'FAQ'
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [tags, setTags] = useState<string[]>([])
@@ -134,10 +113,6 @@ function AddEntryForm({ storeId }: { storeId: string }) {
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.knowledge.kindLabel}</span>
-        <KindSelect value={kind} onChange={setKind} />
-      </div>
 
       <label className="mb-1.5 block text-xs font-semibold text-slate-400 light:text-slate-600">{copy.qLabel}</label>
       <input
@@ -180,7 +155,7 @@ function AddEntryForm({ storeId }: { storeId: string }) {
 // واقعی فقط از همین مسیر (لیست پایین صفحه) ممکن است
 function EntryEditForm({ storeId, entry, onDone }: { storeId: string; entry: StoreKbEntry; onDone: () => void }) {
   const update = useUpdateKbEntry(storeId)
-  const [kind, setKind] = useState<StoreKbKind>(entry.kind)
+  const kind: StoreKbKind = entry.kind
   const [question, setQuestion] = useState(entry.question)
   const [answer, setAnswer] = useState(entry.answer)
   const [tags, setTags] = useState<string[]>(entry.tags)
@@ -196,10 +171,6 @@ function EntryEditForm({ storeId, entry, onDone }: { storeId: string; entry: Sto
 
   return (
     <div className="rounded-2xl border border-emerald-500/40 bg-slate-800/60 light:bg-white p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-400 light:text-slate-600">{fa.seller.panel.knowledge.kindLabel}</span>
-        <KindSelect value={kind} onChange={setKind} />
-      </div>
       <input
         value={question}
         onChange={e => setQuestion(e.target.value)}
@@ -258,9 +229,6 @@ function CandidateRow({
 
   return (
     <div className="mb-3 rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-800/60 light:bg-white p-3.5">
-      <span className="mb-1.5 inline-flex rounded-full bg-slate-700/50 light:bg-slate-100 px-2 py-0.5 text-[11px] text-slate-400 light:text-slate-600">
-        {KIND_LABELS[candidate.kind]}
-      </span>
       <p className="mb-1 text-sm font-semibold text-slate-200 light:text-slate-900">{candidate.question}</p>
       <p className="mb-3 text-xs text-slate-400 light:text-slate-600">{candidate.answer}</p>
       <div className="flex gap-2">
@@ -284,10 +252,10 @@ function CandidateRow({
 
 type AddTab = 'upload' | 'paste' | 'manual'
 
-export function SellerKnowledgePage() {
+// embedded + expanded=false (صفحه‌ی «بات من»): فقط افزودن دستی یک سوال؛ فایل/متن پشت «از فایل یا متن اضافه کن»
+export function SellerKnowledgePage({ embedded = false, expanded = true }: { embedded?: boolean; expanded?: boolean } = {}) {
   const { storeId } = useSellerStore()
-  const [filter, setFilter] = useState<StoreKbKind | undefined>(undefined)
-  const entries = useKbEntries(storeId, filter)
+  const entries = useKbEntries(storeId)
   const removeEntry = useDeleteKbEntry(storeId)
   const createEntry = useCreateKbEntry(storeId)
   const extractFile = useExtractKbFile(storeId)
@@ -352,14 +320,22 @@ export function SellerKnowledgePage() {
   ]
 
   return (
-    <div className="px-5 py-6">
-      <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.knowledge.title}</h1>
-      <p className="mb-5 text-sm text-slate-500">{fa.seller.panel.knowledge.subtitle}</p>
+    <div className={embedded ? '' : 'px-5 py-6'}>
+      {!embedded && (
+        <>
+          <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.knowledge.title}</h1>
+          <p className="mb-5 text-sm text-slate-500">{fa.seller.panel.knowledge.subtitle}</p>
+        </>
+      )}
 
       {/* افزودن دانش جدید — کارت واحد با سه تب، بدون مسیر موازی ChatGPT بیرونی (حذف‌شده) */}
       <div className="mb-5 rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
-        <h2 className="mb-3 text-base font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.knowledge.addTitle}</h2>
+        {!(embedded && !expanded) && <h2 className="mb-3 text-base font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.knowledge.addTitle}</h2>}
 
+        {embedded && !expanded ? (
+          <AddEntryForm storeId={storeId} />
+        ) : (
+        <>
         <div className="mb-4 flex gap-1 rounded-xl bg-slate-900/60 light:bg-slate-100 p-1">
           {addTabs.map(t => (
             <button
@@ -457,6 +433,8 @@ export function SellerKnowledgePage() {
         {(extractFile.isError || extractText.isError) && (
           <p className="mt-3 text-xs text-red-400">{fa.seller.panel.knowledge.extractError}</p>
         )}
+        </>
+        )}
       </div>
 
       {/* برش بی‌صدا دیگر بی‌صدا نیست — بخش ۵.۲ */}
@@ -490,24 +468,6 @@ export function SellerKnowledgePage() {
         </div>
       )}
 
-      <div className="mb-4 flex flex-wrap gap-1.5">
-        <button
-          onClick={() => setFilter(undefined)}
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${!filter ? 'bg-emerald-500 text-white' : 'bg-slate-800 light:bg-slate-100 text-slate-400'}`}
-        >
-          {fa.seller.panel.knowledge.filterAll}
-        </button>
-        {KIND_OPTIONS.map(k => (
-          <button
-            key={k}
-            onClick={() => setFilter(k)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${filter === k ? 'bg-emerald-500 text-white' : 'bg-slate-800 light:bg-slate-100 text-slate-400'}`}
-          >
-            {KIND_LABELS[k]}
-          </button>
-        ))}
-      </div>
-
       {entries.data?.length === 0 && <p className="py-10 text-center text-sm text-slate-500">{fa.seller.panel.knowledge.empty}</p>}
 
       <div className="flex flex-col gap-2.5">
@@ -516,10 +476,7 @@ export function SellerKnowledgePage() {
             <EntryEditForm key={entry.id} storeId={storeId} entry={entry} onDone={() => setEditingId(null)} />
           ) : (
             <div key={entry.id} className="rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white p-4">
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="rounded-full bg-slate-700/50 light:bg-slate-100 px-2 py-0.5 text-[11px] text-slate-400 light:text-slate-600">
-                  {KIND_LABELS[entry.kind]}
-                </span>
+              <div className="mb-1.5 flex items-center justify-end">
                 <div className="flex items-center gap-3">
                   <button onClick={() => setEditingId(entry.id)} className="text-xs text-slate-400 hover:text-slate-200 light:hover:text-slate-700">
                     {fa.seller.panel.knowledge.edit}

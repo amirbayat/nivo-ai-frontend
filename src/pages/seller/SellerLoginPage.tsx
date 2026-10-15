@@ -29,7 +29,7 @@ export function SellerLoginPage() {
     }
     api
       .get<SellerStore[]>('/v2/stores/me')
-      .then(r => navigate(r.data.length > 0 ? (returnTo ?? '/seller/panel/home') : '/seller/onboarding', { replace: true }))
+      .then(r => navigate(r.data.length > 0 ? (returnTo ?? '/seller/panel/today') : '/seller/onboarding', { replace: true }))
       .catch(() => setCheckingSession(false))
   }, [navigate, returnTo])
 

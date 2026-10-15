@@ -25,6 +25,7 @@ type RefundRow = {
 
 type Summary = {
   readyCount: number
+  awaitingSellerConfirmCount?: number
   readyAmountToman: number
   people: number
   overdue: number
@@ -33,7 +34,18 @@ type Summary = {
 
 const TABS = ['READY', 'AWAITING_DESTINATION', 'AWAITING_SELLER_CONFIRM', 'DONE'] as const
 
-export function SellerRefundsPage() {
+// SP-6 — شمارنده‌ی «بازپرداخت‌ها (n)» = READY + AWAITING_SELLER_CONFIRM؛ از همان summary موجود
+export function useRefundsOpenCount(storeId: string): number {
+  const r = useQuery({
+    queryKey: ['seller', 'refunds', storeId, 'summary'],
+    queryFn: () => api.get<Summary>(`/v2/stores/${storeId}/refunds/summary`).then(x => x.data),
+    enabled: !!storeId,
+  })
+  return (r.data?.readyCount ?? 0) + (r.data?.awaitingSellerConfirmCount ?? 0)
+}
+
+// SP-6 — محتوای «بازپرداخت‌ها» به‌صورت کامپوننت تا در بخش «بازپرداخت‌ها»ی تب سفارش‌ها هم استفاده شود
+export function RefundsPanel({ embedded = false }: { embedded?: boolean }) {
   const { storeId } = useSellerStore()
   const qc = useQueryClient()
   const [tab, setTab] = useState<(typeof TABS)[number]>('READY')
@@ -78,14 +90,18 @@ export function SellerRefundsPage() {
   })
 
   return (
-    <div className="px-5 py-6" dir="rtl">
-      <Link to="/seller/panel/orders" className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-slate-400">
-        <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
-          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-        </svg>
-        {fa.seller.panel.refunds.back}
-      </Link>
-      <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.refunds.title}</h1>
+    <div className={embedded ? '' : 'px-5 py-6'} dir="rtl">
+      {!embedded && (
+        <>
+          <Link to="/seller/panel/orders" className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-slate-400">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+            {fa.seller.panel.refunds.back}
+          </Link>
+          <h1 className="mb-4 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.refunds.title}</h1>
+        </>
+      )}
       {summary.isError && (
         <p className="mb-4 rounded-xl border border-red-500/40 p-3 text-sm text-red-300">{fa.seller.panel.refunds.loadError}</p>
       )}
@@ -218,4 +234,8 @@ export function SellerRefundsPage() {
       </div>
     </div>
   )
+}
+
+export function SellerRefundsPage() {
+  return <RefundsPanel />
 }

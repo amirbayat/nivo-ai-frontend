@@ -236,6 +236,8 @@ export interface SellerStore {
   // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۵.۱ — کپی شخصی لینک دمو؛
   // دکمه‌ی «فروشگاه واقعی کن» فقط وقتی نمایش داده می‌شود که این true باشد
   isDemo: boolean
+  // SP-6 — true بعد از اولین گفتگوی واقعی؛ تغییر لینک فروشگاه دیگر ممکن نیست
+  slugLocked?: boolean
   // docs/PRD-instagram-smart-dm-and-ir-intl-split.md بخش ۴.۱ — عمداً بدون instagramAccessToken
   // در این تایپ (با اینکه روی wire هست، مثل bankCardNumber بالا) — فرانت فقط وضعیت را لازم دارد
   instagramBusinessId: string | null

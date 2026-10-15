@@ -38,7 +38,7 @@ export function ImpersonateConsumePage() {
         identifyClarity(data.user.id)
 
         const stores = await api.get<SellerStore[]>('/v2/stores/me').then(r => r.data)
-        navigate(stores.length > 0 ? '/seller/panel/home' : '/explore', { replace: true })
+        navigate(stores.length > 0 ? '/seller/panel/today' : '/explore', { replace: true })
       } catch {
         setError(true)
       }

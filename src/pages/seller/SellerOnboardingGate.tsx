@@ -13,7 +13,7 @@ export function SellerOnboardingGate() {
   if (decision.current === null && stores.data) {
     decision.current = stores.data.some(s => !s.isDemo) ? 'panel' : 'wizard'
   }
-  if (decision.current === 'panel') return <Navigate to="/seller/panel/home" replace />
+  if (decision.current === 'panel') return <Navigate to="/seller/panel/today" replace />
   if (decision.current === 'wizard') return <SellerOnboardingPage />
   if (stores.isError) return <SellerOnboardingPage />
   return <div className="min-h-screen bg-slate-950 light:bg-white" />

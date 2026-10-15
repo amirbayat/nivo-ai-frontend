@@ -165,6 +165,12 @@ export function useResumeOnboarding(storeId: string) {
 // docs/PRD-product-strategy-and-roadmap.md بخش ۳.۲ — فیلدهای ساختاریافته‌ی فروشگاه (ارسال/
 // مرجوعی/معرفی برند/ساعت پاسخ‌گویی)، قابل ویرایش بعد از ثبت‌نام
 export interface UpdateStoreInput {
+  // SP-2 §4.9 «/store/info» — نام و لینک؛ slug فقط تا قبل از اولین گفتگوی واقعی قابل تغییر است (سرور چک می‌کند)
+  name?: string
+  slug?: string
+  instagramUrl?: string
+  telegramUrl?: string
+  websiteUrl?: string
   // docs/PRD-seller-guide-assistant-modal.md بخش ۱.۲ — قبلاً فقط در ساخت فروشگاه قابل‌تنظیم بود
   category?: string
   shippingInfo?: string
@@ -492,16 +498,18 @@ export interface CursorPage<T> {
   counts?: { ACTIVE: number; DRAFT: number; HIDDEN: number }
 }
 
-export function useOrders(storeId: string, status?: SellerOrderStatus, q?: string) {
+export function useOrders(storeId: string, status?: SellerOrderStatus | SellerOrderStatus[], q?: string) {
   const query = q?.trim() || undefined
+  // SP-6 — فهرست وضعیت‌ها (مثلاً «ارسال شده» = SHIPPED + DELIVERED) با ویرگول به سرور می‌رود
+  const statusParam = Array.isArray(status) ? status.join(',') : status
   return useInfiniteQuery({
-    queryKey: keys.seller.orders(storeId, status, query),
+    queryKey: keys.seller.orders(storeId, statusParam, query),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       api
         .get<CursorPage<SellerOrder>>(`/v2/stores/${storeId}/orders`, {
           params: {
-            ...(status ? { status } : {}),
+            ...(statusParam ? { status: statusParam } : {}),
             ...(query ? { q: query } : {}),
             ...(pageParam ? { cursor: pageParam } : {}),
           },
@@ -532,6 +540,7 @@ export function useApproveOrder(storeId: string) {
       }
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
       void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.today(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
     },
   })
@@ -559,6 +568,7 @@ export function useRejectOrder(storeId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
       void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.today(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
     },
   })
@@ -573,6 +583,7 @@ export function useDeliverOrder(storeId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
       void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.today(storeId) })
     },
   })
 }
@@ -585,6 +596,7 @@ export function useOverpayRefund(storeId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
       void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.today(storeId) })
       void qc.invalidateQueries({ queryKey: ['seller', 'refunds', storeId] })
     },
   })
@@ -599,6 +611,7 @@ export function useShipOrder(storeId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
       void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.today(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
     },
   })

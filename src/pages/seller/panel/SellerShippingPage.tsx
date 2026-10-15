@@ -12,7 +12,7 @@ import {
   type CreateShippingRuleInput,
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
-import { DigitsInput } from '@/components/ui/DigitsInput'
+import { PriceInput } from '@/components/ui/PriceInput'
 
 // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۲ (فاز ۱.۵) — ۳ ستون، چک‌باکس‌های
 // قابل‌تیک‌زدن (نه دراپ‌داون تک‌انتخابی)؛ هم فرم افزودن هم ویرایش یک گروه از همین استفاده می‌کنند
@@ -92,7 +92,7 @@ function ShippingRuleRow({ rule, storeId }: { rule: StoreShippingRule; storeId: 
               <p className="mt-1.5 text-xs text-red-400">{fa.seller.panel.shippingRules.provincesEmpty}</p>
             )}
           </div>
-          <DigitsInput kind="int"
+          <PriceInput
             label={fa.seller.panel.shippingRules.costLabel}
             value={cost}
             onChange={setCost}
@@ -172,7 +172,7 @@ function AddShippingRuleForm({ storeId, onDone }: { storeId: string; onDone: () 
         <ProvinceCheckboxGrid selected={provinces} onToggle={toggleProvince} />
       </div>
       <div className="mb-3">
-        <DigitsInput kind="int"
+        <PriceInput
           label={fa.seller.panel.shippingRules.costLabel}
           value={cost}
           onChange={setCost}
@@ -234,7 +234,7 @@ function NationwideRuleCard({ storeId, rule }: { storeId: string; rule?: StoreSh
 
       {rule && (
         <div className="mt-3 flex items-center gap-2">
-          <DigitsInput kind="int"
+          <PriceInput
             value={cost}
             onChange={setCost}
             onBlur={saveCost}
@@ -247,7 +247,7 @@ function NationwideRuleCard({ storeId, rule }: { storeId: string; rule?: StoreSh
   )
 }
 
-export function SellerShippingPage() {
+export function SellerShippingPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { storeId } = useSellerStore()
   const rules = useShippingRules(storeId)
   const [adding, setAdding] = useState(false)
@@ -257,9 +257,13 @@ export function SellerShippingPage() {
   const groupRules = allRules.filter(r => r.provinces.length > 0)
 
   return (
-    <div className="px-5 py-6">
-      <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.shippingRules.title}</h1>
-      <p className="mb-6 text-sm text-slate-500">{fa.seller.panel.shippingRules.subtitle}</p>
+    <div className={embedded ? '' : 'px-5 py-6'}>
+      {!embedded && (
+        <>
+          <h1 className="mb-1.5 text-xl font-bold text-slate-100 light:text-slate-900">{fa.seller.panel.shippingRules.title}</h1>
+          <p className="mb-6 text-sm text-slate-500">{fa.seller.panel.shippingRules.subtitle}</p>
+        </>
+      )}
 
       <NationwideRuleCard storeId={storeId} rule={defaultRule} />
 

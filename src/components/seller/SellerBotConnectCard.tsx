@@ -3,13 +3,14 @@ import { clsx } from 'clsx'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useDisconnectSellerBot, useSellerBotInfo, useSellerBotStatus } from '@/queries/seller.queries'
+import { useSellerBotConnectToken } from '@/queries/sellerV2.queries'
 
 const POLL_MS = 3000
 const POLL_MAX_MS = 2 * 60 * 1000
 
 // R2.3 — اتصال بات مدیریت پنل با وضعیت زنده: دکمه‌ی «باز کردن بات» → هر ۳ ثانیه تا ۲ دقیقه
 // وضعیت چک می‌شود → «وصل شد ✅». variant=home فقط وقتی وصل نیست (یا تازه وصل شده) دیده می‌شود.
-export function SellerBotConnectCard({ storeId, variant }: { storeId: string; variant: 'home' | 'more' }) {
+export function SellerBotConnectCard({ storeId, variant }: { storeId: string; variant: 'home' | 'more' | 'store' }) {
   const info = useSellerBotInfo()
   const username = info.data?.username || env.VITE_SELLER_BOT_USERNAME
   const [waiting, setWaiting] = useState(false)
@@ -17,6 +18,7 @@ export function SellerBotConnectCard({ storeId, variant }: { storeId: string; va
   const [justLinked, setJustLinked] = useState(false)
   const status = useSellerBotStatus(storeId, waiting ? POLL_MS : false)
   const disconnect = useDisconnectSellerBot(storeId)
+  const connectToken = useSellerBotConnectToken(storeId)
   const linked = !!status.data?.linked
 
   useEffect(() => {
@@ -38,14 +40,46 @@ export function SellerBotConnectCard({ storeId, variant }: { storeId: string; va
   if (!username) return null
   if (variant === 'home' && linked && !justLinked) return null
 
+  // SP-7/S9 — اتصال با یک تپ: لینک یک‌بارمصرف t.me/<bot>?start=c_<token>؛ اگر توکن نشد همان بات ساده
+  // (روش قدیمی اشتراک شماره + کد پیامکی) باز می‌شود. پنجره همین‌جا و همزمان باز می‌شود تا پاپ‌آپ‌بلاکر
+  // (iOS) بعد از await جلویش را نگیرد.
   function openBot() {
-    window.open(`https://t.me/${username}`, '_blank', 'noopener,noreferrer')
+    const win = window.open('about:blank', '_blank')
+    connectToken
+      .mutateAsync()
+      .then(r => r.url)
+      .catch(() => `https://t.me/${username}`)
+      .then(url => {
+        if (win) win.location.href = url
+        else window.location.href = url
+      })
     setTimedOut(false)
     setJustLinked(false)
     setWaiting(true)
   }
 
   const p = fa.seller.panel.more
+  if (variant === 'store') {
+    const n = fa.seller.v2.store
+    return (
+      <div className="px-4 py-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-bold text-slate-100 light:text-slate-900">{n.notifTitle}</span>
+          {linked ? (
+            <span className="text-xs font-bold text-emerald-400">{n.notifLinked}</span>
+          ) : (
+            <button type="button" onClick={openBot} disabled={connectToken.isPending} className="rounded-lg bg-emerald-500/15 px-3 py-1.5 text-xs font-bold text-emerald-300 light:text-emerald-700 disabled:opacity-50">
+              {n.notifConnect}
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-slate-400">{n.notifHint}</p>
+        {waiting && <p className="mt-1 text-xs text-amber-400">{p.sellerBotWaiting}</p>}
+        {timedOut && <p className="mt-1 text-xs text-slate-400">{p.sellerBotTimeout}</p>}
+        {justLinked && <p className="mt-1 text-xs font-semibold text-emerald-400">{p.sellerBotJustLinked}</p>}
+      </div>
+    )
+  }
   return (
     <div className="mb-3 rounded-xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5">
       <div className="mb-1 flex items-center justify-between">

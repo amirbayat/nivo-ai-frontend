@@ -17,6 +17,7 @@ import {
 } from '@/queries/seller.queries'
 import { useSellerStore } from './SellerPanelLayout'
 import { DigitsInput } from '@/components/ui/DigitsInput'
+import { PriceInput } from '@/components/ui/PriceInput'
 
 // باگ باندلر: esbuild (Vite deps optimizer) نمی‌تواند named exportهای این پکیج را
 // (که همه در یک UMD comma-expression ساخته می‌شوند: exports.Calendar=X, exports.default=ne, ...)
@@ -163,11 +164,11 @@ function AddDiscountCodeForm({ storeId, onDone }: { storeId: string; onDone: () 
         </button>
       </div>
       <div className="mb-3">
-        <DigitsInput kind="int"
-          label={kind === 'PERCENT' ? fa.seller.panel.discountCodes.valueLabelPercent : fa.seller.panel.discountCodes.valueLabelFixedAmount}
-          value={value}
-          onChange={setValue}
-        />
+        {kind === 'PERCENT' ? (
+          <DigitsInput kind="int" label={fa.seller.panel.discountCodes.valueLabelPercent} value={value} onChange={setValue} />
+        ) : (
+          <PriceInput label={fa.seller.panel.discountCodes.valueLabelFixedAmount} value={value} onChange={setValue} />
+        )}
       </div>
       <div className="mb-3">
         <DigitsInput kind="int"

@@ -63,7 +63,7 @@ export function DemoEntryPage({ role }: { role: DemoRole }) {
     }
     try {
       const { slug } = await ensureDemoStore.mutateAsync(category)
-      navigate(role === 'seller' ? '/seller/panel/home' : `/shop/${slug}`, { replace: true })
+      navigate(role === 'seller' ? '/seller/panel/today' : `/shop/${slug}`, { replace: true })
     } catch {
       setError(fa.demo.setupError)
     }

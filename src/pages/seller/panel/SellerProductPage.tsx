@@ -954,7 +954,7 @@ export function SellerProductPage() {
           fromFirstProduct
           onClose={() => {
             setChat(null)
-            navigate('/seller/panel/home')
+            navigate('/seller/panel/today')
           }}
         />
       )}

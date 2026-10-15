@@ -1,8 +1,8 @@
 import { createContext, useContext } from 'react'
-import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { useMyStores, useStoreBadges } from '@/queries/seller.queries'
+import { useMyStores, useStoreBadges, useStoreCompleteness } from '@/queries/seller.queries'
 import { useSellerAlerts } from '@/hooks/useSellerAlerts'
 import { useConvertDemoStoreToReal } from '@/queries/demo.queries'
 import { extractErrorMessage } from '@/lib/sellerProduct'
@@ -37,10 +37,11 @@ export function useSellerStore(): SellerStoreCtx {
   return ctx
 }
 
-function HomeIcon() {
+function TodayIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
-      <path d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-3a1 1 0 01-1-1v-3H9v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-5">
+      <rect x="4" y="5" width="16" height="15" rx="3" />
+      <path d="M4 10h16M9 3v4M15 3v4" />
     </svg>
   )
 }
@@ -51,13 +52,6 @@ function OrdersIcon() {
     </svg>
   )
 }
-function AttentionIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
-      <path fillRule="evenodd" d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM8.5 16a1.5 1.5 0 003 0h-3z" clipRule="evenodd" />
-    </svg>
-  )
-}
 function ProductsIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
@@ -65,31 +59,20 @@ function ProductsIcon() {
     </svg>
   )
 }
-function MoreIcon() {
+function StoreIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
-      <path d="M4 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm5 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm5 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-5">
+      <path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0A2.7 2.7 0 0020 9M10 20v-5h4v5" />
     </svg>
   )
 }
 
-// R3.6 — صفحه‌هایی که از «بیشتر» باز می‌شوند؛ تب «بیشتر» روی آن‌ها active می‌ماند و هدر بازگشت دارند
-const MORE_SUBPAGES = [
-  'store-settings',
-  'knowledge',
-  'credit',
-  'bank-cards',
-  'discount-codes',
-  'instagram',
-  'shipping-rules',
-  'advertising',
-  'channel-stats',
-  'dashboard',
-  'help',
-]
-
-function isMoreSubpage(pathname: string): boolean {
-  return MORE_SUBPAGES.some(seg => pathname === `/seller/panel/${seg}` || pathname.startsWith(`/seller/panel/${seg}/`))
+// SP-6 — فقط این چهار صفحه‌ی اصلی نوار پایین دارند؛ بقیه (محصول، گفتگو، زیرصفحه‌های فروشگاه) تمام‌صفحه با
+// دکمه‌ی ثابت پایین خودشان هستند و نوار پایین مزاحمشان نمی‌شود
+const ROOT_TABS = ['today', 'orders', 'products', 'store']
+function isRootTab(pathname: string): boolean {
+  const seg = pathname.replace(/^\/seller\/panel\/?/, '').replace(/\/$/, '')
+  return ROOT_TABS.includes(seg)
 }
 
 function NavItem({
@@ -98,12 +81,14 @@ function NavItem({
   label,
   badge,
   forceActive,
+  dot,
 }: {
   to: string
   icon: React.ReactNode
   label: string
   badge?: number
   forceActive?: boolean
+  dot?: boolean
 }) {
   return (
     <NavLink
@@ -117,6 +102,7 @@ function NavItem({
     >
       {icon}
       {label}
+      {dot && <span className="absolute top-2 right-[calc(50%-14px)] size-2.5 rounded-full bg-red-500" aria-label="!" />}
       {!!badge && (
         <span className="absolute top-1 right-[calc(50%-18px)] flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
           {badge > 9 ? '9+' : badge}
@@ -193,7 +179,7 @@ function DemoBanner({ store }: { store: SellerStore }) {
             onClick={() => {
               if (!window.confirm(fa.seller.panel.demoBanner.convertConfirm)) return
               convertToReal.mutate(undefined, {
-                onSuccess: () => navigate('/seller/panel/home'),
+                onSuccess: () => navigate('/seller/panel/today'),
               })
             }}
             className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
@@ -229,7 +215,7 @@ function CreditExhaustedBanner() {
       <div className="flex flex-wrap items-center justify-between gap-2 lg:mx-auto lg:max-w-4xl">
         <p className="text-sm text-red-300 light:text-red-700">{fa.seller.panel.creditExhaustedBanner.text}</p>
         <NavLink
-          to="/seller/panel/credit"
+          to="/seller/panel/store/credit"
           className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-400"
         >
           {fa.seller.panel.creditExhaustedBanner.cta}
@@ -239,32 +225,18 @@ function CreditExhaustedBanner() {
   )
 }
 
-// R3.6 — هدر صفحه‌های زیر «بیشتر»: شورون بازگشت رو به راست (در RTL «عقب» = راست)
-function MoreSubpageHeader() {
-  return (
-    <div className="border-b border-slate-800 light:border-slate-200 px-4 py-2.5 lg:hidden">
-      <Link
-        to="/seller/panel/more"
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-slate-300 light:text-slate-700"
-      >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden="true">
-          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-        </svg>
-        {fa.seller.panel.nav.more}
-      </Link>
-    </div>
-  )
-}
-
 export function SellerPanelLayout() {
   const { pathname } = useLocation()
-  const inMoreSubpage = isMoreSubpage(pathname)
+  const rootTab = isRootTab(pathname)
   const { data: stores, isLoading, isError, refetch } = useMyStores()
   const store = stores?.[0]
   // R2.1 — شمارنده‌ها از endpoint سبک (نه بار کردن کل لیست محصولات/مکالمه‌ها فقط برای شمردن)
   const badges = useStoreBadges(store?.id ?? '')
-  const attentionBadge = (badges.data?.attention ?? 0) + (badges.data?.lowStock ?? 0)
-  const receiptsBadge = badges.data?.receipts ?? 0
+  // SP-6 — «امروز» = رسیدها + مشتری‌های منتظر + مشکل‌ها + بازپرداخت عقب‌افتاده؛ کم‌بودن موجودی دیگر
+  // در هیچ نشانی نیست (فوری نیست و نشان را باد می‌کرد)
+  const todayBadge = (badges.data?.receipts ?? 0) + (badges.data?.attention ?? 0) + (badges.data?.issues ?? 0) + (badges.data?.refundsOverdue ?? 0)
+  const completeness = useStoreCompleteness(store?.id ?? '')
+  const noPayment = completeness.data ? !completeness.data.launch.hasPaymentMethod : false
   useSellerAlerts(badges.data?.receipts, badges.data?.attention)
 
   if (isLoading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
@@ -327,47 +299,27 @@ export function SellerPanelLayout() {
         <div className="flex flex-1 flex-col lg:flex-row">
           {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۵ — از lg به بالا، سایدبار سمت راست جایگزین bottom nav */}
           <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-l lg:border-slate-800 light:lg:border-slate-200 lg:px-3 lg:py-6">
-            <SidebarItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
-            <SidebarItem
-              to="/seller/panel/orders"
-              icon={<OrdersIcon />}
-              label={fa.seller.panel.nav.orders}
-              badge={receiptsBadge}
-            />
-            <SidebarItem
-              to="/seller/panel/attention"
-              icon={<AttentionIcon />}
-              label={fa.seller.panel.nav.attention}
-              badge={attentionBadge}
-            />
+            <SidebarItem to="/seller/panel/today" icon={<TodayIcon />} label={fa.seller.v2.today.title} badge={todayBadge} />
+            <SidebarItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
             <SidebarItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
-            <SidebarItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} forceActive={inMoreSubpage} />
+            <SidebarItem to="/seller/panel/store" icon={<StoreIcon />} label={fa.seller.v2.store.title} />
           </aside>
 
-          <div className="flex-1 pb-16 lg:pb-0">
-            {inMoreSubpage && <MoreSubpageHeader />}
+          <div className={clsx('flex-1 lg:pb-0', rootTab ? 'pb-16' : 'pb-0')}>
             <div className="lg:mx-auto lg:max-w-4xl">
               <Outlet />
             </div>
           </div>
 
-          <nav className="fixed inset-x-0 bottom-0 flex lg:hidden border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur">
-            <NavItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
-            <NavItem
-              to="/seller/panel/orders"
-              icon={<OrdersIcon />}
-              label={fa.seller.panel.nav.orders}
-              badge={receiptsBadge}
-            />
-            <NavItem
-              to="/seller/panel/attention"
-              icon={<AttentionIcon />}
-              label={fa.seller.panel.nav.attention}
-              badge={attentionBadge}
-            />
-            <NavItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
-            <NavItem to="/seller/panel/more" icon={<MoreIcon />} label={fa.seller.panel.nav.more} forceActive={inMoreSubpage} />
-          </nav>
+          {rootTab && (
+            <nav className="fixed inset-x-0 bottom-0 z-30 flex lg:hidden border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+              {/* در RTL اولین آیتم سمت راست است: «امروز» راست‌ترین تب */}
+              <NavItem to="/seller/panel/today" icon={<TodayIcon />} label={fa.seller.v2.today.title} badge={todayBadge} />
+              <NavItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+              <NavItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
+              <NavItem to="/seller/panel/store" icon={<StoreIcon />} label={fa.seller.v2.store.title} dot={noPayment} />
+            </nav>
+          )}
         </div>
       </div>
     </SellerStoreContext.Provider>

@@ -41,27 +41,22 @@ import { SellerLoginPage } from '@/pages/seller/SellerLoginPage'
 import { SellerOtpPage } from '@/pages/seller/SellerOtpPage'
 import { SellerOnboardingGate } from '@/pages/seller/SellerOnboardingGate'
 import { SellerPanelLayout } from '@/pages/seller/panel/SellerPanelLayout'
-import { SellerHomePage } from '@/pages/seller/panel/SellerHomePage'
 import { SellerOrdersPage } from '@/pages/seller/panel/SellerOrdersPage'
-import { SellerRefundsPage } from '@/pages/seller/panel/SellerRefundsPage'
 import { PublicOrderPage } from '@/pages/shop/PublicOrderPage'
-import { SellerAttentionPage } from '@/pages/seller/panel/SellerAttentionPage'
 import { SellerProductsPage } from '@/pages/seller/panel/SellerProductsPage'
+import { SellerTodayPage } from '@/pages/seller/panel/SellerTodayPage'
+import { SellerChatPage } from '@/pages/seller/panel/SellerChatPage'
+import { SellerStorePage } from '@/pages/seller/panel/store/SellerStorePage'
+import { StoreInfoPage } from '@/pages/seller/panel/store/StoreInfoPage'
+import { StoreShippingPage } from '@/pages/seller/panel/store/StoreShippingPage'
+import { StoreBotPage } from '@/pages/seller/panel/store/StoreBotPage'
+import { StoreAdvancedPage } from '@/pages/seller/panel/store/StoreAdvancedPage'
+import { StoreCreditPage, StoreDiscountsPage, StoreHelpPage, StorePaymentsPage, StoreReportsPage } from '@/pages/seller/panel/store/StoreWrappers'
 import { SellerProductPage } from '@/pages/seller/panel/SellerProductPage'
 import { SellerProductsBatchPage } from '@/pages/seller/panel/SellerProductsBatchPage'
-import { SellerMorePage } from '@/pages/seller/panel/SellerMorePage'
-import { SellerStoreSettingsPage } from '@/pages/seller/panel/SellerStoreSettingsPage'
-import { SellerKnowledgePage } from '@/pages/seller/panel/SellerKnowledgePage'
-import { SellerCreditPage } from '@/pages/seller/panel/SellerCreditPage'
-import { SellerBankCardsPage } from '@/pages/seller/panel/SellerBankCardsPage'
-import { SellerDiscountCodesPage } from '@/pages/seller/panel/SellerDiscountCodesPage'
 import { SellerInstagramConnectPage } from '@/pages/seller/panel/SellerInstagramConnectPage'
 import { SellerInstagramAutomationPage } from '@/pages/seller/panel/SellerInstagramAutomationPage'
-import { SellerShippingPage } from '@/pages/seller/panel/SellerShippingPage'
 import { SellerAdvertisingPage } from '@/pages/seller/panel/SellerAdvertisingPage'
-import { SellerChannelStatsPage } from '@/pages/seller/panel/SellerChannelStatsPage'
-import { SellerDashboardPage } from '@/pages/seller/panel/SellerDashboardPage'
-import { SellerHelpCenterPage } from '@/pages/seller/panel/SellerHelpCenterPage'
 import { ShopChatPage } from '@/pages/shop/ShopChatPage'
 import { ShopOrdersPage } from '@/pages/shop/ShopOrdersPage'
 import { ExploreHomePage } from '@/pages/marketplace/ExploreHomePage'
@@ -80,6 +75,13 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace />
   }
   return <>{children}</>
+}
+
+// /seller/panel/attention?conversationId=X ← /seller/panel/chats/X (بدون پارامتر ← امروز)
+function AttentionRedirect() {
+  const { search } = useLocation()
+  const id = new URLSearchParams(search).get('conversationId')
+  return <Navigate to={id ? `/seller/panel/chats/${id}` : '/seller/panel/today'} replace />
 }
 
 function GuestRoute({ children }: { children: ReactNode }) {
@@ -135,30 +137,43 @@ export function AppRouter() {
 
       {/* docs/PRD-mvp-launch-plan.md گام ۳ — پنل فروشنده mobile-first، ناوبری پایین با ۵ تب */}
       <Route path="/seller/panel" element={<ProtectedRoute><SellerPanelLayout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="home" replace />} />
-        <Route path="home" element={<SellerHomePage />} />
+        <Route index element={<Navigate to="today" replace />} />
+        <Route path="today" element={<SellerTodayPage />} />
         <Route path="orders" element={<SellerOrdersPage />} />
-        <Route path="refunds" element={<SellerRefundsPage />} />
-        <Route path="attention" element={<SellerAttentionPage />} />
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="products/batch" element={<SellerProductsBatchPage />} />
         <Route path="products/:id" element={<SellerProductPage />} />
-        <Route path="more" element={<SellerMorePage />} />
-        <Route path="store-settings" element={<SellerStoreSettingsPage />} />
-        <Route path="knowledge" element={<SellerKnowledgePage />} />
-        <Route path="credit" element={<SellerCreditPage />} />
-        <Route path="bank-cards" element={<SellerBankCardsPage />} />
-        <Route path="discount-codes" element={<SellerDiscountCodesPage />} />
+        <Route path="chats/:conversationId" element={<SellerChatPage />} />
+        <Route path="store" element={<SellerStorePage />} />
+        <Route path="store/info" element={<StoreInfoPage />} />
+        <Route path="store/payments" element={<StorePaymentsPage />} />
+        <Route path="store/shipping" element={<StoreShippingPage />} />
+        <Route path="store/bot" element={<StoreBotPage />} />
+        <Route path="store/advanced" element={<StoreAdvancedPage />} />
+        <Route path="store/reports" element={<StoreReportsPage />} />
+        <Route path="store/credit" element={<StoreCreditPage />} />
+        <Route path="store/discounts" element={<StoreDiscountsPage />} />
+        <Route path="store/help" element={<StoreHelpPage />} />
+        {/* مسیرهای قدیمی (لینک پیامک/تلگرام/اعلان‌های قدیمی) — SP-6 §3.2 */}
+        <Route path="home" element={<Navigate to="/seller/panel/today" replace />} />
+        <Route path="attention" element={<AttentionRedirect />} />
+        <Route path="refunds" element={<Navigate to="/seller/panel/orders?view=refunds" replace />} />
+        <Route path="more" element={<Navigate to="/seller/panel/store" replace />} />
+        <Route path="store-settings" element={<Navigate to="/seller/panel/store" replace />} />
+        <Route path="knowledge" element={<Navigate to="/seller/panel/store/bot" replace />} />
+        <Route path="bank-cards" element={<Navigate to="/seller/panel/store/payments" replace />} />
+        <Route path="credit" element={<Navigate to="/seller/panel/store/credit" replace />} />
+        <Route path="discount-codes" element={<Navigate to="/seller/panel/store/discounts" replace />} />
+        <Route path="shipping-rules" element={<Navigate to="/seller/panel/store/shipping" replace />} />
+        <Route path="dashboard" element={<Navigate to="/seller/panel/store/reports" replace />} />
+        <Route path="channel-stats" element={<Navigate to="/seller/panel/store/reports" replace />} />
+        <Route path="help" element={<Navigate to="/seller/panel/store/help" replace />} />
         <Route path="instagram" element={<SellerInstagramConnectPage />} />
         <Route path="instagram/rules" element={<SellerInstagramAutomationPage />} />
-        <Route path="shipping-rules" element={<SellerShippingPage />} />
         <Route path="advertising" element={<SellerAdvertisingPage />} />
-        <Route path="channel-stats" element={<SellerChannelStatsPage />} />
-        <Route path="dashboard" element={<SellerDashboardPage />} />
-        <Route path="help" element={<SellerHelpCenterPage />} />
       </Route>
       {/* بازگشت‌سازگار: جایگزین گام۲ (SellerDashboardPlaceholderPage حذف شد) */}
-      <Route path="/seller/dashboard-placeholder" element={<Navigate to="/seller/panel/home" replace />} />
+      <Route path="/seller/dashboard-placeholder" element={<Navigate to="/seller/panel/today" replace />} />
 
       {/* docs/PRD-mvp-launch-plan.md گام ۲ — چت عمومی مشتری، کاملاً بدون لاگین؛ نمی‌شود
           /chat/:slug باشد چون آن مسیر از قبل برای چت لاگین‌شده‌ی نیوو گرفته شده (پایین‌تر) */}

@@ -51,7 +51,7 @@ export function SellerOtpPage() {
       // بعد از این، توکن در localStorage ذخیره شده (onSuccess داخل useVerifyOtp) — حالا
       // مشخص می‌کنیم فروشنده قبلاً فروشگاه ساخته یا باید وارد ویزارد شود (بخش ۱.۲ سند)
       const stores = await api.get<SellerStore[]>('/v2/stores/me').then(r => r.data)
-      navigate(stores.length > 0 ? '/seller/panel/home' : '/seller/onboarding', { replace: true })
+      navigate(stores.length > 0 ? '/seller/panel/today' : '/seller/onboarding', { replace: true })
     } catch {
       setError(fa.common.error)
     }
