@@ -410,6 +410,11 @@ export function useShopChat(slug: string, productId?: string) {
             const text = event.text
             setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, text } : m)))
           }
+          if (event.type === 'replace' && event.text) {
+            // گارد قیمت متن نهایی را عوض کرد
+            const text = event.text
+            setMessages((prev) => prev.map((m) => (m.id === bubbleId ? { ...m, text } : m)))
+          }
           if (event.type === 'done') {
             sawDone = true
             setStreamNote(null)
