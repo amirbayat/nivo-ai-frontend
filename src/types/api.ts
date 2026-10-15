@@ -232,6 +232,16 @@ export interface SellerStore {
   instagramConnectedAt: string | null
 }
 
+// R2.1 — شمارنده‌های سبک نوار پنل
+export interface StoreBadges {
+  receipts: number
+  attention: number
+  issues: number
+  refundsOverdue: number
+  lowStock: number
+  hasWeightProducts: boolean
+}
+
 // بخش ۳.۱ — کارت «خانه»‌ی پنل
 export interface StoreToday {
   receipts: { id: string; orderCode: string; receiptVerifiedMatch: boolean | null }[]

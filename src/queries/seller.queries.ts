@@ -28,6 +28,7 @@ import type {
   ProductEnrichmentDraft,
   ProductImportFromUrlResult,
   SellerBotStatus,
+  StoreBadges,
   SellerConversationDetail,
   SellerDashboard,
   SellerOrder,
@@ -179,12 +180,28 @@ export function useUpdateStore(storeId: string) {
   })
 }
 
+// R2.1 — پنل زنده: وقتی تب دیده می‌شود هر ۳۰ ثانیه؛ در پس‌زمینه poll نمی‌شود (پیش‌فرض react-query)
+export const PANEL_POLL_MS = 30_000
+
 // بخش ۳.۱ — امتیاز کلی تکمیل‌بودن فروشگاه + چک‌لیست، برای کارت «خانه»‌ی پنل
 export function useStoreToday(storeId: string) {
   return useQuery({
     queryKey: keys.seller.today(storeId),
     queryFn: () => api.get<StoreToday>(`/v2/stores/${storeId}/today`).then(r => r.data),
     enabled: !!storeId,
+    refetchInterval: PANEL_POLL_MS,
+    refetchIntervalInBackground: false,
+  })
+}
+
+// R2.1 — شمارنده‌های سبک برای نشان‌های نوار پنل و هشدار صوتی
+export function useStoreBadges(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.badges(storeId),
+    queryFn: () => api.get<StoreBadges>(`/v2/stores/${storeId}/badges`).then(r => r.data),
+    enabled: !!storeId,
+    refetchInterval: PANEL_POLL_MS,
+    refetchIntervalInBackground: false,
   })
 }
 
@@ -434,6 +451,8 @@ export function useOrders(storeId: string, status?: SellerOrderStatus, q?: strin
         })
         .then(r => r.data),
     enabled: !!storeId,
+    refetchInterval: PANEL_POLL_MS,
+    refetchIntervalInBackground: false,
   })
 }
 
@@ -453,6 +472,7 @@ export function useApproveOrder(storeId: string) {
           .addToast(fa.seller.panel.orders.stockShortageToast(data.stockWarnings.map(w => w.name).join('، ')), 12000)
       }
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
     },
   })
@@ -479,6 +499,7 @@ export function useRejectOrder(storeId: string) {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
     },
   })
@@ -490,7 +511,10 @@ export function useDeliverOrder(storeId: string) {
   return useMutation({
     mutationFn: (orderId: string) =>
       api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/deliver`),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
+    },
   })
 }
 
@@ -501,6 +525,7 @@ export function useOverpayRefund(storeId: string) {
       api.post(`/v2/stores/${storeId}/orders/${orderId}/refund-overpay`),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
       void qc.invalidateQueries({ queryKey: ['seller', 'refunds', storeId] })
     },
   })
@@ -514,6 +539,7 @@ export function useShipOrder(storeId: string) {
       api.post<SellerOrder>(`/v2/stores/${storeId}/orders/${orderId}/ship`, { carrier, trackingCode }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['seller', 'orders', storeId] })
+      void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
       void qc.invalidateQueries({ queryKey: keys.seller.products(storeId) })
     },
   })
@@ -525,7 +551,8 @@ export function useNeededAttention(storeId: string) {
     queryFn: () =>
       api.get<NeededAttentionConversation[]>(`/v2/stores/${storeId}/conversations`).then(r => r.data),
     enabled: !!storeId,
-    refetchInterval: 20_000,
+    refetchInterval: PANEL_POLL_MS,
+    refetchIntervalInBackground: false,
   })
 }
 

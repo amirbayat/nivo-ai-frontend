@@ -2,14 +2,12 @@ import { createContext, useContext } from 'react'
 import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { useMyStores, useNeededAttention, useProducts } from '@/queries/seller.queries'
+import { useMyStores, useStoreBadges } from '@/queries/seller.queries'
+import { useSellerAlerts } from '@/hooks/useSellerAlerts'
 import { useConvertDemoStoreToReal } from '@/queries/demo.queries'
-import { effectiveStock, extractErrorMessage } from '@/lib/sellerProduct'
+import { extractErrorMessage } from '@/lib/sellerProduct'
 import { GoldPriceTicker } from '@/components/shop/GoldPriceTicker'
 import type { SellerStore } from '@/types/api'
-
-// docs/PRD-seller-growth-tools-and-marketplace-trust.md بخش ۲.۱
-const LOW_STOCK_THRESHOLD = 3
 
 interface SellerStoreCtx {
   storeId: string
@@ -203,10 +201,11 @@ function CreditExhaustedBanner() {
 export function SellerPanelLayout() {
   const { data: stores, isLoading, isError, refetch } = useMyStores()
   const store = stores?.[0]
-  const attention = useNeededAttention(store?.id ?? '')
-  const products = useProducts(store?.id ?? '')
-  const lowStockCount = products.data?.filter(p => effectiveStock(p) <= LOW_STOCK_THRESHOLD).length ?? 0
-  const attentionBadge = (attention.data?.length ?? 0) + lowStockCount
+  // R2.1 — شمارنده‌ها از endpoint سبک (نه بار کردن کل لیست محصولات/مکالمه‌ها فقط برای شمردن)
+  const badges = useStoreBadges(store?.id ?? '')
+  const attentionBadge = (badges.data?.attention ?? 0) + (badges.data?.lowStock ?? 0)
+  const receiptsBadge = badges.data?.receipts ?? 0
+  useSellerAlerts(badges.data?.receipts, badges.data?.attention)
 
   if (isLoading) return <div className="min-h-screen bg-slate-950 light:bg-white" />
   // 0.13g — خطای لود (شبکه/۵۰۰) با «بدون فروشگاه» فرق دارد؛ فروشنده‌ی موجود نباید به ویزارد
@@ -233,7 +232,7 @@ export function SellerPanelLayout() {
   // همان شرط SellerStoreSettingsPage.tsx:99 — دسته‌بندی طلا/جواهر یا حداقل یک محصول وزنی موجود
   const showGoldTicker =
     store.category === 'جواهرات و اکسسوری' ||
-    (products.data?.some(p => p.pricingModel === 'WEIGHT_BASED_FORMULA') ?? false)
+    (badges.data?.hasWeightProducts ?? false)
 
   return (
     <SellerStoreContext.Provider
@@ -269,7 +268,12 @@ export function SellerPanelLayout() {
           {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۲.۵ — از lg به بالا، سایدبار سمت راست جایگزین bottom nav */}
           <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-l lg:border-slate-800 light:lg:border-slate-200 lg:px-3 lg:py-6">
             <SidebarItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
-            <SidebarItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+            <SidebarItem
+              to="/seller/panel/orders"
+              icon={<OrdersIcon />}
+              label={fa.seller.panel.nav.orders}
+              badge={receiptsBadge}
+            />
             <SidebarItem
               to="/seller/panel/attention"
               icon={<AttentionIcon />}
@@ -288,7 +292,12 @@ export function SellerPanelLayout() {
 
           <nav className="fixed inset-x-0 bottom-0 flex lg:hidden border-t border-slate-800 light:border-slate-200 bg-slate-900/95 light:bg-white/95 backdrop-blur">
             <NavItem to="/seller/panel/home" icon={<HomeIcon />} label={fa.seller.panel.nav.home} />
-            <NavItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+            <NavItem
+              to="/seller/panel/orders"
+              icon={<OrdersIcon />}
+              label={fa.seller.panel.nav.orders}
+              badge={receiptsBadge}
+            />
             <NavItem
               to="/seller/panel/attention"
               icon={<AttentionIcon />}
