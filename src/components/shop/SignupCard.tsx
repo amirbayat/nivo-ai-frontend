@@ -244,7 +244,10 @@ export function SignupCard({ prefillPhone, autoFocus, onClose }: { prefillPhone?
 
       {step === 'code' && (
         <div className="mt-1 flex flex-col gap-3">
-          <p className="text-[13px] leading-6 text-[var(--shop-text-2)]">{t.codeSent(maskPhone(phone))}</p>
+          <p className="text-[13px] leading-6 text-[var(--shop-text-2)]">{t.codeSentBefore}
+            <bdi dir="ltr">{maskPhone(phone)}</bdi>
+            {t.codeSentAfter}
+          </p>
           {waitlist ? (
             <p aria-live="polite" className="rounded-xl bg-[var(--shop-surface-2)] p-3 text-sm leading-7 text-[var(--shop-text)]">
               {waitlist}
