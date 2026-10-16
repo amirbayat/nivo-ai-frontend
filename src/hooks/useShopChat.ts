@@ -1002,18 +1002,23 @@ export function useShopChat(slug: string, productId?: string) {
   // عملیات حذف و نمایش از CART_SUMMARY برگشتی می‌آید؛ با رد سرور (ناموجود/قفل) عملیات برمی‌گردد و متن سرور toast می‌شود
   const [pendingCartOps, setPendingCartOps] = useState<CartOp[]>([])
   const cartQueueRef = useRef<Promise<void>>(Promise.resolve())
+  // docs/PRD-fixes-after-buyer-redesign.md F1/F15 — هر عملیات سبد به «نسل» نخ همان لحظه‌ی ثبتش وصل است؛
+  // «گفتگوی تازه» نسل را جلو می‌برد و جواب/اجرای عملیات نسل قبل نادیده گرفته می‌شود. سوییچ خودِ سرور
+  // (switchedConversationId) نسل را عوض نمی‌کند: عملیات بعدی صف با sessionRef همان لحظه‌ی اجرا می‌روند
+  const cartEpochRef = useRef(0)
   const cartListenerRef = useRef<((result: { action: ShopAction; op: CartOp; ok: boolean; latencyMs: number }) => void) | null>(null)
 
   const runCartAction = useCallback(
     (action: ShopAction, op: CartOp) => {
       setPendingCartOps((prev) => [...prev, op])
+      const epoch = cartEpochRef.current
       cartQueueRef.current = cartQueueRef.current.then(async () => {
         // پیام تایپی در حال اجراست: صبر می‌کنیم تا نوبت‌ها با هم قاطی نشوند (ردیف ۵ از §۱۳)
         while (sendingRef.current) await new Promise((resolve) => setTimeout(resolve, 150))
         let ok = false
         try {
           const session = sessionRef.current
-          if (!session || viewingHistoryRef.current) return
+          if (!session || viewingHistoryRef.current || epoch !== cartEpochRef.current) return
           const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
             method: 'POST',
             headers: {
@@ -1028,6 +1033,23 @@ export function useShopChat(slug: string, productId?: string) {
             throw new Error(typeof body?.message === 'string' ? body.message : fa.common.error)
           }
           const data = (await res.json()) as ShopSendMessageResponse
+          if (epoch !== cartEpochRef.current) return
+          // سرور برای مکالمه‌ی دارای سفارش، مکالمه‌ی تازه ساخته (ادامه‌ی همان منطق applyReply):
+          // سشن عوض می‌شود و نخ از نو با مکالمه‌ی جدید شروع می‌شود؛ سفارش قبلی در تاریخچه می‌ماند
+          if (data.switchedConversationId && data.switchedConversationId !== session.conversationId) {
+            const next: ShopSession = { conversationId: data.switchedConversationId, sessionToken: session.sessionToken }
+            setShopSession(slug, next)
+            sessionRef.current = next
+            liveSessionRef.current = next
+            setPendingCartOps([])
+            setMessages([])
+            setOlderMessages([])
+            oldestCreatedAtRef.current = null
+            setHasMoreEvents(false)
+            setAwaitingReview(false)
+            setAwaitingSatisfaction(false)
+            void fetchHistory()
+          }
           const block = data.uiBlocks.find((item) => item.type === 'CART_SUMMARY')
           if (block) {
             ok = true
@@ -1056,7 +1078,7 @@ export function useShopChat(slug: string, productId?: string) {
         }
       })
     },
-    [applyReply],
+    [applyReply, slug, fetchHistory],
   )
 
   const cartAdd = useCallback(
@@ -1102,6 +1124,8 @@ export function useShopChat(slug: string, productId?: string) {
       setIsDemo(data.isDemo)
       streamEnabledRef.current = !!data.shopStreamEnabled
       setResponseStrategyState(data.responseStrategy)
+      cartEpochRef.current += 1
+      setPendingCartOps([])
       setMessages([])
       setOlderMessages([])
       oldestCreatedAtRef.current = null
@@ -1209,6 +1233,7 @@ export function useShopChat(slug: string, productId?: string) {
     if (sending) return
     const current = liveSessionRef.current
     if (!current) return
+    cartEpochRef.current += 1
     setViewingHistory(false)
     setMessages([])
     setError(null)
