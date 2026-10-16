@@ -8,6 +8,8 @@ import { fetchPublicProductsByIds, useStoreProducts } from '@/hooks/useStoreProd
 import { CommentModal } from '@/components/shop/CommentModal'
 import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
 import { LeadHero } from '@/components/shop/LeadHero'
+import { LeadSignupContext } from '@/components/shop/LeadSignupContext'
+import { SignupCard } from '@/components/shop/SignupCard'
 import { ShopHeader } from '@/components/shop/ShopHeader'
 import { ShopViewSwitch, type ShopView } from '@/components/shop/ShopViewSwitch'
 import { ShopMenuSheet } from '@/components/shop/ShopMenuSheet'
@@ -52,6 +54,8 @@ export function ShopChatPage() {
     storeLogoKey,
     isDemo,
     mode,
+    submitLeadPhone,
+    markLeadVerified,
     notFound,
     suspended,
     conversationId,
@@ -101,6 +105,8 @@ export function ShopChatPage() {
   // docs/PRD-nivo-lead-shop-seller-signup.md §4.4 — فروشگاه لید (صفحه‌ی ثبت‌نام نیوو): هیچ UI سفارش‌محوری نمایش داده نمی‌شود
   const isLead = mode === 'LEAD'
   const [menuOpen, setMenuOpen] = useState(false)
+  // کارت ثبت‌نام باز شده توسط خود کاربر (چیپ/هدر/منو) — بالای نوار پرسش، نه مودال (کیبورد مرورگر اینستاگرام)
+  const [signupOpen, setSignupOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const { about, failed: aboutFailed, reload: reloadAbout } = useStoreAbout(slug)
   const addToast = useToastStore((s) => s.addToast)
@@ -155,6 +161,21 @@ export function ShopChatPage() {
   // ورود F — فروشگاه بدون محصول فعال: فقط گفتگو؛ در حالت لید همیشه گفتگو (حتی اگر بعداً محصولی اضافه شد)
   const noProducts = catalog.loaded && catalog.catalogTotal === 0
   const view: ShopView = isLead || viewingHistory || noProducts || urlWantsChat || bootChat ? 'chat' : 'products'
+
+  // UTM لینک اینستاگرام (§5.6): یک‌بار در sessionStorage نگه داشته می‌شود تا با رفرش یا حذف از URL از دست نرود
+  useEffect(() => {
+    try {
+      const found: Record<string, string> = {}
+      for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {
+        const v = searchParams.get(key)?.trim().slice(0, 100)
+        if (v) found[key] = v
+      }
+      if (Object.keys(found).length > 0) sessionStorage.setItem('nivo:leadUtm', JSON.stringify(found))
+    } catch {
+      /* بدون sessionStorage UTM ثبت نمی‌شود */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // عنوان تب در حالت لید؛ EventsPageViewTracker فقط روی تغییر مسیر عنوان را می‌نویسد، پس این effect بعد از لود mode می‌ماند
   useEffect(() => {
@@ -440,11 +461,10 @@ export function ShopChatPage() {
     logUiEvent('checkout_sheet_opened', { step: step === 'method' ? 'method' : step, auto })
     setCheckoutOpen(true)
   }
-  // LS-1: دکمه‌ی «ثبت‌نام رایگان» فعلاً به ورود فروشنده می‌رود (return به onboarding)؛ در LS-3 با کارت داخل چت جایگزین می‌شود.
-  // navigate داخل همان تب است (مرورگر درون‌برنامه‌ای اینستاگرام — PRD §5.4)
+  // دکمه‌ی «ثبت‌نام رایگان» (هدر/منو/چیپ): کارت ثبت‌نام داخل همین صفحه باز می‌شود، نه صفحه‌ی جدا (PRD §4.3)
   function goToSignup() {
     logUiEvent('lead_signup_open')
-    navigate(fa.shop.lead.signupPath)
+    setSignupOpen(true)
   }
   function openAbout() {
     logUiEvent('about_opened')
@@ -520,6 +540,11 @@ export function ShopChatPage() {
     }
     const key = label === t.chipHow ? 'how' : label === t.chipPrice ? 'price' : 'demo'
     logUiEvent(`lead_chip_${key}`)
+    // دمو: همان تب (مرورگر اینستاگرام تب جدید را بد باز می‌کند — PRD §5.4)؛ بدون فراخوان مدل
+    if (key === 'demo') {
+      navigate('/demo/seller')
+      return
+    }
     void sendMessage(label)
   }
 
@@ -565,7 +590,15 @@ export function ShopChatPage() {
 
   if (loading) return <ShopLoadingSkeleton />
 
+  const leadApi = {
+    conversationId: conversationId ?? null,
+    submitPhone: submitLeadPhone,
+    markVerified: markLeadVerified,
+    logEvent: (name: string) => logUiEvent(name),
+  }
+
   return (
+    <LeadSignupContext.Provider value={leadApi}>
     <div
       className="fixed inset-x-0 top-0 flex flex-col overflow-hidden bg-[var(--shop-bg)]"
       style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
@@ -702,6 +735,12 @@ export function ShopChatPage() {
 
       {cartEditable && cartCount > 0 && !viewingHistory && !keyboardOpen && (
         <CartBar count={cartCount} total={cartTotal} stale={cartStale} onOpen={() => setCartOpen(true)} />
+      )}
+
+      {isLead && signupOpen && !viewingHistory && (
+        <div className="max-h-[60%] shrink-0 overflow-y-auto px-3 pb-2">
+          <SignupCard autoFocus onClose={() => setSignupOpen(false)} />
+        </div>
       )}
 
       {viewingHistory ? (
@@ -876,5 +915,6 @@ export function ShopChatPage() {
         }}
       />
     </div>
+    </LeadSignupContext.Provider>
   )
 }

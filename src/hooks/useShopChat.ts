@@ -982,6 +982,42 @@ export function useShopChat(slug: string, productId?: string) {
     }).catch(() => undefined)
   }, [])
 
+  // docs/PRD-nivo-lead-shop-seller-signup.md §5.2 — ثبت لید با شماره (قبل از تأیید OTP) و اتصال لید به User بعد از تأیید
+  const submitLeadPhone = useCallback(async (phone: string): Promise<void> => {
+    const session = sessionRef.current
+    if (!session) return
+    let utm: Record<string, string> = {}
+    try {
+      utm = JSON.parse(sessionStorage.getItem('nivo:leadUtm') ?? '{}') as Record<string, string>
+    } catch {
+      /* بدون UTM */
+    }
+    const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/lead/phone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+      body: JSON.stringify({
+        phone,
+        utmSource: utm.utm_source,
+        utmMedium: utm.utm_medium,
+        utmCampaign: utm.utm_campaign,
+        utmContent: utm.utm_content,
+      }),
+    })
+    if (!res.ok) throw new Error('lead phone failed')
+  }, [])
+
+  const markLeadVerified = useCallback(async (): Promise<void> => {
+    const session = sessionRef.current
+    if (!session) return
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/lead/verified`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'X-Session-Token': session.sessionToken },
+    })
+    if (!res.ok) throw new Error('lead verified failed')
+  }, [])
+
   // مسیر امن پیگیری سفارش (/o/:code) — کد نمایشی سفارش خودش لینک معتبر نیست؛ null = لینک عمومی در دسترس نیست
   const getOrderTrackPath = useCallback(async (orderCode: string): Promise<string | null> => {
     const session = sessionRef.current
@@ -1475,6 +1511,8 @@ export function useShopChat(slug: string, productId?: string) {
     storeLogoKey,
     isDemo,
     mode,
+    submitLeadPhone,
+    markLeadVerified,
     notFound,
     suspended,
     conversationId: sessionRef.current?.conversationId,

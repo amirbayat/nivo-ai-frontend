@@ -4,6 +4,7 @@ import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
 import { DigitsInput } from '@/components/ui/DigitsInput'
+import { SignupCard } from '@/components/shop/SignupCard'
 import type { ShopAction, ShopUiBlock } from '@/types/api'
 
 interface BlockProps {
@@ -581,6 +582,8 @@ export function ShopUiBlockView({
       )
     case 'VISIT_WEBSITE':
       return <VisitWebsiteBlock url={block.url} />
+    case 'SIGNUP_CARD':
+      return <SignupCard prefillPhone={block.prefillPhone} />
     case 'ORDER_LIST':
       return (
         <OrderListBlock

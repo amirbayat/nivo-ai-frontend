@@ -42,7 +42,7 @@ export function useSendOtp() {
 export function useVerifyOtp() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ phone, code, referralCode }: { phone: string; code: string; referralCode?: string }) => {
+    mutationFn: ({ phone, code, referralCode, leadConversationId }: { phone: string; code: string; referralCode?: string; leadConversationId?: string }) => {
       // اگر کاربر قبل از لاگین یک مکالمه‌ی مهمان (چت بدون ثبت‌نام) داشته، شناسه‌ی سشنش را
       // می‌فرستیم تا بک‌اند آن مکالمه را به حساب واقعی‌اش migrate کند — فقط اگر واقعاً چنین
       // سشنی وجود داشته باشد (peek، نه get — نباید همین‌جا یک سشن مهمان تازه ساخته شود)
@@ -53,6 +53,8 @@ export function useVerifyOtp() {
         referralCode,
         deviceUuid: getAndroidDeviceUuid(),
         ...(anonSessionId ? { anonSessionId } : {}),
+        // docs/PRD-nivo-lead-shop-seller-signup.md D5 — سرور فقط برای فروشگاه لید واقعی از waitlist رد می‌کند
+        ...(leadConversationId ? { signupSource: 'lead_shop', conversationId: leadConversationId } : {}),
       }).then(r => r.data)
     },
     onSuccess: data => {
