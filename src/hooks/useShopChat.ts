@@ -64,6 +64,7 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
         clientMessageId: e.payload.clientMessageId,
         imageUrl: e.payload.imageKey ? chatImageUrl(conversationId, e.payload.imageKey) : undefined,
         videoUrl: e.payload.videoKey ? chatImageUrl(conversationId, e.payload.videoKey) : undefined,
+        createdAt: e.createdAt,
       })
     } else if ((e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE') && e.payload.text) {
       let id = `a-${e.createdAt}`
@@ -78,6 +79,8 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
         text: e.payload.text,
         uiBlock: e.payload.uiBlock?.type !== 'NONE' ? e.payload.uiBlock : undefined,
         quickReplies: e.payload.quickReplies?.length ? e.payload.quickReplies : undefined,
+        createdAt: e.createdAt,
+        ...(e.type === 'SELLER_MESSAGE' ? { fromSeller: true } : {}),
       })
     }
   })

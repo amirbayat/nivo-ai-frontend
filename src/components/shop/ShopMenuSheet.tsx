@@ -17,6 +17,8 @@ interface ShopMenuSheetProps {
   onTalkToSeller: () => void
   onSelectHistory: (entry: ShopHistoryEntry) => void
   onNewChat: () => void
+  storeName: string | null | undefined
+  onAbout: () => void
   onSendOtp: (phone: string) => OtpResult
   onVerifyOtp: (phone: string, code: string, fullName?: string) => OtpResult
 }
@@ -145,7 +147,7 @@ function HistoryList({ entries, onSelect }: { entries: ShopHistoryEntry[]; onSel
 
 // docs/PRD-buyer-chat-redesign.md §6.11 — منوی ⋯: همه‌ی کارهای کم‌کاربرد که قبلاً پنج آیکون هدر بودند.
 // تاریخچه و ثبت‌نام نماهای داخلی همین شیت‌اند (یک history entry، یک «بازگشت»). گزینه‌ی «درباره‌ی
-// فروشگاه» با B4 در BC-3 اضافه می‌شود
+// فروشگاه» (BC-3، B4) آخرین ردیف است
 export function ShopMenuSheet(props: ShopMenuSheetProps) {
   const { open, onClose, history, hideTalkToSeller, talkToSellerDisabled } = props
   const [view, setView] = useState<'menu' | 'history' | 'login'>('menu')
@@ -207,6 +209,14 @@ export function ShopMenuSheet(props: ShopMenuSheetProps) {
             label={fa.shop.v2.menuLogin}
             hint={fa.shop.v2.loginValue}
             onClick={() => setView('login')}
+          />
+          <MenuRow
+            icon={<svg {...svgProps}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>}
+            label={fa.shop.v2.aboutTitle(props.storeName ?? '')}
+            onClick={() => {
+              close()
+              props.onAbout()
+            }}
           />
         </div>
       )}

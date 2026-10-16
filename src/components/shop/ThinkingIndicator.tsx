@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { fa } from '@/locales/fa'
 
 const ROTATE_MS = 3000
 
@@ -45,10 +46,14 @@ interface Props {
   lastCustomerText?: string
 }
 
-/** حباب نقطه‌های لودینگ + زیرش عبارت‌های مرتبطی که هر ۳ ثانیه با انیمیشن عوض می‌شوند. */
+/** حباب نقطه‌های لودینگ (شکل حباب ایجنت) + زیرش عبارت‌های مرتبطی که هر ۳ ثانیه با انیمیشن عوض می‌شوند.
+ *  docs/PRD-buyer-chat-redesign.md §6.4.2 — بعد از ۲۰ ثانیه بدون پاسخ، «طول کشید؛ هنوز دارم نگاه می‌کنم…» */
+const SLOW_AFTER_MS = 20_000
+
 export function ThinkingIndicator({ hint, lastCustomerText }: Props) {
   const phrases = useMemo(() => thinkingPhrases(lastCustomerText, hint), [lastCustomerText, hint])
   const [index, setIndex] = useState(0)
+  const [slow, setSlow] = useState(false)
 
   useEffect(() => {
     setIndex(0)
@@ -56,17 +61,22 @@ export function ThinkingIndicator({ hint, lastCustomerText }: Props) {
     return () => window.clearInterval(t)
   }, [phrases])
 
+  useEffect(() => {
+    const t = window.setTimeout(() => setSlow(true), SLOW_AFTER_MS)
+    return () => window.clearTimeout(t)
+  }, [])
+
   return (
-    <div className="flex flex-col items-end gap-1.5" role="status" aria-live="polite">
-      <div className="rounded-2xl rounded-tr-sm bg-slate-700/70 light:bg-slate-100 px-4 py-3">
-        <div className="flex items-center gap-1">
-          <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '0ms' }} />
-          <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '150ms' }} />
-          <span className="size-1.5 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '300ms' }} />
+    <div className="flex flex-col items-start gap-1.5" role="status" aria-live="polite">
+      <div className="rounded-[18px] rounded-tl-[4px] bg-[var(--shop-surface-2)] px-4 py-3">
+        <div className="flex items-center gap-1" aria-hidden>
+          <span className="size-1.5 animate-bounce rounded-full bg-[var(--shop-text-2)]" style={{ animationDelay: '0ms' }} />
+          <span className="size-1.5 animate-bounce rounded-full bg-[var(--shop-text-2)]" style={{ animationDelay: '150ms' }} />
+          <span className="size-1.5 animate-bounce rounded-full bg-[var(--shop-text-2)]" style={{ animationDelay: '300ms' }} />
         </div>
       </div>
-      <p key={index} className="thinking-phrase pe-1 text-xs text-slate-400 light:text-slate-500">
-        {phrases[index]}
+      <p key={slow ? 'slow' : index} className="thinking-phrase ps-1 text-xs text-[var(--shop-text-2)]">
+        {slow ? fa.shop.v2.slowReply : phrases[index]}
       </p>
     </div>
   )

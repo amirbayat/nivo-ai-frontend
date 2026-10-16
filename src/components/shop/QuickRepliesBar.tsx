@@ -1,6 +1,5 @@
-// docs/PRD-sales-agent-sales-state-machine.md §۱۲.۲ — دکمه‌های پاسخ سریع زیر «آخرین» پیام agent؛
-// کلیک = همان مسیر تایپ‌کردن (متن در تاریخچه به‌عنوان پیام مشتری دیده می‌شود). سبک چیپ‌ها عیناً
-// VariantPromptBlock است. عمداً بدون آیکون جهت‌دار (سایت RTL است)
+// docs/PRD-buyer-chat-redesign.md §6.4.2 — پاسخ‌های سریع آخرین پیام ایجنت، ردیف افقی چیپ درست بالای نوار پرسش
+// (نه داخل نخ)؛ کلیک = همان مسیر تایپ‌کردن. با شروع ارسال ردیف پنهان می‌شود (parent). عمداً بدون آیکون جهت‌دار
 export function QuickRepliesBar({
   replies,
   disabled,
@@ -12,14 +11,14 @@ export function QuickRepliesBar({
 }) {
   if (replies.length === 0) return null
   return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      {replies.map(label => (
+    <div className="flex gap-2 overflow-x-auto px-3 pb-1 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {replies.map((label) => (
         <button
           key={label}
           type="button"
           onClick={() => onPick(label)}
           disabled={disabled}
-          className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-3 py-2 text-center text-xs text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
+          className="min-h-11 shrink-0 whitespace-nowrap rounded-full border border-[var(--shop-border)] bg-[var(--shop-surface)] px-4 text-sm text-[var(--shop-text)] disabled:opacity-40"
         >
           {label}
         </button>

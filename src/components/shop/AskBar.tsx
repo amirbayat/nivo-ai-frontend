@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { QuickRepliesBar } from '@/components/shop/QuickRepliesBar'
 import { fa } from '@/locales/fa'
 import { useToastStore } from '@/store/toast.store'
 
@@ -11,6 +12,9 @@ interface AskBarProps {
   // یادداشت بالای نوار (پایان گفتگو / منتظر نظر / منتظر پاسخ رضایت) — متن آماده
   notice: { text: string; tone: 'muted' | 'hint' } | null
   placeholder: string
+  // پاسخ‌های سریع آخرین پیام ایجنت (ردیف چیپ بالای نوار)؛ هنگام ارسال خالی می‌شود
+  quickReplies: string[]
+  onPickQuickReply: (text: string) => void
   // با هر تغییر این عدد، فیلد متن فوکوس می‌گیرد («سوال دارم» از شیت محصول)
   focusToken: number
   onSendText: (text: string) => void
@@ -26,7 +30,7 @@ const iconBtn =
 // (MediaRecorder) و قواعد پیوست عیناً قبلی است؛ پیام‌های خطای میکروفون با toast درون‌برنامه نشان داده می‌شود.
 // ردیف چیپ‌های میان‌بر («سفارش‌هام / دیدن محصولات / صحبت با فروشنده») حذف شد: به منو و کنترل
 // «محصولات | گفتگو» رفتند
-export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, placeholder, focusToken, onSendText, onSendImage, onSendVideo, onSendVoice }: AskBarProps) {
+export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, placeholder, quickReplies, onPickQuickReply, focusToken, onSendText, onSendImage, onSendVideo, onSendVoice }: AskBarProps) {
   const addToast = useToastStore((s) => s.addToast)
   const [input, setInput] = useState('')
   const [recording, setRecording] = useState(false)
@@ -36,6 +40,7 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const cancelRecordRef = useRef(false)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
   function send() {
@@ -45,12 +50,21 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
     onSendText(text)
   }
 
+  // روی دسکتاپ Enter ارسال و Shift+Enter خط تازه؛ روی لمسی Enter همیشه خط تازه است (§6.5)
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      send()
-    }
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
+    if (window.matchMedia?.('(pointer: coarse)').matches) return
+    e.preventDefault()
+    send()
   }
+
+  // رشد خودکار تا ۴ خط (۴×۲۸px)، بعد اسکرول
+  useEffect(() => {
+    const el = textRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 4 * 28 + 20)}px`
+  }, [input])
 
   function onPickImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -86,11 +100,13 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
       chunksRef.current = []
+      cancelRecordRef.current = false
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop())
+        if (cancelRecordRef.current) return
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
         onSendVoice(blob)
       }
@@ -104,6 +120,14 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
     }
   }
 
+  // لغو ضبط: ضبط متوقف می‌شود ولی چیزی فرستاده نمی‌شود
+  function cancelRecording() {
+    cancelRecordRef.current = true
+    recorderRef.current?.stop()
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current)
+    setRecording(false)
+  }
+
   useEffect(() => () => {
     if (recordTimerRef.current) clearInterval(recordTimerRef.current)
   }, [])
@@ -111,6 +135,9 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
   useEffect(() => {
     if (focusToken > 0) textRef.current?.focus()
   }, [focusToken])
+
+  const timeText = `${Math.floor(recordSeconds / 60).toLocaleString('fa-IR')}:${String(recordSeconds % 60).padStart(2, '0').replace(/\d/g, (d) => Number(d).toLocaleString('fa-IR'))}`
+  const hasText = input.trim().length > 0
 
   return (
     <div className="bg-[var(--shop-bg)] pb-[env(safe-area-inset-bottom)]">
@@ -124,78 +151,91 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
         </div>
       )}
 
-      {recording && (
-        <div className="flex items-center gap-2 border-t border-[var(--shop-border)] bg-red-500/10 px-4 py-2 text-xs font-semibold text-[var(--shop-danger)]">
-          <span className="size-2 animate-pulse rounded-full bg-[var(--shop-danger)]" />
-          <span>{fa.shop.recordingLabel}</span>
-          <span dir="ltr" className="font-mono">
-            {String(Math.floor(recordSeconds / 60)).padStart(2, '0')}:{String(recordSeconds % 60).padStart(2, '0')}
-          </span>
-        </div>
-      )}
+      {!recording && quickReplies.length > 0 && <QuickRepliesBar replies={quickReplies} disabled={disabled} onPick={onPickQuickReply} />}
 
-      <div className="flex items-end gap-2 border-t border-[var(--shop-border)] p-3">
-        <textarea
-          ref={textRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={onKeyDown}
-          disabled={disabled}
-          rows={1}
-          placeholder={placeholder}
-          dir="auto"
-          aria-label={placeholder}
-          className="min-h-11 flex-1 resize-none rounded-xl border border-[var(--shop-border)] bg-[var(--shop-surface)] px-3.5 py-2.5 text-[15px] text-[var(--shop-text)] outline-none placeholder:text-[var(--shop-text-2)] focus:border-[var(--shop-accent)] disabled:opacity-50"
-        />
-        {canAttachImage && (
-          <>
-            <input ref={imageInputRef} type="file" accept="image/*" onChange={onPickImage} className="hidden" />
-            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={disabled} aria-label={fa.shop.attachImage} className={iconBtn}>
-              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
-                <path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" />
+      {recording ? (
+        <div className="flex items-center gap-2 border-t border-[var(--shop-border)] bg-red-500/10 p-3" role="status">
+          <button
+            type="button"
+            onClick={cancelRecording}
+            aria-label={fa.shop.v2.cancelRecording}
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl text-[var(--shop-danger)]"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-5" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+          <span className="size-2 animate-pulse rounded-full bg-[var(--shop-danger)]" aria-hidden />
+          <span className="flex-1 text-sm font-semibold text-[var(--shop-danger)]">{fa.shop.v2.recording(timeText)}</span>
+          <button
+            type="button"
+            onClick={() => void toggleRecording()}
+            aria-label={fa.shop.v2.sendLabel}
+            className="flex size-11 shrink-0 animate-pulse items-center justify-center rounded-xl bg-[var(--shop-danger)] text-white"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 -scale-x-100" aria-hidden>
+              <path d="M3 10l14-7-4 7 4 7-14-7z" />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-end gap-2 border-t border-[var(--shop-border)] p-3">
+          {canAttachImage && (
+            <>
+              <input ref={imageInputRef} type="file" accept="image/*" onChange={onPickImage} className="hidden" />
+              <button type="button" onClick={() => imageInputRef.current?.click()} disabled={disabled} aria-label={fa.shop.attachImage} className={iconBtn}>
+                <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
+                  <path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {canAttachVideo && (
+                <>
+                  {/* ویدیو فقط در لحظه‌ی awaitingReview معنا دارد (docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱) */}
+                  <input ref={videoInputRef} type="file" accept="video/*" onChange={onPickVideo} className="hidden" />
+                  <button type="button" onClick={() => videoInputRef.current?.click()} disabled={disabled} aria-label={fa.shop.attachVideo} className={iconBtn}>
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
+                      <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h6.5A2.25 2.25 0 0012 13.75v-7.5A2.25 2.25 0 009.75 4h-6.5zM19 7.3a1 1 0 00-1.6-.8L14 8.7v2.6l3.4 2.2a1 1 0 001.6-.8V7.3z" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </>
+          )}
+          <textarea
+            ref={textRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            disabled={disabled}
+            rows={1}
+            placeholder={placeholder}
+            dir="auto"
+            aria-label={placeholder}
+            className="min-h-11 flex-1 resize-none rounded-xl border border-[var(--shop-border)] bg-[var(--shop-surface)] px-3.5 py-2.5 text-[15px] leading-7 text-[var(--shop-text)] outline-none placeholder:text-[var(--shop-text-2)] focus:border-[var(--shop-accent)] disabled:opacity-50"
+          />
+          {/* وقتی متن خالی است، میکروفون جای دکمه‌ی ارسال را می‌گیرد (§6.5) */}
+          {hasText ? (
+            <button
+              type="button"
+              onClick={send}
+              disabled={disabled}
+              aria-label={fa.shop.v2.sendLabel}
+              className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--shop-accent-fill)] text-[var(--shop-accent-text)] disabled:opacity-30"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 -scale-x-100" aria-hidden>
+                <path d="M3 10l14-7-4 7 4 7-14-7z" />
               </svg>
             </button>
-            {canAttachVideo && (
-              <>
-                {/* ویدیو فقط در لحظه‌ی awaitingReview معنا دارد (docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱) */}
-                <input ref={videoInputRef} type="file" accept="video/*" onChange={onPickVideo} className="hidden" />
-                <button type="button" onClick={() => videoInputRef.current?.click()} disabled={disabled} aria-label={fa.shop.attachVideo} className={iconBtn}>
-                  <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
-                    <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h6.5A2.25 2.25 0 0012 13.75v-7.5A2.25 2.25 0 009.75 4h-6.5zM19 7.3a1 1 0 00-1.6-.8L14 8.7v2.6l3.4 2.2a1 1 0 001.6-.8V7.3z" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </>
-        )}
-        <button
-          type="button"
-          onClick={() => void toggleRecording()}
-          disabled={disabled}
-          aria-label={recording ? fa.shop.voiceRecording : fa.shop.recordingLabel}
-          className={
-            recording
-              ? 'flex size-11 shrink-0 animate-pulse items-center justify-center rounded-xl bg-red-500 text-white disabled:opacity-30'
-              : iconBtn
-          }
-        >
-          <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
-            <path d="M10 2a3 3 0 00-3 3v4a3 3 0 006 0V5a3 3 0 00-3-3z" />
-            <path d="M5.5 9a.75.75 0 00-1.5 0 6 6 0 005.25 5.955V17H7a.75.75 0 000 1.5h6A.75.75 0 0013 17h-2.75v-2.045A6 6 0 0016 9a.75.75 0 00-1.5 0 4.5 4.5 0 01-9 0z" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          onClick={send}
-          disabled={disabled || !input.trim()}
-          aria-label={fa.shop.v2.sendLabel}
-          className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--shop-accent-fill)] text-[var(--shop-accent-text)] disabled:opacity-30"
-        >
-          <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 -scale-x-100" aria-hidden>
-            <path d="M3 10l14-7-4 7 4 7-14-7z" />
-          </svg>
-        </button>
-      </div>
+          ) : (
+            <button type="button" onClick={() => void toggleRecording()} disabled={disabled} aria-label={fa.shop.v2.micLabel} className={iconBtn}>
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
+                <path d="M10 2a3 3 0 00-3 3v4a3 3 0 006 0V5a3 3 0 00-3-3z" />
+                <path d="M5.5 9a.75.75 0 00-1.5 0 6 6 0 005.25 5.955V17H7a.75.75 0 000 1.5h6A.75.75 0 0013 17h-2.75v-2.045A6 6 0 0016 9a.75.75 0 00-1.5 0 4.5 4.5 0 01-9 0z" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

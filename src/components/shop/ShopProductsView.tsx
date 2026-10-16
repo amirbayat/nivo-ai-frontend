@@ -4,12 +4,14 @@ import { toEnglishDigits } from '@/lib/digits'
 import { GoldPriceTicker } from '@/components/shop/GoldPriceTicker'
 import { productImageUrl } from '@/components/shop/ShopUiBlocks'
 import type { ProductSort, useStoreProducts } from '@/hooks/useStoreProducts'
-import type { PublicProduct } from '@/types/api'
+import type { PublicProduct, PublicStoreAbout } from '@/types/api'
 
 type Catalog = ReturnType<typeof useStoreProducts>
 
 interface ShopProductsViewProps {
   catalog: Catalog
+  // B4 — چیپ‌های «n سفارش موفق» و «مرجوعی»؛ تا نرسیده فقط چیپ‌های بدون وابستگی دیده می‌شوند
+  about: PublicStoreAbout | null
   savedProductIds: Set<string>
   savedItems: PublicProduct[]
   onToggleSave: (productId: string) => void
@@ -114,7 +116,7 @@ function SkeletonCards({ count }: { count: number }) {
 
 // docs/PRD-buyer-chat-redesign.md §6.2 — نمای محصولات: خوش‌آمد، چیپ‌های اعتماد، نرخ طلا، جست‌وجو (چسبان)،
 // مرتب‌سازی، ذخیره‌شده‌ها، گرید دوستونه و اسکرول بی‌نهایت. هر محصول همان ProductSheet را باز می‌کند
-export function ShopProductsView({ catalog, savedProductIds, savedItems, onToggleSave, onOpenProduct, onAskSeller }: ShopProductsViewProps) {
+export function ShopProductsView({ catalog, about, savedProductIds, savedItems, onToggleSave, onOpenProduct, onAskSeller }: ShopProductsViewProps) {
   const { items, query, setQuery, sort, setSort, loading, loaded, error, hasMore, loadMore, popularSortAvailable, catalogTotal, shippingDaysText } = catalog
   const [savedOnly, setSavedOnly] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -168,6 +170,12 @@ export function ShopProductsView({ catalog, savedProductIds, savedItems, onToggl
       <div className="flex gap-2 overflow-x-auto px-4 py-2 text-xs text-[var(--shop-text-2)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {shippingDaysText && <span className="shrink-0 whitespace-nowrap rounded-full bg-[var(--shop-surface-2)] px-3 py-1.5">{fa.shop.v2.trustShipping(shippingDaysText)}</span>}
         <span className="shrink-0 whitespace-nowrap rounded-full bg-[var(--shop-surface-2)] px-3 py-1.5">{fa.shop.v2.trustDirectPay}</span>
+        {about?.successfulOrders != null && (
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-[var(--shop-surface-2)] px-3 py-1.5">{fa.shop.v2.trustOrders(about.successfulOrders)}</span>
+        )}
+        {about?.returnPolicyText && (
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-[var(--shop-surface-2)] px-3 py-1.5">{fa.shop.v2.trustReturn}</span>
+        )}
       </div>
 
       {hasGold && <GoldPriceTicker />}

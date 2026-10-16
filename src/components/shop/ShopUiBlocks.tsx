@@ -11,19 +11,12 @@ interface BlockProps {
   block: ShopUiBlock
   disabled: boolean
   handoff?: boolean
-  onAddToCart: (productId: string) => void
-  onConfirmCart: () => void
   onUploadReceipt: (file: File) => void
   // 3.8 — «رسید ندارم»
   onSubmitManualReceipt: (info: ManualReceiptInfo) => void
   onSendAction: (action: ShopAction) => void
-  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد»
-  savedProductIds: Set<string>
-  onToggleSave: (productId: string) => void
-  // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول پیام‌های قدیمی‌تر همیشه کلیک‌پذیر می‌ماند؛ محصولی که
-  // طبق آخرین CART_SUMMARY از قبل در سبد است، دیگر دکمه‌ی فعال «افزودن» نشان نمی‌دهد (جلوگیری
-  // از دوبرابرشدن ناخواسته‌ی تعداد با کلیک دوباره روی کارت قدیمی همان محصول) — ShopChatPage.tsx
-  cartProductIds: Set<string>
+  // docs/PRD-buyer-chat-redesign.md §6.3 — «ببین» زیر هر محصول جدول مقایسه، همان ProductSheet را باز می‌کند
+  onOpenProduct: (productId: string) => void
   onSubmitRefundDestination?: (input: {
     refundId: string
     destination: string
@@ -235,110 +228,7 @@ export function MediaLightbox({ items, startIndex, onClose }: { items: MediaItem
   )
 }
 
-function ProductCardBlock({
-  products,
-  disabled,
-  handoff,
-  onAddToCart,
-  savedProductIds,
-  onToggleSave,
-  cartProductIds,
-}: {
-  products: {
-    id: string
-    name: string
-    basePrice: number
-    stock: number
-    images: string[]
-    videos: { key: string; durationSec: number }[]
-    // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۸.۱
-    goldPricingSummary?: string | null
-  }[]
-  disabled: boolean
-  handoff?: boolean
-  onAddToCart: (productId: string) => void
-  savedProductIds: Set<string>
-  onToggleSave: (productId: string) => void
-  cartProductIds: Set<string>
-}) {
-  const [zoom, setZoom] = useState<{ items: MediaItem[]; index: number } | null>(null)
-  return (
-    <div className="mt-2 flex flex-col gap-2">
-      {products.map((p) => {
-        // docs/PRD-product-video.md بخش ۴ — ویدیو(ها) قبل از عکس‌ها (تصمیم ترتیب‌نمایش)
-        // محصول در این کارت از JSON پیام‌های قدیمی‌تر مکالمه هم می‌تواند بیاید (payload تاریخی،
-        // از قبل از افزوده‌شدن فیلد videos به محصول) — پس videos/images ممکن است اصلاً وجود نداشته باشد
-        const mediaItems: MediaItem[] = [
-          ...(p.videos ?? []).map((v) => ({ type: 'video' as const, src: productVideoUrl(p.id, v.key) })),
-          ...(p.images ?? []).map((key) => ({ type: 'image' as const, src: productImageUrl(p.id, key) })),
-        ]
-        return (
-          <div key={p.id} className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
-            {mediaItems.length > 1 ? (
-              <MediaCarousel items={mediaItems} onImageClick={(index) => setZoom({ items: mediaItems, index })} />
-            ) : null}
-            <div className="mb-2 flex items-center gap-3">
-              {mediaItems.length === 1 && mediaItems[0].type === 'image' && (
-                <img
-                  src={mediaItems[0].src}
-                  alt={p.name}
-                  onClick={() => setZoom({ items: mediaItems, index: 0 })}
-                  className="size-20 shrink-0 cursor-zoom-in rounded-lg object-cover"
-                />
-              )}
-              <div className="flex flex-1 flex-col gap-0.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-slate-200 light:text-slate-900">{p.name}</span>
-                  <span className="text-xs text-slate-400 light:text-slate-600">
-                    {p.basePrice.toLocaleString('fa-IR')} تومان
-                  </span>
-                </div>
-                {p.goldPricingSummary && (
-                  <span className="text-[11px] text-amber-400">{p.goldPricingSummary}</span>
-                )}
-              </div>
-              {/* docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۳) — «ذخیره برای بعد» */}
-              <button
-                onClick={() => onToggleSave(p.id)}
-                title={savedProductIds.has(p.id) ? fa.shop.removeFromSaved : fa.shop.saveForLater}
-                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700/60 light:hover:bg-slate-100"
-              >
-                <svg
-                  viewBox="0 0 20 20"
-                  fill={savedProductIds.has(p.id) ? 'currentColor' : 'none'}
-                  className={`size-4 ${savedProductIds.has(p.id) ? 'text-emerald-400' : ''}`}
-                >
-                  <path d="M5 3.5A1.5 1.5 0 016.5 2h7A1.5 1.5 0 0115 3.5V17l-5-3-5 3V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
-            {mediaItems.length === 1 && mediaItems[0].type === 'video' && (
-              // preload="metadata" نه auto — پخش خودکار توی چت آزاردهنده است و بی‌اجازه
-              // دیتای موبایل مشتری را مصرف می‌کند
-              <video controls preload="metadata" src={mediaItems[0].src} className="mb-2 w-full rounded-lg" />
-            )}
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-slate-500 light:text-slate-500">
-                {p.stock > 0 ? fa.shop.inStock : fa.shop.outOfStock}
-              </span>
-              <button
-                onClick={() => onAddToCart(p.id)}
-                disabled={disabled || handoff || p.stock === 0 || cartProductIds.has(p.id)}
-                className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-              >
-                {cartProductIds.has(p.id) ? fa.shop.alreadyInCart : fa.shop.addToCart}
-              </button>
-            </div>
-          </div>
-        )
-      })}
-      {handoff && <p className="mt-2 text-[11px] text-[var(--text-secondary)]">{fa.shop.sellerIsReplying}</p>}
-      {zoom && <MediaLightbox items={zoom.items} startIndex={zoom.index} onClose={() => setZoom(null)} />}
-    </div>
-  )
-}
-
-// docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۳ — برخلاف ProductCardBlock که فقط
+// docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۳ — برخلاف کارت محصول چت که فقط
 // images[0] نشان می‌دهد، همه‌ی عکس‌ها/ویدیوهای محصول را carousel-طور نشان می‌دهد (وقتی مشتری
 // صریح عکس بیشتر خواسته). docs/PRD-product-video.md بخش ۴ — ویدیو(ها) اول، بعد عکس‌ها
 function ProductPhotosBlock({
@@ -384,50 +274,6 @@ function ProductPhotosBlock({
   )
 }
 
-function CartSummaryBlock({
-  items,
-  total,
-  disabled,
-  handoff,
-  onConfirmCart,
-}: {
-  items: { productId: string; name: string; unitPrice: number; qty: number; variantId?: string; variantLabel?: string }[]
-  total: number
-  disabled: boolean
-  handoff?: boolean
-  onConfirmCart: () => void
-}) {
-  return (
-    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
-      <div className="mb-2 flex flex-col gap-1.5">
-        {items.map((i) => (
-          <div key={`${i.productId}-${i.variantId ?? ''}`} className="flex items-center justify-between text-xs text-slate-300 light:text-slate-600">
-            <span>
-              {i.name}
-              {i.variantLabel ? <span className="text-slate-500"> ({i.variantLabel})</span> : null} × {i.qty}
-            </span>
-            <span>{(i.unitPrice * i.qty).toLocaleString('fa-IR')} تومان</span>
-          </div>
-        ))}
-      </div>
-      <div className="mb-3 flex items-center justify-between border-t border-slate-700/60 light:border-slate-200 pt-2 text-sm font-semibold text-slate-100 light:text-slate-900">
-        <span>جمع کل</span>
-        <span>{total.toLocaleString('fa-IR')} تومان</span>
-      </div>
-      <button
-        onClick={onConfirmCart}
-        disabled={disabled || handoff || items.length === 0}
-        className="w-full rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-      >
-        {fa.shop.confirmAndPay}
-      </button>
-      {handoff && <p className="mt-2 text-[11px] text-[var(--text-secondary)]">{fa.shop.sellerIsReplying}</p>}
-    </div>
-  )
-}
-
-// فیدبک کاربر ۱۴۰۵/۰۷/۲۰ — برای فروشگاه‌های leadCaptureOnly؛ بعد از ثبت لید، دکمه‌ی «مشاهده
-// وبسایت» که در تب جدید باز می‌شود (بک‌اند فقط وقتی فروشگاه websiteUrl دارد این بلاک را می‌سازد)
 function VisitWebsiteBlock({ url }: { url: string }) {
   return (
     <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
@@ -818,8 +664,10 @@ export function OrderListBlock({
 // همان بخش، مورد ۴ — مقایسه‌ی ۲-۳ محصول کنار هم (قیمت/موجودی/specs جدولی)
 function CompareCardBlock({
   products,
+  onOpenProduct,
 }: {
   products: { id: string; name: string; basePrice: number; stock: number; specs: { label: string; value: string }[] }[]
+  onOpenProduct: (productId: string) => void
 }) {
   const allLabels = Array.from(new Set(products.flatMap((p) => p.specs.map((s) => s.label))))
   return (
@@ -862,6 +710,20 @@ function CompareCardBlock({
               ))}
             </tr>
           ))}
+          <tr>
+            <td className="p-2" />
+            {products.map((p) => (
+              <td key={p.id} className="p-2">
+                <button
+                  type="button"
+                  onClick={() => onOpenProduct(p.id)}
+                  className="min-h-11 w-full rounded-xl border border-[var(--shop-border)] px-2 text-sm font-semibold text-[var(--shop-text)]"
+                >
+                  {fa.shop.v2.view}
+                </button>
+              </td>
+            ))}
+          </tr>
         </tbody>
       </table>
     </div>
@@ -951,34 +813,19 @@ function RefundDestinationForm({
 export function ShopUiBlockView({
   block,
   disabled,
-  handoff,
-  onAddToCart,
-  onConfirmCart,
   onUploadReceipt,
   onSubmitManualReceipt,
   onSendAction,
-  savedProductIds,
-  onToggleSave,
-  cartProductIds,
+  onOpenProduct,
   onSubmitRefundDestination,
 }: BlockProps) {
   switch (block.type) {
+    // PRODUCT_CARD و CART_SUMMARY را ChatThread خودش رندر می‌کند (کارت محصول و رکورد یک‌خطی سبد)
     case 'PRODUCT_CARD':
-      return (
-        <ProductCardBlock
-          products={block.products}
-          disabled={disabled}
-          handoff={handoff}
-          onAddToCart={onAddToCart}
-          savedProductIds={savedProductIds}
-          onToggleSave={onToggleSave}
-          cartProductIds={cartProductIds}
-        />
-      )
+    case 'CART_SUMMARY':
+      return null
     case 'PRODUCT_PHOTOS':
       return <ProductPhotosBlock productId={block.productId} productName={block.productName} images={block.images} videos={block.videos} />
-    case 'CART_SUMMARY':
-      return <CartSummaryBlock items={block.items} total={block.total} disabled={disabled} handoff={handoff} onConfirmCart={onConfirmCart} />
     case 'PAYMENT_INSTRUCTIONS':
       return (
         <PaymentCard
@@ -1043,7 +890,7 @@ export function ShopUiBlockView({
         />
       )
     case 'COMPARE_CARD':
-      return <CompareCardBlock products={block.products} />
+      return <CompareCardBlock products={block.products} onOpenProduct={onOpenProduct} />
     case 'VARIANT_PROMPT':
       return <VariantPromptBlock values={block.values} disabled={disabled} onSendAction={onSendAction} />
     default:

@@ -688,6 +688,23 @@ export interface ShopMessage {
   // حباب خوش‌بینانه‌ی «رسید رو فرستادم» — سرور آن را در لاگ نمی‌آورد؛ وقتی state سرور از
   // AWAITING_PAYMENT جلو رفت، دیگر ته لیست نگه داشته نمی‌شود
   receiptOptimistic?: boolean
+  // docs/PRD-buyer-chat-redesign.md §6.4.1 — زمان (ISO) برای جداکننده‌ی زمانی بین پیام‌ها و پیام فروشنده
+  createdAt?: string
+  // SELLER_MESSAGE (فروشنده از پنل نوشته) — بالای حباب «{فروشگاه} (خود فروشنده)» نشان داده می‌شود
+  fromSeller?: boolean
+}
+
+// docs/PRD-buyer-chat-redesign.md B4 — GET /v2/stores/:slug/about
+export interface PublicStoreAbout {
+  name: string
+  logoKey: string | null
+  memberSince: string
+  successfulOrders: number | null
+  approvalEtaLabel: string | null
+  shippingDaysText: string | null
+  shippingCostRange: { minCostToman: number; maxCostToman: number } | null
+  returnPolicyText: string | null
+  paymentMethods: ('CARD_TO_CARD' | 'SNAPPPAY')[]
 }
 
 // دکمه‌های UiBlock دیگر جمله‌ی فارسی نمی‌سازند تا از NLU رد شوند — productId مستقیم پاس

@@ -14,6 +14,10 @@ import { ChatThread } from '@/components/shop/ChatThread'
 import { AskBar } from '@/components/shop/AskBar'
 import { CartSheet } from '@/components/shop/CartSheet'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { AboutStoreSheet } from '@/components/shop/AboutStoreSheet'
+import { ChatEndPanel, ReadOnlyBar, ShopLoadingSkeleton, ShopMessageScreen } from '@/components/shop/ShopEdgeScreens'
+import { useStoreAbout } from '@/hooks/useStoreAbout'
+import { useToastStore } from '@/store/toast.store'
 import { fa } from '@/locales/fa'
 import type { PublicProduct, ShopHistoryEntry } from '@/types/api'
 
@@ -78,6 +82,9 @@ export function ShopChatPage() {
     returnToCurrentChat,
   } = useShopChat(slug, productId)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
+  const { about, failed: aboutFailed, reload: reloadAbout } = useStoreAbout(slug)
+  const addToast = useToastStore((s) => s.addToast)
   const [newChatConfirmOpen, setNewChatConfirmOpen] = useState(false)
   // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم از روی محصول
   const [reviewProduct, setReviewProduct] = useState<PublicProduct | null>(null)
@@ -153,6 +160,13 @@ export function ShopChatPage() {
     }
   }, [])
 
+  // قطع اینترنت: toast بالا؛ حباب ارسال‌نشده خودش «دوباره» دارد (§6.14)
+  useEffect(() => {
+    const onOffline = () => addToast(fa.shop.v2.offline, 5000)
+    window.addEventListener('offline', onOffline)
+    return () => window.removeEventListener('offline', onOffline)
+  }, [addToast])
+
   // وقتی روی نمای «محصولات» هستیم (نخ چت پشت آن است) و پیام تازه‌ای می‌رسد (مثلاً پاسخ به
   // ADD_TO_CART از شیت)، نقطه‌ی قرمز روی تب «گفتگو» نشان بده — همان الگوی ویجت‌های Intercom/Crisp
   useEffect(() => {
@@ -181,17 +195,8 @@ export function ShopChatPage() {
       },
       { replace: true },
     )
-    setSheet({ productId: linkProductId, product: null, status: 'loading' })
-    void fetchPublicProductsByIds(slug, [linkProductId]).then((found) => {
-      const product = found?.[0] ?? null
-      setSheet((current) =>
-        current?.productId === linkProductId
-          ? product
-            ? { productId: linkProductId, product, status: 'ready' }
-            : { productId: linkProductId, product: null, status: 'unavailable' }
-          : current,
-      )
-    })
+    openProductById(linkProductId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkProductId, loading, slug, setSearchParams])
 
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — وقتی منتظر
@@ -256,6 +261,22 @@ export function ShopChatPage() {
     setSheet({ productId: product.id, product, status: 'ready' })
   }
 
+  // از کارت چت یا لینک: اول کاتالوگ لودشده، وگرنه یک ids= (اسکلت تا رسیدن؛ ناپیدا = «در دسترس نیست»)
+  function openProductById(productId: string) {
+    const known = catalog.items.find((p) => p.id === productId)
+    if (known) {
+      openProduct(known)
+      return
+    }
+    setSheet({ productId, product: null, status: 'loading' })
+    void fetchPublicProductsByIds(slug, [productId]).then((found) => {
+      const product = found?.[0] ?? null
+      setSheet((current) =>
+        current?.productId === productId ? (product ? { productId, product, status: 'ready' } : { productId, product: null, status: 'unavailable' }) : current,
+      )
+    })
+  }
+
   // «سوال دارم»: شیت بسته، رفتن به گفتگو، FOCUS_PRODUCT قطعی (بدون مدل) و فوکوس نوار پرسش
   function askAboutProduct(product: PublicProduct) {
     setSheet(null)
@@ -274,50 +295,32 @@ export function ShopChatPage() {
     void viewHistoryEntry(entry)
   }
 
-  // یادداشت بالای نوار پرسش — منطق قبلی (بنر «منتقل شد»/«منتظر نظر»/«منتظر پاسخ رضایت») عیناً
+  // یادداشت بالای نوار پرسش: فقط وقتی منتظر نظر/پاسخ رضایت هستیم. پیام «منتقل شد» حذف شد؛ جایش خط
+  // «چه کسی جواب می‌دهد» در هدر و خط سیستمی داخل نخ است (§6.8، §6.10)
+  const completed = TERMINAL_STATES.includes(state)
   let notice: { text: string; tone: 'muted' | 'hint' } | null = null
-  if ((TERMINAL_STATES.includes(state) && !awaitingReview && !awaitingSatisfaction) || sellerIsReplying) {
-    notice = { text: fa.shop.conversationEnded, tone: 'muted' }
-  } else if (TERMINAL_STATES.includes(state) && awaitingReview) {
-    notice = { text: fa.shop.awaitingReviewHint, tone: 'hint' }
-  } else if (TERMINAL_STATES.includes(state) && awaitingSatisfaction) {
-    notice = { text: fa.shop.awaitingSatisfactionHint, tone: 'hint' }
-  }
+  if (completed && awaitingReview) notice = { text: fa.shop.v2.reviewChip, tone: 'hint' }
+  else if (completed && awaitingSatisfaction) notice = { text: fa.shop.v2.satisfactionChip, tone: 'hint' }
+  const showEndPanel = completed && !awaitingReview && !awaitingSatisfaction && !viewingHistory
+  const lastMessage = messages[messages.length - 1]
+  const quickReplies = view === 'chat' && !sending && lastMessage?.role === 'agent' ? (lastMessage.quickReplies ?? []) : []
+  const handoffLine =
+    sellerIsReplying && !viewingHistory
+      ? about?.approvalEtaLabel
+        ? fa.shop.v2.handoffLine(storeName ?? '', about.approvalEtaLabel)
+        : fa.shop.v2.handoffLineNoEta(storeName ?? '')
+      : null
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate('/'))
 
   if (suspended) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--shop-bg)] p-4" dir="rtl">
-        <div className="text-center">
-          <h1 className="mb-1.5 text-xl font-bold text-[var(--shop-text)]">{fa.shop.suspendedHeading}</h1>
-          <p className="text-sm text-[var(--shop-text-2)]">{fa.shop.suspendedBody}</p>
-        </div>
-      </div>
-    )
+    return <ShopMessageScreen heading={fa.shop.suspendedHeading} body={fa.shop.suspendedBody} storeId={storeId} storeName={storeName} storeLogoKey={storeLogoKey} onBack={goBack} />
   }
 
   if (notFound) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--shop-bg)] p-4" dir="rtl">
-        <div className="text-center">
-          <h1 className="mb-1.5 text-xl font-bold text-[var(--shop-text)]">{fa.shop.notFoundHeading}</h1>
-          <p className="text-sm text-[var(--shop-text-2)]">{fa.shop.notFoundBody}</p>
-        </div>
-      </div>
-    )
+    return <ShopMessageScreen heading={fa.shop.notFoundHeading} body={fa.shop.notFoundBody} onBack={goBack} />
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--shop-bg)] p-4" dir="rtl">
-        <div className="mb-4 h-10 w-40 animate-pulse rounded-lg bg-[var(--shop-surface-2)]" />
-        <div className="mb-3 h-16 animate-pulse rounded-xl bg-[var(--shop-surface-2)]" />
-        <div className="grid grid-cols-2 gap-3">
-          <div className="aspect-square animate-pulse rounded-xl bg-[var(--shop-surface-2)]" />
-          <div className="aspect-square animate-pulse rounded-xl bg-[var(--shop-surface-2)]" />
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <ShopLoadingSkeleton />
 
   return (
     <div
@@ -331,8 +334,9 @@ export function ShopChatPage() {
         storeLogoKey={storeLogoKey}
         viewingHistory={viewingHistory}
         sellerIsReplying={sellerIsReplying}
-        cartCount={cartEditable ? cartCount : 0}
+        cartCount={cartEditable && !viewingHistory ? cartCount : 0}
         onOpenCart={() => setCartOpen(true)}
+        onOpenAbout={() => setAboutOpen(true)}
         onOpenMenu={() => setMenuOpen(true)}
       />
 
@@ -342,7 +346,7 @@ export function ShopChatPage() {
 
       {isDemo && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2">
-          <span className="text-xs text-[var(--shop-warning)]">{fa.shop.demoBuyerBannerText}</span>
+          <span className="text-xs text-[var(--shop-warning)]">{fa.shop.v2.demoStrip}</span>
           <button
             type="button"
             onClick={() => {
@@ -359,7 +363,7 @@ export function ShopChatPage() {
             }}
             className="min-h-11 shrink-0 rounded-lg border border-amber-500/40 px-2.5 text-xs font-bold text-[var(--shop-warning)] hover:bg-amber-500/10"
           >
-            {fa.shop.demoBuyerBannerCta}
+            {fa.shop.v2.demoCta}
           </button>
         </div>
       )}
@@ -373,18 +377,10 @@ export function ShopChatPage() {
         />
       )}
 
-      {viewingHistory && (
-        <div className="flex items-center justify-between gap-2 bg-amber-500/10 px-4 py-2 text-xs text-[var(--shop-warning)]">
-          <span>{fa.shop.viewingHistoryBanner}</span>
-          <button type="button" onClick={() => void returnToCurrentChat()} className="min-h-11 shrink-0 font-semibold underline">
-            {fa.shop.backToCurrentChat}
-          </button>
-        </div>
-      )}
-
       {view === 'products' && (
         <ShopProductsView
           catalog={catalog}
+          about={about}
           savedProductIds={savedProductIds}
           savedItems={savedProducts}
           onToggleSave={toggleSaveProduct}
@@ -408,6 +404,9 @@ export function ShopChatPage() {
               thread={thread}
               messages={messages}
               conversationId={conversationId}
+              storeId={storeId}
+              storeName={storeName}
+              storeLogoKey={storeLogoKey}
               hasMoreEvents={hasMoreEvents}
               viewingHistory={viewingHistory}
               sending={sending}
@@ -417,16 +416,17 @@ export function ShopChatPage() {
               actionDisabled={actionDisabled}
               refundFormDisabled={refundFormDisabled}
               sellerIsReplying={sellerIsReplying}
+              handoffLine={handoffLine}
               viewportHeight={viewportHeight}
-              savedProductIds={savedProductIds}
               cartProductIds={cartProductIds}
-              onToggleSave={toggleSaveProduct}
+              cartTappable={cartEditable && !viewingHistory}
+              onOpenCart={() => setCartOpen(true)}
+              onOpenProduct={openProductById}
+              onSeeAllProducts={() => goToView('products')}
               onLoadOlder={() => void loadOlderMessages()}
               onRetry={(id) => void retryMessage(id)}
               onMarkVoiceHeard={markVoiceHeard}
-              onSendText={(text) => void sendMessage(text)}
               onAddToCart={(id) => void sendAction({ type: 'ADD_TO_CART', productId: id })}
-              onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
               onUploadReceipt={(file) => void uploadReceipt(file)}
               onSubmitManualReceipt={(info) => void submitManualReceipt(info)}
               onSubmitRefundDestination={submitRefundDestination}
@@ -436,25 +436,33 @@ export function ShopChatPage() {
         </>
       )}
 
-      <AskBar
-        key={conversationId ?? 'none'}
-        disabled={composerDisabled}
-        canAttachImage={canAttachImage}
-        canAttachVideo={canAttachVideo}
-        notice={view === 'chat' ? notice : null}
-        placeholder={
-          view === 'products'
-            ? fa.shop.v2.askPlaceholderProducts
-            : focusedProduct
-              ? fa.shop.v2.askPlaceholderProduct(focusedProduct.name)
-              : fa.shop.v2.askPlaceholderChat
-        }
-        focusToken={focusToken}
-        onSendText={sendFromAskBar}
-        onSendImage={(file) => void sendImageMessage(file)}
-        onSendVideo={(file) => void sendVideoMessage(file)}
-        onSendVoice={(blob) => void sendVoiceMessage(blob)}
-      />
+      {viewingHistory ? (
+        <ReadOnlyBar onReturn={() => void returnToCurrentChat()} />
+      ) : showEndPanel ? (
+        <ChatEndPanel onNewOrder={() => setNewChatConfirmOpen(true)} onMyOrders={() => navigate(`/shop/${slug}/orders`)} />
+      ) : (
+        <AskBar
+          key={conversationId ?? 'none'}
+          disabled={composerDisabled}
+          canAttachImage={canAttachImage}
+          canAttachVideo={canAttachVideo}
+          notice={view === 'chat' ? notice : null}
+          placeholder={
+            view === 'products'
+              ? fa.shop.v2.askPlaceholderProducts
+              : focusedProduct
+                ? fa.shop.v2.askPlaceholderProduct(focusedProduct.name)
+                : fa.shop.v2.askPlaceholderChat
+          }
+          quickReplies={quickReplies}
+          onPickQuickReply={sendFromAskBar}
+          focusToken={focusToken}
+          onSendText={sendFromAskBar}
+          onSendImage={(file) => void sendImageMessage(file)}
+          onSendVideo={(file) => void sendVideoMessage(file)}
+          onSendVoice={(blob) => void sendVoiceMessage(blob)}
+        />
+      )}
 
       {cartOpen && cartEditable && cartSummary && (
         <CartSheet
@@ -495,6 +503,17 @@ export function ShopChatPage() {
 
       {reviewsProduct && <ReviewsModal slug={slug} product={reviewsProduct} onClose={() => setReviewsProduct(null)} />}
 
+      <AboutStoreSheet
+        open={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        storeId={storeId}
+        storeName={storeName}
+        storeLogoKey={storeLogoKey}
+        about={about}
+        failed={aboutFailed}
+        onReload={() => void reloadAbout()}
+      />
+
       <ShopMenuSheet
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -509,6 +528,8 @@ export function ShopChatPage() {
         }}
         onSelectHistory={handleSelectHistory}
         onNewChat={() => setNewChatConfirmOpen(true)}
+        storeName={storeName}
+        onAbout={() => setAboutOpen(true)}
         onSendOtp={sendBuyerOtp}
         onVerifyOtp={verifyBuyerOtp}
       />
