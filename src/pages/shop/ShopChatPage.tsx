@@ -7,6 +7,7 @@ import { ReviewsModal } from '@/components/shop/ReviewsModal'
 import { fetchPublicProductsByIds, useStoreProducts } from '@/hooks/useStoreProducts'
 import { CommentModal } from '@/components/shop/CommentModal'
 import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
+import { LeadHero } from '@/components/shop/LeadHero'
 import { ShopHeader } from '@/components/shop/ShopHeader'
 import { ShopViewSwitch, type ShopView } from '@/components/shop/ShopViewSwitch'
 import { ShopMenuSheet } from '@/components/shop/ShopMenuSheet'
@@ -427,6 +428,7 @@ export function ShopChatPage() {
   useEffect(() => {
     if (loading || !bootDecided || !conversationId || shopViewLoggedRef.current) return
     shopViewLoggedRef.current = true
+    if (isLead) logUiEvent('lead_view', { entry: messages.length > 0 ? 'returning' : 'first' })
     const entry = viewOrderConversationId ? 'history' : linkProductId ? 'product_link' : messages.length > 0 ? 'returning' : 'shop_link'
     logUiEvent('shop_view', { entry, view })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -441,6 +443,7 @@ export function ShopChatPage() {
   // LS-1: دکمه‌ی «ثبت‌نام رایگان» فعلاً به ورود فروشنده می‌رود (return به onboarding)؛ در LS-3 با کارت داخل چت جایگزین می‌شود.
   // navigate داخل همان تب است (مرورگر درون‌برنامه‌ای اینستاگرام — PRD §5.4)
   function goToSignup() {
+    logUiEvent('lead_signup_open')
     navigate(fa.shop.lead.signupPath)
   }
   function openAbout() {
@@ -508,6 +511,18 @@ export function ShopChatPage() {
     setPendingFocus(true)
   }
 
+  function pickLeadChip(label: string) {
+    const t = fa.shop.lead
+    if (label === t.chipSignup) {
+      logUiEvent('lead_chip_signup')
+      goToSignup()
+      return
+    }
+    const key = label === t.chipHow ? 'how' : label === t.chipPrice ? 'price' : 'demo'
+    logUiEvent(`lead_chip_${key}`)
+    void sendMessage(label)
+  }
+
   function sendFromAskBar(text: string) {
     if (view === 'products') {
       logUiEvent('ask_from_products')
@@ -528,7 +543,10 @@ export function ShopChatPage() {
   else if (completed && awaitingSatisfaction) notice = { text: fa.shop.v2.satisfactionChip, tone: 'hint' }
   const showEndPanel = !isLead && completed && !awaitingReview && !awaitingSatisfaction && !viewingHistory
   const lastMessage = messages[messages.length - 1]
-  const quickReplies = view === 'chat' && !sending && lastMessage?.role === 'agent' ? (lastMessage.quickReplies ?? []) : []
+  // حالت لید: قبل از اولین پیام، چیپ‌های ثابت صفحه‌ی اول (§4.1)؛ بعدش پاسخ‌های سریع سرور
+  const leadChips = [fa.shop.lead.chipHow, fa.shop.lead.chipPrice, fa.shop.lead.chipDemo, fa.shop.lead.chipSignup]
+  const showLeadChips = isLead && view === 'chat' && !sending && thread.length === 0 && !viewingHistory
+  const quickReplies = showLeadChips ? leadChips : view === 'chat' && !sending && lastMessage?.role === 'agent' ? (lastMessage.quickReplies ?? []) : []
   const handoffLine =
     sellerIsReplying && !viewingHistory
       ? about?.approvalEtaLabel
@@ -638,9 +656,11 @@ export function ShopChatPage() {
       {view === 'chat' && (
         <>
           {!isLead && <CheckoutProgressBar state={state} />}
-          {thread.length === 0 && !sending ? (
+          {thread.length === 0 && !sending && isLead ? (
+            <LeadHero />
+          ) : thread.length === 0 && !sending ? (
             <p className="flex-1 px-4 pt-6 text-center text-sm text-[var(--shop-text-2)]">
-              {noProducts || isLead ? fa.shop.v2.catalogEmptyChat : fa.shop.v2.chatEmptyHint}
+              {noProducts ? fa.shop.v2.catalogEmptyChat : fa.shop.v2.chatEmptyHint}
             </p>
           ) : (
             <ChatThread
@@ -700,10 +720,12 @@ export function ShopChatPage() {
               ? fa.shop.v2.askPlaceholderProducts
               : focusedProduct
                 ? fa.shop.v2.askPlaceholderProduct(focusedProduct.name)
-                : fa.shop.v2.askPlaceholderChat
+                : isLead
+                  ? fa.shop.lead.askPlaceholder
+                  : fa.shop.v2.askPlaceholderChat
           }
           quickReplies={quickReplies}
-          onPickQuickReply={sendFromAskBar}
+          onPickQuickReply={showLeadChips ? pickLeadChip : sendFromAskBar}
           focusToken={focusToken}
           onSendText={sendFromAskBar}
           onSendImage={(file) => void sendImageMessage(file)}
