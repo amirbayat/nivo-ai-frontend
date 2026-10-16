@@ -965,13 +965,25 @@ export function useShopChat(slug: string, productId?: string) {
     [sending, applyReply],
   )
 
+  // docs/PRD-buyer-chat-redesign.md B5/§10 — رویدادهای رابط؛ fire-and-forget و بدون هیچ اثری روی UI
+  const logUiEvent = useCallback((name: string, props?: Record<string, unknown>) => {
+    const session = sessionRef.current
+    if (!session) return
+    void fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/ui-events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': session.sessionToken },
+      body: JSON.stringify({ name, ...(props ? { props } : {}) }),
+      keepalive: true,
+    }).catch(() => undefined)
+  }, [])
+
   // ── سبد خوش‌بینانه (docs/PRD-buyer-chat-redesign.md §8) ─────────────────────────────────────────────
   // دکمه‌های افزودن/تعداد/حذف همان لحظه روی UI اثر می‌گذارند (pendingCartOps روی آخرین CART_SUMMARY سرور
   // اعمال می‌شود). درخواست‌ها پشت‌سرهم (یک صف) و بدون استریم/مدل می‌روند (B3: پاسخ قالبی). با جواب سرور
   // عملیات حذف و نمایش از CART_SUMMARY برگشتی می‌آید؛ با رد سرور (ناموجود/قفل) عملیات برمی‌گردد و متن سرور toast می‌شود
   const [pendingCartOps, setPendingCartOps] = useState<CartOp[]>([])
   const cartQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const cartListenerRef = useRef<((result: { action: ShopAction; ok: boolean; latencyMs: number }) => void) | null>(null)
+  const cartListenerRef = useRef<((result: { action: ShopAction; op: CartOp; ok: boolean; latencyMs: number }) => void) | null>(null)
 
   const runCartAction = useCallback(
     (action: ShopAction, op: CartOp) => {
@@ -1021,7 +1033,7 @@ export function useShopChat(slug: string, productId?: string) {
           useToastStore.getState().addToast(err instanceof Error && err.message ? err.message : fa.common.error)
         } finally {
           setPendingCartOps((prev) => prev.filter((item) => item.id !== op.id))
-          cartListenerRef.current?.({ action, ok, latencyMs: Date.now() - op.startedAt })
+          cartListenerRef.current?.({ action, op, ok, latencyMs: Date.now() - op.startedAt })
         }
       })
     },
@@ -1029,7 +1041,7 @@ export function useShopChat(slug: string, productId?: string) {
   )
 
   const cartAdd = useCallback(
-    (info: { productId: string; variantId?: string; name: string; variantLabel?: string; unitPrice: number }) => {
+    (info: { productId: string; variantId?: string; name: string; variantLabel?: string; unitPrice: number; source?: string }) => {
       runCartAction(
         { type: 'ADD_TO_CART', productId: info.productId, ...(info.variantId ? { variantId: info.variantId } : {}) },
         { id: newClientMessageId(), kind: 'add', startedAt: Date.now(), ...info },
@@ -1437,6 +1449,7 @@ export function useShopChat(slug: string, productId?: string) {
     cartSetQty,
     cartRemove,
     cartListenerRef,
+    logUiEvent,
     uploadReceipt,
     submitManualReceipt,
     submitRefundDestination,

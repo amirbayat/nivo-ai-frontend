@@ -6,18 +6,18 @@ export function ShopLoadingSkeleton() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--shop-bg)]" dir="rtl" aria-busy="true">
       <div className="flex h-14 items-center gap-2.5 border-b border-[var(--shop-border)] px-4">
-        <div className="size-9 animate-pulse rounded-full bg-[var(--shop-surface-2)]" />
+        <div className="size-9 animate-pulse motion-reduce:animate-none rounded-full bg-[var(--shop-surface-2)]" />
         <div className="space-y-1.5">
-          <div className="h-3.5 w-28 animate-pulse rounded bg-[var(--shop-surface-2)]" />
-          <div className="h-3 w-20 animate-pulse rounded bg-[var(--shop-surface-2)]" />
+          <div className="h-3.5 w-28 animate-pulse motion-reduce:animate-none rounded bg-[var(--shop-surface-2)]" />
+          <div className="h-3 w-20 animate-pulse motion-reduce:animate-none rounded bg-[var(--shop-surface-2)]" />
         </div>
       </div>
       <div className="border-b border-[var(--shop-border)] px-4 py-2">
-        <div className="h-10 animate-pulse rounded-xl bg-[var(--shop-surface-2)]" />
+        <div className="h-10 animate-pulse motion-reduce:animate-none rounded-xl bg-[var(--shop-surface-2)]" />
       </div>
       <div className="grid flex-1 grid-cols-2 content-start gap-2 p-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[var(--shop-border)]">
+          <div key={i} className="animate-pulse motion-reduce:animate-none overflow-hidden rounded-2xl border border-[var(--shop-border)]">
             <div className="aspect-[4/5] bg-[var(--shop-surface-2)]" />
             <div className="space-y-2 p-2.5">
               <div className="h-4 rounded bg-[var(--shop-surface-2)]" />
@@ -27,7 +27,7 @@ export function ShopLoadingSkeleton() {
         ))}
       </div>
       <div className="border-t border-[var(--shop-border)] p-3">
-        <div className="h-11 animate-pulse rounded-xl bg-[var(--shop-surface-2)]" />
+        <div className="h-11 animate-pulse motion-reduce:animate-none rounded-xl bg-[var(--shop-surface-2)]" />
       </div>
     </div>
   )

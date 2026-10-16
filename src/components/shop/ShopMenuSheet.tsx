@@ -18,6 +18,8 @@ interface ShopMenuSheetProps {
   onNewChat: () => void
   storeName: string | null | undefined
   onVerified?: () => void
+  // B5 menu_item
+  onItem?: (item: 'orders' | 'seller' | 'history' | 'new_chat' | 'login' | 'about') => void
   onAbout: () => void
   onSendOtp: (phone: string) => Promise<{ ok: boolean; message: string }>
   onVerifyOtp: (phone: string, code: string, fullName?: string) => Promise<{ ok: boolean; message: string }>
@@ -102,6 +104,7 @@ export function ShopMenuSheet(props: ShopMenuSheetProps) {
             icon={<svg {...svgProps}><path d="M5 8l7-4 7 4v8l-7 4-7-4V8z" /><path d="M5 8l7 4 7-4M12 12v8" /></svg>}
             label={fa.shop.v2.menuOrders}
             onClick={() => {
+              props.onItem?.('orders')
               close()
               props.onOrders()
             }}
@@ -112,6 +115,7 @@ export function ShopMenuSheet(props: ShopMenuSheetProps) {
               label={fa.shop.v2.menuSeller}
               disabled={talkToSellerDisabled}
               onClick={() => {
+                props.onItem?.('seller')
                 close()
                 props.onTalkToSeller()
               }}
@@ -120,12 +124,16 @@ export function ShopMenuSheet(props: ShopMenuSheetProps) {
           <MenuRow
             icon={<svg {...svgProps}><path d="M4 5v5h5M5 10a8 8 0 112.3 6" /><path d="M12 8v4l3 2" /></svg>}
             label={fa.shop.v2.menuHistory}
-            onClick={() => setView('history')}
+            onClick={() => {
+              props.onItem?.('history')
+              setView('history')
+            }}
           />
           <MenuRow
             icon={<svg {...svgProps}><path d="M12 5v14M5 12h14" /></svg>}
             label={fa.shop.v2.menuNewChat}
             onClick={() => {
+              props.onItem?.('new_chat')
               close()
               props.onNewChat()
             }}
@@ -134,12 +142,16 @@ export function ShopMenuSheet(props: ShopMenuSheetProps) {
             icon={<svg {...svgProps}><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>}
             label={fa.shop.v2.menuLogin}
             hint={fa.shop.v2.loginValue}
-            onClick={() => setView('login')}
+            onClick={() => {
+              props.onItem?.('login')
+              setView('login')
+            }}
           />
           <MenuRow
             icon={<svg {...svgProps}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>}
             label={fa.shop.v2.aboutTitle(props.storeName ?? '')}
             onClick={() => {
+              props.onItem?.('about')
               close()
               props.onAbout()
             }}

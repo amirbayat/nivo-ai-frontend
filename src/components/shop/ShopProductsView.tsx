@@ -102,7 +102,7 @@ function SkeletonCards({ count }: { count: number }) {
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[var(--shop-border)]">
+        <div key={i} className="animate-pulse motion-reduce:animate-none overflow-hidden rounded-2xl border border-[var(--shop-border)]">
           <div className="aspect-[4/5] bg-[var(--shop-surface-2)]" />
           <div className="space-y-2 p-2.5">
             <div className="h-4 rounded bg-[var(--shop-surface-2)]" />

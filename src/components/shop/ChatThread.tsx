@@ -45,8 +45,6 @@ interface ChatThreadProps {
   onRetry: (messageId: string) => void
   onMarkVoiceHeard: (key: string) => void
   onAddToCart: (productId: string) => void
-  onUploadReceipt: (file: File) => void
-  onSubmitManualReceipt: BlockProps['onSubmitManualReceipt']
   onSubmitRefundDestination: BlockProps['onSubmitRefundDestination']
   onSendAction: BlockProps['onSendAction']
 }
@@ -248,8 +246,6 @@ export function ChatThread(props: ChatThreadProps) {
                   <ShopUiBlockView
                     block={block}
                     disabled={block.type === 'REFUND_DESTINATION_FORM' ? props.refundFormDisabled : props.actionDisabled}
-                    onUploadReceipt={props.onUploadReceipt}
-                    onSubmitManualReceipt={props.onSubmitManualReceipt}
                     onSubmitRefundDestination={props.onSubmitRefundDestination}
                     onSendAction={props.onSendAction}
                     onOpenProduct={props.onOpenProduct}

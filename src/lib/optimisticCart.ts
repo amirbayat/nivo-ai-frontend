@@ -11,7 +11,7 @@ export interface CartLineView {
 }
 
 export type CartOp =
-  | { id: string; kind: 'add'; productId: string; variantId?: string; name: string; variantLabel?: string; unitPrice: number; startedAt: number }
+  | { id: string; kind: 'add'; productId: string; variantId?: string; name: string; variantLabel?: string; unitPrice: number; startedAt: number; source?: string }
   | { id: string; kind: 'qty'; productId: string; variantId?: string; qty: number; startedAt: number }
   | { id: string; kind: 'remove'; productId: string; variantId?: string; startedAt: number }
 

@@ -112,7 +112,7 @@ export function PublicOrderPage() {
       <div className="mx-auto w-full max-w-lg">
         <h1 className="mb-4 text-xl font-bold">{fa.publicOrder.title}</h1>
         {order.isLoading && (
-          <div className="h-40 animate-pulse rounded-2xl bg-[var(--chip-bg)]" aria-hidden />
+          <div className="h-40 animate-pulse motion-reduce:animate-none rounded-2xl bg-[var(--chip-bg)]" aria-hidden />
         )}
         {order.isError && (
           <p className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-400 light:text-red-700">

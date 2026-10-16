@@ -401,7 +401,7 @@ export function ProductSheet(props: ProductSheetProps) {
   if (!product) {
     return (
       <BottomSheet open onClose={onClose} closeOnBack full title={fa.common.loading}>
-        <div className="animate-pulse">
+        <div className="animate-pulse motion-reduce:animate-none">
           <div className="aspect-square w-full rounded-lg bg-[var(--shop-surface-2)]" />
           <div className="mt-4 h-6 w-2/3 rounded bg-[var(--shop-surface-2)]" />
           <div className="mt-2 h-7 w-1/3 rounded bg-[var(--shop-surface-2)]" />

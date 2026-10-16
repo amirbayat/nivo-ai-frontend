@@ -3,7 +3,6 @@ import clsx from 'clsx'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { useAuthedImageUrl } from '@/hooks/useAuthedImageUrl'
-import { PaymentCard, type ManualReceiptInfo } from './PaymentCard'
 import { DigitsInput } from '@/components/ui/DigitsInput'
 import type { ShopAction, ShopUiBlock } from '@/types/api'
 
@@ -11,9 +10,6 @@ interface BlockProps {
   block: ShopUiBlock
   disabled: boolean
   handoff?: boolean
-  onUploadReceipt: (file: File) => void
-  // 3.8 — «رسید ندارم»
-  onSubmitManualReceipt: (info: ManualReceiptInfo) => void
   onSendAction: (action: ShopAction) => void
   // docs/PRD-buyer-chat-redesign.md §6.3 — «ببین» زیر هر محصول جدول مقایسه، همان ProductSheet را باز می‌کند
   onOpenProduct: (productId: string) => void
@@ -289,262 +285,6 @@ function VisitWebsiteBlock({ url }: { url: string }) {
   )
 }
 
-// docs/PRD-buyer-payment-method-card-or-snapppay-link.md — فقط وقتی فروشگاه هم کارت‌به‌کارت
-// هم لینک اسنپ‌پی فعال دارد نشان داده می‌شود (بک‌اند این بلاک را در غیر این صورت اصلاً نمی‌سازد)
-function PaymentMethodPromptBlock({
-  disabled,
-  onSendAction,
-}: {
-  disabled: boolean
-  onSendAction: (action: ShopAction) => void
-}) {
-  return (
-    <div className="mt-2 flex gap-2">
-      <button
-        onClick={() => onSendAction({ type: 'SELECT_PAYMENT_METHOD', paymentMethod: 'CARD_TO_CARD' })}
-        disabled={disabled}
-        className="flex-1 rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-      >
-        {fa.shop.choosePaymentMethodCardButton}
-      </button>
-      <button
-        onClick={() => onSendAction({ type: 'SELECT_PAYMENT_METHOD', paymentMethod: 'SNAPPPAY' })}
-        disabled={disabled}
-        className="flex-1 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-      >
-        {fa.shop.choosePaymentMethodSnapppayButton}
-      </button>
-    </div>
-  )
-}
-
-function OrderStatusBlock({ status, orderCode }: { status: string; orderCode?: string }) {
-  return (
-    <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-3 py-2 text-xs font-semibold text-emerald-300 light:text-emerald-700">
-      {fa.shop.orderStatusLabels[status] ?? status}
-      {orderCode && (
-        <span dir="ltr" className="ms-2 font-mono text-[11px] text-slate-400 light:text-slate-600">
-          {orderCode}
-        </span>
-      )}
-    </div>
-  )
-}
-
-// docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
-// — یک کامپوننت با سه حالت (مثل UiBlock سمت بک‌اند)، نه سه کامپوننت جدا
-function AddressFormBlock({
-  provinces,
-  prefillName,
-  prefillPhone,
-  values,
-  fieldErrors,
-  disabled,
-  onSendAction,
-}: {
-  provinces?: string[]
-  prefillName?: string
-  prefillPhone?: string
-  values?: {
-    recipientName: string
-    recipientPhone: string
-    province: string
-    city: string
-    addressText: string
-    postalCode: string
-    plaque: string
-    unit: string
-  }
-  fieldErrors?: Partial<Record<'name' | 'phone' | 'province' | 'city' | 'street' | 'postal', string>>
-  disabled: boolean
-  onSendAction: (action: ShopAction) => void
-}) {
-  const [name, setName] = useState(values?.recipientName || prefillName || '')
-  const [phone, setPhone] = useState(values?.recipientPhone || prefillPhone || '')
-  const [province, setProvince] = useState(values?.province ?? '')
-  const [city, setCity] = useState(values?.city ?? '')
-  const [street, setStreet] = useState(values?.addressText ?? '')
-  const [postal, setPostal] = useState(values?.postalCode ?? '')
-  const [plaque, setPlaque] = useState(values?.plaque ?? '')
-  const [unit, setUnit] = useState(values?.unit ?? '')
-  const field = 'w-full rounded-lg border border-slate-600/60 bg-slate-900 px-3 py-2 text-sm text-slate-100 light:border-slate-300 light:bg-white light:text-slate-900'
-  const hint = (text?: string) => text ? <p className="text-[11px] text-red-400 light:text-red-700">{text}</p> : null
-  return (
-    <form
-      className="mt-2 flex flex-col gap-2"
-      onSubmit={(event) => {
-        event.preventDefault()
-        if (disabled) return
-        onSendAction({
-          type: 'SUBMIT_ADDRESS',
-          recipientName: name.trim(),
-          recipientPhone: phone,
-          province,
-          city: city.trim(),
-          addressText: street.trim(),
-          postalCode: postal,
-          plaque: plaque.trim() || undefined,
-          unit: unit.trim() || undefined,
-        })
-      }}
-    >
-      <input value={name} onChange={(event) => setName(event.target.value)} placeholder={fa.shop.addressFormName} className={field} />
-      {hint(fieldErrors?.name)}
-      <DigitsInput kind="phone" allowIntl value={phone} onChange={setPhone} placeholder={fa.shop.addressFormPhone} className={field} />
-      {hint(fieldErrors?.phone)}
-      <select value={province} onChange={(event) => setProvince(event.target.value)} className={field}>
-        <option value="">{fa.shop.addressFormProvince}</option>
-        {(provinces ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
-      </select>
-      {hint(fieldErrors?.province)}
-      <input value={city} onChange={(event) => setCity(event.target.value)} placeholder={fa.shop.addressFormCity} className={field} />
-      {hint(fieldErrors?.city)}
-      <input value={street} onChange={(event) => setStreet(event.target.value)} placeholder={fa.shop.addressFormStreet} className={field} />
-      {hint(fieldErrors?.street)}
-      <DigitsInput kind="postal" value={postal} onChange={setPostal} placeholder={fa.shop.addressFormPostal} className={field} />
-      {hint(fieldErrors?.postal)}
-      <div className="flex gap-2">
-        <input value={plaque} onChange={(event) => setPlaque(event.target.value)} placeholder={fa.shop.addressFormPlaque} className={field} />
-        <input value={unit} onChange={(event) => setUnit(event.target.value)} placeholder={fa.shop.addressFormUnit} className={field} />
-      </div>
-      <button type="submit" disabled={disabled} className="rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white disabled:opacity-40">
-        {fa.shop.addressFormSubmit}
-      </button>
-    </form>
-  )
-}
-
-function AddressPromptBlock({
-  mode,
-  addresses,
-  provinces,
-  summary,
-  prefillName,
-  prefillPhone,
-  values,
-  fieldErrors,
-  disabled,
-  onSendAction,
-}: {
-  mode: 'CHOOSE_SAVED' | 'CHOOSE_PROVINCE' | 'CONFIRM' | 'ASK_SAVE' | 'FORM'
-  addresses?: { id: string; summary: string }[]
-  provinces?: string[]
-  summary?: string
-  prefillName?: string
-  prefillPhone?: string
-  values?: {
-    recipientName: string
-    recipientPhone: string
-    province: string
-    city: string
-    addressText: string
-    postalCode: string
-    plaque: string
-    unit: string
-  }
-  fieldErrors?: Partial<Record<'name' | 'phone' | 'province' | 'city' | 'street' | 'postal', string>>
-  disabled: boolean
-  onSendAction: (action: ShopAction) => void
-}) {
-  if (mode === 'FORM') {
-    return (
-      <AddressFormBlock
-        provinces={provinces}
-        prefillName={prefillName}
-        prefillPhone={prefillPhone}
-        values={values}
-        fieldErrors={fieldErrors}
-        disabled={disabled}
-        onSendAction={onSendAction}
-      />
-    )
-  }
-  if (mode === 'CHOOSE_PROVINCE') {
-    return (
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {(provinces ?? []).map(p => (
-          <button
-            key={p}
-            onClick={() => onSendAction({ type: 'SELECT_PROVINCE', province: p })}
-            disabled={disabled}
-            className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-2 py-2 text-center text-xs text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-          >
-            {p}
-          </button>
-        ))}
-      </div>
-    )
-  }
-
-  if (mode === 'CHOOSE_SAVED') {
-    return (
-      <div className="mt-2 flex flex-col gap-2">
-        {(addresses ?? []).map((a) => (
-          <button
-            key={a.id}
-            onClick={() => onSendAction({ type: 'SELECT_ADDRESS', addressId: a.id })}
-            disabled={disabled}
-            className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-3 py-2 text-right text-xs text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-          >
-            {a.summary}
-          </button>
-        ))}
-        <button
-          onClick={() => onSendAction({ type: 'NEW_ADDRESS' })}
-          disabled={disabled}
-          className="rounded-xl border border-dashed border-slate-600/60 light:border-slate-300 px-3 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-        >
-          {fa.shop.addressNewOption}
-        </button>
-      </div>
-    )
-  }
-
-  if (mode === 'CONFIRM') {
-    return (
-      <div className="mt-2 rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white p-3">
-        <p className="mb-3 whitespace-pre-line text-xs text-slate-200 light:text-slate-900">{summary}</p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onSendAction({ type: 'CONFIRM_ADDRESS' })}
-            disabled={disabled}
-            className="flex-1 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-          >
-            {fa.shop.addressConfirmButton}
-          </button>
-          <button
-            onClick={() => onSendAction({ type: 'EDIT_ADDRESS' })}
-            disabled={disabled}
-            className="flex-1 rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-          >
-            {fa.shop.addressEditButton}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ASK_SAVE
-  return (
-    <div className="mt-2 flex gap-2">
-      <button
-        onClick={() => onSendAction({ type: 'SAVE_ADDRESS' })}
-        disabled={disabled}
-        className="flex-1 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-      >
-        {fa.shop.addressSaveYesButton}
-      </button>
-      <button
-        onClick={() => onSendAction({ type: 'SKIP_SAVE_ADDRESS' })}
-        disabled={disabled}
-        className="flex-1 rounded-lg border border-slate-600/60 light:border-slate-300 py-2 text-xs font-semibold text-slate-300 light:text-slate-700 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-      >
-        {fa.shop.addressSaveNoButton}
-      </button>
-    </div>
-  )
-}
-
 // docs/PRD-product-display-focus-and-variations.md §۴.۲ — عیناً سبک AddressPromptBlock's
 // CHOOSE_PROVINCE بالا: چیپ‌چین ساده؛ هر دو mode (DIMENSION/ALTERNATIVES) همون
 // SELECT_VARIANT_VALUE را می‌فرستند، فرق را فقط سرور از روی ctx می‌داند
@@ -813,8 +553,6 @@ function RefundDestinationForm({
 export function ShopUiBlockView({
   block,
   disabled,
-  onUploadReceipt,
-  onSubmitManualReceipt,
   onSendAction,
   onOpenProduct,
   onSubmitRefundDestination,
@@ -826,36 +564,13 @@ export function ShopUiBlockView({
       return null
     case 'PRODUCT_PHOTOS':
       return <ProductPhotosBlock productId={block.productId} productName={block.productName} images={block.images} videos={block.videos} />
+    // پرداخت، آدرس، روش پرداخت و وضعیت سفارش: ChatThread رکورد یک‌خطی می‌کشد و UI کامل در CheckoutSheet است
     case 'PAYMENT_INSTRUCTIONS':
-      return (
-        <PaymentCard
-          variant="CARD"
-          cardNumber={block.cardNumber}
-          ownerName={block.ownerName}
-          amount={block.amount}
-          orderCode={block.orderCode}
-          dueAt={block.dueAt}
-          disabled={disabled}
-          onUploadReceipt={onUploadReceipt}
-          onSubmitManualReceipt={onSubmitManualReceipt}
-        />
-      )
     case 'SNAPPPAY_PAYMENT_INSTRUCTIONS':
-      return (
-        <PaymentCard
-          variant="SNAPPPAY"
-          link={block.link}
-          amount={block.amount}
-          orderCode={block.orderCode}
-          dueAt={block.dueAt}
-          disabled={disabled}
-          onUploadReceipt={onUploadReceipt}
-        />
-      )
     case 'PAYMENT_METHOD_PROMPT':
-      return <PaymentMethodPromptBlock disabled={disabled} onSendAction={onSendAction} />
     case 'ORDER_STATUS':
-      return <OrderStatusBlock status={block.status} orderCode={block.orderCode} />
+    case 'ADDRESS_PROMPT':
+      return null
     case 'REFUND_DESTINATION_FORM':
       return (
         <RefundDestinationForm
@@ -866,21 +581,6 @@ export function ShopUiBlockView({
       )
     case 'VISIT_WEBSITE':
       return <VisitWebsiteBlock url={block.url} />
-    case 'ADDRESS_PROMPT':
-      return (
-        <AddressPromptBlock
-          mode={block.mode}
-          addresses={block.addresses}
-          provinces={block.provinces}
-          summary={block.summary}
-          prefillName={block.prefillName}
-          prefillPhone={block.prefillPhone}
-          values={block.values}
-          fieldErrors={block.fieldErrors}
-          disabled={disabled}
-          onSendAction={onSendAction}
-        />
-      )
     case 'ORDER_LIST':
       return (
         <OrderListBlock

@@ -392,3 +392,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .cart-bar-in { animation: none; }
 }
+
+/* docs/PRD-buyer-chat-redesign.md §7 — شیت‌ها ۲۲۰ms از پایین می‌آیند؛ با prefers-reduced-motion بی‌حرکت */
+@keyframes sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.sheet-in { animation: sheet-in 220ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-in { animation: none; }
+}

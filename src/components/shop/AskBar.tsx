@@ -165,13 +165,13 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
-          <span className="size-2 animate-pulse rounded-full bg-[var(--shop-danger)]" aria-hidden />
+          <span className="size-2 animate-pulse motion-reduce:animate-none rounded-full bg-[var(--shop-danger)]" aria-hidden />
           <span className="flex-1 text-sm font-semibold text-[var(--shop-danger)]">{fa.shop.v2.recording(timeText)}</span>
           <button
             type="button"
             onClick={() => void toggleRecording()}
             aria-label={fa.shop.v2.sendLabel}
-            className="flex size-11 shrink-0 animate-pulse items-center justify-center rounded-xl bg-[var(--shop-danger)] text-white"
+            className="flex size-11 shrink-0 animate-pulse motion-reduce:animate-none items-center justify-center rounded-xl bg-[var(--shop-danger)] text-white"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 -scale-x-100" aria-hidden>
               <path d="M3 10l14-7-4 7 4 7-14-7z" />

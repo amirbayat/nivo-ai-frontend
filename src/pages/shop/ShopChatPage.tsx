@@ -14,7 +14,7 @@ import { ChatThread } from '@/components/shop/ChatThread'
 import { AskBar } from '@/components/shop/AskBar'
 import { CartSheet } from '@/components/shop/CartSheet'
 import { CartBar } from '@/components/shop/CartBar'
-import { CheckoutSheet, CHECKOUT_STATES, DONE_STATES } from '@/components/shop/CheckoutSheet'
+import { CheckoutSheet, CHECKOUT_STATES, DONE_STATES, checkoutStepFor } from '@/components/shop/CheckoutSheet'
 import { OrderPinnedCard } from '@/components/shop/OrderPinnedCard'
 import { applyCartOps, cartCountOf, isCartStale, optimisticTotal, type CartLineView } from '@/lib/optimisticCart'
 import { computePinnedOrder } from '@/lib/orderPinned'
@@ -72,6 +72,8 @@ export function ShopChatPage() {
     cartAdd,
     cartSetQty,
     cartRemove,
+    cartListenerRef,
+    logUiEvent,
     uploadReceipt,
     submitManualReceipt,
     submitRefundDestination,
@@ -213,7 +215,7 @@ export function ShopChatPage() {
       },
       { replace: true },
     )
-    openProductById(linkProductId)
+    openProductById(linkProductId, 'link')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkProductId, loading, slug, setSearchParams])
 
@@ -283,7 +285,7 @@ export function ShopChatPage() {
   const keyboardOpen = viewportHeight != null && window.innerHeight - viewportHeight > 120
 
   // افزودن از شیت محصول/کارت چت: همان لحظه روی UI اثر می‌کند، بعد با سرور هماهنگ می‌شود
-  function addToCart(productId: string, variantId?: string, product?: PublicProduct | null) {
+  function addToCart(productId: string, variantId: string | undefined, product: PublicProduct | null | undefined, source: 'sheet' | 'chat_card') {
     const known = product ?? catalog.items.find((p) => p.id === productId) ?? null
     let name = known?.name
     let unitPrice = known?.basePrice
@@ -305,7 +307,7 @@ export function ShopChatPage() {
         }
       }
     }
-    cartAdd({ productId, variantId, name: name ?? '', unitPrice: unitPrice ?? 0, variantLabel })
+    cartAdd({ productId, variantId, name: name ?? '', unitPrice: unitPrice ?? 0, variantLabel, source })
   }
 
   // اکشن‌هایی که بعد از آن‌ها، اگر سرور وارد مرحله‌ی پرداخت شد، شیت خودکار باز می‌شود (§6.7)
@@ -320,13 +322,13 @@ export function ShopChatPage() {
     if (!finished) return
     if (autoOpenArmedRef.current) {
       autoOpenArmedRef.current = false
-      if (CHECKOUT_STATES.includes(state)) setCheckoutOpen(true)
+      if (CHECKOUT_STATES.includes(state)) openCheckout(true)
     }
     if (doneArmedRef.current) {
       doneArmedRef.current = false
       if (DONE_STATES.includes(state)) {
         setDoneStep(true)
-        setCheckoutOpen(true)
+        openCheckout(true)
       }
     }
   }, [sending, state])
@@ -354,6 +356,37 @@ export function ShopChatPage() {
     setTimeout(() => setOrderHighlight(false), 1500)
   }
 
+  // B5: cart_add وقتی سرور جواب داد (latencyMs از لمس تا CART_SUMMARY)
+  useEffect(() => {
+    cartListenerRef.current = ({ op, ok, latencyMs }) => {
+      if (op.kind === 'add') logUiEvent('cart_add', { productId: op.productId, source: op.source ?? 'sheet', latencyMs, ok })
+    }
+    return () => {
+      cartListenerRef.current = null
+    }
+  }, [cartListenerRef, logUiEvent])
+
+  // B5: shop_view یک‌بار بعد از بوت — ورود از لینک محصول، لینک فروشگاه، برگشتی یا تاریخچه (§3)
+  const shopViewLoggedRef = useRef(false)
+  useEffect(() => {
+    if (loading || !bootDecided || !conversationId || shopViewLoggedRef.current) return
+    shopViewLoggedRef.current = true
+    const entry = viewOrderConversationId ? 'history' : linkProductId ? 'product_link' : messages.length > 0 ? 'returning' : 'shop_link'
+    logUiEvent('shop_view', { entry, view })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, bootDecided, conversationId])
+
+  // B5: checkout_sheet_opened {step, auto}
+  function openCheckout(auto: boolean) {
+    const step = checkoutStepFor(state, doneStep) ?? (DONE_STATES.includes(state) ? 'done' : 'payment')
+    logUiEvent('checkout_sheet_opened', { step: step === 'method' ? 'method' : step, auto })
+    setCheckoutOpen(true)
+  }
+  function openAbout() {
+    logUiEvent('about_opened')
+    setAboutOpen(true)
+  }
+
   function goToView(next: ShopView) {
     if (next === view) return
     if (next === 'chat') {
@@ -377,17 +410,19 @@ export function ShopChatPage() {
     }
   }
 
-  function openProduct(product: PublicProduct) {
+  function openProduct(product: PublicProduct, source: 'grid' | 'chat_card' | 'link' = 'grid') {
+    logUiEvent('product_sheet_opened', { productId: product.id, source })
     setSheet({ productId: product.id, product, status: 'ready' })
   }
 
   // از کارت چت یا لینک: اول کاتالوگ لودشده، وگرنه یک ids= (اسکلت تا رسیدن؛ ناپیدا = «در دسترس نیست»)
-  function openProductById(productId: string) {
+  function openProductById(productId: string, source: 'chat_card' | 'link' = 'chat_card') {
     const known = catalog.items.find((p) => p.id === productId)
     if (known) {
-      openProduct(known)
+      openProduct(known, source)
       return
     }
+    logUiEvent('product_sheet_opened', { productId, source })
     setSheet({ productId, product: null, status: 'loading' })
     void fetchPublicProductsByIds(slug, [productId]).then((found) => {
       const product = found?.[0] ?? null
@@ -407,7 +442,10 @@ export function ShopChatPage() {
   }
 
   function sendFromAskBar(text: string) {
-    if (view === 'products') goToView('chat')
+    if (view === 'products') {
+      logUiEvent('ask_from_products')
+      goToView('chat')
+    }
     void sendMessage(text)
   }
 
@@ -456,7 +494,7 @@ export function ShopChatPage() {
         sellerIsReplying={sellerIsReplying}
         cartCount={cartEditable && !viewingHistory ? cartCount : 0}
         onOpenCart={() => setCartOpen(true)}
-        onOpenAbout={() => setAboutOpen(true)}
+        onOpenAbout={openAbout}
         onOpenMenu={() => setMenuOpen(true)}
       />
 
@@ -468,7 +506,7 @@ export function ShopChatPage() {
         <OrderPinnedCard
           order={pinned}
           highlight={orderHighlight}
-          onContinue={() => setCheckoutOpen(true)}
+          onContinue={() => openCheckout(false)}
           onTrack={trackOrder}
           onScrollToRefund={() => document.querySelector('[data-refund-form]:last-of-type')?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
         />
@@ -514,8 +552,9 @@ export function ShopChatPage() {
           savedProductIds={savedProductIds}
           savedItems={savedProducts}
           onToggleSave={toggleSaveProduct}
-          onOpenProduct={openProduct}
+          onOpenProduct={(p) => openProduct(p, 'grid')}
           onAskSeller={(q) => {
+            logUiEvent('ask_from_products')
             goToView('chat')
             void sendMessage(q)
           }}
@@ -551,7 +590,7 @@ export function ShopChatPage() {
               cartProductIds={cartProductIds}
               cartTappable={cartEditable && !viewingHistory}
               onOpenCart={() => setCartOpen(true)}
-              onOpenCheckout={() => setCheckoutOpen(true)}
+              onOpenCheckout={() => openCheckout(false)}
               checkoutState={state}
               onHighlightOrder={highlightOrder}
               onOpenProduct={openProductById}
@@ -559,9 +598,7 @@ export function ShopChatPage() {
               onLoadOlder={() => void loadOlderMessages()}
               onRetry={(id) => void retryMessage(id)}
               onMarkVoiceHeard={markVoiceHeard}
-              onAddToCart={(id) => addToCart(id)}
-              onUploadReceipt={(file) => void uploadReceiptTracked(file)}
-              onSubmitManualReceipt={(info) => void manualReceiptTracked(info)}
+              onAddToCart={(id) => addToCart(id, undefined, null, 'chat_card')}
               onSubmitRefundDestination={submitRefundDestination}
               onSendAction={(action) => sendCheckoutAction(action)}
             />
@@ -669,7 +706,7 @@ export function ShopChatPage() {
         disabled={actionDisabled}
         inCart={sheet ? cartProductIds.has(sheet.productId) : false}
         saved={sheet ? savedProductIds.has(sheet.productId) : false}
-        onAddToCart={(id, variantId) => addToCart(id, variantId, sheet?.product)}
+        onAddToCart={(id, variantId) => addToCart(id, variantId, sheet?.product, 'sheet')}
         onAskAbout={askAboutProduct}
         onSeeOthers={() => setSheet(null)}
         onToggleSave={() => sheet && toggleSaveProduct(sheet.productId)}
@@ -708,7 +745,8 @@ export function ShopChatPage() {
         onSelectHistory={handleSelectHistory}
         onNewChat={() => setNewChatConfirmOpen(true)}
         storeName={storeName}
-        onAbout={() => setAboutOpen(true)}
+        onAbout={openAbout}
+        onItem={(item) => logUiEvent('menu_item', { item })}
         onVerified={() => {
           markBuyerVerified(slug)
           setVerified(true)

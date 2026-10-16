@@ -211,7 +211,7 @@ export function CommentModal({
                   disabled={uploadingKind !== null}
                   className={`flex-1 rounded-xl border border-dashed py-2.5 text-xs font-medium disabled:opacity-50 ${
                     recording
-                      ? 'animate-pulse border-red-500 text-red-400'
+                      ? 'animate-pulse motion-reduce:animate-none border-red-500 text-red-400'
                       : 'border-slate-700 light:border-slate-300 text-slate-400 light:text-slate-600'
                   }`}
                 >

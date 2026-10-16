@@ -1667,17 +1667,8 @@ export const fa = {
     suspendedBody: 'لطفاً کمی بعد دوباره سر بزن.',
     notFoundHeading: 'فروشگاه پیدا نشد',
     notFoundBody: 'این لینک معتبر نیست یا فروشگاه غیرفعال شده است.',
-    inputPlaceholder: 'پیامت رو بنویس...',
     olderMessages: 'پیام‌های قدیمی‌تر',
     sellerIsReplying: 'فروشنده داره جواب می‌ده',
-    addToCart: 'افزودن به سبد',
-    // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر چت همیشه قابل‌کلیک می‌ماند؛
-    // خریدار با کلیک دوباره روی کارت تکراری (همون محصول که قبلاً اضافه شده) ناخواسته
-    // تعداد سبد را دوبرابر می‌کرد. این برچسب جایگزین دکمه می‌شود وقتی محصول از قبل در
-    // آخرین خلاصه‌ی سبد (CART_SUMMARY) هست — ShopChatPage.tsx/ShopUiBlocks.tsx
-    alreadyInCart: '✓ در سبد شماست',
-    confirmAndPay: 'تایید و پرداخت',
-    uploadReceipt: 'آپلود رسید',
     refundForm: {
       card: 'شماره کارت',
       sheba: 'شبا',
@@ -1689,8 +1680,6 @@ export const fa = {
       paid: 'واریز شد',
       invalid: 'شماره کارت یا شبا درست نیست',
     },
-    copyCardNumber: 'کپی شماره کارت',
-    cardNumberCopied: 'کپی شد',
     // 0.13n — رسید بزرگ‌تر از سقف سرور (حتی بعد از فشرده‌سازی)
     // 0.13o — «گفتگوی جدید» وسط سفارش باز
     newChatWithOpenOrderWarning:
@@ -1737,10 +1726,6 @@ export const fa = {
     },
     // docs/PRD-buyer-payment-method-card-or-snapppay-link.md
     payWithSnapppayButton: 'پرداخت با اسنپ‌پی (۴ قسطه)',
-    uploadSnapppayScreenshot: 'آپلود اسکرین‌شات پرداخت',
-    snapppayTrackingCodeHint: 'بعد از پرداخت، کد رهگیری‌ای که اسنپ‌پی نشون میده رو هم همین‌جا در چت بفرست',
-    choosePaymentMethodCardButton: 'کارت‌به‌کارت',
-    choosePaymentMethodSnapppayButton: 'اسنپ‌پی (۴ قسطه)',
     visitWebsiteButton: 'مشاهده وب‌سایت',
     outOfStock: 'ناموجود',
     notifyMe: 'ناموجوده، خبرم کن',
@@ -1752,7 +1737,6 @@ export const fa = {
     // عمداً بدون عدد — فروشنده نمی‌خواهد تعداد موجودی واقعی به خریدار (در ویجت فروش) نشان
     // داده شود؛ stockCount زیر فقط برای پنل خودِ فروشنده (SellerProductsPage) است
     inStock: 'موجود است',
-    stockCount: (n: number) => `موجودی: ${n}`,
     // docs/PRD-product-video.md بخش ۴ — دکمه‌های ناوبری MediaCarousel/MediaLightbox
     carouselPrev: 'قبلی',
     carouselNext: 'بعدی',
@@ -1772,54 +1756,13 @@ export const fa = {
       SNAPPPAY: 'اسنپ‌پی',
     } as Record<string, string>,
     snapppayTrackingCodeLabel: 'کد رهگیری اسنپ‌پی',
-    // docs/PRD-sales-agent-checkout-pricing-and-roadmap.md بخش ۱ + docs/PRD-buyer-saved-addresses.md
-    addressNewOption: '🏠 آدرس جدید',
-    addressConfirmButton: '✅ بله، درسته',
-    addressEditButton: '✏️ از اول وارد کنم',
-    addressSaveYesButton: '✅ بله، ذخیره کن',
-    addressSaveNoButton: 'فقط همین‌بار',
-    conversationEnded: 'این مکالمه به یکی از همکارهای فروشگاه منتقل شد — می‌تونی همینجا باهاش صحبت کنی.',
     stillChecking: 'دارم بررسی می‌کنم…',
-    landingWelcome: (name: string) => `به ${name} خوش آمدید. محصول را از پایین بردارید، یا بنویسید دنبال چه چیزی هستید.`,
-    landingChipBest: 'پرفروش‌ها',
-    landingChipNew: 'جدیدترین‌ها',
-    landingChipHelp: 'کمک می‌خوام انتخاب کنم',
-    landingChipShipping: 'ارسال و پرداخت چطوره؟',
-    cartSheetTitle: 'سبد خرید',
-    cartRemove: 'حذف',
-    cartEmptySheet: 'سبد خرید خالی است',
-    addressFormName: 'نام گیرنده',
-    addressFormPhone: 'شماره',
-    addressFormProvince: 'استان',
-    addressFormCity: 'شهر',
-    addressFormStreet: 'آدرس',
-    addressFormPostal: 'کد پستی',
-    addressFormPlaque: 'پلاک',
-    addressFormUnit: 'واحد',
-    addressFormSubmit: 'ثبت آدرس',
-    retrySend: 'دوباره بفرست',
-    awaitingSatisfactionHint: 'به سوال رضایت همین‌جا جواب بده',
-    // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱/۳.۳
-    awaitingReviewHint: 'نظرت رو همین‌جا بفرست — متن، صوت، عکس یا ویدیو، هرکدوم راحت‌تری 🙏',
     voicePreparing: '🔊 در حال آماده‌سازی صدا...',
-    customerVoiceTranscribing: '🎙️ در حال تبدیل گفتار به متن...',
     customerImageAlt: 'عکس ارسالی خریدار',
     attachImage: 'ارسال عکس به فروشنده',
     // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱
     attachVideo: 'ارسال ویدیو',
-    voiceRecording: 'در حال ضبط... برای فرستادن دوباره بزن',
     micNotSupported: 'ضبط صدا روی این مرورگر پشتیبانی نمی‌شود',
-    recordingLabel: 'در حال ضبط',
-    newChat: 'گفتگوی جدید',
-    newChatConfirm: 'گفتگوی فعلی به تاریخچه منتقل می‌شود و یک گفتگوی تازه شروع می‌شود. ادامه می‌دی؟',
-    history: 'تاریخچه گفتگوها',
-    historyEmpty: 'گفتگوی قبلی‌ای ثبت نشده',
-    viewingHistoryBanner: 'داری یک گفتگوی قدیمی رو می‌بینی — فرستادن پیام غیرفعاله',
-    backToCurrentChat: 'بازگشت به گفتگوی فعلی',
-    // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار بالای صفحه‌ی چت وقتی
-    // فروشگاه یک فروشگاه دمو/نمونه است (نه فروشگاه واقعی یک فروشنده)
-    demoBuyerBannerText: 'این یک فروشگاه نمونه است — سفارش واقعی ثبت نمی‌شود، فقط برای تست قابلیت‌هاست. فروشگاه واقعی هنگام ثبت‌نام ۳۰۰٬۰۰۰ تومان اعتبار رایگان شروع می‌گیرد.',
-    demoBuyerBannerCta: 'می‌خوای فروشگاه خودتو بسازی؟',
     historyNoProduct: 'بدون محصول',
     historyStatusLabels: {
       COMPLETED: 'تکمیل‌شده',
@@ -1827,25 +1770,13 @@ export const fa = {
       IN_PROGRESS: 'در حال انجام',
       NEEDS_ATTENTION: 'نیاز به پیگیری',
     } as Record<string, string>,
-    // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — حالت «فروشگاه»
-    storeMode: 'فروشگاه',
-    storeModeOpen: 'دیدن همه‌ی محصولات',
-    storeModeSearchPlaceholder: 'جست‌وجوی محصول...',
     storeModeEmpty: 'محصولی پیدا نشد',
-    storeModeLoadMore: 'نمایش بیشتر',
-    storeModeBackToChat: 'بازگشت به گفتگو',
-    storeModeAskSeller: 'پرسیدن از فروشنده',
     shareProduct: 'اشتراک‌گذاری',
     linkCopied: 'لینک کپی شد',
     reviewCount: (n: number) => `${n.toLocaleString('fa-IR')} نظر`,
-    shippingEstimateFlat: (n: number) => `ارسال ${n.toLocaleString('fa-IR')} تومان`,
-    shippingEstimateRange: (min: number, max: number) =>
-      `ارسال حدود ${min.toLocaleString('fa-IR')} تا ${max.toLocaleString('fa-IR')} تومان`,
-    storeModeAddedToCart: 'به سبد اضافه شد',
     // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۴
     goldPriceTickerTitle: 'نرخ امروز',
     goldPriceTickerUpdatedAt: 'آخرین به‌روزرسانی: چند لحظه پیش',
-    goldPriceUnavailable: 'نرخ لحظه‌ای طلا موقتاً در دسترس نیست',
     weightBasedPriceBadge: '⏱ قیمت لحظه‌ای',
     weightBasedPriceDetail: (weightGrams: number, purityKarat: number) =>
       `وزن: ${weightGrams.toLocaleString('fa-IR')} گرم، عیار ${purityKarat.toLocaleString('fa-IR')}`,
@@ -1857,15 +1788,8 @@ export const fa = {
     compareCardStock: 'موجودی',
     saveForLater: 'ذخیره برای بعد',
     removeFromSaved: 'حذف از ذخیره‌شده‌ها',
-    savedTabAll: 'همه',
-    savedTab: 'ذخیره‌شده‌ها',
     savedEmpty: 'هنوز چیزی ذخیره نکرده‌ای',
-    quickChipOrders: '📦 سفارش‌هام',
-    quickChipProducts: '🛍 دیدن محصولات',
-    quickChipTalkToSeller: '💬 صحبت با فروشنده',
     talkToSellerMessage: 'می‌خوام با یکی از همکاراتون صحبت کنم',
-    // docs/PRD-buyer-phone-otp-registration.md
-    registerButton: 'ثبت‌نام برای خدمات بهتر',
     registerTitle: 'ثبت‌نام',
     registerIntro: 'با شماره موبایلت ثبت‌نام کن تا فروشنده بشناستت و خدمات بهتری بگیری.',
     registerPhonePlaceholder: 'شماره موبایل',
@@ -1874,7 +1798,6 @@ export const fa = {
     registerNamePlaceholder: 'اسمت چیه؟ (اختیاری)',
     registerConfirmButton: 'تایید و ثبت‌نام',
     registerChangePhone: 'تغییر شماره',
-    registerClose: 'بستن',
     registerSuccess: 'ثبت‌نام با موفقیت انجام شد ✅',
     registerInvalidPhone: 'شماره موبایل معتبر نیست؛ مثلاً ۰۹۱۲۳۴۵۶۷۸۹',
     registerInvalidCode: 'کد وارد‌شده معتبر نیست؛ کد ۶ رقمی پیامک‌شده را وارد کن',
@@ -1900,7 +1823,6 @@ export const fa = {
     reviewMediaUploading: 'در حال آپلود...',
     reviewMediaUploadError: 'آپلود رسانه با خطا مواجه شد',
     reviewMediaRemove: 'حذف',
-    viewReviewsButton: '🗨️ مشاهده نظرات خریداران قبلی',
     reviewsModalTitle: 'نظرات خریداران',
     reviewsEmpty: 'هنوز نظری ثبت نشده',
     reviewsLoadError: 'دریافت نظرات با خطا مواجه شد',

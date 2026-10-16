@@ -134,7 +134,7 @@ export function BottomSheet({ open, onClose, title, children, footer, full, clos
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative flex w-full max-w-[640px] flex-col rounded-t-3xl border border-b-0 border-slate-800 bg-slate-900 outline-none light:border-slate-200 light:bg-white ${
+        className={`sheet-in relative flex w-full max-w-[640px] flex-col rounded-t-3xl border border-b-0 border-slate-800 bg-slate-900 outline-none light:border-slate-200 light:bg-white ${
           full ? 'h-[92dvh]' : 'max-h-[92dvh]'
         }`}
       >

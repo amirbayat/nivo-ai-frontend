@@ -13,7 +13,12 @@ export function useStoreAbout(slug: string) {
     try {
       const res = await fetch(`${env.VITE_API_URL}/v2/stores/${slug}/about`)
       if (!res.ok) throw new Error('request failed')
-      setAbout((await res.json()) as PublicStoreAbout)
+      const data = (await res.json()) as Partial<PublicStoreAbout> | null
+      // پاسخ نامعتبر (مثلاً پروکسی) مثل خطا رفتار می‌کند، نه کرش در شیت
+      if (!data || typeof data.name !== 'string' || typeof data.memberSince !== 'string' || !Array.isArray(data.paymentMethods)) {
+        throw new Error('bad shape')
+      }
+      setAbout(data as PublicStoreAbout)
       setFailed(false)
     } catch {
       setFailed(true)

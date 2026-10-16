@@ -57,7 +57,7 @@ export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKe
         </div>
 
         {!about && !failed && (
-          <div className="animate-pulse space-y-2" aria-hidden>
+          <div className="animate-pulse motion-reduce:animate-none space-y-2" aria-hidden>
             <div className="h-4 w-2/3 rounded bg-[var(--shop-surface-2)]" />
             <div className="h-4 w-1/2 rounded bg-[var(--shop-surface-2)]" />
           </div>
