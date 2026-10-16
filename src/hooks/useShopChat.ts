@@ -23,7 +23,6 @@ import type {
 // این صفحه مشتری ناشناس یک فروشگاه است، نه یک User لاگین‌شده — عمداً از `api` (axios)
 // مشترک استفاده نمی‌کند چون آن همیشه هدر Authorization را از localStorage تزریق می‌کند
 // (src/lib/api.ts)؛ اینجا هویت فقط X-Session-Token است.
-const KICKOFF_MESSAGE = 'سلام، محصولاتتون رو نشون بدید'
 
 // کلید ذخیره‌سازی شامل پیشوند «conversationId/» است (storage.service.ts uploadImage) — باید
 // encode شود وگرنه «/» داخلش روت :key را به چند سگمنت می‌شکند و 404 می‌گیرد (عیناً voiceAudioUrl
@@ -157,7 +156,6 @@ export function useShopChat(slug: string, productId?: string) {
   // منتظر نظر است؛ تعیین می‌کند دکمه‌های پیوست عکس/ویدیو هم نشان داده شوند
   const [awaitingReview, setAwaitingReview] = useState(false)
   const [awaitingSatisfaction, setAwaitingSatisfaction] = useState(false)
-  const [showLanding, setShowLanding] = useState(false)
   const sessionRef = useRef<ShopSession | null>(null)
   const messagesStateRef = useRef<ShopMessage[]>([])
   const streamEnabledRef = useRef(false)
@@ -522,7 +520,6 @@ export function useShopChat(slug: string, productId?: string) {
     async (text: string) => {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
-      setShowLanding(false)
       const bubbleId = `opt-${Date.now()}`
       const clientMessageId = newClientMessageId()
       setMessages((prev) => [...prev, { id: bubbleId, role: 'customer', text, clientMessageId }])
@@ -553,9 +550,6 @@ export function useShopChat(slug: string, productId?: string) {
     async (action: ShopAction) => {
       const session = sessionRef.current
       if (!session || sending || viewingHistoryRef.current) return
-      if (action.type !== 'SET_CART_QTY' && action.type !== 'REMOVE_CART_ITEM') {
-        setShowLanding(false)
-      }
       setSending(true)
       setError(null)
       try {
@@ -691,7 +685,6 @@ export function useShopChat(slug: string, productId?: string) {
       setHasMoreEvents(!!data.hasMoreEvents)
     }
     if (mode === 'replace') setOlderMessages([])
-    setShowLanding(!!data.shopLandingEnabled && nextMessages.length === 0)
   }, [])
 
   const loadOlderMessages = useCallback(async () => {
@@ -996,22 +989,15 @@ export function useShopChat(slug: string, productId?: string) {
           { id, role: 'agent', text: data.initialReply!, uiBlock, voiceEventId: data.initialVoiceEventId },
         ])
         if (data.initialVoiceEventId) pollVoice(id, data.initialVoiceEventId)
-      } else if (data.shopLandingEnabled) {
-        setState('GREETING')
-        setShowLanding(true)
       } else {
+        // docs/PRD-buyer-chat-redesign.md §3 (ورود B) — بدون پیام ساختگی/کیک‌آف و بدون فراخوانی مدل؛
+        // خریدار محصولات را می‌بیند و هر وقت خواست می‌پرسد
         setState('GREETING')
-        setShowLanding(false)
-        // باگ واقعی زنده (۱۴۰۵/۰۷/۱۹، docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴) —
-        // silent:true حباب مشتری را مخفی می‌کرد در حالی‌که این پیام واقعاً روی سرور به‌عنوان
-        // یک CUSTOMER_MESSAGE واقعی ثبت می‌شود (با رفرش هم از لاگ سرور درست نمایش داده
-        // می‌شد) — یعنی ناسازگاری بین اولین‌بار دیدن و رفرش، نه رفتار عمدی
-        void sendMessage(KICKOFF_MESSAGE)
       }
       void fetchHistory()
       void fetchSavedProducts()
     },
-    [slug, pollVoice, sendMessage, fetchHistory, fetchSavedProducts],
+    [slug, pollVoice, fetchHistory, fetchSavedProducts],
   )
 
   // فقط اولین بار (هیچ سشنی در این مرورگر نبوده) — Customer تازه می‌سازد
@@ -1096,14 +1082,6 @@ export function useShopChat(slug: string, productId?: string) {
     if (sending) return
     const current = liveSessionRef.current
     if (!current) return
-    // 0.13o — با سفارش پرداخت‌نشده/منتظر تایید، «گفتگوی جدید» خریدار را از سفارشش جدا می‌کرد
-    // (رسید فقط از همین مکالمه آپلود می‌شد). هشدار + اشاره به صفحه‌ی سفارش‌ها؛ تصمیم با خریدار.
-    if (
-      (state === 'AWAITING_PAYMENT' || state === 'AWAITING_SELLER_APPROVAL') &&
-      !window.confirm(fa.shop.newChatWithOpenOrderWarning)
-    ) {
-      return
-    }
     setViewingHistory(false)
     setMessages([])
     setError(null)
@@ -1120,7 +1098,7 @@ export function useShopChat(slug: string, productId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [sending, state, applyStartResponse, setViewingHistory])
+  }, [sending, applyStartResponse, setViewingHistory])
 
   // نمایش فقط‌خواندنی یک گفتگوی قدیمی از تاریخچه — ارسال پیام غیرفعال می‌ماند تا برگردد؛
   // همان sessionToken مکالمه‌ی زنده کار می‌کند چون هر دو مال یک Customer‌اند
@@ -1347,7 +1325,6 @@ export function useShopChat(slug: string, productId?: string) {
     retryMessage,
     loading,
     sending,
-    showLanding,
     streamNote,
     error,
     history,

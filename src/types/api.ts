@@ -478,6 +478,8 @@ export type ShopUiBlock =
         purityKarat?: number | null
         isWeightBasedPricing?: boolean
         goldPricingSummary?: string | null
+        // docs/PRD-buyer-chat-redesign.md B2 — محصول گزینه (سایز/رنگ) دارد؛ سرورهای قدیمی نمی‌فرستند
+        hasVariants?: boolean
       }[]
     }
   // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۳ — برخلاف PRODUCT_CARD که فقط اولین
@@ -620,6 +622,8 @@ export interface PublicProductsPage {
   shippingEstimate?: { minCostToman: number; maxCostToman: number } | null
   // R3.3 — جمله‌ی آماده‌ی بازه‌ی روز ارسال (یا null)
   shippingDaysText?: string | null
+  // docs/PRD-buyer-chat-redesign.md B1 — «پرفروش‌ترین» فقط وقتی فروشگاه ≥۳ سفارش موفق دارد
+  popularSortAvailable?: boolean
 }
 
 // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — GET

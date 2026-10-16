@@ -51,11 +51,21 @@ export function reviewMediaUrl(commentId: string, key: string): string {
 }
 
 // docs/PRD-product-video.md بخش ۴ — چندرسانه‌ای (چند عکس + چند ویدیو) یکجا، ویدیو(ها) اول
-type MediaItem = { type: 'image' | 'video'; src: string }
+export type MediaItem = { type: 'image' | 'video'; src: string }
 
 // carousel اسکرول‌افقی + scroll-snap دستی (بدون کتابخانه‌ی خارجی، طبق تصمیم کاربر ۱۴۰۵/۰۷/۱۲)؛
 // وقتی فقط یک آیتم باشد دکمه/نقطه‌ی ناوبری نشان داده نمی‌شود
-function MediaCarousel({ items, onImageClick }: { items: MediaItem[]; onImageClick: (index: number) => void }) {
+export function MediaCarousel({
+  items,
+  onImageClick,
+  aspectClass = 'aspect-video',
+  showCounter = false,
+}: {
+  items: MediaItem[]
+  onImageClick: (index: number) => void
+  aspectClass?: string
+  showCounter?: boolean
+}) {
   const trackRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
   const [active, setActive] = useState(0)
@@ -95,18 +105,23 @@ function MediaCarousel({ items, onImageClick }: { items: MediaItem[]; onImageCli
             {item.type === 'video' ? (
               // preload="metadata" نه auto — پخش خودکار توی چت آزاردهنده است و بی‌اجازه دیتای
               // موبایل مشتری را مصرف می‌کند
-              <video controls preload="metadata" src={item.src} className="aspect-video w-full rounded-lg bg-black object-contain" />
+              <video controls preload="metadata" src={item.src} className={`${aspectClass} w-full rounded-lg bg-black object-contain`} />
             ) : (
               <img
                 src={item.src}
                 alt=""
                 onClick={() => onImageClick(i)}
-                className="aspect-video w-full cursor-zoom-in rounded-lg object-cover"
+                className={`${aspectClass} w-full cursor-zoom-in rounded-lg object-cover`}
               />
             )}
           </div>
         ))}
       </div>
+      {showCounter && items.length > 1 && (
+        <span className="absolute start-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs text-white" aria-hidden>
+          {fa.shop.v2.mediaCounter(active + 1, items.length)}
+        </span>
+      )}
       {items.length > 1 && (
         <>
           {/* chevron-right = قبلی (عقب)، چون آیتم اول در RTL سمت راست‌تر قرار می‌گیرد */}
@@ -152,7 +167,7 @@ function MediaCarousel({ items, onImageClick }: { items: MediaItem[]; onImageCli
 
 // بزرگ‌نمایی چندآیتمی — تعمیم‌یافته‌ی ImageLightbox (components/ui/ImageLightbox.tsx)، فقط
 // برای carousel محصول که ویدیو هم دارد؛ کلیک/کیبورد (ArrowLeft/ArrowRight) بین آیتم‌ها می‌چرخاند
-function MediaLightbox({ items, startIndex, onClose }: { items: MediaItem[]; startIndex: number; onClose: () => void }) {
+export function MediaLightbox({ items, startIndex, onClose }: { items: MediaItem[]; startIndex: number; onClose: () => void }) {
   const [index, setIndex] = useState(startIndex)
   const item = items[index]
   const authedImageSrc = useAuthedImageUrl(item?.type === 'image' ? item.src : '')

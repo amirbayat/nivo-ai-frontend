@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
-import { StoreProductGrid } from '@/components/shop/StoreProductGrid'
+import { ShopProductsView } from '@/components/shop/ShopProductsView'
+import { ProductSheet } from '@/components/shop/ProductSheet'
+import { ReviewsModal } from '@/components/shop/ReviewsModal'
+import { fetchPublicProductsByIds, useStoreProducts } from '@/hooks/useStoreProducts'
 import { CommentModal } from '@/components/shop/CommentModal'
 import { CheckoutProgressBar } from '@/components/shop/CheckoutProgressBar'
 import { ShopHeader } from '@/components/shop/ShopHeader'
@@ -46,7 +49,6 @@ export function ShopChatPage() {
     state,
     loading,
     sending,
-    showLanding,
     streamNote,
     error,
     history,
@@ -79,11 +81,43 @@ export function ShopChatPage() {
   const [newChatConfirmOpen, setNewChatConfirmOpen] = useState(false)
   // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم از روی محصول
   const [reviewProduct, setReviewProduct] = useState<PublicProduct | null>(null)
-  // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۵ — نمای «محصولات» (قبلاً «حالت فروشگاه») روی نمای گفتگو
-  const [storeMode, setStoreMode] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
-  const [storeModeUnread, setStoreModeUnread] = useState(false)
+  const [chatUnread, setChatUnread] = useState(false)
   const prevMessageCountRef = useRef(messages.length)
+  const catalog = useStoreProducts(slug, true)
+
+  // docs/PRD-buyer-chat-redesign.md §3 — لینک محصول (?product=): شیت همان محصول روی نمای محصولات باز
+  // می‌شود؛ پارامتر بعد از مصرف از URL برداشته می‌شود (ورود A)
+  const [linkProductId] = useState(() => searchParams.get('product'))
+  const [sheet, setSheet] = useState<{ productId: string; product: PublicProduct | null; status: 'loading' | 'ready' | 'unavailable' } | null>(null)
+  const [reviewsProduct, setReviewsProduct] = useState<PublicProduct | null>(null)
+  // «سوال دارم»: محصولِ متمرکز تا خریدار از گفتگو برگردد؛ placeholder و فوکوس نوار پرسش از آن می‌آید
+  const [focusedProduct, setFocusedProduct] = useState<PublicProduct | null>(null)
+  const [focusToken, setFocusToken] = useState(0)
+  const [pendingFocus, setPendingFocus] = useState(false)
+
+  // نما از URL می‌آید (?view=chat)؛ خریدار برگشتی با گفتگوی موجود، یک بار و بدون پرش بصری به گفتگو می‌رود
+  // (ورود C/D)، مگر با لینک محصول بیاید
+  const [bootDecided, setBootDecided] = useState(false)
+  const urlWantsChat = searchParams.get('view') === 'chat'
+  const bootChat = !loading && !bootDecided && messages.length > 0 && !linkProductId
+  useLayoutEffect(() => {
+    if (loading || bootDecided) return
+    setBootDecided(true)
+    if (bootChat && !urlWantsChat) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('view', 'chat')
+          return next
+        },
+        { replace: true },
+      )
+    }
+  }, [loading, bootDecided, bootChat, urlWantsChat, setSearchParams])
+  // ورود F — فروشگاه بدون محصول فعال: فقط گفتگو
+  const noProducts = catalog.loaded && catalog.catalogTotal === 0
+  const view: ShopView = viewingHistory || noProducts || urlWantsChat || bootChat ? 'chat' : 'products'
 
   // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — وقتی از «سفارش‌های من» با ?viewOrder=<conversationId> می‌آید، همان
   // مکانیزم فقط‌خواندنی تاریخچه (viewHistoryEntry) را صدا می‌زنیم؛ باید صبر کنیم تا مکالمه‌ی
@@ -120,11 +154,45 @@ export function ShopChatPage() {
   }, [])
 
   // وقتی روی نمای «محصولات» هستیم (نخ چت پشت آن است) و پیام تازه‌ای می‌رسد (مثلاً پاسخ به
-  // ADD_TO_CART از گرید)، نقطه‌ی قرمز روی تب «گفتگو» نشان بده — همان الگوی ویجت‌های Intercom/Crisp
+  // ADD_TO_CART از شیت)، نقطه‌ی قرمز روی تب «گفتگو» نشان بده — همان الگوی ویجت‌های Intercom/Crisp
   useEffect(() => {
-    if (messages.length > prevMessageCountRef.current && storeMode) setStoreModeUnread(true)
+    if (messages.length > prevMessageCountRef.current && view === 'products') setChatUnread(true)
     prevMessageCountRef.current = messages.length
-  }, [messages.length, storeMode])
+  }, [messages.length, view])
+
+  // فوکوس نوار پرسش بعد از «سوال دارم» — وقتی نوبت سرور (FOCUS_PRODUCT) تمام شد و فیلد دوباره فعال است
+  useEffect(() => {
+    if (pendingFocus && !sending) {
+      setFocusToken((t) => t + 1)
+      setPendingFocus(false)
+    }
+  }, [pendingFocus, sending])
+
+  // لینک محصول: بعد از بوت، شیت را باز کن (از کاتالوگ لودشده یا با یک ids=) و ?product= را بردار
+  const linkConsumedRef = useRef(false)
+  useEffect(() => {
+    if (!linkProductId || loading || linkConsumedRef.current) return
+    linkConsumedRef.current = true
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('product')
+        return next
+      },
+      { replace: true },
+    )
+    setSheet({ productId: linkProductId, product: null, status: 'loading' })
+    void fetchPublicProductsByIds(slug, [linkProductId]).then((found) => {
+      const product = found?.[0] ?? null
+      setSheet((current) =>
+        current?.productId === linkProductId
+          ? product
+            ? { productId: linkProductId, product, status: 'ready' }
+            : { productId: linkProductId, product: null, status: 'unavailable' }
+          : current,
+      )
+    })
+  }, [linkProductId, loading, slug, setSearchParams])
 
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — وقتی منتظر
   // نظریم، با این‌که state همچنان COMPLETED (ترمینال) است، ورودی باید باز بماند تا خریدار
@@ -161,40 +229,49 @@ export function ShopChatPage() {
 
   const cartProductIds = useMemo(() => new Set(cartSummary?.items.map((item) => item.productId) ?? []), [cartSummary])
 
-  // «پرسیدن از فروشنده» از شیت محصول گرید — چت را باز می‌کند و با نام محصول (مثل اینکه خریدار
-  // تایپ کرده) همان مکانیزم موجود لنگرشدن روی محصول (doBrowse narrowing تک‌نتیجه‌ای) را فعال
-  // می‌کند؛ بدون نیاز به یک اکشن/endpoint تازه‌ی «set anchor»
-  function handleAskSeller(product: PublicProduct) {
-    setStoreMode(false)
-    setStoreModeUnread(false)
-    void sendMessage(product.name)
+  function goToView(next: ShopView) {
+    if (next === view) return
+    if (next === 'chat') {
+      // push: دکمه‌ی برگشت گوشی به نمای محصولات برمی‌گردد (§Edge 8)
+      setSearchParams((prev) => {
+        const n = new URLSearchParams(prev)
+        n.set('view', 'chat')
+        return n
+      })
+      setChatUnread(false)
+    } else {
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev)
+          n.delete('view')
+          return n
+        },
+        { replace: true },
+      )
+      setFocusedProduct(null)
+    }
   }
 
-  function handleViewChange(view: ShopView) {
-    setStoreMode(view === 'products')
-    if (view === 'chat') setStoreModeUnread(false)
+  function openProduct(product: PublicProduct) {
+    setSheet({ productId: product.id, product, status: 'ready' })
+  }
+
+  // «سوال دارم»: شیت بسته، رفتن به گفتگو، FOCUS_PRODUCT قطعی (بدون مدل) و فوکوس نوار پرسش
+  function askAboutProduct(product: PublicProduct) {
+    setSheet(null)
+    setFocusedProduct(product)
+    goToView('chat')
+    void sendAction({ type: 'FOCUS_PRODUCT', productId: product.id })
+    setPendingFocus(true)
+  }
+
+  function sendFromAskBar(text: string) {
+    if (view === 'products') goToView('chat')
+    void sendMessage(text)
   }
 
   function handleSelectHistory(entry: ShopHistoryEntry) {
     void viewHistoryEntry(entry)
-  }
-
-  function addToCartFromGrid(id: string, variantId?: string) {
-    void sendAction({ type: 'ADD_TO_CART', productId: id, ...(variantId ? { variantId } : {}) })
-  }
-
-  const gridProps = {
-    slug,
-    disabled: actionDisabled,
-    onAddToCart: addToCartFromGrid,
-    onAskSeller: handleAskSeller,
-    savedProductIds,
-    savedItems: savedProducts,
-    onToggleSave: toggleSaveProduct,
-    onWriteReview: setReviewProduct,
-    onNotifyStock: subscribeStockAlert,
-    onSendBuyerOtp: sendBuyerOtp,
-    onVerifyBuyerOtp: verifyBuyerOtp,
   }
 
   // یادداشت بالای نوار پرسش — منطق قبلی (بنر «منتقل شد»/«منتظر نظر»/«منتظر پاسخ رضایت») عیناً
@@ -259,8 +336,8 @@ export function ShopChatPage() {
         onOpenMenu={() => setMenuOpen(true)}
       />
 
-      {!showLanding && (
-        <ShopViewSwitch view={storeMode ? 'products' : 'chat'} onChange={handleViewChange} chatUnread={storeModeUnread} />
+      {!noProducts && !viewingHistory && (
+        <ShopViewSwitch view={view} onChange={goToView} chatUnread={chatUnread} />
       )}
 
       {isDemo && (
@@ -305,75 +382,79 @@ export function ShopChatPage() {
         </div>
       )}
 
-      {storeMode && <StoreProductGrid {...gridProps} />}
-
-      {!storeMode && showLanding && (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <p className="px-4 pt-4 text-sm leading-relaxed text-[var(--shop-text)]">{fa.shop.landingWelcome(storeName ?? '')}</p>
-          <div className="flex gap-1.5 overflow-x-auto px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {[fa.shop.landingChipBest, fa.shop.landingChipNew, fa.shop.landingChipHelp, fa.shop.landingChipShipping].map((label) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => void sendMessage(label)}
-                disabled={composerDisabled}
-                className="min-h-11 shrink-0 whitespace-nowrap rounded-full border border-[var(--shop-border)] px-3 text-xs text-[var(--shop-text)] disabled:opacity-40"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <StoreProductGrid {...gridProps} />
-        </div>
+      {view === 'products' && (
+        <ShopProductsView
+          catalog={catalog}
+          savedProductIds={savedProductIds}
+          savedItems={savedProducts}
+          onToggleSave={toggleSaveProduct}
+          onOpenProduct={openProduct}
+          onAskSeller={(q) => {
+            goToView('chat')
+            void sendMessage(q)
+          }}
+        />
       )}
 
-      {!storeMode && !showLanding && (
+      {view === 'chat' && (
         <>
           <CheckoutProgressBar state={state} />
-          <ChatThread
-            thread={thread}
-            messages={messages}
-            conversationId={conversationId}
-            hasMoreEvents={hasMoreEvents}
-            viewingHistory={viewingHistory}
-            sending={sending}
-            streamNote={streamNote}
-            error={error}
-            composerDisabled={composerDisabled}
-            actionDisabled={actionDisabled}
-            refundFormDisabled={refundFormDisabled}
-            sellerIsReplying={sellerIsReplying}
-            viewportHeight={viewportHeight}
-            savedProductIds={savedProductIds}
-            cartProductIds={cartProductIds}
-            onToggleSave={toggleSaveProduct}
-            onLoadOlder={() => void loadOlderMessages()}
-            onRetry={(id) => void retryMessage(id)}
-            onMarkVoiceHeard={markVoiceHeard}
-            onSendText={(text) => void sendMessage(text)}
-            onAddToCart={(id) => void sendAction({ type: 'ADD_TO_CART', productId: id })}
-            onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
-            onUploadReceipt={(file) => void uploadReceipt(file)}
-            onSubmitManualReceipt={(info) => void submitManualReceipt(info)}
-            onSubmitRefundDestination={submitRefundDestination}
-            onSendAction={(action) => void sendAction(action)}
-          />
+          {thread.length === 0 && !sending ? (
+            <p className="flex-1 px-4 pt-6 text-center text-sm text-[var(--shop-text-2)]">
+              {noProducts ? fa.shop.v2.catalogEmptyChat : fa.shop.v2.chatEmptyHint}
+            </p>
+          ) : (
+            <ChatThread
+              thread={thread}
+              messages={messages}
+              conversationId={conversationId}
+              hasMoreEvents={hasMoreEvents}
+              viewingHistory={viewingHistory}
+              sending={sending}
+              streamNote={streamNote}
+              error={error}
+              composerDisabled={composerDisabled}
+              actionDisabled={actionDisabled}
+              refundFormDisabled={refundFormDisabled}
+              sellerIsReplying={sellerIsReplying}
+              viewportHeight={viewportHeight}
+              savedProductIds={savedProductIds}
+              cartProductIds={cartProductIds}
+              onToggleSave={toggleSaveProduct}
+              onLoadOlder={() => void loadOlderMessages()}
+              onRetry={(id) => void retryMessage(id)}
+              onMarkVoiceHeard={markVoiceHeard}
+              onSendText={(text) => void sendMessage(text)}
+              onAddToCart={(id) => void sendAction({ type: 'ADD_TO_CART', productId: id })}
+              onConfirmCart={() => void sendAction({ type: 'CONFIRM_CART' })}
+              onUploadReceipt={(file) => void uploadReceipt(file)}
+              onSubmitManualReceipt={(info) => void submitManualReceipt(info)}
+              onSubmitRefundDestination={submitRefundDestination}
+              onSendAction={(action) => void sendAction(action)}
+            />
+          )}
         </>
       )}
 
-      {!storeMode && (
-        <AskBar
-          key={conversationId ?? 'none'}
-          disabled={composerDisabled}
-          canAttachImage={canAttachImage}
-          canAttachVideo={canAttachVideo}
-          notice={notice}
-          onSendText={(text) => void sendMessage(text)}
-          onSendImage={(file) => void sendImageMessage(file)}
-          onSendVideo={(file) => void sendVideoMessage(file)}
-          onSendVoice={(blob) => void sendVoiceMessage(blob)}
-        />
-      )}
+      <AskBar
+        key={conversationId ?? 'none'}
+        disabled={composerDisabled}
+        canAttachImage={canAttachImage}
+        canAttachVideo={canAttachVideo}
+        notice={view === 'chat' ? notice : null}
+        placeholder={
+          view === 'products'
+            ? fa.shop.v2.askPlaceholderProducts
+            : focusedProduct
+              ? fa.shop.v2.askPlaceholderProduct(focusedProduct.name)
+              : fa.shop.v2.askPlaceholderChat
+        }
+        focusToken={focusToken}
+        onSendText={sendFromAskBar}
+        onSendImage={(file) => void sendImageMessage(file)}
+        onSendVideo={(file) => void sendVideoMessage(file)}
+        onSendVoice={(blob) => void sendVoiceMessage(blob)}
+      />
 
       {cartOpen && cartEditable && cartSummary && (
         <CartSheet
@@ -390,6 +471,30 @@ export function ShopChatPage() {
         />
       )}
 
+      <ProductSheet
+        open={sheet != null}
+        onClose={() => setSheet(null)}
+        product={sheet?.product ?? null}
+        unavailable={sheet?.status === 'unavailable'}
+        slug={slug}
+        shippingEstimate={catalog.shippingEstimate ?? null}
+        shippingDaysText={catalog.shippingDaysText}
+        disabled={actionDisabled || sending}
+        inCart={sheet ? cartProductIds.has(sheet.productId) : false}
+        saved={sheet ? savedProductIds.has(sheet.productId) : false}
+        onAddToCart={(id, variantId) => void sendAction({ type: 'ADD_TO_CART', productId: id, ...(variantId ? { variantId } : {}) })}
+        onAskAbout={askAboutProduct}
+        onSeeOthers={() => setSheet(null)}
+        onToggleSave={() => sheet && toggleSaveProduct(sheet.productId)}
+        onWriteReview={() => sheet?.product && setReviewProduct(sheet.product)}
+        onViewReviews={() => sheet?.product && setReviewsProduct(sheet.product)}
+        onNotifyStock={subscribeStockAlert}
+        onSendBuyerOtp={sendBuyerOtp}
+        onVerifyBuyerOtp={verifyBuyerOtp}
+      />
+
+      {reviewsProduct && <ReviewsModal slug={slug} product={reviewsProduct} onClose={() => setReviewsProduct(null)} />}
+
       <ShopMenuSheet
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -399,8 +504,7 @@ export function ShopChatPage() {
         // replace: entry شیت (closeOnBack) جایگزین صفحه‌ی سفارش‌ها می‌شود، پس «بازگشت» مستقیم به فروشگاه می‌رسد
         onOrders={() => navigate(`/shop/${slug}/orders`, { replace: true })}
         onTalkToSeller={() => {
-          setStoreMode(false)
-          setStoreModeUnread(false)
+          goToView('chat')
           void sendMessage(fa.shop.talkToSellerMessage)
         }}
         onSelectHistory={handleSelectHistory}
@@ -411,7 +515,8 @@ export function ShopChatPage() {
 
       <ConfirmDialog
         open={newChatConfirmOpen}
-        message={fa.shop.v2.newChatConfirm}
+        // 0.13o — با سفارش پرداخت‌نشده/منتظر تایید، «گفتگوی جدید» خریدار را از سفارشش جدا می‌کند؛ هشدار قوی‌تر
+        message={state === 'AWAITING_PAYMENT' || state === 'AWAITING_SELLER_APPROVAL' ? fa.shop.newChatWithOpenOrderWarning : fa.shop.v2.newChatConfirm}
         confirmLabel={fa.shop.v2.newChatConfirmYes}
         cancelLabel={fa.shop.v2.cancel}
         onCancel={() => setNewChatConfirmOpen(false)}

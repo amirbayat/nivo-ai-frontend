@@ -10,6 +10,9 @@ interface AskBarProps {
   canAttachVideo: boolean
   // یادداشت بالای نوار (پایان گفتگو / منتظر نظر / منتظر پاسخ رضایت) — متن آماده
   notice: { text: string; tone: 'muted' | 'hint' } | null
+  placeholder: string
+  // با هر تغییر این عدد، فیلد متن فوکوس می‌گیرد («سوال دارم» از شیت محصول)
+  focusToken: number
   onSendText: (text: string) => void
   onSendImage: (file: File) => void
   onSendVideo: (file: File) => void
@@ -23,7 +26,7 @@ const iconBtn =
 // (MediaRecorder) و قواعد پیوست عیناً قبلی است؛ پیام‌های خطای میکروفون با toast درون‌برنامه نشان داده می‌شود.
 // ردیف چیپ‌های میان‌بر («سفارش‌هام / دیدن محصولات / صحبت با فروشنده») حذف شد: به منو و کنترل
 // «محصولات | گفتگو» رفتند
-export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, onSendText, onSendImage, onSendVideo, onSendVoice }: AskBarProps) {
+export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, placeholder, focusToken, onSendText, onSendImage, onSendVideo, onSendVoice }: AskBarProps) {
   const addToast = useToastStore((s) => s.addToast)
   const [input, setInput] = useState('')
   const [recording, setRecording] = useState(false)
@@ -32,6 +35,7 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, onSen
   const chunksRef = useRef<Blob[]>([])
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
   function send() {
@@ -104,6 +108,10 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, onSen
     if (recordTimerRef.current) clearInterval(recordTimerRef.current)
   }, [])
 
+  useEffect(() => {
+    if (focusToken > 0) textRef.current?.focus()
+  }, [focusToken])
+
   return (
     <div className="bg-[var(--shop-bg)] pb-[env(safe-area-inset-bottom)]">
       {notice && (
@@ -128,14 +136,15 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, onSen
 
       <div className="flex items-end gap-2 border-t border-[var(--shop-border)] p-3">
         <textarea
+          ref={textRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
           disabled={disabled}
           rows={1}
-          placeholder={fa.shop.inputPlaceholder}
+          placeholder={placeholder}
           dir="auto"
-          aria-label={fa.shop.inputPlaceholder}
+          aria-label={placeholder}
           className="min-h-11 flex-1 resize-none rounded-xl border border-[var(--shop-border)] bg-[var(--shop-surface)] px-3.5 py-2.5 text-[15px] text-[var(--shop-text)] outline-none placeholder:text-[var(--shop-text-2)] focus:border-[var(--shop-accent)] disabled:opacity-50"
         />
         {canAttachImage && (

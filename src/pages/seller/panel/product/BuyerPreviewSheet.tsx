@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { fa } from '@/locales/fa'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { ProductDetailSheet } from '@/components/shop/StoreProductGrid'
+import { ProductSheetPreview } from '@/components/shop/ProductSheet'
 import { cartesianCombos, comboKey, type VariantDraft } from '@/lib/variantDraft'
 import { UNLIMITED_STOCK_DISPLAY } from '@/lib/sellerProduct'
 import type { PublicProduct } from '@/types/api'
@@ -19,7 +19,7 @@ interface PreviewInput {
 }
 
 // docs/PRD-seller-panel-simplification.md §4.12.2 — «ببین مشتری چی می‌بینه»: همان کامپوننت
-// ProductDetailSheet خریدار، در حالت preview، از روی وضعیت فعلی فرم (پیش‌نویس هم کار می‌کند).
+// ProductSheet خریدار، در حالت preview، از روی وضعیت فعلی فرم (پیش‌نویس هم کار می‌کند).
 // عمداً /shop/:slug واقعی باز نمی‌شود؛ آن‌جا نشست و مکالمه‌ی واقعی خریدار ساخته می‌شود.
 export function BuyerPreviewSheet({ open, onClose, product }: { open: boolean; onClose: () => void; product: PreviewInput }) {
   const { storeSlug } = useSellerStore()
@@ -59,7 +59,7 @@ export function BuyerPreviewSheet({ open, onClose, product }: { open: boolean; o
 
   return (
     <BottomSheet open={open} onClose={onClose} full title={fa.seller.v2.product.previewTitle}>
-      <ProductDetailSheet preview product={preview} slug={storeSlug} shippingEstimate={null} shippingDaysText={null} onClose={onClose} />
+      <ProductSheetPreview product={preview} slug={storeSlug} />
     </BottomSheet>
   )
 }
