@@ -68,7 +68,8 @@ api.interceptors.response.use(
   res => res,
   async err => {
     const original = err.config
-    if (err.response?.status === 429) {
+    // REV-4: درخواست‌هایی با سقف روزانه (quietRateLimit) پیام خودشان را نشان می‌دهند، نه «چند ثانیه‌ی دیگر»
+    if (err.response?.status === 429 && !original?.quietRateLimit) {
       const retryAfter = Number(err.response.headers?.['retry-after']) || DEFAULT_RATE_LIMIT_RETRY_SECONDS
       const msg = env.VITE_REGION === 'INTL' ? en.common.tooManyRequests(retryAfter) : fa.common.tooManyRequests(retryAfter)
       useToastStore.getState().addToast(msg)

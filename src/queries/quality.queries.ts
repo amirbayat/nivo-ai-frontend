@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -59,6 +60,6 @@ export function useRefreshProductQuality(storeId: string, productId: string | nu
 export function useApplyProductQuality(storeId: string, productId: string | null) {
   return useMutation({
     mutationFn: (body: { key: string; answer: string }) =>
-      api.post<QualityApplyPreview>(`/v2/stores/${storeId}/products/${productId}/quality-apply`, body).then(r => r.data),
+      api.post<QualityApplyPreview>(`/v2/stores/${storeId}/products/${productId}/quality-apply`, body, { quietRateLimit: true } as AxiosRequestConfig).then(r => r.data),
   })
 }

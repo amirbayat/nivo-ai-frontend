@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { QualityReview, QualityRules, QualitySuggestion } from '@/queries/quality.queries'
@@ -34,7 +35,7 @@ export function useStoreQualityReview(storeId: string, enabled: boolean, pollSin
 export function useApplyStoreQuality(storeId: string) {
   return useMutation({
     mutationFn: (body: { key: string; answer: string }) =>
-      api.post<StoreQualityApplyPreview>(`/v2/stores/${storeId}/quality-apply`, body).then(r => r.data),
+      api.post<StoreQualityApplyPreview>(`/v2/stores/${storeId}/quality-apply`, body, { quietRateLimit: true } as AxiosRequestConfig).then(r => r.data),
   })
 }
 

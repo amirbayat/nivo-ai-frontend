@@ -684,6 +684,7 @@ export const fa = {
         accept: 'اضافه کن',
         reject: 'نه',
         applyError: 'نشد؛ دوباره امتحان کن',
+        applyCapped: 'سقف امروز تموم شد؛ فردا دوباره امتحان کن',
         chipDone: 'کامل',
         chipTodo: 'ناقص',
         allItems: (n: string) => `همه‌ی موارد (${n})`,

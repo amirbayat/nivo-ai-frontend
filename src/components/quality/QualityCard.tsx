@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { isAxiosError } from 'axios'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { MicButton } from '@/components/ui/MicButton'
@@ -46,7 +47,7 @@ export function SuggestionRow({ index, suggestion, storeId, actionLabel, onActio
   const [answer, setAnswer] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<false | 'generic' | 'cap'>(false)
 
   async function submit() {
     if (answer.trim().length < 2) return
@@ -54,8 +55,8 @@ export function SuggestionRow({ index, suggestion, storeId, actionLabel, onActio
     setError(false)
     try {
       setPreview(await onPreview(answer.trim()))
-    } catch {
-      setError(true)
+    } catch (err) {
+      setError(isAxiosError(err) && err.response?.status === 429 ? 'cap' : 'generic')
     } finally {
       setBusy(false)
     }
@@ -101,7 +102,7 @@ export function SuggestionRow({ index, suggestion, storeId, actionLabel, onActio
             />
             <MicButton storeId={storeId} onText={txt => setAnswer(prev => (prev ? `${prev} ${txt}` : txt))} />
           </div>
-          {error && <p className="text-xs text-red-400">{t.applyError}</p>}
+          {error && <p className="text-xs text-red-400">{error === 'cap' ? t.applyCapped : t.applyError}</p>}
           <div className="flex gap-2">
             <button type="button" disabled={busy || answer.trim().length < 2} onClick={() => void submit()} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
               {busy ? t.applying : t.preview}
