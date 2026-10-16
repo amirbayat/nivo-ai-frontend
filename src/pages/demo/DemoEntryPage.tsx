@@ -80,7 +80,7 @@ export function DemoEntryPage({ role }: { role: DemoRole }) {
           <h1 className="text-xl font-bold text-slate-100 light:text-slate-900">{heading}</h1>
           <p className="mt-1 text-sm text-slate-500">
             {subheading}
-            {categoryLabel ? ` (${categoryLabel})` : ''}
+            {categoryLabel && <span> ({categoryLabel})</span>}
           </p>
         </div>
 
