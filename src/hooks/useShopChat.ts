@@ -977,6 +977,23 @@ export function useShopChat(slug: string, productId?: string) {
     }).catch(() => undefined)
   }, [])
 
+  // مسیر امن پیگیری سفارش (/o/:code) — کد نمایشی سفارش خودش لینک معتبر نیست؛ null = لینک عمومی در دسترس نیست
+  const getOrderTrackPath = useCallback(async (orderCode: string): Promise<string | null> => {
+    const session = sessionRef.current
+    if (!session) return null
+    try {
+      const res = await fetch(
+        `${env.VITE_API_URL}/v2/chat/${session.conversationId}/order-link/${encodeURIComponent(orderCode)}`,
+        { headers: { 'X-Session-Token': session.sessionToken } },
+      )
+      if (!res.ok) return null
+      const data = (await res.json()) as { path?: string | null }
+      return data.path ?? null
+    } catch {
+      return null
+    }
+  }, [])
+
   // ── سبد خوش‌بینانه (docs/PRD-buyer-chat-redesign.md §8) ─────────────────────────────────────────────
   // دکمه‌های افزودن/تعداد/حذف همان لحظه روی UI اثر می‌گذارند (pendingCartOps روی آخرین CART_SUMMARY سرور
   // اعمال می‌شود). درخواست‌ها پشت‌سرهم (یک صف) و بدون استریم/مدل می‌روند (B3: پاسخ قالبی). با جواب سرور
@@ -1450,6 +1467,7 @@ export function useShopChat(slug: string, productId?: string) {
     cartRemove,
     cartListenerRef,
     logUiEvent,
+    getOrderTrackPath,
     uploadReceipt,
     submitManualReceipt,
     submitRefundDestination,

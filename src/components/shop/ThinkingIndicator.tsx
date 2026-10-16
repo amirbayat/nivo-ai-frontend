@@ -67,7 +67,7 @@ export function ThinkingIndicator({ hint, lastCustomerText }: Props) {
   }, [])
 
   return (
-    <div className="flex flex-col items-start gap-1.5" role="status" aria-live="polite">
+    <div className="flex flex-col items-end gap-1.5" role="status" aria-live="polite">
       <div className="rounded-[18px] rounded-tl-[4px] bg-[var(--shop-surface-2)] px-4 py-3">
         <div className="flex items-center gap-1" aria-hidden>
           <span className="size-1.5 animate-bounce motion-reduce:animate-none rounded-full bg-[var(--shop-text-2)]" style={{ animationDelay: '0ms' }} />
@@ -75,7 +75,7 @@ export function ThinkingIndicator({ hint, lastCustomerText }: Props) {
           <span className="size-1.5 animate-bounce motion-reduce:animate-none rounded-full bg-[var(--shop-text-2)]" style={{ animationDelay: '300ms' }} />
         </div>
       </div>
-      <p key={slow ? 'slow' : index} className="thinking-phrase ps-1 text-xs text-[var(--shop-text-2)]">
+      <p key={slow ? 'slow' : index} className="thinking-phrase pe-1 text-xs text-[var(--shop-text-2)]">
         {slow ? fa.shop.v2.slowReply : phrases[index]}
       </p>
     </div>

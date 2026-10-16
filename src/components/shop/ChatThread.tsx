@@ -141,6 +141,8 @@ export function ChatThread(props: ChatThreadProps) {
         </button>
       )}
       {thread.map((m, i) => {
+        // جای‌نگهدار خالیِ استریم (هنوز متنی نیامده) حباب/آواتار نمی‌گیرد؛ ThinkingIndicator پایین نخ جایش را دارد
+        if (m.id.startsWith('stream-') && !m.text && !m.uiBlock && !m.imageUrl && !m.videoUrl) return null
         const prev = thread[i - 1]
         const gap = !!m.createdAt && !!prev?.createdAt && new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() > GAP_MS
         const sameSpeaker = !!prev && prev.role === m.role && !!prev.fromSeller === !!m.fromSeller && !gap

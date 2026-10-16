@@ -52,6 +52,7 @@ export function ShopChatPage() {
     notFound,
     suspended,
     conversationId,
+    getOrderTrackPath,
     messages,
     olderMessages,
     hasMoreEvents,
@@ -346,9 +347,9 @@ export function ShopChatPage() {
   }, [state])
 
   const pinned = view === 'chat' && !viewingHistory ? computePinnedOrder(messages, state) : null
-  function trackOrder() {
-    if (pinned?.orderCode) navigate(`/o/${pinned.orderCode}`)
-    else navigate(`/shop/${slug}/orders`)
+  async function trackOrder() {
+    const path = pinned?.orderCode ? await getOrderTrackPath(pinned.orderCode) : null
+    navigate(path ?? `/shop/${slug}/orders`)
   }
   function highlightOrder() {
     setOrderHighlight(true)
