@@ -224,6 +224,7 @@ export const sellerV2 = {
     credit: 'اعتبار',
     creditApprox: (n: string) => `حدود ${n} گفتگو`,
     creditDebt: 'بدهکار',
+    creditTrial: (amount: string) => `${amount} تومان هدیه`,
     reports: 'گزارش‌ها',
     channels: 'کانال‌ها',
     notifTitle: 'اعلان‌ها در تلگرام',

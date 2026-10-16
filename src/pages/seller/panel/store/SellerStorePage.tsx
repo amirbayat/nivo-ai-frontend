@@ -53,8 +53,11 @@ export function SellerStorePage() {
       : 0
   const estimate = credit.data?.conversationsLeftEstimate
   const balance = credit.data?.balanceToman ?? 0
+  // QA-10 — اعتبار هدیه‌ی آزمایشی فعال (مقدار از داده، نه ثابت)
+  const trialToman = credit.data?.trialCreditRemainingToman ?? 0
+  const trialActive = trialToman > 0 && !!credit.data?.trialEndsAt && new Date(credit.data.trialEndsAt).getTime() > Date.now()
   const creditValue =
-    balance < 0 ? <span className="font-bold text-red-400">{t.creditDebt}</span> : estimate != null ? t.creditApprox(toFa(estimate)) : `${toFa(balance.toLocaleString('en-US').replace(/,/g, '٬'))} ${fa.common.toman}`
+    balance < 0 ? <span className="font-bold text-red-400">{t.creditDebt}</span> : trialActive ? t.creditTrial(toFa(trialToman.toLocaleString('en-US').replace(/,/g, '٬'))) : estimate != null ? t.creditApprox(toFa(estimate)) : `${toFa(balance.toLocaleString('en-US').replace(/,/g, '٬'))} ${fa.common.toman}`
 
   const go = (p: string) => () => navigate(`/seller/panel/store/${p}`)
 
