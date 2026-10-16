@@ -596,7 +596,7 @@ function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
               className="btn-cta-glow inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-7 py-3.5 text-base font-semibold text-white hover:bg-emerald-400 active:scale-95 transition-all">
               شروع رایگان
               <svg viewBox="0 0 16 16" fill="none" className="size-4">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </Link>
             <a href="#features"
@@ -1118,7 +1118,7 @@ function CtaSection({ isLoggedIn }: { isLoggedIn: boolean }) {
               className="btn-cta-glow inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-9 py-4 text-lg font-semibold text-white hover:bg-emerald-400 active:scale-95 transition-all">
               {isLoggedIn ? 'رفتن به چت' : 'شروع رایگان'}
               <svg viewBox="0 0 16 16" fill="none" className="size-4">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </Link>
           </div>
