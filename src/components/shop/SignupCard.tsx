@@ -110,6 +110,10 @@ export function SignupCard({ prefillPhone, autoFocus, onClose }: { prefillPhone?
   }, [step, lead])
 
   useEffect(() => {
+    if (step === 'done') lead?.onSignedUp?.(hasStore)
+  }, [step, hasStore, lead])
+
+  useEffect(() => {
     if (step === 'phone' && !phone && prefillPhone) setPhone(prefillPhone)
   }, [prefillPhone, step, phone])
 

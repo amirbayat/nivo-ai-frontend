@@ -28,6 +28,7 @@ import { ChatEndPanel, ReadOnlyBar, ShopLoadingSkeleton, ShopMessageScreen } fro
 import { useStoreAbout } from '@/hooks/useStoreAbout'
 import { useToastStore } from '@/store/toast.store'
 import { fa } from '@/locales/fa'
+import { api } from '@/lib/api'
 import type { PublicProduct, ShopAction, ShopHistoryEntry } from '@/types/api'
 
 // HANDOFF_HUMAN/REJECTED عمداً اینجا نیستند — بعد از escalate یا رد سفارش، مشتری باید بتواند
@@ -122,6 +123,28 @@ export function ShopChatPage() {
   const [orderHighlight, setOrderHighlight] = useState(false)
   const [localVerified, setVerified] = useState(() => isBuyerVerified(slug))
   const verified = localVerified || serverVerified
+  // QA-6 — وضعیت حساب فروشنده در حالت لید: null = ثبت‌نام نکرده؛ بعد از verify یا اگر از قبل لاگین است مقدار می‌گیرد
+  const [leadAccount, setLeadAccount] = useState<{ hasStore: boolean } | null>(null)
+  useEffect(() => {
+    if (!isLead) return
+    let token: string | null = null
+    try {
+      token = localStorage.getItem('access_token')
+    } catch {
+      /* ignore */
+    }
+    if (!token) return
+    let cancelled = false
+    api
+      .get<unknown[]>('/v2/stores/me')
+      .then((r) => {
+        if (!cancelled) setLeadAccount({ hasStore: r.data.length > 0 })
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [isLead])
   const autoOpenArmedRef = useRef(false)
   const doneArmedRef = useRef(false)
   const wasSendingRef = useRef(false)
@@ -591,6 +614,7 @@ export function ShopChatPage() {
   if (loading) return <ShopLoadingSkeleton />
 
   const leadApi = {
+    onSignedUp: (hasStore: boolean) => setLeadAccount((prev) => (prev && prev.hasStore === hasStore ? prev : { hasStore })),
     conversationId: conversationId ?? null,
     submitPhone: submitLeadPhone,
     markVerified: markLeadVerified,
@@ -615,7 +639,13 @@ export function ShopChatPage() {
         onOpenAbout={openAbout}
         onOpenMenu={() => setMenuOpen(true)}
         brandLogo={isLead}
-        leadCta={isLead && !verified ? { label: fa.shop.lead.headerCta, onClick: goToSignup } : undefined}
+        leadCta={
+          !isLead || leadAccount?.hasStore
+            ? undefined
+            : leadAccount
+              ? { label: fa.shop.lead.headerCtaCreateStore, onClick: () => navigate('/seller/onboarding') }
+              : { label: fa.shop.lead.headerCta, onClick: goToSignup }
+        }
       />
 
       {!isLead && !noProducts && !viewingHistory && (

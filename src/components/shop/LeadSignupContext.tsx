@@ -7,6 +7,8 @@ export interface LeadSignupApi {
   submitPhone: (phone: string) => Promise<void>
   markVerified: () => Promise<void>
   logEvent: (name: string) => void
+  // QA-6 — کارت ثبت‌نام موفق شد (یا کاربر از قبل لاگین بود)؛ هدر برچسب را عوض می‌کند
+  onSignedUp?: (hasStore: boolean) => void
 }
 
 export const LeadSignupContext = createContext<LeadSignupApi | null>(null)

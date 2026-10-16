@@ -1501,6 +1501,7 @@ export const fa = {
     lead: {
       tabTitle: 'نیوو — دستیار فروش اینستاگرام',
       headerCta: 'ثبت‌نام رایگان',
+      headerCtaCreateStore: 'ساخت فروشگاه',
       menuSignup: 'ثبت‌نام / ورود فروشنده',
       menuSignupHint: 'با شماره موبایل، رایگان',
       menuAbout: 'درباره‌ی نیوو',
