@@ -300,7 +300,7 @@ export function SignupCard({ prefillPhone, autoFocus, onClose }: { prefillPhone?
               <circle cx="10" cy="10" r="8" />
               <path d="m6.5 10.3 2.4 2.4 4.6-4.9" />
             </svg>
-            {hasStore ? t.doneBack : gift ? t.gift : t.doneTitle}
+            {hasStore ? t.doneBack : gift ? t.gift : t.doneReady}
           </p>
           <button type="button" onClick={goNext} className={`${primaryBtn} flex items-center justify-center gap-2`}>
             {hasStore ? t.goPanel : t.goOnboarding}
