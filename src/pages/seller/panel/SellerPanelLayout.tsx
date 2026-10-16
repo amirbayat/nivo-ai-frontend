@@ -168,7 +168,7 @@ function DemoBanner({ store }: { store: SellerStore }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => window.open(`/shop/${store.slug}`, '_blank', 'noopener,noreferrer')}
+            onClick={() => navigate(`/shop/${store.slug}?demoTour=1`)}
             className="rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-bold text-amber-300 light:text-amber-700 hover:bg-amber-500/10"
           >
             {fa.seller.panel.demoBanner.testBuyerButton}

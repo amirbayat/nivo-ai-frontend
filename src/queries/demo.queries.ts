@@ -21,3 +21,8 @@ export function useConvertDemoStoreToReal(storeId: string) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
   })
 }
+
+// DEMO-6 — رویدادهای پنل در تور (فقط دو نام مجاز؛ سرور مالک بودن و دمو بودن را چک می‌کند). fire-and-forget
+export function logDemoPanelEvent(storeId: string, name: 'demo_panel_opened_from_order' | 'demo_order_confirmed') {
+  void api.post(`/v2/demo/stores/${storeId}/events`, { name }).catch(() => undefined)
+}

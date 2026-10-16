@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { logDemoPanelEvent, useConvertDemoStoreToReal } from '@/queries/demo.queries'
 import { fa } from '@/locales/fa'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { RejectOrderSheet } from '@/components/seller/RejectOrderSheet'
@@ -59,7 +60,7 @@ function OrderCode({ order }: { order: Pick<SellerOrder, 'id' | 'orderCode'> }) 
   )
 }
 
-function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; storeId: string; onClose: () => void }) {
+function OrderDetailSheet({ order, storeId, onClose, onApproved }: { order: SellerOrder; storeId: string; onClose: () => void; onApproved?: () => void }) {
   const navigate = useNavigate()
   const [showReceipt, setShowReceipt] = useState(false)
   const [showReject, setShowReject] = useState(false)
@@ -211,7 +212,7 @@ function OrderDetailSheet({ order, storeId, onClose }: { order: SellerOrder; sto
               {fa.seller.panel.orders.reject}
             </button>
             <button
-              onClick={() => approve.mutate(order.id, { onSuccess: onClose })}
+              onClick={() => approve.mutate(order.id, { onSuccess: () => { onApproved?.(); onClose() } })}
               disabled={approve.isPending}
               className="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-40"
             >
@@ -289,6 +290,15 @@ export function SellerOrdersPage() {
     return () => clearTimeout(t)
   }, [searchInput])
   const orders = useOrders(storeId, filter, search)
+  // DEMO-5 — تور دمو قدم ②: سفارش خودِ کاربر هایلایت می‌شود، تایید که شد کارت پایانی ③
+  const navigate = useNavigate()
+  const demoTour = searchParams.get('demoTour') === '2'
+  const highlightId = demoTour ? searchParams.get('highlight') : null
+  const [tourApproved, setTourApproved] = useState(false)
+  const convertDemo = useConvertDemoStoreToReal(storeId)
+  useEffect(() => {
+    if (demoTour) logDemoPanelEvent(storeId, 'demo_panel_opened_from_order')
+  }, [demoTour, storeId])
   const refundsCount = useRefundsOpenCount(storeId)
   const t = fa.seller.v2.orders
 
@@ -321,6 +331,25 @@ export function SellerOrdersPage() {
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 py-5">
       <h1 className="mb-3 text-xl font-extrabold text-slate-100 light:text-slate-900">{fa.seller.panel.nav.orders}</h1>
+
+      {demoTour && !tourApproved && (
+        <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-sm font-bold text-emerald-300 light:text-emerald-700">
+          {fa.seller.panel.demoBanner.tourStep2}
+        </div>
+      )}
+      {demoTour && tourApproved && (
+        <div className="mb-4 flex flex-col gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4">
+          <p className="text-sm font-extrabold text-emerald-300 light:text-emerald-700">{fa.seller.panel.demoBanner.tourDoneTitle}</p>
+          <button
+            type="button"
+            disabled={convertDemo.isPending}
+            onClick={() => convertDemo.mutate(undefined, { onSuccess: () => navigate('/seller/panel/today?setup=1') })}
+            className="min-h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {fa.seller.panel.demoBanner.tourConvert}
+          </button>
+        </div>
+      )}
 
       <div className="mb-4 flex rounded-xl bg-slate-800/60 p-1 light:bg-slate-100">
         <button type="button" onClick={() => setView('orders')} className={`flex-1 rounded-lg py-2 text-[13px] ${view === 'orders' ? 'bg-slate-950 font-extrabold text-slate-100 light:bg-white light:text-slate-900' : 'text-slate-400'}`}>
@@ -389,7 +418,9 @@ export function SellerOrdersPage() {
               <button
                 key={order.id}
                 onClick={() => setOpenOrder(order)}
-                className="flex items-center justify-between rounded-2xl border border-slate-700/60 light:border-slate-200 bg-slate-800/40 light:bg-white px-4 py-3.5 text-start hover:border-slate-600 light:hover:border-slate-300"
+                className={`flex items-center justify-between rounded-2xl border bg-slate-800/40 light:bg-white px-4 py-3.5 text-start hover:border-slate-600 light:hover:border-slate-300 ${
+                  highlightId === order.id ? 'border-emerald-500 ring-2 ring-emerald-500/50' : 'border-slate-700/60 light:border-slate-200'
+                }`}
               >
                 <div>
                   <OrderCode order={order} />
@@ -420,7 +451,14 @@ export function SellerOrdersPage() {
         </>
       )}
 
-      {openOrder && <OrderDetailSheet order={openOrder} storeId={storeId} onClose={() => setOpenOrder(null)} />}
+      {openOrder && (
+        <OrderDetailSheet
+          order={openOrder}
+          storeId={storeId}
+          onClose={() => setOpenOrder(null)}
+          onApproved={demoTour ? () => { setTourApproved(true); logDemoPanelEvent(storeId, 'demo_order_confirmed') } : undefined}
+        />
+      )}
     </div>
   )
 }

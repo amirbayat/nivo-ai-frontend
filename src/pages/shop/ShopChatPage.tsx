@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useShopChat } from '@/hooks/useShopChat'
 import { ShopProductsView } from '@/components/shop/ShopProductsView'
 import { ProductSheet } from '@/components/shop/ProductSheet'
@@ -29,6 +29,9 @@ import { useStoreAbout } from '@/hooks/useStoreAbout'
 import { useToastStore } from '@/store/toast.store'
 import { fa } from '@/locales/fa'
 import { api } from '@/lib/api'
+import { demoTourChips } from '@/lib/demoTour'
+import { useConvertDemoStoreToReal } from '@/queries/demo.queries'
+import { useMyStores } from '@/queries/seller.queries'
 import type { PublicProduct, ShopAction, ShopHistoryEntry } from '@/types/api'
 
 // HANDOFF_HUMAN/REJECTED عمداً اینجا نیستند — بعد از escalate یا رد سفارش، مشتری باید بتواند
@@ -447,6 +450,31 @@ export function ShopChatPage() {
   }, [state])
 
   const pinned = !isLead && view === 'chat' && !viewingHistory ? computePinnedOrder(thread, state) : null
+  // DEMO-5 — تور «اول خریدار، بعد فروشنده»؛ فقط با ?demoTour=1 (ورود مستقیم تور نشان نمی‌دهد)
+  const demoTour = isDemo && searchParams.get('demoTour') === '1'
+  const myStores = useMyStores()
+  const ownDemoStore = isDemo ? myStores.data?.find((st) => st.slug === slug && st.isDemo) : undefined
+  const convertOwnDemo = useConvertDemoStoreToReal(ownDemoStore?.id ?? '')
+  let tourOrderId: string | null = null
+  for (let i = thread.length - 1; i >= 0 && !tourOrderId; i--) {
+    const b = thread[i].uiBlock
+    if (b && 'orderId' in b && typeof b.orderId === 'string') tourOrderId = b.orderId
+  }
+  // DEMO-6 — هر رویداد یک‌بار در همین بازدید
+  const demoEventsRef = useRef(new Set<string>())
+  const logDemoOnce = (name: string) => {
+    if (demoEventsRef.current.has(name)) return
+    demoEventsRef.current.add(name)
+    logUiEvent(name, { category: slug.match(/^demo-(.+)-[0-9a-f]{8}$/)?.[1] ?? null })
+  }
+  useEffect(() => {
+    if (demoTour && conversationId && !loading) logDemoOnce('demo_buyer_chat_opened')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoTour, conversationId, loading])
+  useEffect(() => {
+    if (demoTour && thread.some((m) => m.role === 'customer')) logDemoOnce('demo_first_message')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoTour, thread.length])
   async function trackOrder() {
     const path = pinned?.orderCode ? await getOrderTrackPath(pinned.orderCode) : null
     navigate(path ?? `/shop/${slug}/orders`)
@@ -594,7 +622,8 @@ export function ShopChatPage() {
   // حالت لید: قبل از اولین پیام، چیپ‌های ثابت صفحه‌ی اول (§4.1)؛ بعدش پاسخ‌های سریع سرور
   const leadChips = [fa.shop.lead.chipHow, fa.shop.lead.chipPrice, fa.shop.lead.chipDemo, fa.shop.lead.chipSignup]
   const showLeadChips = isLead && view === 'chat' && !sending && thread.length === 0 && !viewingHistory
-  const quickReplies = showLeadChips ? leadChips : view === 'chat' && !sending && lastMessage?.role === 'agent' ? (lastMessage.quickReplies ?? []) : []
+  const showDemoChips = demoTour && view === 'chat' && !sending && thread.length === 0 && !viewingHistory
+  const quickReplies = showDemoChips ? demoTourChips(slug) : showLeadChips ? leadChips : view === 'chat' && !sending && lastMessage?.role === 'agent' ? (lastMessage.quickReplies ?? []) : []
   const handoffLine =
     sellerIsReplying && !viewingHistory
       ? about?.approvalEtaLabel
@@ -669,10 +698,24 @@ export function ShopChatPage() {
 
       {isDemo && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2">
-          <span className="text-xs text-[var(--shop-warning)]">{fa.shop.v2.demoStrip}</span>
+          <span className="text-xs text-[var(--shop-warning)]">{demoTour ? fa.shop.v2.demoTour.step1 : fa.shop.v2.demoStrip}</span>
+          {ownDemoStore && (
+            <Link to="/seller/panel/today" className="inline-flex min-h-11 shrink-0 items-center gap-1 text-xs font-bold text-[var(--shop-warning)]">
+              {/* RTL: «بازگشت» رو به راست */}
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
+                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+              </svg>
+              {fa.shop.v2.demoTour.backToPanel}
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => {
+              // DEMO-5 — صاحب همین دمو: همان تبدیل، نه ویزارد ساخت از صفر (تنظیمات دمو از دست نمی‌رود)
+              if (ownDemoStore) {
+                convertOwnDemo.mutate(undefined, { onSuccess: () => navigate('/seller/panel/today?setup=1') })
+                return
+              }
               // همون الگوی goToSection در HubPage.tsx — اگر از قبل لاگین واقعی دارد (این
               // صفحه مشتری ناشناس است، نه پنل فروشنده، پس اینجا چکش نشده بود)، مستقیم به
               // ویزارد ساخت فروشگاه واقعی برود، نه به فلوی دمو؛ وگرنه اول لاگین، بعد همان‌جا
@@ -686,7 +729,21 @@ export function ShopChatPage() {
             }}
             className="min-h-11 shrink-0 rounded-lg border border-amber-500/40 px-2.5 text-xs font-bold text-[var(--shop-warning)] hover:bg-amber-500/10"
           >
-            {fa.shop.v2.demoCta}
+            {ownDemoStore ? fa.shop.v2.demoTour.ownerCta : fa.shop.v2.demoCta}
+          </button>
+        </div>
+      )}
+
+      {demoTour && ownDemoStore && pinned && !viewingHistory && (
+        <div className="mx-4 mt-2">
+          <button
+            type="button"
+            onClick={() => navigate(`/seller/panel/orders?${tourOrderId ? `highlight=${tourOrderId}&` : ''}demoTour=2`)}
+            className="flex min-h-12 w-full items-center justify-between gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 text-sm font-extrabold text-[var(--shop-accent,#34d399)]"
+          >
+            <span>{fa.shop.v2.demoTour.seeSeller}</span>
+            {/* RTL: «ادامه/برو به» رو به چپ */}
+            <span aria-hidden>←</span>
           </button>
         </div>
       )}

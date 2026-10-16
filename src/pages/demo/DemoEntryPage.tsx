@@ -63,7 +63,8 @@ export function DemoEntryPage({ role }: { role: DemoRole }) {
     }
     try {
       const { slug } = await ensureDemoStore.mutateAsync(category)
-      navigate(role === 'seller' ? '/seller/panel/today' : `/shop/${slug}`, { replace: true })
+      // DEMO-5 — هر دو نقش اول چت خریدار دموی خودشان را می‌بینند (تور «اول خریدار، بعد فروشنده»)
+      navigate(`/shop/${slug}?demoTour=1`, { replace: true })
     } catch {
       setError(fa.demo.setupError)
     }
