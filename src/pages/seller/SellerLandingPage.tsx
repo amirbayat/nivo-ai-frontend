@@ -232,7 +232,7 @@ export function SellerLandingPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-bold">کیف چرم دست‌دوز مشکی</div>
-                    <div className="mt-1 text-xs font-bold text-emerald-700" dir="ltr">485,000 تومان</div>
+                    <div className="mt-1 text-xs font-bold text-emerald-700">۴۸۵٬۰۰۰ تومان</div>
                   </div>
                 </div>
                 <button type="button" className="rounded-lg bg-emerald-600 py-1.5 text-center text-xs font-bold text-white">افزودن به سبد</button>
@@ -246,7 +246,7 @@ export function SellerLandingPage() {
                 <div className="text-[11.5px] font-bold">سبد خرید — ۱ کالا</div>
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-600">مبلغ قابل پرداخت</span>
-                  <span className="text-[13px] font-bold" dir="ltr">485,000 تومان</span>
+                  <span className="text-[13px] font-bold">۴۸۵٬۰۰۰ تومان</span>
                 </div>
                 <button type="button" className="rounded-lg bg-emerald-600 py-1.5 text-center text-xs font-bold text-white">تکمیل سفارش</button>
               </div>
