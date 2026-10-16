@@ -28,7 +28,7 @@ import { useDismissAttentionTopic, useMarkLaunchShared } from '@/queries/sellerV
 import type { AttentionSuggestionTopic, SellerOrder } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { PaymentsSetup } from './PaymentsSetup'
-import { SellerTestChatSheet } from './SellerTestChatSheet'
+// import { SellerTestChatSheet } from './SellerTestChatSheet'
 
 const t = fa.seller.v2.today
 const toFa = (n: number | string) => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)])
@@ -299,7 +299,7 @@ function RestockSheet({ product, storeId, onClose }: { product: { id: string; na
         </button>
       }
     >
-      <DigitsInput kind="int" value={value} onChange={setValue} placeholder={fa.seller.v2.products.restockPlaceholder} autoFocus />
+      <DigitsInput styled kind="int" value={value} onChange={setValue} placeholder={fa.seller.v2.products.restockPlaceholder} autoFocus />
     </BottomSheet>
   )
 }
@@ -323,7 +323,7 @@ export function SellerTodayPage() {
   const [shipFor, setShipFor] = useState<string | null>(null)
   const [restockFor, setRestockFor] = useState<{ id: string; name: string } | null>(null)
   const [topic, setTopic] = useState<AttentionSuggestionTopic | null>(null)
-  const [testOpen, setTestOpen] = useState(false)
+  // const [testOpen, setTestOpen] = useState(false)
 
   function commit(id: string) {
     approve.mutate(id, {
@@ -548,9 +548,10 @@ export function SellerTodayPage() {
         </Row>
       )}
 
+      {/* تست بات موقتاً غیرفعال
       <button type="button" onClick={() => setTestOpen(true)} className="self-center py-2 text-sm font-bold text-emerald-400 light:text-emerald-700">
         {t.testBot}
-      </button>
+      </button> */}
 
       {undo && (
         <div className="fixed inset-x-3 bottom-20 z-40 mx-auto flex max-w-[620px] items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-900 shadow-lg">
@@ -573,7 +574,7 @@ export function SellerTodayPage() {
       {shipFor && <ShipOrderSheet orderId={shipFor} storeId={storeId} open onClose={() => setShipFor(null)} />}
       <RestockSheet product={restockFor} storeId={storeId} onClose={() => setRestockFor(null)} />
       <TopicAnswerSheet topic={topic} storeId={storeId} onClose={() => setTopic(null)} />
-      {testOpen && <SellerTestChatSheet storeId={storeId} onClose={() => setTestOpen(false)} />}
+      {/* {testOpen && <SellerTestChatSheet storeId={storeId} onClose={() => setTestOpen(false)} />} */}
     </div>
   )
 }

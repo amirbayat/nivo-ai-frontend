@@ -88,6 +88,8 @@ interface DigitsInputProps
   allowIntl?: boolean
   /** فقط kind="price": نمایش با ارقام و جداکننده‌ی فارسی (۸۹۰٬۰۰۰) با حفظ جای مکان‌نما */
   persianDisplay?: boolean
+  /** بدون label/error هم با استایل پیش‌فرض Input رندر شود (به‌جای <input> خام) */
+  styled?: boolean
 }
 
 const isDigitChar = (c: string) => /[0-9۰-۹٠-٩]/.test(c)
@@ -100,6 +102,7 @@ export function DigitsInput({
   error,
   allowIntl,
   persianDisplay,
+  styled,
   maxLength,
   onPaste,
   onKeyDown,
@@ -183,6 +186,6 @@ export function DigitsInput({
   }
 
   // error='' (state خالیِ صفحه‌های لاگین/OTP) هم باید Input استایل‌دار بگیرد، نه <input> خام
-  if (label || error !== undefined) return <Input label={label} error={error} {...props} />
+  if (label || error !== undefined || styled) return <Input label={label} error={error} {...props} />
   return <input {...props} />
 }

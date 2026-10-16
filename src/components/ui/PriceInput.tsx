@@ -29,6 +29,7 @@ export function PriceInput({ value, onChange, label, error, placeholder, disable
       <DigitsInput
         kind="price"
         persianDisplay
+        styled
         id={id}
         value={value}
         onChange={onChange}

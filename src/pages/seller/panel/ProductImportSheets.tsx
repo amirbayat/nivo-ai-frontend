@@ -648,6 +648,7 @@ export function BulkProductImportSheet({
                     </div>
                     <div className="mb-2 flex gap-2">
                       <DigitsInput
+                        styled
                         kind="price"
                         value={item.basePrice !== undefined ? String(item.basePrice) : ''}
                         onChange={v => updateItem(idx, { basePrice: Number(v) || undefined })}
@@ -656,6 +657,7 @@ export function BulkProductImportSheet({
                       />
                       {!item.variantOptions?.length && (
                         <DigitsInput
+                          styled
                           kind="int"
                           value={item.stock !== undefined ? String(item.stock) : ''}
                           onChange={v => updateItem(idx, { stock: Number(v) || undefined })}
@@ -675,6 +677,7 @@ export function BulkProductImportSheet({
                             >
                               {v.value}
                               <DigitsInput
+                                styled
                                 kind="int"
                                 value={v.stock !== undefined ? String(v.stock) : ''}
                                 onChange={n => {

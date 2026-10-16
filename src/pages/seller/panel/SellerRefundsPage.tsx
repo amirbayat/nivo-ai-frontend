@@ -178,6 +178,7 @@ export function RefundsPanel({ embedded = false }: { embedded?: boolean }) {
               <div className="mt-3 flex flex-col gap-2">
                 <p className="text-xs font-semibold">{fa.seller.panel.refunds.enterBuyerCard}</p>
                 <DigitsInput
+                  styled
                   kind="card"
                   value={card[row.id] ?? ''}
                   onChange={(v) => setCard((s) => ({ ...s, [row.id]: v }))}
@@ -211,6 +212,7 @@ export function RefundsPanel({ embedded = false }: { embedded?: boolean }) {
             {row.status === 'READY' && (
               <div className="mt-3 flex flex-col gap-2">
                 <DigitsInput
+                  styled
                   kind="int"
                   value={paidRef[row.id] ?? ''}
                   onChange={(v) => setPaidRef((s) => ({ ...s, [row.id]: v }))}

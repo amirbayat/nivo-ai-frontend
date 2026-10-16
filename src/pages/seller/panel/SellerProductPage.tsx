@@ -32,7 +32,7 @@ import {
 import type { ProductSpecSuggestion, SellerProduct } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { ProductDescriptionModal } from './ProductDescriptionModal'
-import { SellerTestChatSheet } from './SellerTestChatSheet'
+// import { SellerTestChatSheet } from './SellerTestChatSheet'
 import { PhotoGrid } from './product/PhotoGrid'
 import { VariantsEditor } from './product/VariantsEditor'
 import { ProductVideo } from './product/ProductVideo'
@@ -152,7 +152,7 @@ export function SellerProductPage() {
   const [descModal, setDescModal] = useState(false)
   const [saveState, setSaveState] = useState<'' | 'saving' | 'saved'>('')
   const [sheet, setSheet] = useState<null | 'first' | 'published' | 'leave' | 'delete'>(null)
-  const [chat, setChat] = useState<null | { message: string }>(null)
+  // const [chat, setChat] = useState<null | { message: string }>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishedProduct, setPublishedProduct] = useState<{ id: string; name: string; basePrice: number } | null>(null)
@@ -565,11 +565,13 @@ export function SellerProductPage() {
   }
 
   function afterFirstSheetTry() {
-    const p = publishedProduct
-    if (!p) return
-    const firstValue = vd.options[0]?.values[0]
+    // TODO: تست بات موقتاً غیرفعال است؛ برای فعال‌سازی دوباره، setChat و بلوک SellerTestChatSheet پایین را برگردان
+    // const p = publishedProduct
+    // if (!p) return
+    // const firstValue = vd.options[0]?.values[0]
+    // setChat({ message: t.firstMessage(p.name) + (firstValue ? t.firstVariantMessage(firstValue) : '') })
     setSheet(null)
-    setChat({ message: t.firstMessage(p.name) + (firstValue ? t.firstVariantMessage(firstValue) : '') })
+    navigate('/seller/panel/today')
   }
 
   // ---- رندر ----
@@ -753,6 +755,7 @@ export function SellerProductPage() {
               }}
               disabled={form.always}
               placeholder={t.stockPlaceholder}
+              styled
               error={errors.stock && !form.always ? errors.stock : undefined}
             />
           )}
@@ -995,6 +998,7 @@ export function SellerProductPage() {
         <div />
       </BottomSheet>
 
+      {/* تست بات موقتاً غیرفعال
       {chat && (
         <SellerTestChatSheet
           storeId={storeId}
@@ -1005,7 +1009,7 @@ export function SellerProductPage() {
             navigate('/seller/panel/today')
           }}
         />
-      )}
+      )} */}
     </div>
   )
 }

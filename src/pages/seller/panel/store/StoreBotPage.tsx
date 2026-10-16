@@ -5,7 +5,7 @@ import { extractErrorMessage } from '@/lib/sellerProduct'
 import { useMyStores, useUpdateStore } from '@/queries/seller.queries'
 import { useSellerStore } from '../SellerPanelLayout'
 import { SellerKnowledgePage } from '../SellerKnowledgePage'
-import { SellerTestChatSheet } from '../SellerTestChatSheet'
+// import { SellerTestChatSheet } from '../SellerTestChatSheet'
 import { SaveBar, StoreSubpage } from './StoreSubpage'
 
 const t = fa.seller.v2.storeBot
@@ -35,7 +35,7 @@ export function StoreBotPage() {
   const [returns, setReturns] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [testOpen, setTestOpen] = useState(false)
+  // const [testOpen, setTestOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -74,9 +74,10 @@ export function StoreBotPage() {
 
   return (
     <StoreSubpage title={t.title} footer={<SaveBar onSave={save} pending={update.isPending} dirty={dirty} saved={saved} error={error} />}>
+      {/* تست بات موقتاً غیرفعال
       <button type="button" onClick={() => setTestOpen(true)} className="h-12 w-full rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-400 light:text-emerald-700">
         {t.test}
-      </button>
+      </button> */}
 
       <Card title={t.intro} done={!!store.brandIntro}>
         <div className="relative">
@@ -127,7 +128,7 @@ export function StoreBotPage() {
         <SellerKnowledgePage embedded expanded={moreOpen} />
       </Card>
 
-      {testOpen && <SellerTestChatSheet storeId={storeId} onClose={() => setTestOpen(false)} />}
+      {/* {testOpen && <SellerTestChatSheet storeId={storeId} onClose={() => setTestOpen(false)} />} */}
     </StoreSubpage>
   )
 }

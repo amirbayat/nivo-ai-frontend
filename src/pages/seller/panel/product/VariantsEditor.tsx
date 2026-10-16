@@ -199,7 +199,7 @@ export function VariantsEditor({ draft, onChange, mainStock, alwaysInStock, aiFi
           {bulkOpen && (
             <div className="mb-2 flex items-center gap-2 rounded-xl bg-slate-800/50 p-2 light:bg-slate-100">
               <span className="text-xs text-slate-300 light:text-slate-600">{t.sameForAllPrompt}</span>
-              <DigitsInput kind="int" value={bulkValue} onChange={setBulkValue} className="!w-20 text-center" />
+              <DigitsInput styled kind="int" value={bulkValue} onChange={setBulkValue} className="!w-20 text-center" />
               <button type="button" onClick={applyAll} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">
                 {fa.common.confirm}
               </button>
@@ -220,6 +220,7 @@ export function VariantsEditor({ draft, onChange, mainStock, alwaysInStock, aiFi
                       <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-300 light:text-emerald-700">{t.alwaysInStock}</span>
                     ) : (
                       <DigitsInput
+                        styled
                         kind="int"
                         value={row?.stock ?? ''}
                         onChange={v => setRow(key, { stock: v })}
