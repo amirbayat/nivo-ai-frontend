@@ -1,4 +1,4 @@
-import { fa } from '@/locales/fa'
+import { CHECKOUT_STEP_KEYS, checkoutStepLabel } from '@/lib/checkoutSteps'
 
 // docs/PRD-panels-and-buyer-ux-design.md بخش ۳.۶ (فاز ۴.۸، مورد ۱) — نوار پیشرفت چک‌اوت
 // (سبد → آدرس → پرداخت → تأیید)؛ از همان ConversationState که useShopChat.ts از قبل
@@ -20,7 +20,7 @@ export function CheckoutProgressBar({ state }: { state: string }) {
 
   return (
     <div className="flex items-center gap-1.5 border-b border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-slate-50 px-4 py-2">
-      {fa.shop.checkoutSteps.map((label, i) => (
+      {CHECKOUT_STEP_KEYS.map(checkoutStepLabel).map((label, i) => (
         <div key={label} className="flex flex-1 items-center gap-1.5">
           <div className="flex flex-1 flex-col items-center gap-1">
             <div
@@ -40,7 +40,7 @@ export function CheckoutProgressBar({ state }: { state: string }) {
               {label}
             </span>
           </div>
-          {i < fa.shop.checkoutSteps.length - 1 && (
+          {i < CHECKOUT_STEP_KEYS.length - 1 && (
             <div className={`mb-3.5 h-px flex-1 ${i < current ? 'bg-emerald-400' : 'bg-slate-700 light:bg-slate-300'}`} />
           )}
         </div>

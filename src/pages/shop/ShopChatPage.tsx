@@ -688,7 +688,8 @@ export function ShopChatPage() {
 
       {view === 'chat' && (
         <>
-          {!isLead && <CheckoutProgressBar state={state} />}
+          {/* QA-19 — وقتی شیت پرداخت باز است نوار بالا مخفی می‌شود تا دو مرحله‌نما هم‌زمان دیده نشوند */}
+          {!isLead && !checkoutOpen && <CheckoutProgressBar state={state} />}
           {thread.length === 0 && !sending && isLead ? (
             <LeadHero />
           ) : thread.length === 0 && !sending ? (

@@ -4,6 +4,7 @@ import { DigitsInput } from '@/components/ui/DigitsInput'
 import { BuyerPhoneForm } from '@/components/shop/BuyerPhoneForm'
 import { PaymentCard, type ManualReceiptInfo } from '@/components/shop/PaymentCard'
 import { copyText } from '@/lib/clipboard'
+import { checkoutStepLabel } from '@/lib/checkoutSteps'
 import { fa } from '@/locales/fa'
 import type { PublicStoreAbout, ShopAction, ShopMessage, ShopUiBlock } from '@/types/api'
 
@@ -169,9 +170,10 @@ function OptionCard({ title, hint, disabled, onClick }: { title: string; hint: s
 
 function Steps({ requiresShipping, current }: { requiresShipping: boolean; current: 'address' | 'payment' | 'receipt' }) {
   const steps = [
-    ...(requiresShipping ? [{ key: 'address', label: fa.shop.v2.stepAddress }] : []),
-    { key: 'payment', label: fa.shop.v2.stepPayment },
-    { key: 'receipt', label: fa.shop.v2.stepReceipt },
+    ...(requiresShipping ? [{ key: 'address', label: checkoutStepLabel('address') }] : []),
+    { key: 'payment', label: checkoutStepLabel('payment') },
+    // «رسید» زیرمجموعه‌ی پرداخت است؛ بعد از ثبت رسید مرحله‌ی «تأیید» فعال می‌شود (QA-19)
+    { key: 'receipt', label: checkoutStepLabel('confirm') },
   ]
   const index = steps.findIndex((s) => s.key === current)
   return (
