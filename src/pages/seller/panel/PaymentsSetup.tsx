@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { Input } from '@/components/ui/Input'
-import { toEnglishDigits, formatCardNumberGroups } from '@/lib/digits'
+import { toEnglishDigits, toPersianDigits, formatCardNumberGroups } from '@/lib/digits'
 import type { CardDisplayPolicy, StoreBankCard } from '@/types/api'
 import {
   useAddBankCard,
@@ -65,7 +65,7 @@ function BankCardRow({
       <div className="mb-2 flex items-center justify-between">
         <div>
           <p dir="ltr" className="text-sm font-mono text-slate-100 light:text-slate-900">
-            {formatCardNumberGroups(card.cardNumber)}
+            {toPersianDigits(formatCardNumberGroups(card.cardNumber))}
           </p>
           <p className="mt-0.5 text-xs text-slate-500">{card.ownerName}</p>
         </div>
@@ -144,7 +144,7 @@ function AddCardForm({ storeId, onDone }: { storeId: string; onDone: () => void 
       <div className="mb-3">
         <DigitsInput kind="card"
           label={fa.seller.panel.bankCards.cardNumberLabel}
-          placeholder="6037 XXXX XXXX XXXX"
+          placeholder="۶۰۳۷ ۰۰۰۰ ۰۰۰۰ ۰۰۰۰"
           value={cardNumber}
           onChange={setCardNumber}
           className="text-center tracking-widest"

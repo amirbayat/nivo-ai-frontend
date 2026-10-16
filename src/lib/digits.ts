@@ -21,3 +21,7 @@ export function formatThousands(digitsOnly: string): string {
 export function formatCardNumberGroups(digitsOnly: string): string {
   return digitsOnly.slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ')
 }
+
+export function toPersianDigits(value: string): string {
+  return value.replace(/\d/g, d => PERSIAN_DIGITS[Number(d)])
+}
