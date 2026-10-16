@@ -53,6 +53,37 @@ html[data-region='intl'] {
   --chip-border: #e2e8f0;
 }
 
+/* docs/PRD-buyer-chat-redesign.md §7 — توکن‌های صفحه‌ی خریدار (/shop/:slug). پایه‌ی :root تیره،
+   زیر data-theme='light' روشن؛ کامپوننت‌های جدید shop فقط از این‌ها رنگ می‌گیرند (بدون slate-*).
+   --shop-accent-fill رنگ پس‌زمینه‌ی دکمه‌ی پرشده است: متن سفید روی emerald-600 کنتراست ≈۳٫۸:۱ دارد
+   (زیر ۴٫۵)، پس در تم روشن emerald-700 است؛ --shop-accent برای متن/نشانگر رنگی روی سطح */
+:root {
+  --shop-bg: #020617;
+  --shop-surface: #0f172a;
+  --shop-surface-2: #1e293b;
+  --shop-text: #f1f5f9;
+  --shop-text-2: #94a3b8;
+  --shop-border: #334155;
+  --shop-accent: #10b981;
+  --shop-accent-fill: #10b981;
+  --shop-accent-text: #022c22;
+  --shop-danger: #f87171;
+  --shop-warning: #fbbf24;
+}
+:root[data-theme='light'] {
+  --shop-bg: #ffffff;
+  --shop-surface: #f8fafc;
+  --shop-surface-2: #f1f5f9;
+  --shop-text: #0f172a;
+  --shop-text-2: #475569;
+  --shop-border: #e2e8f0;
+  --shop-accent: #059669;
+  --shop-accent-fill: #047857;
+  --shop-accent-text: #ffffff;
+  --shop-danger: #dc2626;
+  --shop-warning: #b45309;
+}
+
 /* توکن‌های استودیو (عکس/ویدیو) — این صفحات رنگ‌هاشون رو با style درون‌خطی (نه کلاس Tailwind)
    می‌گیرند، پس برای معکوس‌شدن زیر تم روشن باید مقادیرشان var باشد نه hex/rgba ثابت.
    --neutral-rgb به‌شکل «R, G, B» (نه rgba کامل) تعریف شده تا با همون آلفاهای متفاوتی که هرجا
