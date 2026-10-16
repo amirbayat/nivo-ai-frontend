@@ -81,7 +81,14 @@ export function PhotoGrid({ storeId, productId, images, ensureDraft, onProductUp
       error: null,
     }))
     setPending(prev => [...prev, ...items])
-    const pid = productId ?? (await ensureDraft())
+    let pid: string
+    try {
+      pid = productId ?? (await ensureDraft())
+    } catch {
+      // ساخت پیش‌نویس نشد: تایل‌ها خطا نشان بدهند (نه چرخش بی‌پایان)
+      setPending(prev => prev.map(p => (items.some(i => i.id === p.id) ? { ...p, error: t.uploadFailed } : p)))
+      return
+    }
     // پشت‌سرهم (ترتیب عکس‌ها حفظ شود و سرور هم یک‌به‌یک بپذیرد)
     for (const item of items) await upload(item, pid)
   }
@@ -134,7 +141,7 @@ export function PhotoGrid({ storeId, productId, images, ensureDraft, onProductUp
                 {p.error === t.uploadFailed && (
                   <button
                     type="button"
-                    onClick={() => productId && void upload(p, productId)}
+                    onClick={() => void (productId ? upload(p, productId) : ensureDraft().then(id => upload(p, id)))}
                     className="rounded-full border border-white px-3 py-1"
                   >
                     {t.retry}

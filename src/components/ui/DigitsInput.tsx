@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
-import type { ClipboardEvent, ChangeEvent, InputHTMLAttributes } from 'react'
+import type { ClipboardEvent, ChangeEvent, InputHTMLAttributes, KeyboardEvent } from 'react'
 import { toEnglishDigits, formatThousands, formatCardNumberGroups } from '@/lib/digits'
 import { Input } from './Input'
 
@@ -102,6 +102,7 @@ export function DigitsInput({
   persianDisplay,
   maxLength,
   onPaste,
+  onKeyDown,
   autoComplete,
   style,
   ...rest
@@ -117,6 +118,25 @@ export function DigitsInput({
       digitsBeforeCaret.current = [...el.value.slice(0, caret)].filter(isDigitChar).length
     }
     onChange(sanitizeDigits(kind, e.target.value, maxLength, allowIntl))
+  }
+
+  // Backspace/Delete کنار «٬»: جداکننده با پاک‌کردن خودش تغییری در مقدار نمی‌داد و مکان‌نما می‌پرید؛
+  // این‌جا رقم کنار جداکننده پاک می‌شود
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    onKeyDown?.(e)
+    if (e.defaultPrevented || !(persianDisplay && kind === 'price')) return
+    if (e.key !== 'Backspace' && e.key !== 'Delete') return
+    const el = e.currentTarget
+    if (el.selectionStart !== el.selectionEnd || el.selectionStart == null) return
+    const pos = el.selectionStart
+    const adjacent = e.key === 'Backspace' ? el.value[pos - 1] : el.value[pos]
+    if (adjacent !== '٬') return
+    e.preventDefault()
+    const digitsBefore = [...el.value.slice(0, pos)].filter(isDigitChar).length
+    const idx = e.key === 'Backspace' ? digitsBefore - 1 : digitsBefore
+    if (idx < 0 || idx >= value.length) return
+    digitsBeforeCaret.current = idx
+    onChange(value.slice(0, idx) + value.slice(idx + 1))
   }
 
   useLayoutEffect(() => {
@@ -157,6 +177,7 @@ export function DigitsInput({
     ref,
     onChange: handleChange,
     onPaste: handlePaste,
+    onKeyDown: handleKeyDown,
     // ≥۱۶px تا iOS زوم نکند؛ هدف لمسی ≥۴۴px
     style: { fontSize: 16, minHeight: 44, ...style },
   }

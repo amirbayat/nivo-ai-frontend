@@ -162,6 +162,9 @@ export function SellerProductsBatchPage() {
     patchCard(card.id, { state: 'filling' })
     try {
       const res = await aiFill.mutateAsync({ productId: card.id, text: '' })
+      // اگر فروشنده در این فاصله خودش اسم/قیمت داد، پیشنهاد عکس رد می‌شود (بازنویسی نکند)
+      const current = cardsRef.current.find(c => c.id === card.id)
+      if (current && (current.name || current.price || current.state === 'ready')) return
       if (res.name) {
         await updateProduct.mutateAsync({ productId: card.id, dto: { name: res.name } })
         patchCard(card.id, { name: res.name, state: stateOf(res.name, 0), summary: res.name })

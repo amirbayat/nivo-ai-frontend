@@ -75,11 +75,12 @@ export function MicButton({ storeId, onText, disabled, className = '' }: MicButt
       recorder.start()
       setSeconds(0)
       setRecording(true)
+      let elapsed = 0
       timerRef.current = setInterval(() => {
-        setSeconds(s => {
-          if (s + 1 >= MAX_SECONDS) stop()
-          return s + 1
-        })
+        elapsed += 1
+        setSeconds(elapsed)
+        // خارج از updater تا در StrictMode دوبار stop نشود
+        if (elapsed >= MAX_SECONDS) stop()
       }, 1000)
     } catch {
       setDenied(true)

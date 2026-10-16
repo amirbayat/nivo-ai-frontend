@@ -165,6 +165,8 @@ export function SellerProductPage() {
   const initialStockRef = useRef<string>('')
   const initialTrackRef = useRef<boolean>(true)
   const savingRef = useRef(false)
+  const dirtyDuringSaveRef = useRef(false)
+  const [autosaveTick, setAutosaveTick] = useState(0)
   const aiAbortRef = useRef(0)
 
   const createProduct = useCreateProduct(storeId)
@@ -276,15 +278,17 @@ export function SellerProductPage() {
   function buildDto(forPublish: boolean) {
     const f = latest.current.form
     const stockDigits = toEnglishDigits(f.stock).replace(/\D/g, '')
-    const hasVariants = latest.current.vd.options.length > 0
+    // فقط گزینه‌ی کامل (نام + حداقل یک مقدار) مدل حساب می‌شود؛ گزینه‌ی خالیِ نیمه‌کاره موجودی را قایم نکند
+    const hasVariants = latest.current.vd.options.some(o => o.name.trim() && o.values.length > 0)
     // موجودی: فقط وقتی عوض شده یا (پیش‌نویس/انتشار) صریحاً نوشته شده؛ محصول مدل‌دار موجودی سطح محصول ندارد
-    const stockChanged = stockDigits !== '' && (forPublish || stockDigits !== initialStockRef.current || f.always === !initialTrackRef.current)
+    const stockChanged = stockDigits !== '' && (forPublish || stockDigits !== initialStockRef.current || !f.always !== initialTrackRef.current)
     return {
       name: f.name,
       basePrice: f.isWeightBased ? 0 : Number(toEnglishDigits(f.price)) || 0,
       ...(!f.always && !hasVariants && stockChanged ? { stock: Number(stockDigits) } : {}),
       trackStock: !f.always,
-      description: f.description || undefined,
+      // رشته‌ی خالی (نه undefined) تا پاک‌کردن توضیح واقعاً به سرور برسد
+      description: f.description,
       specs: f.specs.length ? f.specs : null,
       code: f.code.trim() || undefined,
       persuasionTechniquesEnabled: f.persuasion,
@@ -298,8 +302,20 @@ export function SellerProductPage() {
     }
   }
 
-  const ensureDraft = useCallback(async (): Promise<string> => {
-    if (productIdRef.current) return productIdRef.current
+  // تک‌پرواز: چند فراخوان هم‌زمان (عکس + «پر کن» + ذخیره‌ی خودکار) یک پیش‌نویس می‌سازند
+  const draftPromiseRef = useRef<Promise<string> | null>(null)
+  const ensureDraft = useCallback((): Promise<string> => {
+    if (productIdRef.current) return Promise.resolve(productIdRef.current)
+    if (draftPromiseRef.current) return draftPromiseRef.current
+    const promise = createDraft().finally(() => {
+      draftPromiseRef.current = null
+    })
+    draftPromiseRef.current = promise
+    return promise
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createProduct, first, navigate])
+
+  async function createDraft(): Promise<string> {
     const f = latest.current.form
     const dto: CreateProductInput = {
       status: 'DRAFT',
@@ -316,10 +332,18 @@ export function SellerProductPage() {
     hydratedRef.current = true
     navigate(`/seller/panel/products/${created.id}${first ? '?first=1' : ''}`, { replace: true })
     return created.id
-  }, [createProduct, first, navigate])
+  }
 
   // ذخیره‌ی کامل: مدل‌ها (اگر عوض شده) + فیلدها؛ publish=true وضعیت را ACTIVE می‌کند
-  async function persist(publish: boolean): Promise<SellerProduct> {
+  // همه‌ی ذخیره‌ها پشت‌سرهم (نه هم‌زمان) تا دو PUT مدل‌ها روی هم نیفتند
+  const persistChainRef = useRef<Promise<unknown>>(Promise.resolve())
+  function persist(publish: boolean): Promise<SellerProduct> {
+    const run = persistChainRef.current.then(() => persistNow(publish), () => persistNow(publish))
+    persistChainRef.current = run.catch(() => undefined)
+    return run
+  }
+
+  async function persistNow(publish: boolean): Promise<SellerProduct> {
     const pid = await ensureDraft()
     const L = latest.current
     if (JSON.stringify(L.vd) !== savedVdRef.current) {
@@ -341,7 +365,10 @@ export function SellerProductPage() {
     if (!hydratedRef.current || mode === 'edit') return
     if (!productId && snapshot === blankSnapshotRef.current) return
     const timer = setTimeout(() => {
-      if (savingRef.current) return
+      if (savingRef.current) {
+        dirtyDuringSaveRef.current = true
+        return
+      }
       savingRef.current = true
       setSaveState('saving')
       persist(false)
@@ -349,11 +376,16 @@ export function SellerProductPage() {
         .catch(() => setSaveState(''))
         .finally(() => {
           savingRef.current = false
+          // ویرایشی که وسط ذخیره آمد دوباره ذخیره می‌شود (نه گم)
+          if (dirtyDuringSaveRef.current) {
+            dirtyDuringSaveRef.current = false
+            setAutosaveTick(n => n + 1)
+          }
         })
     }, AUTOSAVE_MS)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snapshot, mode, productId])
+  }, [snapshot, mode, productId, autosaveTick])
 
   // ---- AI ----
   async function runAiFill() {
@@ -495,10 +527,18 @@ export function SellerProductPage() {
     navigate('/seller/panel/products?seg=DRAFT')
   }
 
-  function goBack() {
+  async function goBack() {
     if (dirty) {
       setSheet('leave')
       return
+    }
+    // پیش‌نویس: آخرین تغییرات (تا ۱٫۵ ثانیه‌ی آخر) قبل از خروج ذخیره شود
+    if (mode !== 'edit' && (productIdRef.current || snapshot !== blankSnapshotRef.current)) {
+      try {
+        await persist(false)
+      } catch {
+        // خطا مانع خروج نیست؛ پیش‌نویس قبلی روی سرور می‌ماند
+      }
     }
     navigate('/seller/panel/products')
   }
@@ -542,14 +582,14 @@ export function SellerProductPage() {
 
   const loading = aiState === 'loading'
   const title = mode === 'edit' ? form.name || t.editTitle : mode === 'draft' ? t.draftTitle : t.newTitle
-  const hasVariants = vd.options.length > 0
+  const hasVariants = vd.options.some(o => o.name.trim() && o.values.length > 0)
   const canPreview = form.name.trim().length >= 2 && (form.isWeightBased || Number(toEnglishDigits(form.price)) > 0)
   const goldConfigured = !!goldWageType && goldWageValue != null && goldProfitPercent != null
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[640px] flex-col">
       <header className="sticky top-0 z-10 flex items-center gap-1 border-b border-slate-800 bg-slate-950 px-2 py-2 light:border-slate-200 light:bg-white">
-        <button type="button" onClick={goBack} aria-label={fa.common.back} className="flex size-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 light:hover:bg-slate-100">
+        <button type="button" onClick={() => void goBack()} aria-label={fa.common.back} className="flex size-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 light:hover:bg-slate-100">
           <BackChevron />
         </button>
         <h1 className="min-w-0 flex-1 truncate text-base font-extrabold text-slate-100 light:text-slate-900">{title}</h1>
