@@ -1,5 +1,5 @@
 // docs/PRD-buyer-chat-redesign.md §6.4.2 — پاسخ‌های سریع آخرین پیام ایجنت، ردیف افقی چیپ درست بالای نوار پرسش
-// (نه داخل نخ)؛ کلیک = همان مسیر تایپ‌کردن. با شروع ارسال ردیف پنهان می‌شود (parent). عمداً بدون آیکون جهت‌دار
+// (نه داخل نخ)؛ QA-7: گرادیان fade در لبه‌ی انتهایی (چپ در RTL) نشان می‌دهد ردیف اسکرول می‌خورد؛ کلیک = همان مسیر تایپ‌کردن. با شروع ارسال ردیف پنهان می‌شود (parent). عمداً بدون آیکون جهت‌دار
 export function QuickRepliesBar({
   replies,
   disabled,
@@ -11,7 +11,7 @@ export function QuickRepliesBar({
 }) {
   if (replies.length === 0) return null
   return (
-    <div className="flex gap-2 overflow-x-auto px-3 pb-1 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex gap-2 overflow-x-auto px-3 pb-1 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [-webkit-mask-image:linear-gradient(to_left,transparent,black_32px)] [mask-image:linear-gradient(to_left,transparent,black_32px)]">
       {replies.map((label) => (
         <button
           key={label}
