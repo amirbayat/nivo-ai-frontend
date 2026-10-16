@@ -1,3 +1,4 @@
+import { isStockMissing, canSendTrackStock } from '@/lib/productStock'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { clsx } from 'clsx'
@@ -67,11 +68,12 @@ interface Form {
 type ErrorKey = 'name' | 'price' | 'stock' | 'weight'
 type MarkKey = AiFillField | 'variants'
 
-const blankForm = (gold: boolean): Form => ({
+// QA-12 — برای اولین محصول (?first=1) «همیشه موجوده» پیش‌فرض است
+const blankForm = (gold: boolean, always = false): Form => ({
   name: '',
   price: '',
   stock: '',
-  always: false,
+  always,
   description: '',
   specs: [],
   code: '',
@@ -138,7 +140,7 @@ export function SellerProductPage() {
   const [product, setProduct] = useState<SellerProduct | null>(null)
 
   // ---- فرم ----
-  const [form, setForm] = useState<Form>(() => blankForm(isGoldCategory))
+  const [form, setForm] = useState<Form>(() => blankForm(isGoldCategory, first))
   const [vd, setVd] = useState<VariantDraft>(emptyVariantDraft)
   const [errors, setErrors] = useState<Partial<Record<ErrorKey, string>>>({})
   const [marks, setMarks] = useState<Set<MarkKey>>(new Set())
@@ -159,7 +161,7 @@ export function SellerProductPage() {
 
   const hydratedRef = useRef(false)
   const baselineRef = useRef('')
-  const blankSnapshotRef = useRef(JSON.stringify([blankForm(isGoldCategory), emptyVariantDraft()]))
+  const blankSnapshotRef = useRef(JSON.stringify([blankForm(isGoldCategory, first), emptyVariantDraft()]))
   const loadedStockRef = useRef<Record<string, number>>({})
   const savedVdRef = useRef(JSON.stringify(emptyVariantDraft()))
   const initialStockRef = useRef<string>('')
@@ -190,7 +192,7 @@ export function SellerProductPage() {
   const reset = useCallback(() => {
     hydratedRef.current = false
     setProduct(null)
-    setForm(blankForm(isGoldCategory))
+    setForm(blankForm(isGoldCategory, first))
     setVd(emptyVariantDraft())
     setErrors({})
     setMarks(new Set())
@@ -202,10 +204,10 @@ export function SellerProductPage() {
     setSaveState('')
     loadedStockRef.current = {}
     savedVdRef.current = JSON.stringify(emptyVariantDraft())
-    blankSnapshotRef.current = JSON.stringify([blankForm(isGoldCategory), emptyVariantDraft()])
+    blankSnapshotRef.current = JSON.stringify([blankForm(isGoldCategory, first), emptyVariantDraft()])
     baselineRef.current = ''
     initialStockRef.current = ''
-  }, [isGoldCategory])
+  }, [isGoldCategory, first])
 
   useEffect(() => {
     // تغییر مسیر از بیرون (لیست ← محصول دیگر، «محصول بعدی»)؛ ساخت پیش‌نویس توسط خود همین صفحه
@@ -289,7 +291,8 @@ export function SellerProductPage() {
       name: f.name,
       basePrice: f.isWeightBased ? 0 : Number(toEnglishDigits(f.price)) || 0,
       ...(!f.always && !hasVariants && stockChanged ? { stock: Number(stockDigits) } : {}),
-      trackStock: !f.always,
+      // QA-12 — خاموش→روشن‌شدنِ موجودی بدون عدد ۴۰۰ می‌گیرد؛ تا عدد نیامده فیلد نرود
+      ...(canSendTrackStock({ always: f.always, hasVariants, stock: f.stock, wasTracked: initialTrackRef.current }) ? { trackStock: !f.always } : {}),
       // رشته‌ی خالی (نه undefined) تا پاک‌کردن توضیح واقعاً به سرور برسد
       description: f.description,
       specs: f.specs.length ? f.specs : null,
@@ -488,7 +491,7 @@ export function SellerProductPage() {
     if (!f.isWeightBased && !(Number(toEnglishDigits(f.price)) > 0)) errs.price = t.missingPrice
     if (f.isWeightBased && !(Number(toEnglishDigits(f.weightGrams)) > 0)) errs.weight = t.missingWeight
     const hasVariants = latest.current.vd.options.some(o => o.name.trim() && o.values.length > 0)
-    if (!f.always && !hasVariants && toEnglishDigits(f.stock).replace(/\D/g, '') === '') errs.stock = t.missingStock
+    if (isStockMissing({ always: f.always, hasVariants, stock: f.stock })) errs.stock = t.missingStock
     return errs
   }
 
