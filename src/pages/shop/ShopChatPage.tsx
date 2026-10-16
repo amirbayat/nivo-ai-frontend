@@ -747,6 +747,7 @@ export function ShopChatPage() {
               viewportHeight={viewportHeight}
               cartProductIds={cartProductIds}
               cartTappable={cartEditable && !viewingHistory}
+              cartBarVisible={cartEditable && cartCount > 0 && !viewingHistory}
               onOpenCart={() => setCartOpen(true)}
               onOpenCheckout={() => openCheckout(false)}
               checkoutState={state}

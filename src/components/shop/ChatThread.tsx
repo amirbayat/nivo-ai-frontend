@@ -5,6 +5,7 @@ import { ThinkingIndicator } from '@/components/shop/ThinkingIndicator'
 import { VoiceIndicator } from '@/components/shop/VoiceBubble'
 import { avatarInitials, storeLogoUrl } from '@/components/shop/shopUtils'
 import { fa } from '@/locales/fa'
+import { dedupeProductCards } from '@/lib/chatDedupe'
 import type { ShopMessage } from '@/types/api'
 
 type BlockProps = Parameters<typeof ShopUiBlockView>[0]
@@ -34,6 +35,8 @@ interface ChatThreadProps {
   cartProductIds: Set<string>
   // رکورد سبد فقط وقتی سبد قابل‌ویرایش است و گفتگوی زنده است کلیک‌پذیر می‌شود
   cartTappable: boolean
+  // QA-18 — وقتی نوار سبد پایین صفحه دیده می‌شود، حباب خلاصه‌ی سبد در چت تکرار نمی‌شود
+  cartBarVisible?: boolean
   onOpenCart: () => void
   // رکوردهای یک‌خطی پرداخت؛ لمس فقط وقتی مرحله‌ی هم‌خوان هنوز فعال است شیت را باز می‌کند (§6.4.4)
   onOpenCheckout: () => void
@@ -120,6 +123,9 @@ export function ChatThread(props: ChatThreadProps) {
     }
   }
 
+  // QA-18 — کارت محصولِ تکراری نسبت به پیام قبلی بات
+  const cardProducts = dedupeProductCards(thread)
+
   // آخرین بلاک از هر نوع رکورد — فقط همان قابل‌لمس است؛ قدیمی‌ها فقط خط توضیحی‌اند
   const latestRecordId = new Map<string, string>()
   for (let i = thread.length - 1; i >= 0; i--) {
@@ -150,7 +156,8 @@ export function ChatThread(props: ChatThreadProps) {
         const block = m.uiBlock
         const text =
           m.isVoice && !m.text ? fa.shop.v2.voicePending : m.isVoice ? `🎙️ ${m.text}` : m.text
-        const hasBubble = !!(m.text || (!m.imageUrl && !m.videoUrl && !m.id.startsWith('stream-'))) && !(block?.type === 'CART_SUMMARY' && !m.text)
+        const shownCards = cardProducts.get(m.id)
+        const hasBubble = !!(m.text || (!m.imageUrl && !m.videoUrl && !m.id.startsWith('stream-'))) && !(block?.type === 'CART_SUMMARY' && !m.text) && !(block?.type === 'PRODUCT_CARD' && !m.text && shownCards?.length === 0)
         const media: MediaItem[] = [
           ...(m.imageUrl ? [{ type: 'image' as const, src: m.imageUrl }] : []),
           ...(m.videoUrl ? [{ type: 'video' as const, src: m.videoUrl }] : []),
@@ -197,9 +204,9 @@ export function ChatThread(props: ChatThreadProps) {
                 {props.conversationId && isAgent && (
                   <VoiceIndicator message={m} conversationId={props.conversationId} onPlay={props.onMarkVoiceHeard} />
                 )}
-                {block?.type === 'PRODUCT_CARD' && (
+                {block?.type === 'PRODUCT_CARD' && (shownCards ?? block.products).length > 0 && (
                   <ChatProductCards
-                    products={block.products}
+                    products={shownCards ?? block.products}
                     disabled={props.actionDisabled}
                     handoff={props.sellerIsReplying}
                     cartProductIds={props.cartProductIds}
@@ -209,7 +216,9 @@ export function ChatThread(props: ChatThreadProps) {
                   />
                 )}
                 {block?.type === 'CART_SUMMARY' &&
-                  (m.id === latestCartId && props.cartTappable ? (
+                  (m.id === latestCartId && props.cartBarVisible ? (
+                    <span className="mt-1 block text-xs text-[var(--shop-text-2)]">{fa.shop.v2.cartUpdated}</span>
+                  ) : m.id === latestCartId && props.cartTappable ? (
                     <button
                       type="button"
                       onClick={props.onOpenCart}
