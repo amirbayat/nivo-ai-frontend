@@ -37,6 +37,7 @@ export function useStoreProducts(slug: string, enabled: boolean) {
   const [shippingEstimate, setShippingEstimate] = useState<PublicProductsPage['shippingEstimate']>(null)
   const [shippingDaysText, setShippingDaysText] = useState<string | null>(null)
   const [popularSortAvailable, setPopularSortAvailable] = useState(false)
+  const [requiresShipping, setRequiresShipping] = useState(true)
   // تعداد کل فروشگاه بدون جست‌وجو — تا «فروشگاه بدون محصول» از «جست‌وجوی بی‌نتیجه» تشخیص داده شود
   const [catalogTotal, setCatalogTotal] = useState<number | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -64,6 +65,7 @@ export function useStoreProducts(slug: string, enabled: boolean) {
           setShippingEstimate(data.shippingEstimate ?? null)
           setShippingDaysText(data.shippingDaysText ?? null)
           setPopularSortAvailable(!!data.popularSortAvailable)
+          setRequiresShipping(data.requiresShipping ?? true)
           if (!q.trim()) setCatalogTotal(data.total)
         }
       } catch {
@@ -114,5 +116,6 @@ export function useStoreProducts(slug: string, enabled: boolean) {
     shippingEstimate,
     shippingDaysText,
     popularSortAvailable,
+    requiresShipping,
   }
 }

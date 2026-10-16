@@ -35,6 +35,10 @@ interface ChatThreadProps {
   // رکورد سبد فقط وقتی سبد قابل‌ویرایش است و گفتگوی زنده است کلیک‌پذیر می‌شود
   cartTappable: boolean
   onOpenCart: () => void
+  // رکوردهای یک‌خطی پرداخت؛ لمس فقط وقتی مرحله‌ی هم‌خوان هنوز فعال است شیت را باز می‌کند (§6.4.4)
+  onOpenCheckout: () => void
+  checkoutState: string
+  onHighlightOrder: () => void
   onOpenProduct: (productId: string) => void
   onSeeAllProducts: () => void
   onLoadOlder: () => void
@@ -67,6 +71,35 @@ function StoreAvatar({ storeId, storeName, storeLogoKey }: Pick<ChatThreadProps,
   )
 }
 
+type CheckoutRecordBlock = Extract<NonNullable<ShopMessage['uiBlock']>, { type: 'ADDRESS_PROMPT' | 'PAYMENT_METHOD_PROMPT' | 'PAYMENT_INSTRUCTIONS' | 'SNAPPPAY_PAYMENT_INSTRUCTIONS' | 'ORDER_STATUS' }>
+
+// docs/PRD-buyer-chat-redesign.md §6.4.4 — بلاک‌های پرداخت در نخ فقط یک خط رکورد هستند؛ UI کامل در شیت پرداخت است
+function CheckoutRecord({ block, tappable, onTap }: { block: CheckoutRecordBlock; tappable: boolean; onTap: () => void }) {
+  let text: string
+  switch (block.type) {
+    case 'ADDRESS_PROMPT':
+      text = block.mode === 'CONFIRM' && block.summary ? `${fa.shop.v2.recordAddress}\n${block.summary}` : fa.shop.v2.recordAddress
+      break
+    case 'PAYMENT_METHOD_PROMPT':
+      text = fa.shop.v2.recordMethod
+      break
+    case 'PAYMENT_INSTRUCTIONS':
+    case 'SNAPPPAY_PAYMENT_INSTRUCTIONS':
+      text = fa.shop.v2.recordPayment(block.amount.toLocaleString('fa-IR'), block.orderCode ?? null)
+      break
+    default:
+      text = fa.shop.v2.recordOrder(fa.shop.orderStatusLabels[block.status] ?? block.status, block.orderCode ?? null)
+  }
+  const cls = 'mt-1 block whitespace-pre-line rounded-xl border border-[var(--shop-border)] px-3 py-2 text-start text-sm text-[var(--shop-text)]'
+  return tappable ? (
+    <button type="button" onClick={onTap} className={`${cls} min-h-11 bg-[var(--shop-surface)] font-medium`}>
+      {text}
+    </button>
+  ) : (
+    <span className={`${cls} text-[var(--shop-text-2)]`}>{text}</span>
+  )
+}
+
 // docs/PRD-buyer-chat-redesign.md §6.4 — نخ گفتگو: حباب‌ها با دُم سمت گوینده، آواتار فروشگاه یک‌بار برای هر
 // دسته پیام پشت‌سرهم، جداکننده‌ی زمانی بعد از ۳۰ دقیقه، رکورد یک‌خطی سبد، کارت‌های محصول و پیام سیستمی انتقال
 export function ChatThread(props: ChatThreadProps) {
@@ -87,6 +120,15 @@ export function ChatThread(props: ChatThreadProps) {
       latestCartId = thread[i].id
       break
     }
+  }
+
+  // آخرین بلاک از هر نوع رکورد — فقط همان قابل‌لمس است؛ قدیمی‌ها فقط خط توضیحی‌اند
+  const latestRecordId = new Map<string, string>()
+  for (let i = thread.length - 1; i >= 0; i--) {
+    const t = thread[i].uiBlock?.type
+    if (!t) continue
+    const key = t === 'SNAPPPAY_PAYMENT_INSTRUCTIONS' ? 'PAYMENT_INSTRUCTIONS' : t
+    if (!latestRecordId.has(key)) latestRecordId.set(key, thread[i].id)
   }
 
   return (
@@ -115,7 +157,7 @@ export function ChatThread(props: ChatThreadProps) {
         ]
         const failedRing = m.role === 'customer' && m.failed ? 'outline outline-1 outline-[var(--shop-danger)]' : ''
         return (
-          <div key={m.id} className={sameSpeaker ? 'mt-1' : i === 0 ? '' : 'mt-3'}>
+          <div key={m.id} data-refund-form={block?.type === 'REFUND_DESTINATION_FORM' ? '' : undefined} className={sameSpeaker ? 'mt-1' : i === 0 ? '' : 'mt-3'}>
             {gap && m.createdAt && <p className="mb-2 mt-3 text-center text-xs text-[var(--shop-text-2)]">{timeLabel(m.createdAt)}</p>}
             <div className={`flex items-start gap-2 ${isAgent ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex min-w-0 max-w-[85%] flex-col ${isAgent ? 'items-start' : 'items-end'}`}>
@@ -188,7 +230,21 @@ export function ChatThread(props: ChatThreadProps) {
                   ) : (
                     <span className="mt-1 block text-xs text-[var(--shop-text-2)]">{fa.shop.v2.cartUpdated}</span>
                   ))}
-                {block && block.type !== 'PRODUCT_CARD' && block.type !== 'CART_SUMMARY' && (
+                {block && (block.type === 'ADDRESS_PROMPT' || block.type === 'PAYMENT_METHOD_PROMPT' || block.type === 'PAYMENT_INSTRUCTIONS' || block.type === 'SNAPPPAY_PAYMENT_INSTRUCTIONS' || block.type === 'ORDER_STATUS') && (
+                  <CheckoutRecord
+                    block={block}
+                    tappable={
+                      !props.viewingHistory &&
+                      m.id === latestRecordId.get(block.type === 'SNAPPPAY_PAYMENT_INSTRUCTIONS' ? 'PAYMENT_INSTRUCTIONS' : block.type) &&
+                      (block.type === 'ORDER_STATUS' ||
+                        (block.type === 'ADDRESS_PROMPT' && props.checkoutState === 'ADDRESS_COLLECTION') ||
+                        (block.type === 'PAYMENT_METHOD_PROMPT' && props.checkoutState === 'PAYMENT_METHOD_SELECTION') ||
+                        ((block.type === 'PAYMENT_INSTRUCTIONS' || block.type === 'SNAPPPAY_PAYMENT_INSTRUCTIONS') && props.checkoutState === 'AWAITING_PAYMENT'))
+                    }
+                    onTap={block.type === 'ORDER_STATUS' ? props.onHighlightOrder : props.onOpenCheckout}
+                  />
+                )}
+                {block && block.type !== 'PRODUCT_CARD' && block.type !== 'CART_SUMMARY' && block.type !== 'ADDRESS_PROMPT' && block.type !== 'PAYMENT_METHOD_PROMPT' && block.type !== 'PAYMENT_INSTRUCTIONS' && block.type !== 'SNAPPPAY_PAYMENT_INSTRUCTIONS' && block.type !== 'ORDER_STATUS' && (
                   <ShopUiBlockView
                     block={block}
                     disabled={block.type === 'REFUND_DESTINATION_FORM' ? props.refundFormDisabled : props.actionDisabled}

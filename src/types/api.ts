@@ -624,6 +624,8 @@ export interface PublicProductsPage {
   shippingDaysText?: string | null
   // docs/PRD-buyer-chat-redesign.md B1 — «پرفروش‌ترین» فقط وقتی فروشگاه ≥۳ سفارش موفق دارد
   popularSortAvailable?: boolean
+  // §6.6 — «ادامه و ثبت آدرس» یا «ادامه و پرداخت»
+  requiresShipping?: boolean
 }
 
 // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md بخش ۱۴.۲ — GET

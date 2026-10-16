@@ -382,3 +382,13 @@ body {
 :root[data-theme='light'] .ai-content blockquote {
   color: #64748b;
 }
+
+/* docs/PRD-buyer-chat-redesign.md §7 — نوار سبد ۱۸۰ms می‌لغزد؛ با prefers-reduced-motion بی‌حرکت */
+@keyframes cart-bar-in {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.cart-bar-in { animation: cart-bar-in 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .cart-bar-in { animation: none; }
+}

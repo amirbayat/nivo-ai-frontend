@@ -3,6 +3,8 @@ import { compressImage } from '@/lib/compressImage'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import { newClientMessageId } from '@/lib/clientMessageId'
+import { useToastStore } from '@/store/toast.store'
+import type { CartOp } from '@/lib/optimisticCart'
 import { getShopSession,
   clearShopSession, setShopSession, type ShopSession } from '@/lib/shopSession'
 import type {
@@ -963,6 +965,97 @@ export function useShopChat(slug: string, productId?: string) {
     [sending, applyReply],
   )
 
+  // ── سبد خوش‌بینانه (docs/PRD-buyer-chat-redesign.md §8) ─────────────────────────────────────────────
+  // دکمه‌های افزودن/تعداد/حذف همان لحظه روی UI اثر می‌گذارند (pendingCartOps روی آخرین CART_SUMMARY سرور
+  // اعمال می‌شود). درخواست‌ها پشت‌سرهم (یک صف) و بدون استریم/مدل می‌روند (B3: پاسخ قالبی). با جواب سرور
+  // عملیات حذف و نمایش از CART_SUMMARY برگشتی می‌آید؛ با رد سرور (ناموجود/قفل) عملیات برمی‌گردد و متن سرور toast می‌شود
+  const [pendingCartOps, setPendingCartOps] = useState<CartOp[]>([])
+  const cartQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const cartListenerRef = useRef<((result: { action: ShopAction; ok: boolean; latencyMs: number }) => void) | null>(null)
+
+  const runCartAction = useCallback(
+    (action: ShopAction, op: CartOp) => {
+      setPendingCartOps((prev) => [...prev, op])
+      cartQueueRef.current = cartQueueRef.current.then(async () => {
+        // پیام تایپی در حال اجراست: صبر می‌کنیم تا نوبت‌ها با هم قاطی نشوند (ردیف ۵ از §۱۳)
+        while (sendingRef.current) await new Promise((resolve) => setTimeout(resolve, 150))
+        let ok = false
+        try {
+          const session = sessionRef.current
+          if (!session || viewingHistoryRef.current) return
+          const res = await fetch(`${env.VITE_API_URL}/v2/chat/${session.conversationId}/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Session-Token': session.sessionToken,
+              'Idempotency-Key': newClientMessageId(),
+            },
+            body: JSON.stringify({ action }),
+          })
+          if (!res.ok) {
+            const body = (await res.json().catch(() => null)) as { message?: unknown } | null
+            throw new Error(typeof body?.message === 'string' ? body.message : fa.common.error)
+          }
+          const data = (await res.json()) as ShopSendMessageResponse
+          const block = data.uiBlocks.find((item) => item.type === 'CART_SUMMARY')
+          if (block) {
+            ok = true
+            setState(data.state)
+            setMessages((prev) => {
+              const next = [...prev]
+              for (let i = next.length - 1; i >= 0; i--) {
+                if (next[i].uiBlock?.type === 'CART_SUMMARY') {
+                  next[i] = { ...next[i], text: data.reply || next[i].text, uiBlock: block }
+                  return next
+                }
+              }
+              return [...next, { id: `agent-${Date.now()}`, role: 'agent', text: data.reply, uiBlock: block }]
+            })
+          } else if (data.uiBlocks.some((item) => item.type !== 'NONE')) {
+            // مثلاً چیپ VARIANT_PROMPT: همان مسیر معمول نخ
+            applyReply(data)
+          } else if (data.reply) {
+            useToastStore.getState().addToast(data.reply)
+          }
+        } catch (err) {
+          useToastStore.getState().addToast(err instanceof Error && err.message ? err.message : fa.common.error)
+        } finally {
+          setPendingCartOps((prev) => prev.filter((item) => item.id !== op.id))
+          cartListenerRef.current?.({ action, ok, latencyMs: Date.now() - op.startedAt })
+        }
+      })
+    },
+    [applyReply],
+  )
+
+  const cartAdd = useCallback(
+    (info: { productId: string; variantId?: string; name: string; variantLabel?: string; unitPrice: number }) => {
+      runCartAction(
+        { type: 'ADD_TO_CART', productId: info.productId, ...(info.variantId ? { variantId: info.variantId } : {}) },
+        { id: newClientMessageId(), kind: 'add', startedAt: Date.now(), ...info },
+      )
+    },
+    [runCartAction],
+  )
+  const cartSetQty = useCallback(
+    (line: { productId: string; variantId?: string }, qty: number) => {
+      runCartAction(
+        { type: 'SET_CART_QTY', productId: line.productId, qty, ...(line.variantId ? { variantId: line.variantId } : {}) },
+        { id: newClientMessageId(), kind: 'qty', productId: line.productId, variantId: line.variantId, qty, startedAt: Date.now() },
+      )
+    },
+    [runCartAction],
+  )
+  const cartRemove = useCallback(
+    (line: { productId: string; variantId?: string }) => {
+      runCartAction(
+        { type: 'REMOVE_CART_ITEM', productId: line.productId, ...(line.variantId ? { variantId: line.variantId } : {}) },
+        { id: newClientMessageId(), kind: 'remove', productId: line.productId, variantId: line.variantId, startedAt: Date.now() },
+      )
+    },
+    [runCartAction],
+  )
+
   // مشترک بین اولین بوت (chat/start) و «گفتگوی جدید» (chat/:id/restart) — هر دو همین شکل
   // پاسخ را برمی‌گردانند (docs/PRD-conversation-history.md: restart همان sessionToken را
   // echo می‌کند چون Customer عوض نمی‌شود، فقط SalesConversation تازه است)
@@ -1339,6 +1432,11 @@ export function useShopChat(slug: string, productId?: string) {
     setResponseStrategy,
     sendMessage,
     sendAction,
+    pendingCartOps,
+    cartAdd,
+    cartSetQty,
+    cartRemove,
+    cartListenerRef,
     uploadReceipt,
     submitManualReceipt,
     submitRefundDestination,
