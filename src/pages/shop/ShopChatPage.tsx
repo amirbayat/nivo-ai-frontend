@@ -563,6 +563,7 @@ export function ShopChatPage() {
         onOpenCart={() => setCartOpen(true)}
         onOpenAbout={openAbout}
         onOpenMenu={() => setMenuOpen(true)}
+        brandLogo={isLead}
         leadCta={isLead && !verified ? { label: fa.shop.lead.headerCta, onClick: goToSignup } : undefined}
       />
 

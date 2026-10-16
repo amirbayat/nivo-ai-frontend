@@ -15,6 +15,8 @@ interface ShopHeaderProps {
   onOpenMenu: () => void
   // حالت لید: دکمه‌ی کوچک «ثبت‌نام رایگان» کنار منو (فقط وقتی کاربر ثبت‌نام نکرده)
   leadCta?: { label: string; onClick: () => void }
+  // حالت لید: لوگوی خود نیوو (favicon سایت) به‌جای حرف اول
+  brandLogo?: boolean
 }
 
 // docs/PRD-buyer-chat-redesign.md §6.1 — لوگو، نام، خط «چه کسی جواب می‌دهد»، قرص سبد و ⋯.
@@ -30,6 +32,7 @@ export function ShopHeader({
   onOpenAbout,
   onOpenMenu,
   leadCta,
+  brandLogo,
 }: ShopHeaderProps) {
   const subline = viewingHistory
     ? fa.shop.v2.readOnly
@@ -44,7 +47,11 @@ export function ShopHeader({
         aria-label={fa.shop.v2.aboutOpen}
         className="flex min-h-11 min-w-0 items-center gap-2.5 py-2 text-start"
       >
-        {storeId && storeLogoKey ? (
+        {brandLogo ? (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--shop-surface-2)]">
+            <img src="/brand2/favicon.svg" alt="" className="h-4 w-5" />
+          </div>
+        ) : storeId && storeLogoKey ? (
           <img src={storeLogoUrl(storeId, storeLogoKey)} alt="" className="size-9 shrink-0 rounded-full object-cover" />
         ) : (
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--shop-surface-2)] text-xs text-[var(--shop-text-2)]">

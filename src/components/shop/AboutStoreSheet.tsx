@@ -48,7 +48,11 @@ export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKe
     <BottomSheet open={open} onClose={onClose} closeOnBack title={leadMode ? fa.shop.lead.menuAbout : fa.shop.v2.aboutTitle(name)}>
       <div className="flex flex-col gap-4 pb-2">
         <div className="flex items-center gap-3">
-          {storeId && logoKey ? (
+          {leadMode ? (
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[var(--shop-surface-2)]">
+              <img src="/brand2/favicon.svg" alt="" className="h-7 w-9" />
+            </div>
+          ) : storeId && logoKey ? (
             <img src={storeLogoUrl(storeId, logoKey)} alt="" className="size-16 shrink-0 rounded-full object-cover" />
           ) : (
             <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[var(--shop-surface-2)] text-xl text-[var(--shop-text-2)]" aria-hidden>
@@ -93,6 +97,10 @@ export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKe
         {leadMode ? (
           <div className="border-t border-[var(--shop-border)] pt-3 text-xs leading-6 text-[var(--shop-text-2)]">
             {/* همان تب (بدون _blank) — در مرورگر اینستاگرام تب جدید نشست را از دست می‌دهد */}
+            <a href="/terms" className="inline-flex min-h-11 items-center text-[var(--shop-accent)] underline">
+              {fa.shop.v2.aboutTerms}
+            </a>
+            <span className="mx-3">·</span>
             <a href="/contact" className="inline-flex min-h-11 items-center text-[var(--shop-accent)] underline">
               {fa.shop.lead.aboutContact}
             </a>

@@ -36,6 +36,7 @@ import { InvoicesPage } from '@/pages/settings/InvoicesPage'
 import { InvoiceDetailPage } from '@/pages/settings/InvoiceDetailPage'
 import { LandingPage } from '@/pages/landing/LandingPage'
 import { ContactPage } from '@/pages/contact/ContactPage'
+import { TermsPage } from '@/pages/contact/TermsPage'
 import { SellerLandingPage } from '@/pages/seller/SellerLandingPage'
 import { SellerLoginPage } from '@/pages/seller/SellerLoginPage'
 import { SellerOtpPage } from '@/pages/seller/SellerOtpPage'
@@ -122,6 +123,7 @@ export function AppRouter() {
       <Route path="/" element={<HomeRoute />} />
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       {/* لندینگ عمومی/مارکتینگ nivo-cal — حتی کاربر لاگین‌نکرده هم باید ویدیوی معرفی را ببیند،
           برخلاف «/nivo-cal» که پشت ProtectedRoute است و مقصد ثابت داشبورد/اسکن کاربر لاگین‌کرده است */}
       <Route path="/nivo-cal/intro" element={<NivoCalIntroPage />} />
