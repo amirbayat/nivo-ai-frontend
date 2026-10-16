@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
 import { BottomSheet } from '@/components/ui/BottomSheet'
@@ -29,6 +29,7 @@ import { useDismissAttentionTopic, useMarkLaunchShared } from '@/queries/sellerV
 import type { AttentionSuggestionTopic, SellerOrder } from '@/types/api'
 import { useSellerStore } from './SellerPanelLayout'
 import { PaymentsSetup } from './PaymentsSetup'
+import { PostConvertSetupSheet } from '@/components/seller/PostConvertSetupSheet'
 // import { SellerTestChatSheet } from './SellerTestChatSheet'
 
 const t = fa.seller.v2.today
@@ -325,6 +326,7 @@ export function SellerTodayPage() {
   const stores = useMyStores()
   const shippingRules = useShippingRules(storeId)
 
+  const [searchParams, setSearchParams] = useSearchParams()
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [undo, setUndo] = useState<{ id: string; who: string } | null>(null)
   const pendingRef = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null)
@@ -415,6 +417,14 @@ export function SellerTodayPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-5 px-4 py-5">
+      {searchParams.get('setup') === '1' && currentStore && !currentStore.isDemo && (
+        <PostConvertSetupSheet
+          storeId={storeId}
+          initialName={currentStore.name}
+          initialSlug={currentStore.slug}
+          onDone={() => setSearchParams({}, { replace: true })}
+        />
+      )}
       <h1 className="text-xl font-extrabold text-slate-100 light:text-slate-900">{t.title}</h1>
 
       {launch && !launchDone && <LaunchCard launch={launch} storeId={storeId} storeSlug={storeSlug} />}

@@ -179,7 +179,7 @@ function DemoBanner({ store }: { store: SellerStore }) {
             onClick={() => {
               if (!window.confirm(fa.seller.panel.demoBanner.convertConfirm)) return
               convertToReal.mutate(undefined, {
-                onSuccess: () => navigate('/seller/panel/today'),
+                onSuccess: () => navigate('/seller/panel/today?setup=1'),
               })
             }}
             className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
