@@ -53,6 +53,7 @@ export function ShopChatPage() {
     suspended,
     conversationId,
     getOrderTrackPath,
+    serverVerified,
     messages,
     olderMessages,
     hasMoreEvents,
@@ -106,7 +107,8 @@ export function ShopChatPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [doneStep, setDoneStep] = useState(false)
   const [orderHighlight, setOrderHighlight] = useState(false)
-  const [verified, setVerified] = useState(() => isBuyerVerified(slug))
+  const [localVerified, setVerified] = useState(() => isBuyerVerified(slug))
+  const verified = localVerified || serverVerified
   const autoOpenArmedRef = useRef(false)
   const doneArmedRef = useRef(false)
   const wasSendingRef = useRef(false)
@@ -748,6 +750,7 @@ export function ShopChatPage() {
         storeName={storeName}
         onAbout={openAbout}
         onItem={(item) => logUiEvent('menu_item', { item })}
+        verified={verified}
         onVerified={() => {
           markBuyerVerified(slug)
           setVerified(true)

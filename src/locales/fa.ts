@@ -1508,6 +1508,8 @@ export const fa = {
       menuNewChat: 'گفتگوی تازه',
       menuLogin: 'ورود با شماره موبایل',
       loginValue: 'سفارش‌ها و آدرس‌هات روی هر گوشی',
+      menuVerified: 'شماره‌ات تایید شده',
+      verifiedValue: 'سفارش‌هات روی هر گوشی دم دستته',
       historyEmpty: 'هنوز گفتگوی قبلی نداری',
       historyTitle: 'گفتگوهای قبلی',
       back: 'برگشت',

@@ -143,6 +143,7 @@ export function useShopChat(slug: string, productId?: string) {
   const [messages, setMessages] = useState<ShopMessage[]>([])
   const [olderMessages, setOlderMessages] = useState<ShopMessage[]>([])
   const [hasMoreEvents, setHasMoreEvents] = useState(false)
+  const [serverVerified, setServerVerified] = useState(false)
   const oldestCreatedAtRef = useRef<string | null>(null)
   const [state, setState] = useState<string>('GREETING')
   const [loading, setLoading] = useState(true)
@@ -683,6 +684,7 @@ export function useShopChat(slug: string, productId?: string) {
     setResponseStrategyState(data.responseStrategy)
     setAwaitingReview(data.awaitingReview)
     setAwaitingSatisfaction(!!data.awaitingSatisfactionCheck)
+    if (data.buyerVerified) setServerVerified(true)
     const nextMessages = eventsToMessages(data.events, session.conversationId)
     setMessages((prev) => (mode === 'replace' ? nextMessages : mergeShopMessages(nextMessages, prev, data.state)))
     if (mode === 'replace' || !oldestCreatedAtRef.current) {
@@ -1358,6 +1360,7 @@ export function useShopChat(slug: string, productId?: string) {
         })
         const data = (await res.json().catch(() => null)) as { message?: unknown } | null
         if (!res.ok) return { ok: false, message: buyerRegisterError(res.status, data?.message, fa.shop.registerInvalidCode) }
+        setServerVerified(true)
         return { ok: true, message: typeof data?.message === 'string' ? data.message : '' }
       } catch {
         return { ok: false, message: fa.common.error }
@@ -1443,6 +1446,7 @@ export function useShopChat(slug: string, productId?: string) {
     messages,
     olderMessages,
     hasMoreEvents,
+    serverVerified,
     loadOlderMessages,
     state,
     awaitingReview,

@@ -833,6 +833,7 @@ export interface ShopGetConversationResponse {
   // الان منتظر نظر است؛ دکمه‌های پیوست عکس/ویدیو هم باید نشان داده شوند
   awaitingReview: boolean
   awaitingSatisfactionCheck?: boolean
+  buyerVerified?: boolean
   events: ShopConversationEvent[]
   hasMoreEvents?: boolean
 }

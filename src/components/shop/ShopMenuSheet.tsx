@@ -17,6 +17,7 @@ interface ShopMenuSheetProps {
   onSelectHistory: (entry: ShopHistoryEntry) => void
   onNewChat: () => void
   storeName: string | null | undefined
+  verified?: boolean
   onVerified?: () => void
   // B5 menu_item
   onItem?: (item: 'orders' | 'seller' | 'history' | 'new_chat' | 'login' | 'about') => void
@@ -138,15 +139,25 @@ export function ShopMenuSheet(props: ShopMenuSheetProps) {
               props.onNewChat()
             }}
           />
-          <MenuRow
-            icon={<svg {...svgProps}><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>}
-            label={fa.shop.v2.menuLogin}
-            hint={fa.shop.v2.loginValue}
-            onClick={() => {
-              props.onItem?.('login')
-              setView('login')
-            }}
-          />
+          {props.verified ? (
+            <div className="flex min-h-14 w-full items-center gap-3 px-1 text-[var(--shop-text)]">
+              <svg {...svgProps}><circle cx="12" cy="12" r="9" /><path d="m8 12.5 2.8 2.8L16 9.5" /></svg>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-medium">{fa.shop.v2.menuVerified}</span>
+                <span className="block text-xs text-[var(--shop-text-2)]">{fa.shop.v2.verifiedValue}</span>
+              </span>
+            </div>
+          ) : (
+            <MenuRow
+              icon={<svg {...svgProps}><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>}
+              label={fa.shop.v2.menuLogin}
+              hint={fa.shop.v2.loginValue}
+              onClick={() => {
+                props.onItem?.('login')
+                setView('login')
+              }}
+            />
+          )}
           <MenuRow
             icon={<svg {...svgProps}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>}
             label={fa.shop.v2.aboutTitle(props.storeName ?? '')}
