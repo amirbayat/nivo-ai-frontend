@@ -32,7 +32,7 @@ function latestBlock<T extends ShopUiBlock['type']>(messages: ShopMessage[], typ
 
 const labelCls = 'mb-1 block text-sm text-[var(--shop-text-2)]'
 const fieldCls =
-  'min-h-11 w-full rounded-xl border border-[var(--shop-border)] bg-[var(--shop-surface)] px-3 text-[15px] text-[var(--shop-text)] placeholder:text-[var(--shop-text-2)] focus:border-[var(--shop-accent)] focus:outline-none'
+  'min-h-11 w-full rounded-xl border border-[var(--shop-border)] bg-[var(--shop-surface)] px-3 text-[15px] text-[var(--shop-text)] placeholder:text-[var(--shop-text-2)] placeholder:opacity-50 focus:border-[var(--shop-accent)] focus:outline-none'
 const errCls = 'mt-1 text-xs text-[var(--shop-danger)]'
 const primaryCls = 'min-h-12 w-full rounded-xl bg-[var(--shop-accent-fill)] text-[15px] font-bold text-[var(--shop-accent-text)] disabled:opacity-50'
 const outlineCls = 'min-h-12 w-full rounded-xl border border-[var(--shop-border)] text-[15px] font-semibold text-[var(--shop-text)] disabled:opacity-50'
@@ -280,7 +280,8 @@ export function CheckoutSheet(props: CheckoutSheetProps) {
       body = (
         <div className="flex flex-col gap-3">
           <div className="rounded-2xl border border-[var(--shop-border)] p-4">
-            <p className="whitespace-pre-line text-[15px] leading-7 text-[var(--shop-text)]">{ab.summary}</p>
+            <p className="whitespace-pre-line text-[15px] leading-7 text-[var(--shop-text)]">{/* خط «🚚 هزینه ارسال» داخل summary سرور با خط جدا زیرش تکراری است */}
+            {(ab.summary ?? '').split('\n').filter((l) => !l.startsWith('🚚')).join('\n')}</p>
           </div>
           {ab.provinceCovered === false ? (
             <p className="text-sm text-[var(--shop-warning)]">{address.message.text}</p>
