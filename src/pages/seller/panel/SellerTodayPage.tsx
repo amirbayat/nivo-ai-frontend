@@ -18,6 +18,7 @@ import {
   useCreateKbEntry,
   useMyStores,
   useSellerDashboard,
+  useShippingRules,
   useStoreCompleteness,
   useStoreCredit,
   useStoreToday,
@@ -321,6 +322,8 @@ export function SellerTodayPage() {
   const credit = useStoreCredit(storeId)
   const dashboard = useSellerDashboard(storeId)
   const approve = useApproveOrder(storeId)
+  const stores = useMyStores()
+  const shippingRules = useShippingRules(storeId)
 
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [undo, setUndo] = useState<{ id: string; who: string } | null>(null)
@@ -403,7 +406,10 @@ export function SellerTodayPage() {
   const launchDone = !!launch && launch.hasActiveProduct && launch.hasPaymentMethod && launch.shared
   // QA-9 — تا چک‌لیست راه‌اندازی کامل نشده، «کاری نمونده» نمایش داده نمی‌شود
   const launchPending = completeness.isLoading || (!!launch && !launchDone)
-  const empty = !launchPending && !!data && receipts.length + conversations.length + topics.length + toShip.length + issues.length + refunds.length + lowStock.length === 0
+  // QA-11 — ارسال فیزیکی روشن ولی هیچ قانون هزینه‌ای تعریف نشده: بی‌خبر رایگان حساب می‌شود
+  const currentStore = stores.data?.find(s => s.id === storeId)
+  const shippingUnset = !!currentStore?.requiresShipping && shippingRules.isSuccess && shippingRules.data.length === 0
+  const empty = !launchPending && !shippingUnset && !!data && receipts.length + conversations.length + topics.length + toShip.length + issues.length + refunds.length + lowStock.length === 0
   const estimate = credit.data?.conversationsLeftEstimate
   const creditLow = estimate != null && estimate < 50
 
@@ -412,6 +418,17 @@ export function SellerTodayPage() {
       <h1 className="text-xl font-extrabold text-slate-100 light:text-slate-900">{t.title}</h1>
 
       {launch && !launchDone && <LaunchCard launch={launch} storeId={storeId} storeSlug={storeSlug} />}
+
+      {shippingUnset && (
+        <Row tone="amber">
+          <Link to="/seller/panel/store/shipping" className="flex flex-1 items-center gap-2">
+            <span className="flex-1 text-sm font-bold text-amber-300 light:text-amber-700">{t.shippingCostHint}</span>
+            <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0 text-amber-300 light:text-amber-700" aria-hidden>
+              <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+            </svg>
+          </Link>
+        </Row>
+      )}
 
       {receipts.length > 0 && (
         <Section title={t.receiptsTitle(toFa(receipts.length))}>

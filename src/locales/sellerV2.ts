@@ -181,6 +181,7 @@ export const sellerV2 = {
     lowStockTitle: 'موجودی کم',
     restockButton: 'موجودی جدید',
     waitingForStock: (n: string) => `${n} نفر منتظر موجود شدن`,
+    shippingCostHint: 'هزینه‌ی ارسال رو مشخص کن (الان رایگان حساب می‌شه)',
     allDone: 'کاری نمونده 👌',
     weekRevenue: (revenue: string) => `این هفته: ${revenue} تومان فروش`,
     creditLow: (n: string) => `اعتبارت برای حدود ${n} گفتگوی دیگه‌ست`,
