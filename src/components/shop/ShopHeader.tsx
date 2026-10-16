@@ -13,6 +13,8 @@ interface ShopHeaderProps {
   // docs/PRD-buyer-chat-redesign.md §6.1 — لمس لوگو/نام «درباره‌ی فروشگاه» را باز می‌کند
   onOpenAbout: () => void
   onOpenMenu: () => void
+  // حالت لید: دکمه‌ی کوچک «ثبت‌نام رایگان» کنار منو (فقط وقتی کاربر ثبت‌نام نکرده)
+  leadCta?: { label: string; onClick: () => void }
 }
 
 // docs/PRD-buyer-chat-redesign.md §6.1 — لوگو، نام، خط «چه کسی جواب می‌دهد»، قرص سبد و ⋯.
@@ -27,6 +29,7 @@ export function ShopHeader({
   onOpenCart,
   onOpenAbout,
   onOpenMenu,
+  leadCta,
 }: ShopHeaderProps) {
   const subline = viewingHistory
     ? fa.shop.v2.readOnly
@@ -60,6 +63,15 @@ export function ShopHeader({
         </div>
       </button>
       <div className="flex shrink-0 items-center">
+        {leadCta && (
+          <button
+            type="button"
+            onClick={leadCta.onClick}
+            className="min-h-11 shrink-0 rounded-xl bg-[var(--shop-accent-fill)] px-3 text-xs font-bold text-[var(--shop-accent-text)]"
+          >
+            {leadCta.label}
+          </button>
+        )}
         {cartCount > 0 && (
           <button
             type="button"

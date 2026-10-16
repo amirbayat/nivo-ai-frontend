@@ -50,6 +50,7 @@ export function ShopChatPage() {
     storeName,
     storeLogoKey,
     isDemo,
+    mode,
     notFound,
     suspended,
     conversationId,
@@ -96,6 +97,8 @@ export function ShopChatPage() {
     viewHistoryEntry,
     returnToCurrentChat,
   } = useShopChat(slug, productId)
+  // docs/PRD-nivo-lead-shop-seller-signup.md §4.4 — فروشگاه لید (صفحه‌ی ثبت‌نام نیوو): هیچ UI سفارش‌محوری نمایش داده نمی‌شود
+  const isLead = mode === 'LEAD'
   const [menuOpen, setMenuOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const { about, failed: aboutFailed, reload: reloadAbout } = useStoreAbout(slug)
@@ -148,9 +151,15 @@ export function ShopChatPage() {
       )
     }
   }, [loading, bootDecided, bootChat, urlWantsChat, setSearchParams])
-  // ورود F — فروشگاه بدون محصول فعال: فقط گفتگو
+  // ورود F — فروشگاه بدون محصول فعال: فقط گفتگو؛ در حالت لید همیشه گفتگو (حتی اگر بعداً محصولی اضافه شد)
   const noProducts = catalog.loaded && catalog.catalogTotal === 0
-  const view: ShopView = viewingHistory || noProducts || urlWantsChat || bootChat ? 'chat' : 'products'
+  const view: ShopView = isLead || viewingHistory || noProducts || urlWantsChat || bootChat ? 'chat' : 'products'
+
+  // عنوان تب در حالت لید؛ EventsPageViewTracker فقط روی تغییر مسیر عنوان را می‌نویسد، پس این effect بعد از لود mode می‌ماند
+  useEffect(() => {
+    if (isLead) document.title = fa.shop.lead.tabTitle
+  }, [isLead])
+
 
   // فیدبک کاربر ۱۴۰۵/۰۷/۱۸ — وقتی از «سفارش‌های من» با ?viewOrder=<conversationId> می‌آید، همان
   // مکانیزم فقط‌خواندنی تاریخچه (viewHistoryEntry) را صدا می‌زنیم؛ باید صبر کنیم تا مکالمه‌ی
@@ -236,7 +245,8 @@ export function ShopChatPage() {
   // docs/PRD-order-status-chat-tool-and-fulfillment-delay-reviews.md بخش ۳.۱ — وقتی منتظر
   // نظریم، با این‌که state همچنان COMPLETED (ترمینال) است، ورودی باید باز بماند تا خریدار
   // بتواند متن/صوت/عکس/ویدیوی نظرش را همین‌جا بفرستد
-  const inputLocked = viewingHistory || (TERMINAL_STATES.includes(state) && !awaitingReview && !awaitingSatisfaction)
+  // D4: در حالت لید ورودی هیچ‌وقت به‌خاطر پایان گفتگو قفل نمی‌شود
+  const inputLocked = viewingHistory || (!isLead && TERMINAL_STATES.includes(state) && !awaitingReview && !awaitingSatisfaction)
   const composerDisabled = sending || inputLocked
   // عکس: هنگام نظردهی یا گفتگوی انسانی با فروشنده؛ ویدیو: فقط هنگام نظردهی (طبق PRD ردیابی سفارش بخش ۳.۱)
   const canAttachImage = HUMAN_HANDLING_STATES.includes(state) || awaitingReview
@@ -296,7 +306,7 @@ export function ShopChatPage() {
     return () => clearInterval(timer)
   }, [pendingCartOps.length])
   const cartStale = isCartStale(pendingCartOps, nowTick)
-  const cartEditable = state === 'GREETING' || state === 'BROWSING' || state === 'CART_REVIEW'
+  const cartEditable = !isLead && (state === 'GREETING' || state === 'BROWSING' || state === 'CART_REVIEW')
 
   useEffect(() => {
     if (!cartEditable) setCartOpen(false)
@@ -391,7 +401,7 @@ export function ShopChatPage() {
     if (!DONE_STATES.includes(state)) setDoneStep(false)
   }, [state])
 
-  const pinned = view === 'chat' && !viewingHistory ? computePinnedOrder(thread, state) : null
+  const pinned = !isLead && view === 'chat' && !viewingHistory ? computePinnedOrder(thread, state) : null
   async function trackOrder() {
     const path = pinned?.orderCode ? await getOrderTrackPath(pinned.orderCode) : null
     navigate(path ?? `/shop/${slug}/orders`)
@@ -427,6 +437,11 @@ export function ShopChatPage() {
     const step = checkoutStepFor(state, doneStep) ?? (DONE_STATES.includes(state) ? 'done' : 'payment')
     logUiEvent('checkout_sheet_opened', { step: step === 'method' ? 'method' : step, auto })
     setCheckoutOpen(true)
+  }
+  // LS-1: دکمه‌ی «ثبت‌نام رایگان» فعلاً به ورود فروشنده می‌رود (return به onboarding)؛ در LS-3 با کارت داخل چت جایگزین می‌شود.
+  // navigate داخل همان تب است (مرورگر درون‌برنامه‌ای اینستاگرام — PRD §5.4)
+  function goToSignup() {
+    navigate(fa.shop.lead.signupPath)
   }
   function openAbout() {
     logUiEvent('about_opened')
@@ -511,7 +526,7 @@ export function ShopChatPage() {
   let notice: { text: string; tone: 'muted' | 'hint' } | null = null
   if (completed && awaitingReview) notice = { text: fa.shop.v2.reviewChip, tone: 'hint' }
   else if (completed && awaitingSatisfaction) notice = { text: fa.shop.v2.satisfactionChip, tone: 'hint' }
-  const showEndPanel = completed && !awaitingReview && !awaitingSatisfaction && !viewingHistory
+  const showEndPanel = !isLead && completed && !awaitingReview && !awaitingSatisfaction && !viewingHistory
   const lastMessage = messages[messages.length - 1]
   const quickReplies = view === 'chat' && !sending && lastMessage?.role === 'agent' ? (lastMessage.quickReplies ?? []) : []
   const handoffLine =
@@ -548,9 +563,10 @@ export function ShopChatPage() {
         onOpenCart={() => setCartOpen(true)}
         onOpenAbout={openAbout}
         onOpenMenu={() => setMenuOpen(true)}
+        leadCta={isLead && !verified ? { label: fa.shop.lead.headerCta, onClick: goToSignup } : undefined}
       />
 
-      {!noProducts && !viewingHistory && (
+      {!isLead && !noProducts && !viewingHistory && (
         <ShopViewSwitch view={view} onChange={goToView} chatUnread={chatUnread} />
       )}
 
@@ -620,10 +636,10 @@ export function ShopChatPage() {
 
       {view === 'chat' && (
         <>
-          <CheckoutProgressBar state={state} />
+          {!isLead && <CheckoutProgressBar state={state} />}
           {thread.length === 0 && !sending ? (
             <p className="flex-1 px-4 pt-6 text-center text-sm text-[var(--shop-text-2)]">
-              {noProducts ? fa.shop.v2.catalogEmptyChat : fa.shop.v2.chatEmptyHint}
+              {noProducts || isLead ? fa.shop.v2.catalogEmptyChat : fa.shop.v2.chatEmptyHint}
             </p>
           ) : (
             <ChatThread
@@ -793,6 +809,7 @@ export function ShopChatPage() {
         about={about}
         failed={aboutFailed}
         onReload={() => void reloadAbout()}
+        leadMode={isLead}
       />
 
       <ShopMenuSheet
@@ -803,6 +820,8 @@ export function ShopChatPage() {
         talkToSellerDisabled={composerDisabled}
         // replace: entry شیت (closeOnBack) جایگزین صفحه‌ی سفارش‌ها می‌شود، پس «بازگشت» مستقیم به فروشگاه می‌رسد
         onOrders={() => navigate(`/shop/${slug}/orders`, { replace: true })}
+        leadMode={isLead}
+        onSignup={goToSignup}
         onTalkToSeller={() => {
           goToView('chat')
           void sendMessage(fa.shop.talkToSellerMessage)

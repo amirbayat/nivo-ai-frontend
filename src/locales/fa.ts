@@ -1497,6 +1497,17 @@ export const fa = {
   },
   shop: {
     // docs/PRD-buyer-chat-redesign.md §12 — متن‌های بازطراحی صفحه‌ی خریدار؛ هر فاز کلیدهای خودش را اضافه می‌کند
+    // docs/PRD-nivo-lead-shop-seller-signup.md — متن‌های حالت لید (mode === 'LEAD')
+    lead: {
+      tabTitle: 'نیوو — دستیار فروش اینستاگرام',
+      headerCta: 'ثبت‌نام رایگان',
+      menuSignup: 'ثبت‌نام / ورود فروشنده',
+      menuSignupHint: 'با شماره موبایل، رایگان',
+      menuAbout: 'درباره‌ی نیوو',
+      aboutIntro: 'نیوو دستیار فروش هوشمند اینستاگرامه؛ ۲۴ ساعته جواب دایرکت‌ها رو می‌ده، قیمت می‌گه و سفارش می‌گیره.',
+      aboutContact: 'تماس با ما',
+      signupPath: '/seller/login?returnTo=%2Fseller%2Fonboarding',
+    },
     v2: {
       answeringAi: 'معمولاً فوری جواب می‌ده',
       answeringSeller: (store: string) => `${store} خودش داره جواب می‌ده`,

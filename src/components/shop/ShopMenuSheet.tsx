@@ -13,6 +13,9 @@ interface ShopMenuSheetProps {
   hideTalkToSeller: boolean
   talkToSellerDisabled: boolean
   onOrders: () => void
+  // docs/PRD-nivo-lead-shop-seller-signup.md §4.4 — منوی حالت لید: فقط ثبت‌نام، گفتگوی تازه، درباره‌ی نیوو
+  leadMode?: boolean
+  onSignup?: () => void
   onTalkToSeller: () => void
   onSelectHistory: (entry: ShopHistoryEntry) => void
   onNewChat: () => void
@@ -20,7 +23,7 @@ interface ShopMenuSheetProps {
   verified?: boolean
   onVerified?: () => void
   // B5 menu_item
-  onItem?: (item: 'orders' | 'seller' | 'history' | 'new_chat' | 'login' | 'about') => void
+  onItem?: (item: 'orders' | 'seller' | 'history' | 'new_chat' | 'login' | 'about' | 'signup') => void
   onAbout: () => void
   onSendOtp: (phone: string) => Promise<{ ok: boolean; message: string }>
   onVerifyOtp: (phone: string, code: string, fullName?: string) => Promise<{ ok: boolean; message: string }>
@@ -99,7 +102,41 @@ export function ShopMenuSheet(props: ShopMenuSheetProps) {
           {fa.shop.v2.back}
         </button>
       )}
-      {view === 'menu' && (
+      {view === 'menu' && props.leadMode && (
+        <div className="flex flex-col">
+          {!props.verified && (
+            <MenuRow
+              icon={<svg {...svgProps}><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>}
+              label={fa.shop.lead.menuSignup}
+              hint={fa.shop.lead.menuSignupHint}
+              onClick={() => {
+                props.onItem?.('signup')
+                close()
+                props.onSignup?.()
+              }}
+            />
+          )}
+          <MenuRow
+            icon={<svg {...svgProps}><path d="M12 5v14M5 12h14" /></svg>}
+            label={fa.shop.v2.menuNewChat}
+            onClick={() => {
+              props.onItem?.('new_chat')
+              close()
+              props.onNewChat()
+            }}
+          />
+          <MenuRow
+            icon={<svg {...svgProps}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>}
+            label={fa.shop.lead.menuAbout}
+            onClick={() => {
+              props.onItem?.('about')
+              close()
+              props.onAbout()
+            }}
+          />
+        </div>
+      )}
+      {view === 'menu' && !props.leadMode && (
         <div className="flex flex-col">
           <MenuRow
             icon={<svg {...svgProps}><path d="M5 8l7-4 7 4v8l-7 4-7-4V8z" /><path d="M5 8l7 4 7-4M12 12v8" /></svg>}

@@ -13,6 +13,7 @@ import type {
   ShopGetConversationResponse,
   ShopHistoryEntry,
   ShopMessage,
+  ShopMode,
   ShopOrderSummary,
   ShopResponseStrategy,
   PublicProduct,
@@ -137,6 +138,7 @@ export function useShopChat(slug: string, productId?: string) {
   const [storeId, setStoreId] = useState<string | null>(null)
   const [storeLogoKey, setStoreLogoKey] = useState<string | null>(null)
   const [isDemo, setIsDemo] = useState(false)
+  const [mode, setMode] = useState<ShopMode>('SHOP')
   const [notFound, setNotFound] = useState(false)
   // R1.2 — فروشگاه معلق (۴۰۳ از start)
   const [suspended, setSuspended] = useState(false)
@@ -680,6 +682,7 @@ export function useShopChat(slug: string, productId?: string) {
     setStoreName(data.storeName)
     setStoreLogoKey(data.storeLogoKey)
     setIsDemo(data.isDemo)
+    setMode(data.mode === 'LEAD' ? 'LEAD' : 'SHOP')
     streamEnabledRef.current = !!data.shopStreamEnabled
     setResponseStrategyState(data.responseStrategy)
     setAwaitingReview(data.awaitingReview)
@@ -1127,6 +1130,7 @@ export function useShopChat(slug: string, productId?: string) {
       setStoreName(data.storeName)
       setStoreLogoKey(data.storeLogoKey)
       setIsDemo(data.isDemo)
+      setMode(data.mode === 'LEAD' ? 'LEAD' : 'SHOP')
       streamEnabledRef.current = !!data.shopStreamEnabled
       setResponseStrategyState(data.responseStrategy)
       cartEpochRef.current += 1
@@ -1470,6 +1474,7 @@ export function useShopChat(slug: string, productId?: string) {
     storeName,
     storeLogoKey,
     isDemo,
+    mode,
     notFound,
     suspended,
     conversationId: sessionRef.current?.conversationId,

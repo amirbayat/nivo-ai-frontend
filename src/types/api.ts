@@ -699,9 +699,13 @@ export interface ShopMessage {
 }
 
 // docs/PRD-buyer-chat-redesign.md B4 — GET /v2/stores/:slug/about
+// docs/PRD-nivo-lead-shop-seller-signup.md §5.1 — LEAD = فروشگاه فقط‌لید (صفحه‌ی ثبت‌نام نیوو)، SHOP = عادی
+export type ShopMode = 'LEAD' | 'SHOP'
+
 export interface PublicStoreAbout {
   name: string
   logoKey: string | null
+  mode?: ShopMode
   memberSince: string
   successfulOrders: number | null
   approvalEtaLabel: string | null
@@ -756,6 +760,7 @@ export interface ShopStartChatResponse {
   storeName: string
   // docs/PRD-product-strategy-and-roadmap.md بخش ۵.۱۴ — کلید MinIO، نه URL (مثل Product.images)
   storeLogoKey: string | null
+  mode?: ShopMode
   // docs/PRD-seller-demo-sandbox-hub-promo-and-release-prep.md — نوار دمو روی صفحه‌ی چت
   isDemo: boolean
   shopStreamEnabled?: boolean
@@ -827,6 +832,7 @@ export interface ShopGetConversationResponse {
   storeId: string
   storeName: string
   storeLogoKey: string | null
+  mode?: ShopMode
   isDemo: boolean
   shopStreamEnabled?: boolean
   shopLandingEnabled?: boolean

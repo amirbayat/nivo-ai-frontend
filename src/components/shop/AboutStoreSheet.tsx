@@ -12,6 +12,8 @@ interface AboutStoreSheetProps {
   about: PublicStoreAbout | null
   failed: boolean
   onReload: () => void
+  // حالت لید: بدون روش پرداخت/ارسال/مرجوعی؛ فقط معرفی کوتاه + تماس
+  leadMode?: boolean
 }
 
 function monthLabel(memberSince: string): string | null {
@@ -27,12 +29,12 @@ function costRange(range: { minCostToman: number; maxCostToman: number }): strin
 }
 
 // docs/PRD-buyer-chat-redesign.md §6.12 (E4.1 حداقلی) — همه‌ی خطوط از B4 می‌آیند و هر خط خالی پنهان است
-export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKey, about, failed, onReload }: AboutStoreSheetProps) {
+export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKey, about, failed, onReload, leadMode }: AboutStoreSheetProps) {
   const name = about?.name ?? storeName ?? ''
   const logoKey = about?.logoKey ?? storeLogoKey
   const member = about ? monthLabel(about.memberSince) : null
   const lines: string[] = []
-  if (about) {
+  if (about && !leadMode) {
     if (member) lines.push(fa.shop.v2.aboutMember(member))
     if (about.successfulOrders != null) lines.push(fa.shop.v2.aboutOrders(about.successfulOrders))
     if (about.approvalEtaLabel) lines.push(fa.shop.v2.aboutEta(about.approvalEtaLabel))
@@ -43,7 +45,7 @@ export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKe
     }
   }
   return (
-    <BottomSheet open={open} onClose={onClose} closeOnBack title={fa.shop.v2.aboutTitle(name)}>
+    <BottomSheet open={open} onClose={onClose} closeOnBack title={leadMode ? fa.shop.lead.menuAbout : fa.shop.v2.aboutTitle(name)}>
       <div className="flex flex-col gap-4 pb-2">
         <div className="flex items-center gap-3">
           {storeId && logoKey ? (
@@ -56,13 +58,15 @@ export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKe
           <p className="text-lg font-bold text-[var(--shop-text)]">{name}</p>
         </div>
 
-        {!about && !failed && (
+        {leadMode && <p className="text-[15px] leading-7 text-[var(--shop-text)]">{fa.shop.lead.aboutIntro}</p>}
+
+        {!leadMode && !about && !failed && (
           <div className="animate-pulse motion-reduce:animate-none space-y-2" aria-hidden>
             <div className="h-4 w-2/3 rounded bg-[var(--shop-surface-2)]" />
             <div className="h-4 w-1/2 rounded bg-[var(--shop-surface-2)]" />
           </div>
         )}
-        {failed && !about && (
+        {!leadMode && failed && !about && (
           <div className="flex flex-col items-start gap-2">
             <p className="text-sm text-[var(--shop-text-2)]">{fa.shop.v2.aboutLoadError}</p>
             <button type="button" onClick={onReload} className="min-h-11 rounded-xl border border-[var(--shop-border)] px-4 text-sm text-[var(--shop-text)]">
@@ -79,19 +83,28 @@ export function AboutStoreSheet({ open, onClose, storeId, storeName, storeLogoKe
           </ul>
         )}
 
-        {about?.returnPolicyText && (
+        {!leadMode && about?.returnPolicyText && (
           <details className="rounded-xl border border-[var(--shop-border)] px-3">
             <summary className="min-h-11 cursor-pointer py-3 text-[15px] font-medium text-[var(--shop-text)]">{fa.shop.v2.aboutReturn}</summary>
             <p className="whitespace-pre-line pb-3 text-sm leading-7 text-[var(--shop-text-2)]">{about.returnPolicyText}</p>
           </details>
         )}
 
-        <div className="border-t border-[var(--shop-border)] pt-3 text-xs leading-6 text-[var(--shop-text-2)]">
-          <p>{fa.shop.v2.aboutFooter}</p>
-          <a href="/terms" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-[var(--shop-accent)] underline">
-            {fa.shop.v2.aboutTerms}
-          </a>
-        </div>
+        {leadMode ? (
+          <div className="border-t border-[var(--shop-border)] pt-3 text-xs leading-6 text-[var(--shop-text-2)]">
+            {/* همان تب (بدون _blank) — در مرورگر اینستاگرام تب جدید نشست را از دست می‌دهد */}
+            <a href="/contact" className="inline-flex min-h-11 items-center text-[var(--shop-accent)] underline">
+              {fa.shop.lead.aboutContact}
+            </a>
+          </div>
+        ) : (
+          <div className="border-t border-[var(--shop-border)] pt-3 text-xs leading-6 text-[var(--shop-text-2)]">
+            <p>{fa.shop.v2.aboutFooter}</p>
+            <a href="/terms" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-[var(--shop-accent)] underline">
+              {fa.shop.v2.aboutTerms}
+            </a>
+          </div>
+        )}
       </div>
     </BottomSheet>
   )
