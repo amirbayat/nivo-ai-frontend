@@ -133,7 +133,13 @@ function LaunchCard({
           >
             {r.done ? '✓' : toFa(i + 1)}
           </span>
-          <span className={clsx('text-sm', r.done ? 'text-slate-500 line-through' : 'font-bold text-slate-100 light:text-slate-900')}>{r.label}</span>
+          <span className={clsx('flex-1 text-sm', r.done ? 'text-slate-500 line-through' : 'font-bold text-slate-100 light:text-slate-900')}>{r.label}</span>
+          {/* «ادامه/برو به» در RTL: شورون رو به چپ (CLAUDE.md) */}
+          {!r.done && (
+            <svg viewBox="0 0 20 20" fill="currentColor" className="size-5 shrink-0 text-slate-500" aria-hidden>
+              <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+            </svg>
+          )}
         </button>
       ))}
 
@@ -395,7 +401,9 @@ export function SellerTodayPage() {
   const lowStock = data?.lowStock ?? []
   const launch = completeness.data?.launch
   const launchDone = !!launch && launch.hasActiveProduct && launch.hasPaymentMethod && launch.shared
-  const empty = !!data && receipts.length + conversations.length + topics.length + toShip.length + issues.length + refunds.length + lowStock.length === 0
+  // QA-9 — تا چک‌لیست راه‌اندازی کامل نشده، «کاری نمونده» نمایش داده نمی‌شود
+  const launchPending = completeness.isLoading || (!!launch && !launchDone)
+  const empty = !launchPending && !!data && receipts.length + conversations.length + topics.length + toShip.length + issues.length + refunds.length + lowStock.length === 0
   const estimate = credit.data?.conversationsLeftEstimate
   const creditLow = estimate != null && estimate < 50
 
@@ -535,7 +543,7 @@ export function SellerTodayPage() {
             onClick={() => void shareOrCopy({ url: `${window.location.origin}/shop/${storeSlug}`, text: t.shareBio(`${window.location.origin}/shop/${storeSlug}`) })}
             className="mt-3 text-sm font-bold text-emerald-400 light:text-emerald-700"
           >
-            {t.shareNative}
+            {t.shareTitle}
           </button>
         </section>
       )}
