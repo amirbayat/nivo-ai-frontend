@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { fa } from '@/locales/fa'
 
 interface BottomSheetProps {
   open: boolean
@@ -13,6 +14,8 @@ interface BottomSheetProps {
   // برگشت اندروید/سوایپ iOS) شیت بالایی را می‌بندد، نه صفحه را. پیش‌فرض خاموش تا صفحه‌های فروشنده
   // تغییری نکنند
   closeOnBack?: boolean
+  // دکمه‌ی ضربدر گوشه‌ی شیت (مثلاً شیت محصول)
+  showClose?: boolean
 }
 
 // ── مدیریت history برای closeOnBack ─────────────────────────────────────────────────────────
@@ -71,7 +74,7 @@ function unregisterBackEntry(entry: BackEntry) {
 // docs/PRD-seller-panel-simplification.md §4.1 — شیت پایین مشترک برای همه‌ی شیت‌های جدید پنل
 // فروشنده: بستن با لمس پس‌زمینه و Escape، padding امن پایین، اسکرول محتوای بلند، فوتر چسبان.
 // docs/PRD-buyer-chat-redesign.md §7 — فوکوس داخل شیت می‌ماند و بعد از بستن به عنصر قبلی برمی‌گردد.
-export function BottomSheet({ open, onClose, title, children, footer, full, closeOnBack }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, title, children, footer, full, closeOnBack, showClose }: BottomSheetProps) {
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -138,9 +141,21 @@ export function BottomSheet({ open, onClose, title, children, footer, full, clos
           full ? 'h-[92dvh]' : 'max-h-[92dvh]'
         }`}
       >
+        {showClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={fa.common.close}
+            className="absolute end-2 top-2 z-10 flex size-11 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800 light:text-slate-500 light:hover:bg-slate-100"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-5" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        )}
         <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-700 light:bg-slate-300" />
         {title && (
-          <h2 className="shrink-0 px-5 pb-1 pt-3 text-base font-bold text-slate-100 light:text-slate-900">{title}</h2>
+          <h2 className={`shrink-0 pb-1 pt-3 text-base ${showClose ? 'pe-14 ps-5' : 'px-5'} font-bold text-slate-100 light:text-slate-900`}>{title}</h2>
         )}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">{children}</div>
         {footer && (

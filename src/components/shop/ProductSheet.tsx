@@ -383,6 +383,7 @@ export function ProductSheet(props: ProductSheetProps) {
         open
         onClose={onClose}
         closeOnBack
+        showClose
         title={fa.shop.v2.notAvailable}
         footer={
           <button
@@ -400,7 +401,7 @@ export function ProductSheet(props: ProductSheetProps) {
   }
   if (!product) {
     return (
-      <BottomSheet open onClose={onClose} closeOnBack full title={fa.common.loading}>
+      <BottomSheet open onClose={onClose} closeOnBack showClose full title={fa.common.loading}>
         <div className="animate-pulse motion-reduce:animate-none">
           <div className="aspect-square w-full rounded-lg bg-[var(--shop-surface-2)]" />
           <div className="mt-4 h-6 w-2/3 rounded bg-[var(--shop-surface-2)]" />
@@ -478,6 +479,7 @@ function LoadedProductSheet({ product, ...props }: ProductSheetProps & { product
       open
       onClose={props.onClose}
       closeOnBack
+      showClose
       full
       title={product.name}
       footer={
