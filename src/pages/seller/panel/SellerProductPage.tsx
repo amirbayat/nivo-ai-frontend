@@ -36,6 +36,7 @@ import { ProductDescriptionModal } from './ProductDescriptionModal'
 // import { SellerTestChatSheet } from './SellerTestChatSheet'
 import { PhotoGrid } from './product/PhotoGrid'
 import { VariantsEditor } from './product/VariantsEditor'
+import { ProductQualitySection } from '@/components/quality/ProductQualitySection'
 import { ProductVideo } from './product/ProductVideo'
 import { GoldPricingFields } from './product/GoldPricingFields'
 import { FirstProductSheet, ProductShareButtons, PublishedSheet } from './product/PublishSheets'
@@ -138,6 +139,8 @@ export function SellerProductPage() {
   const productIdRef = useRef<string | null>(productId)
   const productQ = useProduct(storeId, productId)
   const [product, setProduct] = useState<SellerProduct | null>(null)
+  // PQ-4 — بعد از انتشار/ذخیره تا ۳۰ ثانیه نتیجه‌ی بررسی کیفیت poll می‌شود
+  const [qualityPollSince, setQualityPollSince] = useState<number | null>(null)
 
   // ---- فرم ----
   const [form, setForm] = useState<Form>(() => blankForm(isGoldCategory, first))
@@ -512,6 +515,7 @@ export function SellerProductPage() {
     try {
       const updated = await persist(true)
       setPublishedProduct({ id: updated.id, name: updated.name, basePrice: updated.basePrice })
+      setQualityPollSince(Date.now())
       baselineRef.current = JSON.stringify([latest.current.form, latest.current.vd])
       setSheet(updated.isFirstActiveProduct ? 'first' : 'published')
     } catch (err) {
@@ -546,6 +550,7 @@ export function SellerProductPage() {
     const startedVd = latest.current.vd
     try {
       await persist(false)
+      setQualityPollSince(Date.now())
       baselineRef.current = JSON.stringify([startedForm, startedVd])
       addToast(t.saved)
       // برای به‌روزشدن نمایش (مدل‌ها/موجودی) دوباره از سرور بخوان و هیدرات کن
@@ -830,7 +835,7 @@ export function SellerProductPage() {
           {errors.stock && hasVariants && <p className="text-xs text-red-400">{errors.stock}</p>}
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-3 light:border-slate-200 light:bg-slate-50">
+        <div id="product-variants" className="rounded-2xl border border-slate-800 bg-slate-900/40 p-3 light:border-slate-200 light:bg-slate-50">
           <button type="button" onClick={() => setVarOpen(v => !v)} className="flex w-full items-center justify-between text-start text-sm font-bold text-slate-200 light:text-slate-800">
             <span>
               {t.variantsTitle} <Mark on={marks.has('variants')} />
@@ -888,6 +893,24 @@ export function SellerProductPage() {
             </button>
           )}
         </div>
+
+        {productId && mode !== 'new' && (
+          <ProductQualitySection
+            storeId={storeId}
+            productId={productId}
+            pollSince={qualityPollSince}
+            currentDescription={form.description}
+            currentSpecs={form.specs}
+            onApply={next => {
+              edit('description', next.description, 'description')
+              edit('specs', next.specs)
+            }}
+            onOpenVariants={() => {
+              setVarOpen(true)
+              setTimeout(() => document.getElementById('product-variants')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+            }}
+          />
+        )}
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-3 light:border-slate-200 light:bg-slate-50">
           <button type="button" onClick={() => setMoreOpen(v => !v)} className="flex w-full items-center justify-between text-start text-sm font-bold text-slate-200 light:text-slate-800">
