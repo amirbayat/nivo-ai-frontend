@@ -15,6 +15,7 @@ import { useToastStore } from '@/store/toast.store'
 import {
   useApproveOrder,
   useAttentionSuggestions,
+  useProductsPage,
   useCreateKbEntry,
   useMyStores,
   useSellerDashboard,
@@ -324,6 +325,9 @@ export function SellerTodayPage() {
   const dashboard = useSellerDashboard(storeId)
   const approve = useApproveOrder(storeId)
   const stores = useMyStores()
+  // PQ-4 — کارت «محصولات با توضیح ناقص» (حداقل ۲ محصول فعال با امتیاز زیر ۶۰)
+  const activeProducts = useProductsPage(storeId, 'ACTIVE')
+  const weakProducts = (activeProducts.data?.items ?? []).filter(p => p.qualityScore != null && p.qualityScore < 60).length
   const shippingRules = useShippingRules(storeId)
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -428,6 +432,15 @@ export function SellerTodayPage() {
       <h1 className="text-xl font-extrabold text-slate-100 light:text-slate-900">{t.title}</h1>
 
       {launch && !launchDone && <LaunchCard launch={launch} storeId={storeId} storeSlug={storeSlug} />}
+
+      {weakProducts >= 2 && (
+        <Row tone="amber">
+          <Link to="/seller/panel/products" className="flex flex-1 items-center gap-2">
+            <span className="flex-1 text-sm font-bold text-amber-300 light:text-amber-700">{fa.seller.panel.quality.todayWeak(toFa(weakProducts))}</span>
+            <span className="shrink-0 text-xs font-bold text-amber-300 light:text-amber-700">{fa.seller.panel.quality.todayWeakCta} ←</span>
+          </Link>
+        </Row>
+      )}
 
       {shippingUnset && (
         <Row tone="amber">

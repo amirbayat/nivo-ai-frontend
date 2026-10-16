@@ -128,6 +128,8 @@ export interface SellerProduct {
   createdAt: string
   // فقط GET /v2/stores/:id/products این را پر می‌کند (نه SellerStore.products از GET me)
   completeness?: ProductCompleteness
+  // PQ-4 — امتیاز آخرین بررسی کیفیت توضیح (۰..۱۰۰)؛ null = هنوز بررسی نشده/SQL اجرا نشده
+  qualityScore?: number | null
   // docs/PRD-category-specific-product-pricing-and-attributes.md بخش ۲/۳ — basePrice برای این
   // مدل نادیده گرفته می‌شود؛ قیمت at-request-time از وزن/عیار محاسبه می‌شود
   pricingModel: 'FIXED' | 'WEIGHT_BASED_FORMULA'

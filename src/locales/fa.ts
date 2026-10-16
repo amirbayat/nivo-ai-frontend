@@ -687,6 +687,10 @@ export const fa = {
         productDone: 'توضیحاتت کامله',
         unanswered: (n: string, q: string) => `💬 ${n} مشتری پرسیدن «${q}» — جواب نداشتی`,
         openVariants: 'ویرایش گزینه‌ها',
+        needsImprovement: 'نیاز به بهبود',
+        incompleteAria: 'توضیحاتش کامل نیست',
+        todayWeak: (n: string) => `${n} محصولت توضیح کامل ندارن — بات روی این‌ها بیشتر به تو ارجاع می‌ده`,
+        todayWeakCta: 'بهترشون کن',
       },
       // DEMO-4 — شیت اجباری بعد از تبدیل دمو به فروشگاه واقعی
       postConvertSheet: {

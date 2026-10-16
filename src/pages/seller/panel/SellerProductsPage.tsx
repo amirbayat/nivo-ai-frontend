@@ -15,6 +15,7 @@ import { BulkProductImportSheet } from './ProductImportSheets'
 import { ProductShareButtons } from './product/PublishSheets'
 
 const t = fa.seller.v2.products
+const WEAK_SCORE = 60
 const toFa = (s: string | number) => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)])
 type Seg = 'ACTIVE' | 'DRAFT' | 'HIDDEN'
 
@@ -40,10 +41,13 @@ export function SellerProductsPage() {
   const counts = query.data?.counts ?? { ACTIVE: 0, DRAFT: 0, HIDDEN: 0 }
   const items = useMemo(() => query.data?.items ?? [], [query.data])
   const [q, setQ] = useState('')
+  // PQ-4 — فیلتر «نیاز به بهبود» (امتیاز زیر ۶۰)
+  const [weakOnly, setWeakOnly] = useState(false)
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
+    if (weakOnly) return items.filter(p => (p.qualityScore ?? 100) < WEAK_SCORE && (!needle || p.name.toLowerCase().includes(needle)))
     return needle ? items.filter(p => p.name.toLowerCase().includes(needle) || (p.code ?? '').toLowerCase().includes(needle)) : items
-  }, [items, q])
+  }, [items, q, weakOnly])
 
   const update = useUpdateProduct(storeId)
   const remove = useDeleteProduct(storeId)
@@ -169,6 +173,16 @@ export function SellerProductsPage() {
         className="mb-3 h-11 w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none light:border-slate-300 light:bg-white light:text-slate-900"
       />
 
+      {seg === 'ACTIVE' && items.some(p => (p.qualityScore ?? 100) < WEAK_SCORE) && (
+        <button
+          type="button"
+          onClick={() => setWeakOnly(v => !v)}
+          className={clsx('mb-3 rounded-full border px-3 py-1 text-xs', weakOnly ? 'border-amber-500 bg-amber-500/15 text-amber-300 light:text-amber-700' : 'border-slate-700 text-slate-400 light:border-slate-300')}
+        >
+          {fa.seller.panel.quality.needsImprovement}
+        </button>
+      )}
+
       {seg === 'ACTIVE' && counts.DRAFT > 0 && (
         <Link
           to="/seller/panel/products/batch?resume=1"
@@ -214,6 +228,9 @@ export function SellerProductsPage() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold text-slate-100 light:text-slate-900">
                     {p.name || t.noName}
+                    {p.qualityScore != null && p.qualityScore < WEAK_SCORE && (
+                      <span role="img" aria-label={fa.seller.panel.quality.incompleteAria} title={fa.seller.panel.quality.incompleteAria} className="ms-1.5 inline-block size-2 rounded-full bg-amber-400 align-middle" />
+                    )}
                     {p.status === 'HIDDEN' && <span className="ms-1.5 rounded-full bg-slate-700 px-1.5 py-0.5 text-[10px] font-normal text-slate-300">{t.hiddenTag}</span>}
                   </span>
                   <span className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
