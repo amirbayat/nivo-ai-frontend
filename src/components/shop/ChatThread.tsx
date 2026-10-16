@@ -63,7 +63,7 @@ function StoreAvatar({ storeId, storeName, storeLogoKey }: Pick<ChatThreadProps,
   return storeId && storeLogoKey ? (
     <img src={storeLogoUrl(storeId, storeLogoKey)} alt="" className="size-6 shrink-0 rounded-full object-cover" />
   ) : (
-    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--shop-surface-2)] text-[10px] text-[var(--shop-text-2)]" aria-hidden>
+    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--shop-surface-2)] text-xs text-[var(--shop-text-2)]" aria-hidden>
       {avatarInitials(storeName)}
     </div>
   )

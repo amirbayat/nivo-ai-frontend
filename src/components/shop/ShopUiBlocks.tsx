@@ -353,12 +353,12 @@ export function OrderListBlock({
             <span className="text-xs text-slate-400 light:text-slate-600">
               {new Date(o.createdAt).toLocaleDateString('fa-IR')}
               {o.orderCode && (
-                <span dir="ltr" className="ms-2 font-mono text-[11px] text-slate-300 light:text-slate-700">
+                <span dir="ltr" className="ms-2 font-mono text-xs text-slate-300 light:text-slate-700">
                   {o.orderCode}
                 </span>
               )}
             </span>
-            <span className="rounded-full bg-slate-700/60 light:bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-300 light:text-slate-700">
+            <span className="rounded-full bg-slate-700/60 light:bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-300 light:text-slate-700">
               {fa.shop.orderStatusLabels[o.status] ?? o.status}
             </span>
           </div>
@@ -541,8 +541,8 @@ function RefundDestinationForm({
         placeholder={t.holder}
         className="min-h-11 rounded-lg border border-[var(--border)] bg-transparent px-3 text-sm text-[var(--text-primary)]"
       />
-      {error && <p className="text-[11px] text-red-400 light:text-red-700">{error}</p>}
-      {done && <p className="text-[11px] text-[var(--brand)]">{t.saved(block.deadlineHours)}</p>}
+      {error && <p className="text-xs text-red-400 light:text-red-700">{error}</p>}
+      {done && <p className="text-xs text-[var(--brand)]">{t.saved(block.deadlineHours)}</p>}
       <button type="submit" disabled={disabled || pending || done || holderName.trim().length < 2 || destination.length < 8} className="min-h-11 rounded-lg bg-[var(--brand)] text-xs font-semibold text-white disabled:opacity-40">
         {pending ? t.working : t.submit}
       </button>

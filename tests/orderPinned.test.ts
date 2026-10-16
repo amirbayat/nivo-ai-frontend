@@ -41,3 +41,11 @@ test('rejected order keeps the reason and flags an open refund form', () => {
   assert.equal(card?.refundOpen, true)
   assert.equal(card?.reason, 'متاسفانه رسید معتبر نبود')
 })
+
+test('refund form: the newest block decides — a saved form after an open one means done [FX F16]', () => {
+  const form = (status: 'OPEN' | 'SAVED') => ({ type: 'REFUND_DESTINATION_FORM' as const, refundId: 'r', orderId: 'o', amountToman: 10, deadlineHours: 24, status })
+  const saved = computePinnedOrder([agent('1', '', form('OPEN')), agent('2', '', form('SAVED'))], 'REJECTED')
+  assert.equal(saved?.refundOpen, false)
+  const open = computePinnedOrder([agent('1', '', form('SAVED')), agent('2', '', form('OPEN'))], 'REJECTED')
+  assert.equal(open?.refundOpen, true)
+})

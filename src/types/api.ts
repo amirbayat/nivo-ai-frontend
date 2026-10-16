@@ -685,6 +685,8 @@ export interface ShopMessage {
   videoUrl?: string
   // docs/PRD-sales-agent-sales-state-machine.md §۱۲.۲ — فقط روی آخرین پیام agent نمایش داده می‌شود
   quickReplies?: string[]
+  // خلاصه‌ی سبدی که خودِ دکمه‌های +/−/افزودن ساخته‌اند؛ فقط همین‌ها در جا بازنویسی می‌شوند (FX F11)
+  fromCartButton?: boolean
   failed?: boolean
   clientMessageId?: string
   // حباب خوش‌بینانه‌ی «رسید رو فرستادم» — سرور آن را در لاگ نمی‌آورد؛ وقتی state سرور از

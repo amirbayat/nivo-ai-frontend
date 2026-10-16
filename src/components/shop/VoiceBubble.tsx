@@ -86,7 +86,7 @@ function VoicePlayer({ src, onFirstPlay }: { src: string; onFirstPlay: () => voi
           style={{ width: `${progress}%` }}
         />
       </div>
-      <span className="shrink-0 text-[10px] tabular-nums text-slate-400">
+      <span className="shrink-0 text-xs tabular-nums text-slate-400">
         {formatVoiceDuration(currentTime > 0 ? currentTime : duration)}
       </span>
     </div>
@@ -106,7 +106,7 @@ export function VoiceIndicator({
 }) {
   if (!message.voiceEventId) return null
   if (!message.voiceKey) {
-    return <p className="mt-1 text-[11px] text-slate-500">{fa.shop.voicePreparing}</p>
+    return <p className="mt-1 text-xs text-slate-500">{fa.shop.voicePreparing}</p>
   }
   return (
     <VoicePlayer

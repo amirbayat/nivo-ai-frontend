@@ -32,6 +32,7 @@ export function computePinnedOrder(messages: ShopMessage[], state: string): Pinn
   let orderCode: string | null = null
   let orderStatus: string | null = null
   let refundOpen = false
+  let refundSeen = false
   let reason: string | null = null
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i]
@@ -43,7 +44,9 @@ export function computePinnedOrder(messages: ShopMessage[], state: string): Pinn
       orderCode ??= b.orderCode ?? null
     } else if (b.type === 'PAYMENT_INSTRUCTIONS' || b.type === 'SNAPPPAY_PAYMENT_INSTRUCTIONS') {
       orderCode ??= b.orderCode ?? null
-    } else if (b.type === 'REFUND_DESTINATION_FORM' && !refundOpen) {
+    } else if (b.type === 'REFUND_DESTINATION_FORM' && !refundSeen) {
+      // F16: تازه‌ترین فرم تعیین‌کننده است؛ فرم ذخیره‌شده‌ی جدیدتر یعنی خریدار کارتش را داده
+      refundSeen = true
       refundOpen = b.status === 'OPEN'
     }
   }

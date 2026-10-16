@@ -169,8 +169,8 @@ function ManualReceiptForm({
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-slate-600/60 light:border-slate-300 p-3">
       <p className="text-xs font-semibold text-slate-200 light:text-slate-900">{t.title}</p>
-      <p className="text-[11px] text-slate-500">{t.hint}</p>
-      <label className="text-[11px] text-slate-400 light:text-slate-600">{t.last4Label}</label>
+      <p className="text-xs text-slate-500">{t.hint}</p>
+      <label className="text-xs text-slate-400 light:text-slate-600">{t.last4Label}</label>
       <DigitsInput
         kind="int"
         value={cardLast4}
@@ -179,7 +179,7 @@ function ManualReceiptForm({
         placeholder="1234"
         className="w-full rounded-lg border border-slate-700 light:border-slate-300 bg-slate-800/80 light:bg-white px-3 text-slate-100 light:text-slate-900"
       />
-      <label className="text-[11px] text-slate-400 light:text-slate-600">{t.timeLabel}</label>
+      <label className="text-xs text-slate-400 light:text-slate-600">{t.timeLabel}</label>
       <input
         type="text"
         value={approxTime}
@@ -188,7 +188,7 @@ function ManualReceiptForm({
         style={{ fontSize: 16, minHeight: 44 }}
         className="w-full rounded-lg border border-slate-700 light:border-slate-300 bg-slate-800/80 light:bg-white px-3 text-slate-100 light:text-slate-900 placeholder:text-slate-500"
       />
-      <label className="text-[11px] text-slate-400 light:text-slate-600">{t.trackingLabel}</label>
+      <label className="text-xs text-slate-400 light:text-slate-600">{t.trackingLabel}</label>
       <DigitsInput
         kind="int"
         value={trackingCode}
@@ -196,7 +196,7 @@ function ManualReceiptForm({
         maxLength={32}
         className="w-full rounded-lg border border-slate-700 light:border-slate-300 bg-slate-800/80 light:bg-white px-3 text-slate-100 light:text-slate-900"
       />
-      {error && <p className="text-[11px] text-red-400 light:text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-400 light:text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button
           type="button"
@@ -240,7 +240,7 @@ export function PaymentCard(props: PaymentCardProps) {
             doneLabel={fa.shop.payment.copied}
             getText={() => orderCode}
             onFailed={() => setCopyFailed(true)}
-            className="min-h-11 rounded-lg px-2 text-[11px] font-semibold text-emerald-400 light:text-emerald-700"
+            className="min-h-11 rounded-lg px-2 text-xs font-semibold text-emerald-400 light:text-emerald-700"
           />
         </div>
       )}
@@ -260,7 +260,7 @@ export function PaymentCard(props: PaymentCardProps) {
           }}
         />
       </div>
-      {deadline && <p className="mb-3 text-[11px] text-amber-300 light:text-amber-700">{deadline}</p>}
+      {deadline && <p className="mb-3 text-xs text-amber-300 light:text-amber-700">{deadline}</p>}
 
       <p className="mb-2 text-xs font-semibold text-slate-200 light:text-slate-900">
         {isCard ? fa.shop.payment.step1Card : fa.shop.payment.step1Snapppay}
@@ -268,7 +268,7 @@ export function PaymentCard(props: PaymentCardProps) {
 
       {props.variant === 'CARD' ? (
         <div className="mb-3 rounded-lg bg-slate-900/40 light:bg-slate-100 p-3 text-center">
-          <p className="mb-1 text-[11px] text-slate-500">{fa.shop.payment.cardLabel}</p>
+          <p className="mb-1 text-xs text-slate-500">{fa.shop.payment.cardLabel}</p>
           <p ref={cardRef} dir="ltr" className="select-all break-all font-mono text-base tracking-wide text-slate-100 light:text-slate-900">
             {formatCardNumberGroups(props.cardNumber.replace(/\D/g, ''))}
           </p>
@@ -298,7 +298,7 @@ export function PaymentCard(props: PaymentCardProps) {
         </a>
       )}
 
-      {copyFailed && <p className="mb-3 text-[11px] text-amber-300 light:text-amber-700">{fa.shop.payment.copyFailedHint}</p>}
+      {copyFailed && <p className="mb-3 text-xs text-amber-300 light:text-amber-700">{fa.shop.payment.copyFailedHint}</p>}
 
       {orderCode && (
         <p className="mb-2 text-xs font-semibold text-slate-200 light:text-slate-900">
@@ -324,7 +324,7 @@ export function PaymentCard(props: PaymentCardProps) {
                 type="button"
                 onClick={() => setShowManual(true)}
                 disabled={disabled}
-                className="mt-1 min-h-11 w-full text-center text-[11px] font-medium text-slate-400 light:text-slate-600 underline disabled:opacity-40"
+                className="mt-1 min-h-11 w-full text-center text-xs font-medium text-slate-400 light:text-slate-600 underline disabled:opacity-40"
               >
                 {fa.shop.payment.noReceiptLink}
               </button>
@@ -332,7 +332,7 @@ export function PaymentCard(props: PaymentCardProps) {
           </>
         ))}
 
-      <p className="mt-2 text-center text-[11px] text-slate-500">{fa.shop.payment.trustBar}</p>
+      <p className="mt-2 text-center text-xs text-slate-500">{fa.shop.payment.trustBar}</p>
     </div>
   )
 }

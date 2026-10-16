@@ -71,7 +71,7 @@ export function ShopHeader({
               <path d="M6 7h12l-1 12H7L6 7z" />
               <path d="M9 7V6a3 3 0 016 0v1" />
             </svg>
-            <span className="absolute end-1 top-1 min-w-4 rounded-full bg-[var(--shop-accent-fill)] px-1 text-center text-[11px] font-bold leading-4 text-[var(--shop-accent-text)]">
+            <span className="absolute end-0.5 top-0.5 min-w-[18px] rounded-full bg-[var(--shop-accent-fill)] px-1 text-center text-xs font-bold leading-[18px] text-[var(--shop-accent-text)]">
               {cartCount.toLocaleString('fa-IR')}
             </span>
           </button>

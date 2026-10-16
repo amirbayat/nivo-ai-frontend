@@ -85,7 +85,8 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
   // (معمولاً webm/opus)؛ بک‌اند خودش با ffmpeg نرمال‌سازی می‌کند. تایمر ثانیه‌شمار فقط فیدبک بصری
   // «داره ضبط می‌کنه» است
   async function toggleRecording() {
-    if (disabled) return
+    // F16: ضبط در جریان همیشه باید قابل توقف باشد، حتی اگر در این فاصله disabled شده
+    if (disabled && !recording) return
     if (recording) {
       recorderRef.current?.stop()
       if (recordTimerRef.current) clearInterval(recordTimerRef.current)
@@ -128,8 +129,11 @@ export function AskBar({ disabled, canAttachImage, canAttachVideo, notice, place
     setRecording(false)
   }
 
+  // F16: خروج وسط ضبط — ضبط لغو می‌شود و onstop میکروفن را آزاد می‌کند
   useEffect(() => () => {
     if (recordTimerRef.current) clearInterval(recordTimerRef.current)
+    cancelRecordRef.current = true
+    if (recorderRef.current?.state === 'recording') recorderRef.current.stop()
   }, [])
 
   useEffect(() => {

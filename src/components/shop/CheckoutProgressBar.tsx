@@ -29,7 +29,7 @@ export function CheckoutProgressBar({ state }: { state: string }) {
               }`}
             />
             <span
-              className={`text-[10px] ${
+              className={`text-xs ${
                 i === current
                   ? 'font-semibold text-emerald-400'
                   : i < current

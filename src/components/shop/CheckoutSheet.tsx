@@ -207,6 +207,21 @@ interface CheckoutSheetProps {
   onVerifyOtp: (phone: string, code: string, fullName?: string) => Promise<{ ok: boolean; message: string }>
   onAsk: () => void
   onBackToChat: () => void
+  // F16: بلاک مرحله در نخ پیدا نشد و پیام‌های قدیمی‌تر هم گرفته شد؛ به‌جای «در حال بارگذاری» بی‌پایان، دکمه‌ی تلاش دوباره
+  loadGaveUp?: boolean
+  onRetryLoad?: () => void
+}
+
+function MissingBlock({ gaveUp, onRetry }: { gaveUp?: boolean; onRetry?: () => void }) {
+  if (!gaveUp) return <p className="py-6 text-center text-sm text-[var(--shop-text-2)]">{fa.common.loading}</p>
+  return (
+    <div className="flex flex-col items-center gap-3 py-6 text-center">
+      <p className="text-sm text-[var(--shop-text-2)]">{fa.shop.v2.checkoutLoadFailed}</p>
+      <button type="button" onClick={onRetry} className="min-h-11 rounded-xl border border-[var(--shop-border)] px-4 text-sm font-semibold text-[var(--shop-text)]">
+        {fa.shop.v2.checkoutRetry}
+      </button>
+    </div>
+  )
 }
 
 // docs/PRD-buyer-chat-redesign.md §6.7 — شیت تمرکز روی پرداخت. محتوا از state فعلی + آخرین بلاک همان مرحله
@@ -237,7 +252,7 @@ export function CheckoutSheet(props: CheckoutSheetProps) {
   if (step === 'address') {
     const ab = address?.block
     if (!ab) {
-      body = <p className="py-6 text-center text-sm text-[var(--shop-text-2)]">{fa.common.loading}</p>
+      body = <MissingBlock gaveUp={props.loadGaveUp} onRetry={props.onRetryLoad} />
     } else if (ab.mode === 'FORM') {
       // کلید با شناسه‌ی پیام: بلاک جدید (با خطا) فرم را با مقادیر سرور دوباره می‌سازد
       body = <AddressForm key={address.message.id} block={ab} disabled={props.disabled} onSendAction={props.onSendAction} />
@@ -319,7 +334,7 @@ export function CheckoutSheet(props: CheckoutSheetProps) {
         )}
       </div>
     ) : (
-      <p className="py-6 text-center text-sm text-[var(--shop-text-2)]">{fa.common.loading}</p>
+      <MissingBlock gaveUp={props.loadGaveUp} onRetry={props.onRetryLoad} />
     )
   } else {
     body = (

@@ -1058,11 +1058,15 @@ export function useShopChat(slug: string, productId?: string) {
               const next = [...prev]
               for (let i = next.length - 1; i >= 0; i--) {
                 if (next[i].uiBlock?.type === 'CART_SUMMARY') {
-                  next[i] = { ...next[i], text: data.reply || next[i].text, uiBlock: block }
-                  return next
+                  // F11: متن ایجنت (مثلاً توضیح تخفیف) را قالب دکمه بازنویسی نمی‌کند؛ فقط رکورد ساخته‌ی دکمه در جا عوض می‌شود
+                  if (next[i].fromCartButton) {
+                    next[i] = { ...next[i], text: data.reply || next[i].text, uiBlock: block }
+                    return next
+                  }
+                  break
                 }
               }
-              return [...next, { id: `agent-${Date.now()}`, role: 'agent', text: data.reply, uiBlock: block }]
+              return [...next, { id: `agent-${Date.now()}`, role: 'agent', text: data.reply, uiBlock: block, fromCartButton: true }]
             })
           } else if (data.uiBlocks.some((item) => item.type !== 'NONE')) {
             // مثلاً چیپ VARIANT_PROMPT: همان مسیر معمول نخ

@@ -1601,6 +1601,8 @@ export const fa = {
       cartShippingFree: 'ارسال رایگان',
       cartDiscountHint: 'کد تخفیف داری؟ تو گفتگو بنویس',
       toAddress: 'ادامه و ثبت آدرس',
+      checkoutLoadFailed: 'اطلاعات این مرحله بارگذاری نشد.',
+      checkoutRetry: 'دوباره امتحان کن',
       cartContinuing: 'یه لحظه…',
       refundFormNotFound: 'فرم کارت بازگشت پول پیدا نشد؛ کمی بالاتر بگرد.',
       sellerAnswering: 'الان خود فروشنده داره جواب می‌ده؛ از تو گفتگو بپرس.',

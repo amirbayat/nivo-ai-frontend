@@ -32,6 +32,7 @@ import type { PublicProduct, ShopAction, ShopHistoryEntry } from '@/types/api'
 // از موتور مکالمه‌ی رباتی رد نمی‌کند)؛ فقط COMPLETED واقعاً پایانی است
 const TERMINAL_STATES = ['COMPLETED']
 // حالت‌هایی که دیگر ربات جواب نمی‌دهد و انسان (فروشنده) پاسخ‌گوست — برای بنر «منتقل شد»
+const CHECKOUT_BLOCK_TYPES = ['ADDRESS_PROMPT', 'PAYMENT_METHOD_PROMPT', 'PAYMENT_INSTRUCTIONS', 'SNAPPPAY_PAYMENT_INSTRUCTIONS', 'ORDER_STATUS']
 const HUMAN_HANDLING_STATES = ['HANDOFF_HUMAN', 'REJECTED']
 
 // docs/PRD-buyer-chat-redesign.md §5 — این صفحه فقط ترکیب‌بندی است: هدر، کنترل نما، نما (محصولات/گفتگو)،
@@ -247,6 +248,30 @@ export function ShopChatPage() {
   const sellerIsReplying = HUMAN_HANDLING_STATES.includes(state)
   const thread = [...olderMessages, ...messages]
 
+  // F16: بلاک آخرین مرحله ممکن است خارج از ۵۰ رویداد آخر باشد؛ یک‌بار پیام‌های قدیمی‌تر را می‌گیریم
+  // و اگر باز هم نبود، شیت «دوباره امتحان کن» نشان می‌دهد (نه بارگذاری بی‌پایان)
+  const [checkoutGaveUp, setCheckoutGaveUp] = useState(false)
+  const olderTriedRef = useRef(false)
+  const hasCheckoutBlock = thread.some((m) => m.uiBlock && CHECKOUT_BLOCK_TYPES.includes(m.uiBlock.type))
+  useEffect(() => {
+    if (!checkoutOpen || hasCheckoutBlock) {
+      setCheckoutGaveUp(false)
+      return
+    }
+    if (hasMoreEvents && !olderTriedRef.current) {
+      olderTriedRef.current = true
+      void loadOlderMessages().finally(() => setCheckoutGaveUp(true))
+    } else if (!hasMoreEvents) {
+      setCheckoutGaveUp(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkoutOpen, hasCheckoutBlock, hasMoreEvents])
+  function retryCheckoutLoad() {
+    setCheckoutGaveUp(false)
+    olderTriedRef.current = false
+    void loadOlderMessages().finally(() => setCheckoutGaveUp(true))
+  }
+
   // فیدبک کاربر ۱۴۰۵/۰۷/۱۶ — کارت محصول در پیام‌های قدیمی‌تر همیشه قابل‌کلیک می‌ماند؛ کلیک
   // دوباره روی کارت تکراری همون محصول (مثلاً وقتی همون کارت یک‌بار دیگر ضمن توضیح تخفیف
   // دوباره پیوست می‌شود) بدون هشدار تعداد سبد را دوبرابر می‌کرد. آخرین CART_SUMMARY منبع
@@ -366,7 +391,7 @@ export function ShopChatPage() {
     if (!DONE_STATES.includes(state)) setDoneStep(false)
   }, [state])
 
-  const pinned = view === 'chat' && !viewingHistory ? computePinnedOrder(messages, state) : null
+  const pinned = view === 'chat' && !viewingHistory ? computePinnedOrder(thread, state) : null
   async function trackOrder() {
     const path = pinned?.orderCode ? await getOrderTrackPath(pinned.orderCode) : null
     navigate(path ?? `/shop/${slug}/orders`)
@@ -704,7 +729,9 @@ export function ShopChatPage() {
         onClose={() => setCheckoutOpen(false)}
         state={state}
         doneStep={doneStep}
-        messages={messages}
+        messages={thread}
+        loadGaveUp={checkoutGaveUp}
+        onRetryLoad={retryCheckoutLoad}
         requiresShipping={catalog.requiresShipping}
         storeName={storeName}
         about={about}
