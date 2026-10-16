@@ -251,6 +251,11 @@ export function ChatThread(props: ChatThreadProps) {
                     onSubmitRefundDestination={props.onSubmitRefundDestination}
                     onSendAction={props.onSendAction}
                     onOpenProduct={props.onOpenProduct}
+                    variantPick={
+                      block.type === 'VARIANT_PROMPT'
+                        ? { storageKey: `nivo-variant-pick:${props.conversationId ?? ''}:${block.values.map((v) => v.value).join('|')}`, answered: i < thread.length - 1 }
+                        : undefined
+                    }
                   />
                 )}
               </div>

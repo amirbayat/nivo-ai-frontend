@@ -19,6 +19,8 @@ interface BlockProps {
     destination: string
     holderName: string
   }) => Promise<void>
+  // QA-16 — کلید ماندگاری انتخاب چیپ (با reload) و اینکه بعد از این پرسش پیام دیگری آمده (جواب داده شده)
+  variantPick?: { storageKey: string; answered: boolean }
 }
 
 // عمومی، بدون auth — الگوی مسیر عیناً مطابق sales-agent.controller.ts getProductImage
@@ -293,23 +295,56 @@ function VariantPromptBlock({
   values,
   disabled,
   onSendAction,
+  pick,
 }: {
   values: { label: string; value: string }[]
   disabled: boolean
   onSendAction: (action: ShopAction) => void
+  pick?: { storageKey: string; answered: boolean }
 }) {
+  const [chosen, setChosen] = useState<string | null>(() => {
+    // فقط پرسش جواب‌داده‌شده از ماندگار خوانده می‌شود؛ پرسش تازه با همان مقدارها نباید قفل بیاید
+    if (!pick?.answered) return null
+    try {
+      return localStorage.getItem(pick.storageKey)
+    } catch {
+      return null
+    }
+  })
+  // انتخاب‌شده: سبز و پررنگ؛ بقیه‌ی چیپ‌های همین بلوک غیرفعال (QA-16)
+  const locked = chosen !== null || !!pick?.answered
   return (
     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {values.map(v => (
-        <button
-          key={v.value}
-          onClick={() => onSendAction({ type: 'SELECT_VARIANT_VALUE', value: v.value })}
-          disabled={disabled}
-          className="rounded-xl border border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white px-2 py-2 text-center text-xs text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40"
-        >
-          {v.label}
-        </button>
-      ))}
+      {values.map(v => {
+        const selected = chosen === v.value
+        return (
+          <button
+            key={v.value}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => {
+              setChosen(v.value)
+              if (pick) {
+                try {
+                  localStorage.setItem(pick.storageKey, v.value)
+                } catch {
+                  /* بدون localStorage فقط تا همین نشست */
+                }
+              }
+              onSendAction({ type: 'SELECT_VARIANT_VALUE', value: v.value })
+            }}
+            disabled={disabled || locked}
+            className={clsx(
+              'rounded-xl border px-2 py-2 text-center text-xs',
+              selected
+                ? 'border-emerald-500 bg-emerald-600 font-bold text-white'
+                : 'border-slate-600/60 bg-slate-800/60 light:border-slate-200 light:bg-white text-slate-200 light:text-slate-900 hover:border-slate-500 light:hover:border-slate-400 disabled:opacity-40',
+            )}
+          >
+            {v.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -557,6 +592,7 @@ export function ShopUiBlockView({
   onSendAction,
   onOpenProduct,
   onSubmitRefundDestination,
+  variantPick,
 }: BlockProps) {
   switch (block.type) {
     // PRODUCT_CARD و CART_SUMMARY را ChatThread خودش رندر می‌کند (کارت محصول و رکورد یک‌خطی سبد)
@@ -595,7 +631,7 @@ export function ShopUiBlockView({
     case 'COMPARE_CARD':
       return <CompareCardBlock products={block.products} onOpenProduct={onOpenProduct} />
     case 'VARIANT_PROMPT':
-      return <VariantPromptBlock values={block.values} disabled={disabled} onSendAction={onSendAction} />
+      return <VariantPromptBlock values={block.values} disabled={disabled} onSendAction={onSendAction} pick={variantPick} />
     default:
       return null
   }
