@@ -276,7 +276,7 @@ export interface StoreToday {
   }[]
   refunds: { id: string; orderId: string; orderCode: string; amountToman: number }[]
   issues: { id: string; orderId: string; orderCode: string; reason: string }[]
-  lowStock: { id: string; name: string; stock: number }[]
+  lowStock: { id: string; name: string; stock: number; hasVariants?: boolean }[]
   awaitingRestock: { id: string; name: string; openAlerts: number }[]
 }
 
@@ -1078,6 +1078,9 @@ export interface AnalyzeOwnerNotesResult {
 
 export interface ImportProductsResult {
   created: number
+  // S7: ردیف‌های کامل منتشر می‌شوند و ناقص‌ها پیش‌نویس
+  published?: number
+  drafts?: number
   errors: { row: number; message: string }[]
 }
 

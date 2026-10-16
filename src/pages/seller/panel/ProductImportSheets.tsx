@@ -647,23 +647,28 @@ export function BulkProductImportSheet({
                       <Input value={item.name} onChange={e => updateItem(idx, { name: e.target.value })} placeholder={fa.seller.panel.products.nameLabel} />
                     </div>
                     <div className="mb-2 flex gap-2">
-                      <DigitsInput
-                        styled
-                        kind="price"
-                        value={item.basePrice !== undefined ? String(item.basePrice) : ''}
-                        onChange={v => updateItem(idx, { basePrice: Number(v) || undefined })}
-                        placeholder={fa.seller.panel.products.priceLabel}
-                        className="flex-1 text-center"
-                      />
-                      {!item.variantOptions?.length && (
+                      {/* S9: Input دور فیلد یک div ستونی می‌سازد؛ flex-1 باید روی همان div باشد نه روی input */}
+                      <div className="min-w-0 flex-1">
                         <DigitsInput
                           styled
-                          kind="int"
-                          value={item.stock !== undefined ? String(item.stock) : ''}
-                          onChange={v => updateItem(idx, { stock: Number(v) || undefined })}
-                          placeholder={fa.seller.panel.products.stockLabel}
-                          className="flex-1 text-center"
+                          kind="price"
+                          value={item.basePrice !== undefined ? String(item.basePrice) : ''}
+                          onChange={v => updateItem(idx, { basePrice: Number(v) || undefined })}
+                          placeholder={fa.seller.panel.products.priceLabel}
+                          className="text-center"
                         />
+                      </div>
+                      {!item.variantOptions?.length && (
+                        <div className="min-w-0 flex-1">
+                          <DigitsInput
+                            styled
+                            kind="int"
+                            value={item.stock !== undefined ? String(item.stock) : ''}
+                            onChange={v => updateItem(idx, { stock: Number(v) || undefined })}
+                            placeholder={fa.seller.panel.products.stockLabel}
+                            className="text-center"
+                          />
+                        </div>
                       )}
                     </div>
                     {item.variantOptions?.map((opt, oi) => (
@@ -691,7 +696,7 @@ export function BulkProductImportSheet({
                                 }}
                                 placeholder="۰"
                                 style={{ minHeight: 32 }}
-                                className="w-9 rounded bg-slate-900/60 light:bg-white px-1 py-0.5 text-center text-[11px]"
+                                className="!w-12 !rounded-lg !px-1 !py-1 text-center !text-xs"
                               />
                             </span>
                           ))}

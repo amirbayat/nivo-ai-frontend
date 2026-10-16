@@ -327,9 +327,10 @@ export function SellerTodayPage() {
 
   function commit(id: string) {
     approve.mutate(id, {
-      onError: () => {
-        // دو تب باز / قبلاً تایید شده: وضعیت فعلی را از سرور می‌گیریم و به فروشنده می‌گوییم
-        addToast(t.alreadyApproved)
+      onError: err => {
+        // S12: پیام خودِ سرور نشان داده می‌شود؛ «قبلاً تایید شده» فقط وقتی سرور همین را بگوید (۴۰۹ = دو تب باز)
+        const status = (err as { response?: { status?: number } })?.response?.status
+        addToast(extractErrorMessage(err, status === 409 ? t.alreadyApproved : fa.common.error))
         setHidden(prev => {
           const next = new Set(prev)
           next.delete(id)
@@ -514,7 +515,7 @@ export function SellerTodayPage() {
                     {waiting > 0 ? ` · ${t.waitingForStock(toFa(waiting))}` : ''}
                   </p>
                 </Link>
-                <button type="button" onClick={() => setRestockFor({ id: p.id, name: p.name })} className="h-9 shrink-0 rounded-xl border border-slate-700 px-3 text-xs font-bold text-slate-200 light:border-slate-300 light:text-slate-800">
+                <button type="button" onClick={() => (p.hasVariants ? navigate(`/seller/panel/products/${p.id}?focus=stock`) : setRestockFor({ id: p.id, name: p.name }))} className="h-9 shrink-0 rounded-xl border border-slate-700 px-3 text-xs font-bold text-slate-200 light:border-slate-300 light:text-slate-800">
                   {t.restockButton}
                 </button>
               </Row>
@@ -554,7 +555,7 @@ export function SellerTodayPage() {
       </button> */}
 
       {undo && (
-        <div className="fixed inset-x-3 bottom-20 z-40 mx-auto flex max-w-[620px] items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-900 shadow-lg">
+        <div className="fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-[620px] items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-900 shadow-lg">
           <span className="size-5 shrink-0 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" style={{ animationDuration: '5s' }} />
           <span className="flex-1">{t.approvedToast(undo.who)}</span>
           <button type="button" onClick={undoApprove} className="font-extrabold underline">

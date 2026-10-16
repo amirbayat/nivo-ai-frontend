@@ -165,6 +165,8 @@ export function SellerProductPage() {
   const initialStockRef = useRef<string>('')
   const initialTrackRef = useRef<boolean>(true)
   const savingRef = useRef(false)
+  // S4: آخرین snapshotی که روی سرور نشسته؛ ذخیره‌ی بی‌تغییر (PUT خالی) و flush اضافه را حذف می‌کند
+  const lastSavedSnapRef = useRef('')
   const dirtyDuringSaveRef = useRef(false)
   const [autosaveTick, setAutosaveTick] = useState(0)
   const aiAbortRef = useRef(0)
@@ -229,6 +231,7 @@ export function SellerProductPage() {
     initialStockRef.current = f.stock
     initialTrackRef.current = p.trackStock
     baselineRef.current = JSON.stringify([f, draft])
+    lastSavedSnapRef.current = baselineRef.current
     hydratedRef.current = true
   }, [])
 
@@ -357,6 +360,7 @@ export function SellerProductPage() {
     setProduct(prev => ({ ...(prev ?? updated), ...updated, optionTypes: prev?.optionTypes, variants: prev?.variants }) as SellerProduct)
     initialStockRef.current = L.form.stock
     initialTrackRef.current = !L.form.always
+    lastSavedSnapRef.current = JSON.stringify([L.form, L.vd])
     return updated
   }
 
@@ -364,6 +368,7 @@ export function SellerProductPage() {
   useEffect(() => {
     if (!hydratedRef.current || mode === 'edit') return
     if (!productId && snapshot === blankSnapshotRef.current) return
+    if (snapshot === lastSavedSnapRef.current) return
     const timer = setTimeout(() => {
       if (savingRef.current) {
         dirtyDuringSaveRef.current = true
@@ -386,6 +391,39 @@ export function SellerProductPage() {
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot, mode, productId, autosaveTick])
+
+  // S4: «برگشت» سیستم گوشی / بستن تب / رفتن به پس‌زمینه ذخیره‌ی خودکار منتظر را از دست نمی‌دهد (بدون دیالوگ مسدودکننده).
+  // پیش‌نویس تازه‌ای که هیچ‌وقت ذخیره نشده هم به‌صورت پیش‌نویس ساخته می‌شود
+  const flushDraftRef = useRef<() => void>(() => undefined)
+  flushDraftRef.current = () => {
+    const L = latest.current
+    if (!hydratedRef.current || L.mode === 'edit' || savingRef.current) return
+    const snap = JSON.stringify([L.form, L.vd])
+    if (!L.productId && snap === blankSnapshotRef.current) return
+    if (snap === lastSavedSnapRef.current) return
+    void persist(false).catch(() => undefined)
+  }
+  useEffect(() => {
+    const flush = () => flushDraftRef.current()
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVisibility)
+      flush()
+    }
+  }, [])
+
+  // S3: لینک «موجودی بده» محصول واریانت‌دار (?focus=stock) ویرایشگر را روی بخش موجودی باز می‌کند
+  const focusStock = searchParams.get('focus') === 'stock'
+  useEffect(() => {
+    if (!focusStock || !product) return
+    const timer = setTimeout(() => document.getElementById('f-stock')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150)
+    return () => clearTimeout(timer)
+  }, [focusStock, product?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- AI ----
   async function runAiFill() {
@@ -500,13 +538,31 @@ export function SellerProductPage() {
       return
     }
     setPublishing(true)
+    // S8: چیزی که فروشنده همین حین ذخیره تایپ می‌کند نباید با نسخه‌ی سرور بازنویسی شود
+    const startedForm = latest.current.form
+    const startedVd = latest.current.vd
     try {
       await persist(false)
-      baselineRef.current = JSON.stringify([latest.current.form, latest.current.vd])
+      baselineRef.current = JSON.stringify([startedForm, startedVd])
       addToast(t.saved)
       // برای به‌روزشدن نمایش (مدل‌ها/موجودی) دوباره از سرور بخوان و هیدرات کن
       const fresh = await productQ.refetch()
-      if (fresh.data) hydrate(fresh.data)
+      if (fresh.data) {
+        const typedDuringSave = latest.current.form !== startedForm || latest.current.vd !== startedVd
+        if (!typedDuringSave) hydrate(fresh.data)
+        else {
+          // فقط فیلدهای دست‌نخورده از سرور می‌آیند؛ مدل‌ها همان‌طور که فروشنده می‌بیند می‌مانند
+          const server = formFromProduct(fresh.data)
+          setProduct(fresh.data)
+          setForm(cur => {
+            const next = { ...cur }
+            for (const key of Object.keys(server) as (keyof typeof server)[]) {
+              if (cur[key] === startedForm[key]) (next as Record<string, unknown>)[key] = server[key]
+            }
+            return next
+          })
+        }
+      }
     } catch (err) {
       addToast(extractErrorMessage(err, t.saveFailed))
     } finally {
@@ -565,13 +621,10 @@ export function SellerProductPage() {
   }
 
   function afterFirstSheetTry() {
-    // TODO: تست بات موقتاً غیرفعال است؛ برای فعال‌سازی دوباره، setChat و بلوک SellerTestChatSheet پایین را برگردان
-    // const p = publishedProduct
-    // if (!p) return
-    // const firstValue = vd.options[0]?.values[0]
-    // setChat({ message: t.firstMessage(p.name) + (firstValue ? t.firstVariantMessage(firstValue) : '') })
+    // S5: تست بات غیرفعال است و متن‌ها قولی درباره‌ی چت تست نمی‌دهند؛ این دکمه پیش‌نمایش خریدار را باز می‌کند
+    // (برای فعال‌سازی دوباره‌ی تست، setChat و بلوک SellerTestChatSheet پایین را برگردان)
     setSheet(null)
-    navigate('/seller/panel/today')
+    setPreviewOpen(true)
   }
 
   // ---- رندر ----

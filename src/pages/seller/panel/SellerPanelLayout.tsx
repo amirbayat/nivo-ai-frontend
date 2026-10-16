@@ -305,7 +305,7 @@ export function SellerPanelLayout() {
             <SidebarItem to="/seller/panel/store" icon={<StoreIcon />} label={fa.seller.v2.store.title} />
           </aside>
 
-          <div className={clsx('flex-1 lg:pb-0', rootTab ? 'pb-16' : 'pb-0')}>
+          <div className={clsx('flex-1 lg:pb-0', rootTab ? 'pb-[calc(4rem+env(safe-area-inset-bottom))]' : 'pb-0')}>
             <div className="lg:mx-auto lg:max-w-4xl">
               <Outlet />
             </div>

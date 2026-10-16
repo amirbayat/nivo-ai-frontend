@@ -83,7 +83,8 @@ function ProductFeaturedPlacementSection({ storeId }: { storeId: string }) {
         className="mb-4 w-full rounded-xl border border-slate-700 light:border-slate-300 bg-transparent px-3 py-2.5 text-sm text-slate-200 light:text-slate-900"
       >
         <option value="">{fa.seller.panel.advertising.productSelectPlaceholder}</option>
-        {products.data?.map(p => (
+        {/* S2: فقط محصول منتشرشده قابل تبلیغ است؛ سرور هم قبل از کسر اعتبار رد می‌کند */}
+        {products.data?.filter(p => p.status === 'ACTIVE').map(p => (
           <option key={p.id} value={p.id}>{p.name}</option>
         ))}
       </select>

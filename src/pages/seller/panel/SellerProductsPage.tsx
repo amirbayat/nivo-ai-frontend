@@ -60,7 +60,7 @@ export function SellerProductsPage() {
   const [priceValue, setPriceValue] = useState('')
   const [priceError, setPriceError] = useState<string | null>(null)
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({})
-  const [importResult, setImportResult] = useState<{ created: number; errors: number; notes: string[] } | null>(null)
+  const [importResult, setImportResult] = useState<{ created: number; drafts: number; errors: number; notes: string[] } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   function setSeg(next: Seg) {
@@ -180,7 +180,7 @@ export function SellerProductsPage() {
 
       {importResult && (
         <div className="mb-3 rounded-xl bg-slate-800/60 px-3 py-2 text-xs text-slate-300 light:bg-slate-100 light:text-slate-700">
-          <p>{fa.seller.panel.products.importResult(importResult.created, importResult.errors)}</p>
+          <p>{fa.seller.panel.products.importResult(importResult.created, importResult.errors, importResult.drafts)}</p>
           {importResult.notes.length > 0 && <p className="mt-1 text-slate-400">{importResult.notes[0]} ({toFa(importResult.notes.length)})</p>}
         </div>
       )}
@@ -227,6 +227,11 @@ export function SellerProductsPage() {
                     type="button"
                     onClick={() => {
                       if (!p.trackStock || effectiveStock(p) > 0) return
+                      // S3: محصول واریانت‌دار موجودی هر واریانت دارد؛ ویرایشگر را روی بخش موجودی باز می‌کنیم
+                      if ((p.variants ?? []).length > 0) {
+                        navigate(`/seller/panel/products/${p.id}?focus=stock`)
+                        return
+                      }
                       setRestockFor(p)
                       setRestockValue('')
                     }}
@@ -309,7 +314,7 @@ export function SellerProductsPage() {
           const file = e.target.files?.[0]
           if (file) {
             importProducts.mutate(file, {
-              onSuccess: r => setImportResult({ created: r.created, errors: r.errors.length, notes: (r as { notes?: { message: string }[] }).notes?.map(n => n.message) ?? [] }),
+              onSuccess: r => setImportResult({ created: r.created, drafts: r.drafts ?? 0, errors: r.errors.length, notes: (r as { notes?: { message: string }[] }).notes?.map(n => n.message) ?? [] }),
               onError: err => addToast(extractErrorMessage(err, fa.common.error)),
             })
           }

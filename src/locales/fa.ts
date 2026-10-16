@@ -816,10 +816,14 @@ export const fa = {
         uploadExcel: 'آپلود اکسل',
         edit: 'ویرایش',
         deleteConfirm: 'این محصول حذف شود؟',
-        importResult: (created: number, errorCount: number) =>
-          errorCount > 0
-            ? `${created.toLocaleString('fa-IR')} محصول اضافه شد، ${errorCount.toLocaleString('fa-IR')} ردیف با خطا`
-            : `${created.toLocaleString('fa-IR')} محصول با موفقیت اضافه شد`,
+        importResult: (created: number, errorCount: number, drafts = 0) => {
+          const n = (v: number) => v.toLocaleString('fa-IR')
+          const base =
+            drafts > 0
+              ? `منتشر شد ${n(created - drafts)} · پیش‌نویس ${n(drafts)}`
+              : `${n(created)} محصول با موفقیت اضافه شد`
+          return errorCount > 0 ? `${base}، ${n(errorCount)} ردیف با خطا` : base
+        },
         importColumnsHint: 'ستون‌های اکسل: نام، قیمت، موجودی (اختیاری)، توضیح (اختیاری)',
         // docs/PRD-bulk-product-import-from-document.md — افزودن/آپدیت دسته‌جمعی از فایل/متن/صوت
         bulkImportButton: '📥 افزودن/آپدیت دسته‌جمعی با AI',
