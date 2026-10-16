@@ -33,13 +33,15 @@ export interface SuggestionRowProps {
   // اگر داده شود، به‌جای «جواب بده» دکمه‌ی مستقیم (مثل «تنظیم ←») نشان داده می‌شود
   actionLabel?: string
   onAction?: () => void
+  // پاسخ از پیش‌پرشده (مثلاً برداشت از یادداشت فروشنده)؛ کلیک دکمه فرم را با همین متن باز می‌کند
+  prefill?: string
   // پاسخ فروشنده ← پیش‌نمایش (رشته‌ی نمایشی خطی که اضافه می‌شود)
   onPreview: (answer: string) => Promise<string>
   onAccept: () => void | Promise<void>
   onDismiss: () => void
 }
 
-export function SuggestionRow({ index, suggestion, storeId, actionLabel, onAction, onPreview, onAccept, onDismiss }: SuggestionRowProps) {
+export function SuggestionRow({ index, suggestion, storeId, actionLabel, onAction, prefill, onPreview, onAccept, onDismiss }: SuggestionRowProps) {
   const [open, setOpen] = useState(false)
   const [answer, setAnswer] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
@@ -72,7 +74,11 @@ export function SuggestionRow({ index, suggestion, storeId, actionLabel, onActio
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => (onAction ? onAction() : setOpen(true))}
+            onClick={() => {
+              if (onAction) return onAction()
+              if (prefill) setAnswer(prefill)
+              setOpen(true)
+            }}
             className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-500"
           >
             {actionLabel ?? t.answer}
@@ -142,13 +148,14 @@ export interface QualityCardProps {
   pendingText: string
   doneText: string
   levelLabels?: Record<'weak' | 'ok' | 'good' | 'great', string>
+  readinessLabel?: (level: string) => string
   // رندر هر پیشنهاد را صفحه‌ی میزبان می‌سازد (چون اعمال محصول/فروشگاه فرق دارد)
   renderSuggestion: (s: QualitySuggestion, index: number, dismiss: () => void) => ReactNode
   // ردیف 💬 «مشتری‌ها پرسیدن …»
   unansweredFooter?: ReactNode
 }
 
-export function QualityCard({ data, loading, dismissKey, pendingText, doneText, levelLabels = t.levels, renderSuggestion, unansweredFooter }: QualityCardProps) {
+export function QualityCard({ data, loading, dismissKey, pendingText, doneText, levelLabels = t.levels, readinessLabel = t.readiness, renderSuggestion, unansweredFooter }: QualityCardProps) {
   const review = data?.review ?? null
   const hashKey = `quality-dismissed:${dismissKey}:${review ? review.score : 'x'}:${review?.suggestions.map(s => s.key).join(',') ?? ''}`
   const [dismissed, setDismissed] = useState(() => readDismissed(hashKey))
@@ -216,7 +223,7 @@ export function QualityCard({ data, loading, dismissKey, pendingText, doneText, 
       <div className="flex items-center gap-3">
         <ScoreRing score={review.score} level={review.level} />
         <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-100 light:text-slate-900">{t.readiness(levelLabels[review.level])}</p>
+          <p className="text-sm font-bold text-slate-100 light:text-slate-900">{readinessLabel(levelLabels[review.level])}</p>
           {review.summary && <p className="text-xs leading-6 text-slate-400">{review.summary}</p>}
         </div>
       </div>

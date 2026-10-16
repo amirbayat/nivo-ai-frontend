@@ -7,6 +7,7 @@ import { storeLogoUrl } from '@/lib/sellerProduct'
 import { useToastStore } from '@/store/toast.store'
 import { useLogout } from '@/queries/auth.queries'
 import { useMyStores, useStoreCompleteness, useStoreCredit } from '@/queries/seller.queries'
+import { StoreQualitySection } from '@/components/quality/StoreQualitySection'
 import { useSellerStore } from '../SellerPanelLayout'
 
 const t = fa.seller.v2.store
@@ -63,6 +64,9 @@ export function SellerStorePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-4 px-4 py-5">
+      {/* SQ-4 — بعد از اولین محصول فعال؛ فروشنده‌ی تازه با چک‌لیست نمی‌ترسد */}
+      <StoreQualitySection storeId={storeId} enabled={!!completeness.data?.launch.hasActiveProduct} />
+
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 light:border-slate-200 light:bg-white">
         <button type="button" onClick={go('info')} className="flex w-full items-center gap-3 text-start">
           <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-800 text-lg font-extrabold text-slate-300 light:bg-slate-200">
