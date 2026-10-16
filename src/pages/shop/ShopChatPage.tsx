@@ -103,6 +103,8 @@ export function ShopChatPage() {
   // docs/PRD-buyer-orders-page-and-direct-order.md بخش ۲.۳ — ثبت نظر مستقیم از روی محصول
   const [reviewProduct, setReviewProduct] = useState<PublicProduct | null>(null)
   const [cartOpen, setCartOpen] = useState(false)
+  // docs/PRD-fixes-after-buyer-redesign.md F3 — «ادامه» وسط پاسخ تایپی: شیت باز می‌ماند و CONFIRM_CART بعد از پایان نوبت می‌رود
+  const [continuing, setContinuing] = useState(false)
   // شیت پرداخت (§6.7): فقط بعد از اکشن خودِ خریدار خودکار باز می‌شود؛ با رفرش/ورود برگشتی هرگز
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [doneStep, setDoneStep] = useState(false)
@@ -158,7 +160,15 @@ export function ShopChatPage() {
     if (viewOrderConversationId !== conversationId) {
       void viewHistoryEntry({ conversationId: viewOrderConversationId })
     }
-    setSearchParams({}, { replace: true })
+    // F16: فقط viewOrder برداشته می‌شود؛ بقیه‌ی پارامترها (مثل view=chat) می‌مانند
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev)
+        n.delete('viewOrder')
+        return n
+      },
+      { replace: true },
+    )
   }, [viewOrderConversationId, conversationId, viewHistoryEntry, setSearchParams])
 
   // 100vh/100dvh روی خیلی از مرورگرهای موبایل با بازشدن کیبورد صفحه شرینک نمی‌شه (مخصوصاً
@@ -320,6 +330,14 @@ export function ShopChatPage() {
     void sendAction(action)
   }
   useEffect(() => {
+    if (!continuing || sending) return
+    setContinuing(false)
+    if (!cartOpen || !cartEditable) return
+    setCartOpen(false)
+    sendCheckoutAction({ type: 'CONFIRM_CART' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [continuing, sending])
+  useEffect(() => {
     const finished = wasSendingRef.current && !sending
     wasSendingRef.current = sending
     if (!finished) return
@@ -394,11 +412,17 @@ export function ShopChatPage() {
     if (next === view) return
     if (next === 'chat') {
       // push: دکمه‌ی برگشت گوشی به نمای محصولات برمی‌گردد (§Edge 8)
-      setSearchParams((prev) => {
-        const n = new URLSearchParams(prev)
-        n.set('view', 'chat')
-        return n
-      })
+      // F6: اگر الان روی entry یک شیت (closeOnBack) هستیم، همان را با صفحه‌ی گفتگو جایگزین می‌کنیم؛
+      // وگرنه entry شیت در تاریخچه می‌ماند و یک «برگشت» اضافه بی‌اثر می‌شود
+      const onSheetEntry = !!window.history.state?.nivoSheet
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev)
+          n.set('view', 'chat')
+          return n
+        },
+        onSheetEntry ? { replace: true } : undefined,
+      )
       setChatUnread(false)
     } else {
       setSearchParams(
@@ -511,7 +535,12 @@ export function ShopChatPage() {
           highlight={orderHighlight}
           onContinue={() => openCheckout(false)}
           onTrack={trackOrder}
-          onScrollToRefund={() => document.querySelector('[data-refund-form]:last-of-type')?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
+          onScrollToRefund={() => {
+            const forms = document.querySelectorAll('[data-refund-form]')
+            const last = forms[forms.length - 1]
+            if (last) last.scrollIntoView({ block: 'center', behavior: 'smooth' })
+            else useToastStore.getState().addToast(fa.shop.v2.refundFormNotFound)
+          }}
         />
       )}
 
@@ -648,6 +677,7 @@ export function ShopChatPage() {
         total={cartTotal}
         stale={cartStale}
         pending={pendingCartOps.length > 0}
+        continuing={continuing}
         requiresShipping={catalog.requiresShipping}
         freeShipping={catalog.shippingEstimate?.maxCostToman === 0}
         imageKeys={imageKeys}
@@ -656,6 +686,10 @@ export function ShopChatPage() {
         onSetQty={(line, qty) => cartSetQty(line, qty)}
         onRemove={(line) => cartRemove(line)}
         onContinue={() => {
+          if (sending) {
+            setContinuing(true)
+            return
+          }
           setCartOpen(false)
           sendCheckoutAction({ type: 'CONFIRM_CART' })
         }}
@@ -707,6 +741,7 @@ export function ShopChatPage() {
         shippingEstimate={catalog.shippingEstimate ?? null}
         shippingDaysText={catalog.shippingDaysText}
         disabled={actionDisabled}
+        sellerReplying={sellerIsReplying && !viewingHistory}
         inCart={sheet ? cartProductIds.has(sheet.productId) : false}
         saved={sheet ? savedProductIds.has(sheet.productId) : false}
         onAddToCart={(id, variantId) => addToCart(id, variantId, sheet?.product, 'sheet')}

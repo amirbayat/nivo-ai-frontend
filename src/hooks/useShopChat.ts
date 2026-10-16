@@ -1067,8 +1067,9 @@ export function useShopChat(slug: string, productId?: string) {
           } else if (data.uiBlocks.some((item) => item.type !== 'NONE')) {
             // مثلاً چیپ VARIANT_PROMPT: همان مسیر معمول نخ
             applyReply(data)
-          } else if (data.reply) {
-            useToastStore.getState().addToast(data.reply)
+          } else {
+            // F7: بدون خلاصه‌ی سبد و بدون متن هم خریدار باید بفهمد چیزی اضافه نشد
+            useToastStore.getState().addToast(data.reply || fa.common.error)
           }
         } catch (err) {
           useToastStore.getState().addToast(err instanceof Error && err.message ? err.message : fa.common.error)

@@ -11,6 +11,8 @@ interface CartSheetProps {
   stale: boolean
   // عملیات سبد هنوز در راه سرور است؛ تا برگردد «ادامه» غیرفعال می‌ماند تا CONFIRM_CART روی سبد کهنه نرود
   pending: boolean
+  // «ادامه» زده شده ولی پاسخ تایپی هنوز در راه است؛ بعد از پایان نوبت خودکار می‌رود
+  continuing: boolean
   requiresShipping: boolean
   freeShipping: boolean
   // productId → اولین عکس (از داده‌ی شناخته‌شده)؛ نبودنش = حرف اول نام
@@ -41,10 +43,11 @@ export function CartSheet(props: CartSheetProps) {
           <button
             type="button"
             onClick={props.onContinue}
-            disabled={props.disabled || props.pending}
-            className="min-h-12 w-full rounded-xl bg-[var(--shop-accent-fill)] text-[15px] font-bold text-[var(--shop-accent-text)] disabled:opacity-50"
+            disabled={props.disabled || props.pending || props.continuing}
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--shop-accent-fill)] text-[15px] font-bold text-[var(--shop-accent-text)] disabled:opacity-50"
           >
-            {props.requiresShipping ? fa.shop.v2.toAddress : fa.shop.v2.toPayment}
+            {props.continuing && <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />}
+            {props.continuing ? fa.shop.v2.cartContinuing : props.requiresShipping ? fa.shop.v2.toAddress : fa.shop.v2.toPayment}
           </button>
         ) : (
           <button
@@ -102,9 +105,11 @@ export function CartSheet(props: CartSheetProps) {
                     >
                       +
                     </button>
-                    <button type="button" disabled={props.disabled} onClick={() => props.onRemove(line)} className="ms-auto min-h-11 px-2 text-sm text-[var(--shop-danger)] disabled:opacity-40">
-                      {fa.shop.v2.remove}
-                    </button>
+                    {line.qty > 1 && (
+                      <button type="button" disabled={props.disabled} onClick={() => props.onRemove(line)} className="ms-auto min-h-11 px-2 text-sm text-[var(--shop-danger)] disabled:opacity-40">
+                        {fa.shop.v2.remove}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

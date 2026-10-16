@@ -130,7 +130,8 @@ export function ShopProductsView({ catalog, about, savedProductIds, savedItems, 
   }, [savedProductIds.size])
 
   // اسکرول بی‌نهایت: نزدیک ۸۰٪ اسکرول صفحه‌ی بعد را می‌گیرد (IntersectionObserver با حاشیه‌ی ۲۰٪ پایین)
-  const canLoadMore = !savedOnly && hasMore && !loading
+  // بعد از خطا اسکرول بی‌نهایت متوقف می‌شود؛ فقط دکمه‌ی «دوباره» (یک‌بار به‌ازای هر لمس) ادامه می‌دهد
+  const canLoadMore = !savedOnly && hasMore && !loading && !error
   useEffect(() => {
     const target = sentinelRef.current
     const root = scrollRef.current
@@ -231,7 +232,12 @@ export function ShopProductsView({ catalog, about, savedProductIds, savedItems, 
             {!savedOnly && loading && items.length > 0 && <SkeletonCards count={2} />}
           </div>
         )}
-        {error && (
+        {error && items.length > 0 && (
+          <button type="button" onClick={loadMore} className="mt-3 min-h-11 w-full rounded-xl border border-[var(--shop-border)] px-4 text-sm text-[var(--shop-danger)]">
+            {fa.shop.v2.loadMoreFailed}
+          </button>
+        )}
+        {error && items.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-4">
             <p className="text-sm text-[var(--shop-danger)]">{error}</p>
             <button type="button" onClick={loadMore} className="min-h-11 rounded-xl border border-[var(--shop-border)] px-4 text-sm text-[var(--shop-text)]">

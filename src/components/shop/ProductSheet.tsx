@@ -360,6 +360,8 @@ interface ProductSheetProps {
   shippingEstimate: { minCostToman: number; maxCostToman: number } | null
   shippingDaysText: string | null
   disabled: boolean
+  // فروشنده خودش جواب می‌دهد: افزودن غیرفعال، «سوال دارم» فعال
+  sellerReplying?: boolean
   inCart: boolean
   saved: boolean
   onAddToCart: (productId: string, variantId?: string) => void
@@ -460,13 +462,14 @@ function LoadedProductSheet({ product, ...props }: ProductSheetProps & { product
       />
     )
   } else {
-    if (product.priceUnavailable) helper = fa.shop.v2.goldPriceUnavailableHelp
+    if (props.sellerReplying) helper = fa.shop.v2.sellerAnswering
+    else if (product.priceUnavailable) helper = fa.shop.v2.goldPriceUnavailableHelp
     else if (pick.missingOption) helper = fa.shop.v2.chooseFirst(pick.missingOption.name)
     primary = (
       <button
         type="button"
         onClick={add}
-        disabled={props.disabled || !pick.canAdd}
+        disabled={props.disabled || !!props.sellerReplying || justAdded || !pick.canAdd}
         className="min-h-12 flex-1 rounded-xl bg-[var(--shop-accent-fill)] text-[15px] font-bold text-[var(--shop-accent-text)] disabled:opacity-40"
       >
         {justAdded ? fa.shop.v2.added : props.inCart ? fa.shop.v2.addAnother : fa.shop.v2.addToCart}

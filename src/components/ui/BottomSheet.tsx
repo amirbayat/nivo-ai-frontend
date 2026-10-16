@@ -99,7 +99,9 @@ export function BottomSheet({ open, onClose, title, children, footer, full, clos
   useEffect(() => {
     if (!open) return
     const previous = document.activeElement as HTMLElement | null
-    dialogRef.current?.focus()
+    // فوکوس اولیه فقط وقتی که چیزی داخل شیت (مثلاً autoFocus) فوکوس را نگرفته
+    const root = dialogRef.current
+    if (root && !root.contains(document.activeElement)) root.focus()
     return () => previous?.focus?.()
   }, [open])
 
