@@ -81,11 +81,12 @@ export function StoreBotPage() {
 
       <Card title={t.intro} done={!!store.brandIntro}>
         <div className="relative">
-          <textarea value={intro} onChange={e => setIntro(e.target.value)} rows={5} maxLength={2000} placeholder={fa.seller.panel.storeSettings.brandIntroPlaceholder} className={areaClass} />
+          <textarea value={intro} onChange={e => setIntro(e.target.value)} rows={7} maxLength={(store as { leadCaptureOnly?: boolean }).leadCaptureOnly ? 2000 : 1500} placeholder={fa.seller.panel.storeSettings.brandIntroPlaceholder} className={areaClass} />
           <div className="absolute bottom-2 left-2">
             <MicButton storeId={storeId} onText={v => setIntro(prev => (prev ? `${prev} ${v}` : v))} />
           </div>
         </div>
+        <p className="mt-2 text-xs text-slate-500">{t.introHint} ({intro.length.toLocaleString('fa-IR')})</p>
       </Card>
 
       <Card title={t.returns} done={!!store.returnPolicy}>
