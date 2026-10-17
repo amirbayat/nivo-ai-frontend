@@ -4,6 +4,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet'
 import { DigitsInput } from '@/components/ui/DigitsInput'
 import { useToastStore } from '@/store/toast.store'
 import { MediaCarousel, MediaLightbox, productImageUrl, productVideoUrl, type MediaItem } from '@/components/shop/ShopUiBlocks'
+import { ProductDescription } from '@/components/shop/ProductDescription'
 import type { PublicProduct, PublicProductVariant } from '@/types/api'
 
 type NotifyResult = Promise<{ status: 'subscribed' | 'needs_phone' | 'in_stock' | 'error' }>
@@ -242,7 +243,7 @@ function ProductBody({
 
       {product.description && (
         <div className="mt-3">
-          <p className={`whitespace-pre-line text-[15px] leading-7 text-[var(--shop-text-2)] ${descOpen ? '' : 'line-clamp-3'}`}>{product.description}</p>
+          <ProductDescription text={product.description} collapsed={!descOpen} />
           {longDescription && (
             <button type="button" onClick={() => setDescOpen((v) => !v)} className="min-h-11 text-sm text-[var(--shop-accent)]">
               {descOpen ? fa.shop.v2.lessText : fa.shop.v2.moreText}
