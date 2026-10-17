@@ -60,7 +60,6 @@ interface Form {
   isWeightBased: boolean
   weightGrams: string
   purityKarat: string
-  customWage: boolean
   wageType: 'PERCENT' | 'FIXED_PER_GRAM'
   wageValue: string
   profitPercent: string
@@ -70,7 +69,10 @@ type ErrorKey = 'name' | 'price' | 'stock' | 'weight'
 type MarkKey = AiFillField | 'variants'
 
 // QA-12 — برای اولین محصول (?first=1) «همیشه موجوده» پیش‌فرض است
-const blankForm = (gold: boolean, always = false): Form => ({
+// پیش‌فرض اجرت/سود فروشگاه؛ فیلدهای محصول با این پر می‌شوند و فروشنده می‌تواند عوض کند
+type GoldDefaults = { type: 'PERCENT' | 'FIXED_PER_GRAM' | null; value: number | null; profit: number | null }
+
+const blankForm = (gold: boolean, always = false, gd?: GoldDefaults): Form => ({
   name: '',
   price: '',
   stock: '',
@@ -83,13 +85,12 @@ const blankForm = (gold: boolean, always = false): Form => ({
   isWeightBased: gold,
   weightGrams: '',
   purityKarat: '18',
-  customWage: false,
-  wageType: 'PERCENT',
-  wageValue: '',
-  profitPercent: '',
+  wageType: gd?.type ?? 'PERCENT',
+  wageValue: gd?.value != null ? String(gd.value) : '',
+  profitPercent: gd?.profit != null ? String(gd.profit) : '',
 })
 
-function formFromProduct(p: SellerProduct): Form {
+function formFromProduct(p: SellerProduct, gd?: GoldDefaults): Form {
   return {
     name: p.name,
     price: p.basePrice ? String(p.basePrice) : '',
@@ -104,11 +105,19 @@ function formFromProduct(p: SellerProduct): Form {
     isWeightBased: p.pricingModel === 'WEIGHT_BASED_FORMULA',
     weightGrams: p.weightGrams != null ? String(p.weightGrams) : '',
     purityKarat: p.purityKarat != null ? String(p.purityKarat) : '18',
-    customWage: p.goldWageType != null,
-    wageType: p.goldWageType ?? 'PERCENT',
-    wageValue: p.goldWageValue != null ? String(p.goldWageValue) : '',
-    profitPercent: p.goldProfitPercent != null ? String(p.goldProfitPercent) : '',
+    wageType: p.goldWageType ?? gd?.type ?? 'PERCENT',
+    wageValue: p.goldWageValue != null ? String(p.goldWageValue) : gd?.value != null ? String(gd.value) : '',
+    profitPercent: p.goldProfitPercent != null ? String(p.goldProfitPercent) : gd?.profit != null ? String(gd.profit) : '',
   }
+}
+
+function goldOverride(f: Form, gd: GoldDefaults) {
+  const value = Number(toEnglishDigits(f.wageValue)) || undefined
+  const profit = Number(toEnglishDigits(f.profitPercent)) || undefined
+  const same = f.wageType === gd.type && value === (gd.value ?? undefined) && profit === (gd.profit ?? undefined)
+  return same
+    ? { goldWageType: null, goldWageValue: null, goldProfitPercent: null }
+    : { goldWageType: f.wageType, goldWageValue: value, goldProfitPercent: profit }
 }
 
 function BackChevron() {
@@ -132,6 +141,10 @@ export function SellerProductPage() {
   const addToast = useToastStore(s => s.addToast)
   const { storeId, storeSlug, category, businessType, goldWageType, goldWageValue, goldProfitPercent } = useSellerStore()
   const isGoldCategory = GOLD_CATEGORY_NAMES.includes(category ?? '')
+  const goldDefaults = useMemo<GoldDefaults>(
+    () => ({ type: goldWageType, value: goldWageValue, profit: goldProfitPercent }),
+    [goldWageType, goldWageValue, goldProfitPercent],
+  )
   const first = searchParams.get('first') === '1'
 
   // ---- شناسه و داده‌ی سرور ----
@@ -143,7 +156,7 @@ export function SellerProductPage() {
   const [qualityPollSince, setQualityPollSince] = useState<number | null>(null)
 
   // ---- فرم ----
-  const [form, setForm] = useState<Form>(() => blankForm(isGoldCategory, first))
+  const [form, setForm] = useState<Form>(() => blankForm(isGoldCategory, first, goldDefaults))
   const [vd, setVd] = useState<VariantDraft>(emptyVariantDraft)
   const [errors, setErrors] = useState<Partial<Record<ErrorKey, string>>>({})
   const [marks, setMarks] = useState<Set<MarkKey>>(new Set())
@@ -164,7 +177,7 @@ export function SellerProductPage() {
 
   const hydratedRef = useRef(false)
   const baselineRef = useRef('')
-  const blankSnapshotRef = useRef(JSON.stringify([blankForm(isGoldCategory, first), emptyVariantDraft()]))
+  const blankSnapshotRef = useRef(JSON.stringify([blankForm(isGoldCategory, first, goldDefaults), emptyVariantDraft()]))
   const loadedStockRef = useRef<Record<string, number>>({})
   const savedVdRef = useRef(JSON.stringify(emptyVariantDraft()))
   const initialStockRef = useRef<string>('')
@@ -195,7 +208,7 @@ export function SellerProductPage() {
   const reset = useCallback(() => {
     hydratedRef.current = false
     setProduct(null)
-    setForm(blankForm(isGoldCategory, first))
+    setForm(blankForm(isGoldCategory, first, goldDefaults))
     setVd(emptyVariantDraft())
     setErrors({})
     setMarks(new Set())
@@ -207,7 +220,7 @@ export function SellerProductPage() {
     setSaveState('')
     loadedStockRef.current = {}
     savedVdRef.current = JSON.stringify(emptyVariantDraft())
-    blankSnapshotRef.current = JSON.stringify([blankForm(isGoldCategory, first), emptyVariantDraft()])
+    blankSnapshotRef.current = JSON.stringify([blankForm(isGoldCategory, first, goldDefaults), emptyVariantDraft()])
     baselineRef.current = ''
     initialStockRef.current = ''
   }, [isGoldCategory, first])
@@ -225,7 +238,7 @@ export function SellerProductPage() {
 
   // فرم و مدل‌ها را از روی محصول سرور پر می‌کند و مبنای «تغییر ذخیره‌نشده» را همان می‌گذارد
   const hydrate = useCallback((p: SellerProduct) => {
-    const f = formFromProduct(p)
+    const f = formFromProduct(p, goldDefaults)
     const draft = variantDraftFromProduct(p)
     setProduct(p)
     setForm(f)
@@ -305,9 +318,8 @@ export function SellerProductPage() {
       pricingModel: (f.isWeightBased ? 'WEIGHT_BASED_FORMULA' : 'FIXED') as 'WEIGHT_BASED_FORMULA' | 'FIXED',
       weightGrams: f.isWeightBased ? Number(toEnglishDigits(f.weightGrams)) || undefined : undefined,
       purityKarat: f.isWeightBased ? Number(f.purityKarat) : undefined,
-      goldWageType: f.customWage ? f.wageType : null,
-      goldWageValue: f.customWage ? Number(toEnglishDigits(f.wageValue)) || undefined : null,
-      goldProfitPercent: f.customWage ? Number(toEnglishDigits(f.profitPercent)) || undefined : null,
+      // برابر پیش‌فرض فروشگاه = بدون override (تا تغییر بعدیِ پیش‌فرض به محصول برسد)
+      ...goldOverride(f, goldDefaults),
     }
   }
 
@@ -493,6 +505,7 @@ export function SellerProductPage() {
     if (f.name.trim().length < 2) errs.name = t.missingName
     if (!f.isWeightBased && !(Number(toEnglishDigits(f.price)) > 0)) errs.price = t.missingPrice
     if (f.isWeightBased && !(Number(toEnglishDigits(f.weightGrams)) > 0)) errs.weight = t.missingWeight
+    else if (f.isWeightBased && !(Number(toEnglishDigits(f.wageValue)) > 0 && Number(toEnglishDigits(f.profitPercent)) >= 0 && f.profitPercent.trim() !== '')) errs.weight = t.missingGoldWage
     const hasVariants = latest.current.vd.options.some(o => o.name.trim() && o.values.length > 0)
     if (isStockMissing({ always: f.always, hasVariants, stock: f.stock })) errs.stock = t.missingStock
     return errs
@@ -560,7 +573,7 @@ export function SellerProductPage() {
         if (!typedDuringSave) hydrate(fresh.data)
         else {
           // فقط فیلدهای دست‌نخورده از سرور می‌آیند؛ مدل‌ها همان‌طور که فروشنده می‌بیند می‌مانند
-          const server = formFromProduct(fresh.data)
+          const server = formFromProduct(fresh.data, goldDefaults)
           setProduct(fresh.data)
           setForm(cur => {
             const next = { ...cur }
@@ -767,8 +780,6 @@ export function SellerProductPage() {
               purityKarat={form.purityKarat}
               setPurityKarat={v => edit('purityKarat', v)}
               goldPricingConfigured={goldConfigured}
-              hasCustomGoldWage={form.customWage}
-              setHasCustomGoldWage={v => edit('customWage', v)}
               productGoldWageType={form.wageType}
               setProductGoldWageType={v => edit('wageType', v)}
               productGoldWageValue={form.wageValue}

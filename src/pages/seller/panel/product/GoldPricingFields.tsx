@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { fa } from '@/locales/fa'
 import { toEnglishDigits } from '@/lib/digits'
-import { ToggleRow } from '@/components/ui/ToggleRow'
 import { DigitsInput } from '@/components/ui/DigitsInput'
 import { useGoldPricePreview } from '@/queries/seller.queries'
 
@@ -16,8 +15,6 @@ export function GoldPricingFields({
   purityKarat,
   setPurityKarat,
   goldPricingConfigured,
-  hasCustomGoldWage,
-  setHasCustomGoldWage,
   productGoldWageType,
   setProductGoldWageType,
   productGoldWageValue,
@@ -31,8 +28,6 @@ export function GoldPricingFields({
   purityKarat: string
   setPurityKarat: (v: string) => void
   goldPricingConfigured: boolean
-  hasCustomGoldWage: boolean
-  setHasCustomGoldWage: (v: boolean) => void
   productGoldWageType: 'PERCENT' | 'FIXED_PER_GRAM'
   setProductGoldWageType: (v: 'PERCENT' | 'FIXED_PER_GRAM') => void
   productGoldWageValue: string
@@ -44,13 +39,11 @@ export function GoldPricingFields({
     storeId,
     weightGrams ? Number(toEnglishDigits(weightGrams)) : null,
     purityKarat ? Number(purityKarat) : null,
-    hasCustomGoldWage
-      ? {
-          goldWageType: productGoldWageType,
-          goldWageValue: productGoldWageValue ? Number(toEnglishDigits(productGoldWageValue)) : undefined,
-          goldProfitPercent: productGoldProfitPercent ? Number(toEnglishDigits(productGoldProfitPercent)) : undefined,
-        }
-      : undefined,
+    {
+      goldWageType: productGoldWageType,
+      goldWageValue: productGoldWageValue ? Number(toEnglishDigits(productGoldWageValue)) : undefined,
+      goldProfitPercent: productGoldProfitPercent ? Number(toEnglishDigits(productGoldProfitPercent)) : undefined,
+    },
   )
 
   return (
@@ -83,15 +76,7 @@ export function GoldPricingFields({
         ))}
       </div>
 
-      <div className="mb-3">
-        <ToggleRow
-          label={fa.seller.panel.products.customGoldWageToggleLabel}
-          checked={hasCustomGoldWage}
-          onChange={setHasCustomGoldWage}
-        />
-      </div>
-
-      {hasCustomGoldWage && (
+      {(
         <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
           <div className="mb-2 flex gap-2">
             <button
@@ -130,7 +115,7 @@ export function GoldPricingFields({
         </div>
       )}
 
-      {!hasCustomGoldWage && !goldPricingConfigured ? (
+      {!productGoldWageValue && !productGoldProfitPercent && !goldPricingConfigured ? (
         <p className="rounded-xl bg-amber-500/10 p-3 text-xs text-amber-300">
           {fa.seller.panel.products.goldSettingsMissing}{' '}
           <Link to="/seller/panel/store/advanced" className="font-semibold underline">

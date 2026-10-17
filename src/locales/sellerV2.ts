@@ -70,6 +70,7 @@ export const sellerV2 = {
     missingPrice: 'قیمت رو بنویس',
     missingStock: 'موجودی رو بنویس یا بزن همیشه موجوده',
     missingWeight: 'وزن و عیار رو بنویس',
+    missingGoldWage: 'اجرت و سود رو بنویس',
     publishedTitle: 'منتشر شد ✓',
     nextProduct: 'محصول بعدی',
     backToList: 'برگرد به لیست',
