@@ -136,7 +136,7 @@ export function ChatThread(props: ChatThreadProps) {
   }
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4" role="log" aria-live="polite" aria-relevant="additions">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4" role="log" aria-live="polite" aria-relevant="additions">
       {props.hasMoreEvents && !props.viewingHistory && (
         <button
           type="button"
@@ -204,17 +204,6 @@ export function ChatThread(props: ChatThreadProps) {
                 {props.conversationId && isAgent && (
                   <VoiceIndicator message={m} conversationId={props.conversationId} onPlay={props.onMarkVoiceHeard} />
                 )}
-                {block?.type === 'PRODUCT_CARD' && (shownCards ?? block.products).length > 0 && (
-                  <ChatProductCards
-                    products={shownCards ?? block.products}
-                    disabled={props.actionDisabled}
-                    handoff={props.sellerIsReplying}
-                    cartProductIds={props.cartProductIds}
-                    onOpenProduct={props.onOpenProduct}
-                    onAddToCart={props.onAddToCart}
-                    onSeeAllProducts={props.onSeeAllProducts}
-                  />
-                )}
                 {block?.type === 'CART_SUMMARY' &&
                   (m.id === latestCartId && props.cartBarVisible ? (
                     <span className="mt-1 block text-xs text-[var(--shop-text-2)]">{fa.shop.v2.cartUpdated}</span>
@@ -270,6 +259,17 @@ export function ChatThread(props: ChatThreadProps) {
               </div>
               {isAgent && (!sameSpeaker ? <StoreAvatar storeId={props.storeId} storeName={props.storeName} storeLogoKey={props.storeLogoKey} /> : <span className="size-6 shrink-0" aria-hidden />)}
             </div>
+          {block?.type === 'PRODUCT_CARD' && (shownCards ?? block.products).length > 0 && (
+            <ChatProductCards
+              products={shownCards ?? block.products}
+              disabled={props.actionDisabled}
+              handoff={props.sellerIsReplying}
+              cartProductIds={props.cartProductIds}
+              onOpenProduct={props.onOpenProduct}
+              onAddToCart={props.onAddToCart}
+              onSeeAllProducts={props.onSeeAllProducts}
+            />
+          )}
           </div>
         )
       })}
