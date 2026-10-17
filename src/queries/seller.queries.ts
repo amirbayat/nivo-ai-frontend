@@ -149,7 +149,9 @@ export function useCreateStore() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (dto: CreateStoreInput) => api.post<SellerStore>('/v2/stores', dto).then(r => r.data),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.stores() }),
+    // await: تا لیست فروشگاه‌ها تازه نشده، پنل هنوز کش قدیمیِ «بدون فروشگاه» را می‌بیند و
+    // کاربر را به /seller/onboarding برمی‌گرداند (گیر کردن روی همان صفحه بعد از «بساز»)
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.seller.stores() }),
   })
 }
 

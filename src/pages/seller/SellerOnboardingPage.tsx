@@ -10,8 +10,8 @@ import { useCreateStore, useSlugSuggest } from '@/queries/seller.queries'
 // docs/PRD-seller-panel-simplification.md §4.2 — ثبت‌نام یک صفحه‌ای: اسم → «بساز» → مستقیم به
 // اولین محصول. ویزارد ۴ قدمی (توصیف کسب‌وکار، لینک‌ها، کارت، معرفی برند) حذف شد؛ همه‌ی آن‌ها
 // بعد از ساخت فروشگاه در پنل قابل تنظیم‌اند.
-const TOP_CATEGORIES = fa.seller.step1.categories.slice(0, 8)
 const OTHER = 'سایر'
+const CATEGORIES = fa.seller.step1.categories.filter(c => c !== OTHER)
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value)
@@ -152,14 +152,14 @@ export function SellerOnboardingPage() {
         </div>
 
         <p className="mt-5 text-xs font-medium text-slate-400 light:text-slate-500">{t.whatSell}</p>
-        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {[...TOP_CATEGORIES, OTHER].map(c => (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[...CATEGORIES, OTHER].map(c => (
             <button
               type="button"
               key={c}
               onClick={() => setCategory(category === c ? null : c)}
               className={clsx(
-                'shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px]',
+                'whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px]',
                 category === c
                   ? 'border-emerald-500/40 bg-emerald-500/15 font-bold text-emerald-400 light:text-emerald-700'
                   : 'border-slate-700 text-slate-300 light:border-slate-300 light:text-slate-600',
