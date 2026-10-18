@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { fa } from '@/locales/fa'
-import { useMyStores, useStoreBadges, useStoreCompleteness } from '@/queries/seller.queries'
+import { useMyStores, useSellerUnreadCount, useStoreBadges, useStoreCompleteness } from '@/queries/seller.queries'
 import { useSellerAlerts } from '@/hooks/useSellerAlerts'
 import { useConvertDemoStoreToReal } from '@/queries/demo.queries'
 import { extractErrorMessage } from '@/lib/sellerProduct'
@@ -52,6 +52,13 @@ function OrdersIcon() {
     </svg>
   )
 }
+function ChatsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-5">
+      <path d="M20 12a8 8 0 01-11.6 7.1L4 20l1-3.9A8 8 0 1120 12z" />
+    </svg>
+  )
+}
 function ProductsIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
@@ -69,7 +76,7 @@ function StoreIcon() {
 
 // SP-6 — فقط این چهار صفحه‌ی اصلی نوار پایین دارند؛ بقیه (محصول، گفتگو، زیرصفحه‌های فروشگاه) تمام‌صفحه با
 // دکمه‌ی ثابت پایین خودشان هستند و نوار پایین مزاحمشان نمی‌شود
-const ROOT_TABS = ['today', 'orders', 'products', 'store']
+const ROOT_TABS = ['today', 'orders', 'chats', 'products', 'store']
 function isRootTab(pathname: string): boolean {
   const seg = pathname.replace(/^\/seller\/panel\/?/, '').replace(/\/$/, '')
   return ROOT_TABS.includes(seg)
@@ -235,6 +242,7 @@ export function SellerPanelLayout() {
   // SP-6 — «امروز» = رسیدها + مشتری‌های منتظر + مشکل‌ها + بازپرداخت عقب‌افتاده؛ کم‌بودن موجودی دیگر
   // در هیچ نشانی نیست (فوری نیست و نشان را باد می‌کرد)
   const todayBadge = (badges.data?.receipts ?? 0) + (badges.data?.attention ?? 0) + (badges.data?.issues ?? 0) + (badges.data?.refundsOverdue ?? 0)
+  const chatsUnread = useSellerUnreadCount(store?.id ?? '').data ?? 0
   const completeness = useStoreCompleteness(store?.id ?? '')
   const noPayment = completeness.data ? !completeness.data.launch.hasPaymentMethod : false
   useSellerAlerts(badges.data?.receipts, badges.data?.attention)
@@ -301,6 +309,7 @@ export function SellerPanelLayout() {
           <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-l lg:border-slate-800 light:lg:border-slate-200 lg:px-3 lg:py-6">
             <SidebarItem to="/seller/panel/today" icon={<TodayIcon />} label={fa.seller.v2.today.title} badge={todayBadge} />
             <SidebarItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+            <SidebarItem to="/seller/panel/chats" icon={<ChatsIcon />} label={fa.seller.panel.chats.tab} badge={chatsUnread} />
             <SidebarItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
             <SidebarItem to="/seller/panel/store" icon={<StoreIcon />} label={fa.seller.v2.store.title} />
           </aside>
@@ -316,6 +325,7 @@ export function SellerPanelLayout() {
               {/* در RTL اولین آیتم سمت راست است: «امروز» راست‌ترین تب */}
               <NavItem to="/seller/panel/today" icon={<TodayIcon />} label={fa.seller.v2.today.title} badge={todayBadge} />
               <NavItem to="/seller/panel/orders" icon={<OrdersIcon />} label={fa.seller.panel.nav.orders} />
+              <NavItem to="/seller/panel/chats" icon={<ChatsIcon />} label={fa.seller.panel.chats.tab} badge={chatsUnread} />
               <NavItem to="/seller/panel/products" icon={<ProductsIcon />} label={fa.seller.panel.nav.products} />
               <NavItem to="/seller/panel/store" icon={<StoreIcon />} label={fa.seller.v2.store.title} dot={noPayment} />
             </nav>

@@ -150,8 +150,15 @@ export function ChatThread(props: ChatThreadProps) {
         // جای‌نگهدار خالیِ استریم (هنوز متنی نیامده) حباب/آواتار نمی‌گیرد؛ ThinkingIndicator پایین نخ جایش را دارد
         if (m.id.startsWith('stream-') && !m.text && !m.uiBlock && !m.imageUrl && !m.videoUrl) return null
         const prev = thread[i - 1]
+        if (m.systemKind === 'SELLER_TAKEOVER') {
+          return (
+            <p key={m.id} className="mt-3 text-center text-xs leading-5 text-[var(--shop-text-2)]">
+              {fa.shop.v2.sellerJoined(props.storeName ?? '')}
+            </p>
+          )
+        }
         const gap = !!m.createdAt && !!prev?.createdAt && new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() > GAP_MS
-        const sameSpeaker = !!prev && prev.role === m.role && !!prev.fromSeller === !!m.fromSeller && !gap
+        const sameSpeaker = !!prev && !prev.systemKind && prev.role === m.role && !!prev.fromSeller === !!m.fromSeller && !gap
         const isAgent = m.role === 'agent'
         const block = m.uiBlock
         const text =

@@ -4,6 +4,8 @@ import { api } from '@/lib/api'
 import { env } from '@/env'
 import { fa } from '@/locales/fa'
 import {
+  useMarkConversationRead,
+  useMuteConversation,
   useSellerConversation,
   useSendSellerMessage,
   useUnmuteConversation,
@@ -20,6 +22,26 @@ function BackChevron() {
   )
 }
 
+// docs/PRD-seller-conversations-inbox.md §۳.۳ — خط سیستمی وسط‌چین؛ null = نمایش داده نمی‌شود
+function systemLineText(e: ShopConversationEvent): string | null {
+  const c = fa.seller.panel.chats
+  if (e.type === 'SYSTEM') {
+    switch (e.payload.kind) {
+      case 'SELLER_TAKEOVER': return c.systemTakeover
+      case 'BACK_TO_BOT': return c.systemBackToBot
+      case 'AUTO_BACK_TO_BOT': return c.systemAutoBackToBot
+      case 'AI_REPLY_DROPPED_TAKEOVER': return c.systemDropped
+      default: return null
+    }
+  }
+  if (e.type === 'STATE_TRANSITION' && e.payload.toState === 'HANDOFF_HUMAN') return c.systemHandoff
+  return null
+}
+
+function formatClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+}
+
 // کلید شامل پیشوند «conversationId/» است — باید encode شود (عیناً chatImageUrl در useShopChat.ts)
 function chatImageUrl(conversationId: string, key: string): string {
   return `${env.VITE_API_URL}/v2/chat/${conversationId}/image/${encodeURIComponent(key)}`
@@ -31,10 +53,20 @@ export function ConversationChat({ conversationId, onBack }: { conversationId: s
   const { data } = useSellerConversation(storeId, conversationId)
   const sendMessage = useSendSellerMessage(storeId, conversationId)
   const unmute = useUnmuteConversation(storeId)
+  const mute = useMuteConversation(storeId)
+  const markRead = useMarkConversationRead(storeId)
+  const chats = fa.seller.panel.chats
   const [input, setInput] = useState('')
   const [older, setOlder] = useState<ShopConversationEvent[]>([])
   const [olderHasMore, setOlderHasMore] = useState(false)
   const [loadedOlder, setLoadedOlder] = useState(false)
+
+  // §۴.۳ — با باز شدن صفحه (و آمدن پیام تازه‌ی مشتری وقتی صفحه بازه) گفتگو «خوانده‌شده» می‌شود
+  const lastEventAt = data?.events[data.events.length - 1]?.createdAt
+  useEffect(() => {
+    if (data) markRead.mutate(conversationId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, !!data, lastEventAt])
 
   useEffect(() => {
     setOlder([])
@@ -80,14 +112,46 @@ export function ConversationChat({ conversationId, onBack }: { conversationId: s
             {fa.seller.panel.attention.viewOrder}
           </button>
         )}
-        <button
-          onClick={() => unmute.mutate(conversationId, { onSuccess: onBack })}
-          disabled={unmute.isPending}
-          className="rounded-lg bg-slate-800 light:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-200 light:text-slate-800 hover:bg-slate-700 light:hover:bg-slate-200 disabled:opacity-40"
-        >
-          {fa.seller.panel.attention.backToBot}
-        </button>
       </div>
+
+      {data && (
+        <div className="flex items-center gap-3 border-b border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-slate-50 px-4 py-2">
+          {data.control === 'BOT' || (!data.control && !data.isMutedForHuman) ? (
+            <>
+              <p className="flex-1 text-xs text-slate-300 light:text-slate-700">{chats.botInControl}</p>
+              <button
+                onClick={() => mute.mutate(conversationId)}
+                disabled={mute.isPending}
+                className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
+              >
+                {chats.takeOver}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="flex-1 text-xs text-slate-300 light:text-slate-700">
+                {data.control === 'BOT_HANDOFF' ? chats.controlHandoff : chats.sellerInControl}
+              </p>
+              {data.control === 'BOT_HANDOFF' && (
+                <button
+                  onClick={() => mute.mutate(conversationId)}
+                  disabled={mute.isPending}
+                  className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
+                >
+                  {chats.takeOver}
+                </button>
+              )}
+              <button
+                onClick={() => unmute.mutate(conversationId)}
+                disabled={unmute.isPending}
+                className="rounded-lg bg-slate-800 light:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-200 light:text-slate-800 hover:bg-slate-700 light:hover:bg-slate-200 disabled:opacity-40"
+              >
+                {fa.seller.panel.attention.backToBot}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {(loadedOlder ? olderHasMore : data?.hasMoreEvents) && (
@@ -100,8 +164,23 @@ export function ConversationChat({ conversationId, onBack }: { conversationId: s
           </button>
         )}
         {[...older, ...(data?.events ?? [])]
-          .filter(e => e.type === 'CUSTOMER_MESSAGE' || e.type === 'AGENT_REPLY' || e.type === 'SELLER_MESSAGE')
-          .map((e, i) => (
+          .filter(
+            e =>
+              e.type === 'CUSTOMER_MESSAGE' ||
+              e.type === 'AGENT_REPLY' ||
+              e.type === 'SELLER_MESSAGE' ||
+              systemLineText(e) !== null,
+          )
+          .map((e, i) => {
+            const system = systemLineText(e)
+            if (system) {
+              return (
+                <p key={i} className="text-center text-[11px] text-slate-500">
+                  — {system} · {formatClock(e.createdAt)} —
+                </p>
+              )
+            }
+            return (
             <div key={i} className={`flex ${e.type === 'CUSTOMER_MESSAGE' ? 'justify-start' : 'justify-end'}`}>
               <div className="flex max-w-[85%] flex-col gap-1">
                 {e.payload.imageKey && e.payload.reattachedToOrder && (
@@ -117,6 +196,11 @@ export function ConversationChat({ conversationId, onBack }: { conversationId: s
                       className="max-h-72 rounded-2xl rounded-tl-sm border border-emerald-500/20 object-cover"
                     />
                   </a>
+                )}
+                {e.type !== 'CUSTOMER_MESSAGE' && (e.payload.text || e.payload.uiBlock) && (
+                  <span className="text-[10px] font-semibold text-slate-500 text-end">
+                    {e.type === 'SELLER_MESSAGE' ? chats.sellerLabel : chats.botLabel}
+                  </span>
                 )}
                 {e.payload.text && (
                   <div
@@ -134,7 +218,8 @@ export function ConversationChat({ conversationId, onBack }: { conversationId: s
                 )}
               </div>
             </div>
-          ))}
+            )
+          })}
       </div>
 
       <div className="flex items-end gap-2 border-t border-slate-800 light:border-slate-200 p-3">
@@ -143,7 +228,7 @@ export function ConversationChat({ conversationId, onBack }: { conversationId: s
           onChange={e => setInput(e.target.value)}
           onKeyDown={onKeyDown}
           rows={1}
-          placeholder={fa.seller.panel.attention.inputPlaceholder}
+          placeholder={data?.control === 'BOT' ? chats.takeOverPlaceholder : fa.seller.panel.attention.inputPlaceholder}
           dir="auto"
           className="flex-1 resize-none rounded-xl border border-slate-600/60 light:border-slate-300 bg-slate-800/60 light:bg-white px-3.5 py-2.5 text-sm text-slate-200 light:text-slate-900 outline-none placeholder:text-slate-500"
         />

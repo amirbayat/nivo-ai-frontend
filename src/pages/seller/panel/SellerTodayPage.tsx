@@ -482,7 +482,7 @@ export function SellerTodayPage() {
 
       {conversations.length > 0 && (
         <Section title={t.convsTitle(toFa(conversations.length))}>
-          {conversations.map(c => (
+          {conversations.slice(0, 3).map(c => (
             <button key={c.id} type="button" onClick={() => navigate(`/seller/panel/chats/${c.id}`)} className="text-start">
               <Row tone="amber">
                 <div className="min-w-0 flex-1">
@@ -493,6 +493,9 @@ export function SellerTodayPage() {
               </Row>
             </button>
           ))}
+          <Link to="/seller/panel/chats" className="block text-center text-xs font-semibold text-emerald-400 light:text-emerald-600">
+            {fa.seller.panel.chats.allChats} ←
+          </Link>
         </Section>
       )}
 

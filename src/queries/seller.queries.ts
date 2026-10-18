@@ -22,7 +22,7 @@ import type {
   GenerateProductOptionsResult,
   ImportProductsResult,
   KbExtractResult,
-  NeededAttentionConversation,
+  SellerConversationListPage,
   ProductAiCompleteFromPhotoResult,
   ProductAiCompleteResult,
   ProductEnrichmentDraft,
@@ -619,14 +619,55 @@ export function useShipOrder(storeId: string) {
   })
 }
 
-export function useNeededAttention(storeId: string) {
-  return useQuery({
-    queryKey: keys.seller.attention(storeId),
-    queryFn: () =>
-      api.get<NeededAttentionConversation[]>(`/v2/stores/${storeId}/conversations`).then(r => r.data),
+// docs/PRD-seller-conversations-inbox.md §۵ — جایگزین useNeededAttention (لیست ساده‌ی بدون صفحه‌بندی)
+export function useSellerConversations(storeId: string, filter: 'attention' | 'all' | 'ordered', q: string) {
+  return useInfiniteQuery({
+    queryKey: keys.seller.conversations(storeId, filter, q),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      api
+        .get<SellerConversationListPage>(`/v2/stores/${storeId}/conversations`, {
+          params: { filter, ...(q ? { q } : {}), ...(pageParam ? { cursor: pageParam } : {}) },
+        })
+        .then(r => r.data),
+    getNextPageParam: last => last.nextCursor ?? undefined,
+    select: d => ({ items: d.pages.flatMap(p => p.items) }),
     enabled: !!storeId,
     refetchInterval: PANEL_POLL_MS,
     refetchIntervalInBackground: false,
+  })
+}
+
+export function useSellerUnreadCount(storeId: string) {
+  return useQuery({
+    queryKey: keys.seller.conversationsUnread(storeId),
+    queryFn: () =>
+      api.get<{ count: number }>(`/v2/stores/${storeId}/conversations/unread-count`).then(r => r.data.count),
+    enabled: !!storeId,
+    refetchInterval: PANEL_POLL_MS,
+    refetchIntervalInBackground: false,
+  })
+}
+
+export function useMarkConversationRead(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      api.post(`/v2/stores/${storeId}/conversations/${conversationId}/read`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.attention(storeId) }),
+  })
+}
+
+export function useMuteConversation(storeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      api.post(`/v2/stores/${storeId}/conversations/${conversationId}/mute`),
+    onSuccess: (_d, conversationId) => {
+      void qc.invalidateQueries({ queryKey: keys.seller.attention(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.conversation(storeId, conversationId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.badges(storeId) })
+    },
   })
 }
 
@@ -647,7 +688,10 @@ export function useSendSellerMessage(storeId: string, conversationId: string) {
   return useMutation({
     mutationFn: (text: string) =>
       api.post(`/v2/stores/${storeId}/conversations/${conversationId}/messages`, { text }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.seller.conversation(storeId, conversationId) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.seller.conversation(storeId, conversationId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.attention(storeId) })
+    },
   })
 }
 
@@ -656,8 +700,9 @@ export function useUnmuteConversation(storeId: string) {
   return useMutation({
     mutationFn: (conversationId: string) =>
       api.post(`/v2/stores/${storeId}/conversations/${conversationId}/unmute`),
-    onSuccess: () => {
+    onSuccess: (_d, conversationId) => {
       void qc.invalidateQueries({ queryKey: keys.seller.attention(storeId) })
+      void qc.invalidateQueries({ queryKey: keys.seller.conversation(storeId, conversationId) })
       void qc.invalidateQueries({ queryKey: keys.seller.stores() })
     },
   })

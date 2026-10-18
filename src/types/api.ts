@@ -673,6 +673,8 @@ export interface ShopMessage {
   id: string
   role: 'customer' | 'agent'
   text: string
+  // docs/PRD-seller-conversations-inbox.md §۳.۴ — خط سیستمی وسط نخ (نه حباب)؛ فعلاً فقط دست‌گرفتن فروشنده
+  systemKind?: 'SELLER_TAKEOVER'
   uiBlock?: ShopUiBlock
   // docs/PRD-sales-agent-voice.md بخش ۱.۲ — وقتی پاسخ بلند بود و وویس در حال تولید است،
   // سرور voiceEventId می‌دهد؛ کلاینت کوتاه پول می‌کند تا voiceKey برسد
@@ -823,6 +825,10 @@ export interface ShopConversationEvent {
     imageKey?: string
     videoKey?: string
     reattachedToOrder?: boolean
+    // رویدادهای SYSTEM: SELLER_TAKEOVER | BACK_TO_BOT | AUTO_BACK_TO_BOT | AI_REPLY_DROPPED_TAKEOVER
+    kind?: string
+    fromState?: string
+    toState?: string
   }
   createdAt: string
 }
@@ -1151,9 +1157,30 @@ export interface NeededAttentionConversation {
   orderId: string | null
 }
 
+// docs/PRD-seller-conversations-inbox.md §۴.۳
+export type SellerConversationControl = 'BOT' | 'SELLER' | 'BOT_HANDOFF'
+
+export interface SellerConversationListItem {
+  id: string
+  customerLabel: string
+  channel: 'WEB' | 'TELEGRAM' | 'INSTAGRAM'
+  currentState: string
+  control: SellerConversationControl
+  lastMessageAt: string
+  lastMessagePreview: { from: 'CUSTOMER' | 'BOT' | 'SELLER'; text: string } | null
+  unreadCount: number
+  orderId: string | null
+}
+
+export interface SellerConversationListPage {
+  items: SellerConversationListItem[]
+  nextCursor: string | null
+}
+
 export interface SellerConversationDetail {
   id: string
   isMutedForHuman: boolean
+  control?: SellerConversationControl
   currentState: string
   customerLabel: string
   orderId: string | null

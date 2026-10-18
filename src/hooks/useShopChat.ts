@@ -85,6 +85,9 @@ function eventsToMessages(events: ShopConversationEvent[], conversationId: strin
         createdAt: e.createdAt,
         ...(e.type === 'SELLER_MESSAGE' ? { fromSeller: true } : {}),
       })
+    } else if (e.type === 'SYSTEM' && e.payload.kind === 'SELLER_TAKEOVER') {
+      // §۳.۴ — «برگشت به بات» عمداً به مشتری نشان داده نمی‌شود
+      messages.push({ id: `s-${e.createdAt}`, role: 'agent', text: '', systemKind: 'SELLER_TAKEOVER', createdAt: e.createdAt })
     }
   })
   return messages

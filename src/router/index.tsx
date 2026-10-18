@@ -47,6 +47,7 @@ import { PublicOrderPage } from '@/pages/shop/PublicOrderPage'
 import { SellerProductsPage } from '@/pages/seller/panel/SellerProductsPage'
 import { SellerTodayPage } from '@/pages/seller/panel/SellerTodayPage'
 import { SellerChatPage } from '@/pages/seller/panel/SellerChatPage'
+import { SellerChatsPage } from '@/pages/seller/panel/SellerChatsPage'
 import { SellerStorePage } from '@/pages/seller/panel/store/SellerStorePage'
 import { StoreInfoPage } from '@/pages/seller/panel/store/StoreInfoPage'
 import { StoreShippingPage } from '@/pages/seller/panel/store/StoreShippingPage'
@@ -145,6 +146,7 @@ export function AppRouter() {
         <Route path="products" element={<SellerProductsPage />} />
         <Route path="products/batch" element={<SellerProductsBatchPage />} />
         <Route path="products/:id" element={<SellerProductPage />} />
+        <Route path="chats" element={<SellerChatsPage />} />
         <Route path="chats/:conversationId" element={<SellerChatPage />} />
         <Route path="store" element={<SellerStorePage />} />
         <Route path="store/info" element={<StoreInfoPage />} />
